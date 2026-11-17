@@ -1,0 +1,810 @@
+
+<style>
+/* ===== Trust & support (ts-) ===== */
+.ts-ex{display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.ts-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ts-spoil{background:var(--ink);color:var(--ink);border-radius:4px;padding:0 3px;box-shadow:0 0 0 2px var(--ink)}
+.ts-spoil.open{background:#FDE68A;color:inherit;box-shadow:0 0 0 2px #FDE68A}
+.ts-review{font-family:var(--f-r);font-size:16px;line-height:1.7;color:#1D1A16;padding:14px 16px;border-radius:12px;background:var(--canvas)}
+.ts-stars{font-family:var(--f-d);font-weight:800;font-size:15px;color:var(--org-ink)}
+.ts-rep{display:flex;gap:12px;align-items:flex-start;padding:12px 18px;border-top:1px solid var(--line-2);font-size:13.5px}
+.ts-rep:first-child{border-top:0}
+.ts-rep .grow{display:flex;flex-direction:column;gap:2px}
+.ts-rep small{color:var(--ink-3);font-size:12.5px}
+.ts-ctx{display:flex;flex-direction:column;gap:10px;padding:0 18px 18px}
+.ts-thread{display:flex;flex-direction:column;gap:12px}
+.ts-thread .msg.staff{flex-direction:row-reverse}
+.ts-thread .msg.staff .msg__b{border-radius:14px 4px 14px 14px}
+.ts-note{background:var(--warn-t);color:#78350F;border-radius:12px;padding:10px 14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px}
+.ts-note small{color:#92602A;font-size:12px}
+.ts-two{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:20px;align-items:start}
+.ts-tk{display:flex;flex-direction:column;gap:3px;padding:12px 16px;border-top:1px solid var(--line-2);cursor:pointer;min-width:0}
+.ts-tk:first-child{border-top:0}
+.ts-tk:hover{background:#FCFAF7}
+.ts-tk.sel{background:var(--org-tint-2);box-shadow:inset 0 0 0 1.5px var(--org)}
+.ts-tk b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-tk__r{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);flex-wrap:wrap}
+.ts-tk__r .grow{min-width:8px}
+.fold__b > b{font-size:14px}
+.ts-rule{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 18px;border-top:1px solid var(--line-2);font-size:13.5px}
+.ts-rule:first-child{border-top:0}
+.ts-rule small{display:block;color:var(--ink-3);font-size:12.5px}
+.ts-pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.ts-chipset{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 16px}
+.ts-sim{font-family:var(--f-d);font-weight:800;font-size:34px;letter-spacing:-0.02em;color:var(--err)}
+.ts-cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ts-help{font-family:var(--f-ui);font-size:15px;line-height:1.7;color:#1D1A16;padding:22px 28px;display:flex;flex-direction:column;gap:12px}
+.ts-help h3{font-family:var(--f-d);font-weight:800;font-size:20px;margin:6px 0 0}
+.ts-help ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.ts-reply{display:flex;flex-direction:column;gap:10px;padding:14px 18px 18px;border-top:1px solid var(--line)}
+.ts-reply button.dd{font:inherit;color:inherit;cursor:pointer}
+@media (max-width:980px){.ts-two,.ts-cols2{grid-template-columns:minmax(0,1fr)}.ts-rule{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<!-- ===================== 05 Trust: Reports ===================== -->
+<section class="screen" id="s-reports" data-area="5" data-nav="reports" data-name="Reports" data-note="Same as v25: report queue with severity and the reported content. High severity items must get a first decision within 24 hours, others within 3 days.|New: severity is set from the reason (threats and sexual content are High), reporter count and automated signals. High items float to the top.|Rule: when 3 or more different readers report the same content it is hidden in the app straight away (auto-hidden) and waits for staff. Authors and readers see 'This content is under review'. 5 items are hidden right now. Staff can restore it with Keep.|Fixed: reviews, post comments and DMs can now be reported (v25 only allowed messages and discussions).|New: simplified. One row of content-type quick filters; reason, severity and assignee moved into Filters. Reported user and place are now under each content line. Only High severity and Auto-hidden get pills." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Reports</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="automod">Safety rules</a><a class="ib" data-go="exports" aria-label="Export reports"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="true" class="is-selected">Open <span class="c">18</span></a>
+    <a role="tab" aria-selected="false">Assigned to me <span class="c">6</span></a>
+    <a role="tab" aria-selected="false">Resolved <span class="c">412</span></a>
+    <a role="tab" aria-selected="false">Auto-hidden <span class="c">5</span></a>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Search content, @username or report id" aria-label="Search reports"></label>
+      <button class="fbtn" data-toast="Filters: reason, severity, assignee"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+      <span class="row" style="gap:6px" data-single><button class="fchip is-selected">All <span class="c">18</span></button><button class="fchip">Messages <span class="c">5</span></button><button class="fchip">Discussions <span class="c">3</span></button><button class="fchip">Reviews <span class="c">3</span></button><button class="fchip">Reading rooms <span class="c">2</span></button><button class="fchip">Posts <span class="c">2</span></button><button class="fchip">Profiles <span class="c">1</span></button><button class="fchip">Books <span class="c">1</span></button><button class="fchip">DMs <span class="c">1</span></button></span>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Severity</th><th>Content</th><th>Reason</th><th class="r">Reporters</th><th>Age</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="report"><td><span class="st st-err">High</span></td><td><span class="ts-ex">"Say that again and I will find you after the meetup in Ibadan…"</span><small class="faint">Reading-room chat · Ruth of Ibadan, ch. 9 · @tobi_reads</small></td><td>Violence or threats</td><td class="n">4</td><td class="nw warn-t"><b>6 min</b></td><td><span class="st st-err">Auto-hidden</span></td></tr>
+          <tr data-go="report"><td><span class="st st-err">High</span></td><td><span class="ts-ex">Explicit photo shared in a private message to an author</span><small class="faint">DM · To Kemi Ogunleye · @akpos_dreams</small></td><td>Sexual content</td><td class="n">1</td><td class="nw warn-t"><b>3 h</b></td><td><span class="faint">Unassigned</span></td></tr>
+          <tr data-go="report"><td><span class="st st-err">High</span></td><td><span class="ts-ex">"People like you should not be allowed to speak in this country"</span><small class="faint">Discussion comment · Seven Bridges to Jos, ch. 4 · @sabi_man</small></td><td>Hate speech</td><td class="n">3</td><td class="nw warn-t"><b>9 h</b></td><td><span class="st st-err">Auto-hidden</span></td></tr>
+          <tr data-go="report-review"><td>Medium</td><td><span class="ts-ex">Review of Harmattan Letters: "…and then Ada dies in chapter 31, such a…"</span><small class="faint">Review · Harmattan Letters · Kelechi Nwosu</small></td><td>Spoilers</td><td class="n">3</td><td class="nw">1 day</td><td><span class="st st-err">Auto-hidden</span></td></tr>
+          <tr data-go="report"><td>Medium</td><td><span class="ts-ex">"Follow my page for cheap data and Naira exchange, DM me"</span><small class="faint">Message · Lagos Christian Readers · @lagosdeals</small></td><td>Spam or scams</td><td class="n">6</td><td class="nw">2 h</td><td>Zainab</td></tr>
+          <tr data-go="report"><td>Medium</td><td><span class="ts-ex">"You are just a bitter spinster, no wonder nobody reads your rubbish"</span><small class="faint">Post comment · Post by Chioma Okafor · Ibrahim Lawal</small></td><td>Harassment or bullying</td><td class="n">2</td><td class="nw">5 h</td><td>Zainab</td></tr>
+          <tr data-go="report"><td>Medium</td><td><span class="ts-ex">Profile named "Ifeoma Nwachukwu Official" with her photo</span><small class="faint">Profile · @ifeoma_official1</small></td><td>Impersonation</td><td class="n">2</td><td class="nw">1 day</td><td><span class="faint">Unassigned</span></td></tr>
+          <tr data-go="report-review"><td>Low</td><td><span class="ts-ex">Review of The Alignment: "The twist with the pastor's brother is…"</span><small class="faint">Review · The Alignment · Hauwa Musa</small></td><td>Spoilers</td><td class="n">1</td><td class="nw">2 days</td><td><span class="faint">Unassigned</span></td></tr>
+          <tr data-go="report"><td>Low</td><td><span class="ts-ex">"This book is boring abeg, who even wrote this nonsense"</span><small class="faint">Discussion comment · A House Called Grace, ch. 2 · Tunji Adebisi</small></td><td>Something else</td><td class="n">1</td><td class="nw">2 days</td><td>Zainab</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 9 of 18 open reports · severity, then oldest</span><span>Promise: High within 24 hours, others within 3 days</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-report" data-area="5" data-nav="reports" data-name="Report: threat in chat" data-note="Same as v25: report with the reported content and quick actions.|New: the flagged message is shown in context (5 messages either side) so staff judge tone, not just a single line.|Rule: Keep restores auto-hidden content. Remove takes it out of the room but keeps it for the audit trail. Remove and act on user opens the outcome choice and messages the user.|Rule: credible threats against a person (a threat to harm a named person or to meet them) are escalated to a Super admin, who decides whether to contact the Nigeria Police Force and makes sure the logs are kept.|New: simplified. Reporters, automatic checks and the reading room sit in More details. The automatic check rates it 91 of 100 for abuse; matched phrase 'find you', no links, new account. Decisions sit in the bar at the bottom; Escalate is in the more menu." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="reports">Reports</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>RPT-2026-1184</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Threat in a reading room <span class="st st-err">High</span></h1><div class="ph__meta"><span>Auto-hidden · Reading-room chat · Ruth of Ibadan, chapter 9</span><span>First report 6 min ago · 4 reporters</span><span>Assigned to Zainab Yusuf</span></div></div>
+      <div class="ph__acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-go="user">Open @tobi_reads</a><a data-go="room">Open the reading room</a><a data-toast="Assigned to you">Assign to me</a><hr><a class="danger" data-toast="Escalated to Super admin. They decide whether to contact the police and keep the logs.">Escalate to Super admin</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Message in context</h2><span class="sub">Today, 10:41 to 10:47 · times in WAT</span></div>
+          <div class="panel__body">
+            <div class="msg"><span class="av sm o">CO</span><div class="msg__b"><small>Chiamaka Obi · 10:41</small>Ruth telling Boaz's mother off in chapter 9 was the best scene so far. I clapped.</div></div>
+            <div class="msg"><span class="av sm g">HM</span><div class="msg__b"><small>Hauwa Musa · 10:42</small>Me too, but I think Tolu made her too harsh. Naomi was only protecting her son.</div></div>
+            <div class="msg"><span class="av sm r">TR</span><div class="msg__b"><small>@tobi_reads · 10:42</small>Harsh? She was protecting herself. People who defend Naomi never read the chapter.</div></div>
+            <div class="msg"><span class="av sm g">HM</span><div class="msg__b"><small>Hauwa Musa · 10:43</small>I read it twice o. You don't have to insult people, we are all just discussing.</div></div>
+            <div class="msg"><span class="av sm o">CO</span><div class="msg__b"><small>Chiamaka Obi · 10:43</small>Let's calm down jare, it's a book.</div></div>
+            <div class="msg flagged"><span class="av sm r">TR</span><div class="msg__b"><small>@tobi_reads · 10:44 · reported by 4</small>Say that again and I will find you after the meetup in Ibadan. You don't know who you're talking to.</div></div>
+            <div class="msg"><span class="av sm g">HM</span><div class="msg__b"><small>Hauwa Musa · 10:44</small>Is that a threat? I'm reporting this.</div></div>
+            <div class="msg"><span class="av sm k">KN</span><div class="msg__b"><small>Kelechi Nwosu · 10:45</small>That is not okay at all. @tobi_reads please leave the room.</div></div>
+            <div class="msg"><span class="av sm r">TR</span><div class="msg__b"><small>@tobi_reads · 10:46</small>Lol relax, everyone is too sensitive these days</div></div>
+            <div class="msg"><span class="av sm o">CO</span><div class="msg__b"><small>Chiamaka Obi · 10:47</small>Host, please can you mute him?</div></div>
+            <div class="msg"><span class="av sm t">TA</span><div class="msg__b"><small>Tolu Adebayo (host) · 10:47</small>Reported. Sorry everyone. Staff will look at it.</div></div>
+          </div>
+        </div>
+        <details class="fold"><summary>More details <small>reporters, automated signals, reading room</small></summary><div class="fold__b">
+          <b>Reporters · 4 readers, first at 10:44</b>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Reader</th><th>Reason chosen</th><th>Comment</th><th class="r">When</th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span class="av xs g">HM</span><span><b>Hauwa Musa</b></span></div></td><td>Violence or threats</td><td class="muted">"He threatened to find me. I don't feel safe in this room."</td><td class="n">10:44</td></tr>
+              <tr><td><div class="who"><span class="av xs k">KN</span><span><b>Kelechi Nwosu</b></span></div></td><td>Violence or threats</td><td class="muted">No comment</td><td class="n">10:45</td></tr>
+              <tr><td><div class="who"><span class="av xs o">CO</span><span><b>Chiamaka Obi</b></span></div></td><td>Harassment or bullying</td><td class="muted">"He has been rude to everyone since 10:30."</td><td class="n">10:46</td></tr>
+              <tr><td><div class="who"><span class="av xs t">TA</span><span><b>Tolu Adebayo</b> <small>host</small></span></div></td><td>Violence or threats</td><td class="muted">"Host report. This is not the first time."</td><td class="n">10:48</td></tr>
+            </tbody>
+          </table></div>
+          <b>Automatic checks</b>
+          <div class="stack s8"><div class="row between"><span class="muted">How abusive it looks to the automatic check</span><b>91 of 100</b></div><div class="meter"><i class="err" style="--v:91%"></i></div></div>
+          <div class="kv-row"><span>Contains links</span><b>No</b></div>
+          <div class="kv-row"><span>New account (under 14 days)</span><b>Yes</b></div>
+          <div class="kv-row"><span>Matched phrase</span><b>"find you" (threat)</b></div>
+          <div class="kv-row"><span>Auto-hide</span><b>Hidden 10:46 (3 reports)</b></div>
+          <b>Reading room · <a class="link" data-go="room">Open room</a></b>
+          <dl class="kv tight"><dt>Room</dt><dd>Ruth of Ibadan, chapter 9</dd><dt>Host</dt><dd>Tolu Adebayo</dd><dt>Live now</dt><dd>41 readers</dd><dt>Join code</dt><dd class="mono">RUTH-9X4K</dd></dl>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Reported user</h2><a class="link" data-go="user" style="font-size:13px">Open @tobi_reads</a></div>
+          <div class="panel__body">
+            <div class="who"><span class="av lg r">TR</span><span><b style="font-size:15px">@tobi_reads</b><small>Tobi Ajayi · Reader · Monthly plan · Ibadan</small></span></div>
+            <dl class="kv tight"><dt>Account age</dt><dd>11 days <span class="st st-warn">New</span></dd><dt>Prior warnings</dt><dd>1 (rude in a discussion, 7 Nov)</dd><dt>Other reports</dt><dd>2 (both dismissed)</dd><dt>Messages sent</dt><dd>148 in 11 days</dd><dt>Muted or banned</dt><dd>No</dd></dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Report <b>1 of 18</b> · <a class="link" data-go="reports">Back to queue</a></div><span class="grow"></span><a class="btn btn-g" data-go="reports" data-toast="Report closed. Message restored in the room." data-undo="report">Keep</a><a class="btn btn-g" data-go="reports" data-toast="Message removed. 4 reporters told." data-undo="report">Remove</a><a class="btn btn-p" data-go="report-action">Remove and act on user…</a><a class="btn btn-q sm" data-go="report-review">Skip <span class="kbd">J</span></a></div>
+</section>
+
+<section class="screen overlay" id="s-report-action" data-area="5" data-base="report" data-name="Take action" data-note="Rule: every action removes the content and is written to the audit log with the reason.|Rule: the user is always told what happened and why; suspensions and bans can be appealed within 14 days.|New: reporters can be told 'We took action on your report' without saying what the action was." hidden>
+  <a class="backdrop" data-go="report" aria-label="Close"></a>
+  <div class="modal wide" role="dialog" aria-label="Take action">
+    <div class="modal__h"><div class="grow"><h2>Take action on @tobi_reads</h2><p>Report RPT-2026-1184 · threat in a reading room</p></div><a class="ib" data-go="report" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="radios" data-single>
+        <div class="radio"><span><b>Warn</b><small>Message removed. A formal warning is added to the account (second warning).</small></span></div>
+        <div class="radio is-selected"><span><b>Mute 7 days</b><small>Message removed. Cannot post in chats, rooms or discussions for 7 days. Can still read.</small></span></div>
+        <div class="radio"><span><b>Suspend 30 days</b><small>Message removed. Cannot sign in to the app for 30 days. The subscription keeps running.</small></span></div>
+        <div class="radio"><span><b>Ban</b><small>Permanent. Only a Super admin can confirm. Credits are not refunded.</small></span></div>
+      </div>
+      <div class="f full"><label>Message Tobi will receive</label><textarea class="inp ta" rows="4">Hi Tobi, your message in the "Ruth of Ibadan, chapter 9" reading room threatened another reader. That breaks the Arpedia community rules, so we removed it and muted your account for 7 days. You can still read your books. If you think we got this wrong, you can appeal from the app within 14 days.</textarea><span class="hint">Sent as an in-app message and email. You can edit it.</span></div>
+      <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span><span><b>Tell the 4 reporters</b><br><small class="faint">They get: "We took action on your report." They are not told what the action was.</small></span></label>
+      <details class="fold"><summary>More options <small>reason, internal note</small></summary><div class="fold__b">
+        <div class="f"><label>Reason</label><div class="inp sel"><span>Violence or threats</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+        <div class="f"><label>Internal note <span class="opt">(staff only)</span></label><div class="inp"><input value="Second incident, new account, 4 reporters"></div></div>
+      </div></details>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="report">Cancel</a><a class="btn btn-p" data-go="reports" data-toast="Message removed and @tobi_reads muted for 7 days. Tobi and the 4 reporters told." data-undo="report">Remove and mute 7 days</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-report-review" data-area="5" data-nav="reports" data-name="Report: review with spoilers" data-note="Fixed: reviews and post comments can now be reported and blocked by readers (v25 had no way to). Readers can also report DMs to authors; staff see only the reported thread, never other DMs.|Rule: Mark as spoiler keeps the review but blurs it in the app behind 'Tap to reveal'. The reviewer is told why.|Data: likes and rating come from the book page.|New: simplified. The author reply, reporters and book details are in More details; the decisions sit in the bar at the bottom and Mark as spoiler can be undone." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="reports">Reports</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>RPT-2026-1171</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Spoiler in a review <span class="faint" style="font-size:15px;font-weight:600">Medium</span></h1><div class="ph__meta"><span>Auto-hidden · Review · Harmattan Letters</span><span>First report yesterday 11:20 · 3 reporters</span><span>Unassigned</span></div></div>
+      <div class="ph__acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-go="user">Open Kelechi Nwosu</a><a data-go="book">Open Harmattan Letters</a><a data-go="report-action">Remove and act on user…</a><hr><a class="danger" data-toast="Escalated to Super admin">Escalate to Super admin</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>The review</h2><span class="sub">Posted 6 Nov</span></div>
+          <div class="panel__body">
+            <div class="who"><span class="av o">KN</span><span><b>Kelechi Nwosu</b><small>Reader · Quarterly plan · 41 reviews</small></span><span class="grow"></span><span class="ts-stars">5.0 out of 5</span></div>
+            <div class="ts-review">I stayed up till 2am for this one. Ifeoma writes grief so well. <mark class="ts-spoil open">When Ada dies in chapter 31 and the letters from her mother start arriving, I cried properly.</mark> Everything the harmattan season stood for in the first part finally made sense. Please read it with tissues nearby.</div>
+            <div class="row" style="gap:16px;font-size:13px;color:var(--ink-2)"><span><b>38</b> likes</span><span><b>4</b> replies</span><span>Marked helpful by 12 readers</span></div>
+          </div>
+        </div>
+        <details class="fold"><summary>More details <small>author reply, reporters, book</small></summary><div class="fold__b">
+          <b>Author reply</b>
+          <div class="ts-rep" style="padding:0;border:0"><span class="av sm r">IN</span><span class="grow"><b>Ifeoma Nwachukwu <span class="faint" style="font-weight:600">Author</span></b><span>Thank you Kelechi, this made my week. I'm sorry about the tissues!</span><small>7 Nov</small></span></div>
+          <b>Reporters · 3 readers</b>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Reader</th><th>Reason chosen</th><th>Comment</th><th class="r">When</th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span class="av xs t">TA</span><span><b>Tunji Adebisi</b></span></div></td><td>Spoilers</td><td class="muted">"I'm on chapter 12 and now I know she dies."</td><td class="n">11:20</td></tr>
+              <tr><td><div class="who"><span class="av xs m">CO</span><span><b>Chiamaka Obi</b></span></div></td><td>Spoilers</td><td class="muted">No comment</td><td class="n">13:02</td></tr>
+              <tr><td><div class="who"><span class="av xs g">HM</span><span><b>Hauwa Musa</b></span></div></td><td>Spoilers</td><td class="muted">"Should be blurred."</td><td class="n">16:45</td></tr>
+            </tbody>
+          </table></div>
+          <b>Book and reviewer</b>
+          <div class="who"><span class="cv c1 x40"></span><span><b>Harmattan Letters</b><small>Ifeoma Nwachukwu · 4.7★ · 18K reads</small></span></div>
+          <dl class="kv tight"><dt>Reviewer</dt><dd><a class="link" data-go="user">Kelechi Nwosu</a></dd><dt>Past reports</dt><dd>0</dd><dt>Spoiler marks</dt><dd>1 (The Alignment, Sept)</dd></dl>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Message to Kelechi</h2><span class="sub">optional, sent with your decision</span></div>
+          <div class="panel__body">
+            <textarea class="inp ta" rows="4" aria-label="Message to Kelechi">Your review is lovely. We blurred it because it names a plot event, so other readers can choose to reveal it.</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Report <b>2 of 18</b> · <a class="link" data-go="reports">Back to queue</a></div><span class="grow"></span><a class="btn btn-g" data-go="reports" data-toast="Report closed. Review unhidden." data-undo="report-review">Keep</a><a class="btn btn-g" data-go="reports" data-toast="Review removed. Kelechi Nwosu told. Its rating left the book average." data-undo="report-review">Remove</a><a class="btn btn-p" data-go="reports" data-toast="Review blurred as a spoiler. Kelechi Nwosu told." data-undo="report-review">Mark as spoiler</a><a class="btn btn-q sm" data-go="report">Skip <span class="kbd">J</span></a></div>
+</section>
+
+<!-- ===================== 05 Trust: Community ===================== -->
+<section class="screen" id="s-community" data-area="5" data-nav="community" data-name="Community" data-note="Same as v25: channels, messages and moderation of author communities.|New: official channels created by staff (announcements, regional and faith groups) next to author channels, which are created automatically when an author is approved.|Rule: author channels are moderated by the author first; staff step in on reports and can mute or lock.|Data: message counts are the last 7 days; open reports link to the Reports queue.|New: simplified. Plain header, one primary action (Create official channel), Reports behind an icon. Type, status and open-reports dropdowns are in Filters. Owner and who-can-post moved under the channel name. Only Chat locked gets a pill." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Community</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-toast="Official channel created. Staff only post until you change it."><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>Create official channel</a><a class="ib" data-go="reports" aria-label="Reports"><svg class="ico" aria-hidden="true"><use href="#i-flag"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="true" class="is-selected">Channels <span class="c">146</span></a>
+    <a role="tab" aria-selected="false" data-go="rooms">Reading rooms <span class="c">7 live</span></a>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Channels</span><span class="kpi__v">146</span><span class="kpi__d">12 official · 134 author</span></div>
+      <a class="kpi" data-go="rooms"><span class="kpi__l">Reading rooms live now</span><span class="kpi__v">7</span><span class="kpi__d">212 readers inside · 3 starting today</span></a>
+      <div class="kpi"><span class="kpi__l">Messages today</span><span class="kpi__v">9,840</span><span class="kpi__d"><span class="up">+8%</span> vs last Thursday</span></div>
+      <a class="kpi" data-go="reports"><span class="kpi__l">Members muted</span><span class="kpi__v">12</span><span class="kpi__d">3 expire this week</span></a>
+    </div>
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Channel or owner" aria-label="Search channels"></label>
+      <button class="fbtn" data-toast="Filters: reason, severity, assignee"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Channel</th><th>Type</th><th class="r">Members</th><th class="r">Messages, 7 days</th><th class="r">Open reports</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="channel"><td><b>Ifeoma's Harmattan Circle</b><br><small class="faint">Ifeoma Nwachukwu · members post</small></td><td>Author</td><td class="n">3,420</td><td class="n">2,184</td><td class="n"><b class="warn-t">2</b></td><td>Active</td></tr>
+          <tr data-go="channel"><td><b>Arpedia Announcements</b><br><small class="faint">Arpedia team · staff only post</small></td><td>Official</td><td class="n">31,870</td><td class="n">14</td><td class="n">0</td><td>Active</td></tr>
+          <tr data-go="channel"><td><b>Lagos Christian Readers</b><br><small class="faint">Zainab Yusuf · members post</small></td><td>Official</td><td class="n">4,905</td><td class="n">3,611</td><td class="n"><b class="warn-t">3</b></td><td>Active</td></tr>
+          <tr data-go="channel"><td><b>Still Waters Book Club</b><br><small class="faint">Chioma Okafor · members post</small></td><td>Author</td><td class="n">1,980</td><td class="n">1,247</td><td class="n">1</td><td>Active</td></tr>
+          <tr data-go="channel"><td><b>The Alignment: Discussion</b><br><small class="faint">Adaeze R. Possible · members post, slow mode 30 s</small></td><td>Author</td><td class="n">2,610</td><td class="n">1,902</td><td class="n">0</td><td>Active</td></tr>
+          <tr data-go="channel"><td><b>Naija Poets Corner</b><br><small class="faint">Emeka Obi · author and followers post</small></td><td>Author</td><td class="n">740</td><td class="n">318</td><td class="n">0</td><td>Active</td></tr>
+          <tr data-go="channel"><td><b>Abuja Readers Meetup</b><br><small class="faint">Bisi Adeyemi · members post</small></td><td>Official</td><td class="n">1,126</td><td class="n">402</td><td class="n">1</td><td><span class="st st-warn">Chat locked</span></td></tr>
+          <tr data-go="channel"><td><b>Garden of Small Mercies</b><br><small class="faint">Esther Akande · members post</small></td><td>Author</td><td class="n">96</td><td class="n">0</td><td class="n">0</td><td>Quiet</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 8 of 146 channels · most active first</span><span>Author channels are created automatically on approval</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-channel" data-area="5" data-nav="community" data-name="Channel" data-note="Same as v25: channel messages, members and flagged messages.|New: settings staff can change on behalf of an author (visibility, who can post, slow mode, muted words) with every change logged.|Rule: removing the author as owner is not possible here; staff can only mute, lock or lock-and-notify.|Rule: muted words set here add to the global safety rules, they never replace them.|New: simplified. The five key numbers are one line in the header (9 messages removed: 4 by moderators, 5 by staff). The members table and pinned messages are in More details. Lock chat and Mute channel are in the more menu; changes show a Save settings toast." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="community">Community</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Ifeoma's Harmattan Circle</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Ifeoma's Harmattan Circle</h1><div class="ph__meta"><span>Author channel · owner Ifeoma Nwachukwu · created 2 Feb 2026, when she was approved</span><span>3,420 members (+112 this week)</span><span>2,184 messages in 7 days · 486 active posters</span><span>2 open reports, oldest 5 h</span></div></div>
+      <div class="ph__acts"><a class="btn btn-g" data-go="author">Open author</a><a class="btn btn-p" data-toast="Settings saved. Change logged.">Save settings</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Chat locked. Ifeoma and members see that staff locked it." data-undo="channel">Lock chat</a><a data-toast="Channel muted for 24 hours. Ifeoma is told." data-undo="channel">Mute channel for 24 hours</a><a data-go="reports">Open reports</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Flagged messages</h2><a class="link" data-go="reports" style="font-size:13px">All reports</a></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Message</th><th>From</th><th>Reason</th><th class="r">Reporters</th><th class="r">Age</th></tr></thead>
+            <tbody>
+              <tr data-go="report"><td><span class="ts-ex">"Anyone selling the PDF of this book for free? DM me"</span></td><td><b>@pdf_plug</b></td><td>Spam or scams</td><td class="n">2</td><td class="n">5 h</td></tr>
+              <tr data-go="report"><td><span class="ts-ex">"Ifeoma only writes for people who suffer like her. Shame."</span></td><td><b>@aunty_ngozi</b></td><td>Harassment or bullying</td><td class="n">1</td><td class="n">1 day</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <details class="fold"><summary>More details <small>members, pinned messages</small></summary><div class="fold__b">
+          <b>Members · 3,420, sorted by role</b>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Member</th><th>Role</th><th class="r">Messages</th><th>Joined</th><th class="acts"></th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span class="av sm r">IN</span><span><b>Ifeoma Nwachukwu</b></span></div></td><td>Owner</td><td class="n">642</td><td>2 Feb 2026</td><td class="acts"></td></tr>
+              <tr><td><div class="who"><span class="av sm o">CO</span><span><b>Chiamaka Obi</b></span></div></td><td>Moderator</td><td class="n">518</td><td>14 Feb 2026</td><td class="acts"><a class="btn btn-q sm" data-toast="Chiamaka Obi muted for 24 hours" data-undo="channel">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm g">HM</span><span><b>Hauwa Musa</b></span></div></td><td>Moderator</td><td class="n">377</td><td>3 Mar 2026</td><td class="acts"><a class="btn btn-q sm" data-toast="Hauwa Musa muted for 24 hours" data-undo="channel">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm k">KN</span><span><b>Kelechi Nwosu</b></span></div></td><td>Member</td><td class="n">291</td><td>9 Mar 2026</td><td class="acts"><a class="btn btn-q sm" data-toast="Kelechi Nwosu muted for 24 hours" data-undo="channel">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm t">TA</span><span><b>Tunji Adebisi</b></span></div></td><td>Member</td><td class="n">204</td><td>21 Apr 2026</td><td class="acts"><a class="btn btn-q sm" data-toast="Tunji Adebisi muted for 24 hours" data-undo="channel">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm n">PD</span><span><b>@pdf_plug</b></span></div></td><td>Member · <b class="err-t">Muted 7 d</b></td><td class="n">11</td><td>8 Nov 2026</td><td class="acts"><a class="btn btn-q sm" data-toast="@pdf_plug unmuted" data-undo="channel">Unmute</a></td></tr>
+            </tbody>
+          </table></div>
+          <span class="hint">Showing 6 of 3,420. Removing a member does not block them from rejoining unless suspended.</span>
+          <b>Pinned messages · 2 of 3</b>
+          <div class="ts-rep"><span class="grow"><b>Welcome to the Circle</b><span class="muted">Be kind, no spoilers past chapter 20 without a warning, and no pirated PDFs please.</span><small>Ifeoma Nwachukwu · pinned 2 Feb</small></span></div>
+          <div class="ts-rep"><span class="grow"><b>Live reading room, Sat 14 Nov, 5 pm</b><span class="muted">We read chapters 30 to 33 together. Join code is in the Rooms tab.</span><small>Ifeoma Nwachukwu · pinned 10 Nov</small></span></div>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Settings</h2></div>
+          <div class="panel__body">
+            <div class="f"><span class="lbl">Visibility</span><div class="seg" data-single><button class="is-selected">Public</button><button>Followers only</button></div><span class="hint">Public channels show in Discover and the book page.</span></div>
+            <div class="f"><label>Who can post</label><div class="inp sel"><span>Members</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            <div class="f"><label>Slow mode</label><div class="inp sel"><span>Off</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            <div class="f"><label>Muted words in this channel</label><div class="ts-chips"><span class="ts-pill">pdf free</span><span class="ts-pill">whatsapp me</span><span class="ts-pill">crack</span><span class="fchip" data-toast="Word added to this channel">+ Add word</span></div></div>
+            <div class="f"><label>Moderators</label><div class="ts-chips"><span class="ts-pill">Chiamaka Obi</span><span class="ts-pill">Hauwa Musa</span><span class="fchip" data-toast="Moderator added">+ Add</span></div><span class="hint">Chosen by the author. Maximum 5.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-rooms" data-area="5" data-nav="community" data-name="Reading rooms" data-note="New: live and scheduled reading rooms with join codes, so staff can see what is happening without joining as a reader.|Rule: Join silently lets staff watch chat without appearing in the participant list. It is logged in the audit log.|Rule: End room (on the room page) closes the chat for everyone and keeps the transcript for 90 days for reports.|Data: participants update every 10 seconds. 7 live rooms with 212 readers inside, 3 more start today.|New: simplified. Plain header, one table per list at 6 columns with book and host under the room name. Scheduled and Ended recently are folded; Live now stays open." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Reading rooms</h1></div>
+      <div class="band__acts"><a class="ib" data-go="reports" aria-label="Reports"><svg class="ico" aria-hidden="true"><use href="#i-flag"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="false" data-go="community">Channels <span class="c">146</span></a>
+    <a role="tab" aria-selected="true" class="is-selected">Reading rooms <span class="c">7 live</span></a>
+  </div>
+  <div class="page">
+    <div class="toolbar"><div class="seg" data-single><button class="is-selected">Live now <span class="faint">7</span></button><button>Scheduled <span class="faint">9</span></button><button>Ended <span class="faint">128</span></button></div><span class="grow"></span><label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Room, book, host or join code" aria-label="Search rooms"></label></div>
+    <div class="panel panel--flush">
+      <div class="panel__head"><h2>Live now</h2></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Room</th><th class="r">Participants</th><th>Started</th><th>Join code</th><th class="r">Reports</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr data-go="room"><td><b>Ruth of Ibadan, chapter 9</b><br><small class="faint">Ruth of Ibadan · host Tolu Adebayo</small></td><td class="n">41</td><td class="nw">10:15 today</td><td class="mono">RUTH-9X4K</td><td class="n"><span class="st st-err">1</span></td><td class="acts"><a class="btn btn-g sm" data-go="room" data-toast="Joined silently. Logged; the host is not told.">Join silently</a></td></tr>
+          <tr data-go="room"><td><b>Harmattan evening read</b><br><small class="faint">Harmattan Letters · host Ifeoma Nwachukwu</small></td><td class="n">78</td><td class="nw">11:00 today</td><td class="mono">HARM-27QP</td><td class="n">0</td><td class="acts"><a class="btn btn-g sm" data-go="room" data-toast="Joined silently. Logged; the host is not told.">Join silently</a></td></tr>
+          <tr data-go="room"><td><b>Psalms for the Danfo, Thursday slot</b><br><small class="faint">Psalms for the Danfo · host Emeka Obi</small></td><td class="n">33</td><td class="nw">9:30 today</td><td class="mono">DANF-71MM</td><td class="n">0</td><td class="acts"><a class="btn btn-g sm" data-go="room" data-toast="Joined silently. Logged; the host is not told.">Join silently</a></td></tr>
+          <tr data-go="room"><td><b>Still Waters, chapters 4 to 6</b><br><small class="faint">Still Waters, Lagos · host Chioma Okafor</small></td><td class="n">29</td><td class="nw">10:40 today</td><td class="mono">STIL-3ZJ8</td><td class="n">0</td><td class="acts"><a class="btn btn-g sm" data-go="room" data-toast="Joined silently. Logged; the host is not told.">Join silently</a></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 4 of 7 live rooms</span></div>
+    </div>
+    <details class="fold"><summary>Scheduled <small>9 · next 3 days</small></summary><div class="fold__b">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Room</th><th class="r">RSVP</th><th>Starts</th><th>Join code</th><th class="r">Reports</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr><td><b>Seven Bridges, Jos night read</b><br><small class="faint">Seven Bridges to Jos · host Musa Danladi</small></td><td class="n">64</td><td class="nw">Today 20:00</td><td class="mono">JOSB-48HD</td><td class="n">0</td><td class="acts"><a class="btn btn-q sm" data-toast="Room cancelled. Musa Danladi and 64 readers told." data-undo="rooms">Cancel room</a></td></tr>
+          <tr><td><b>Harmattan Circle live read</b><br><small class="faint">Harmattan Letters · host Ifeoma Nwachukwu</small></td><td class="n">212</td><td class="nw">Sat 14 Nov, 17:00</td><td class="mono">HARM-55TR</td><td class="n">0</td><td class="acts"><a class="btn btn-q sm" data-toast="Room cancelled. Ifeoma Nwachukwu and 212 readers told." data-undo="rooms">Cancel room</a></td></tr>
+        </tbody>
+      </table></div>
+    </div></details>
+    <details class="fold"><summary>Ended recently <small>128 · transcripts kept 90 days</small></summary><div class="fold__b">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Room</th><th class="r">Peak</th><th>Ended</th><th>Join code</th><th class="r">Reports</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr><td><b>A House Called Grace, finale</b><br><small class="faint">A House Called Grace · host Kemi Ogunleye</small></td><td class="n">96</td><td class="nw">Yesterday 21:10</td><td class="mono">GRAC-90AB</td><td class="n">1</td><td class="acts"><a class="btn btn-q sm" data-toast="Transcript downloaded. Kept for 90 days.">Transcript</a></td></tr>
+          <tr><td><b>Bread on Water, kickoff</b><br><small class="faint">Bread on Water · host Halima Bello</small></td><td class="n">52</td><td class="nw">Tue 10 Nov, 19:45</td><td class="mono">BREA-12WX</td><td class="n">0</td><td class="acts"><a class="btn btn-q sm" data-toast="Transcript downloaded. Kept for 90 days.">Transcript</a></td></tr>
+        </tbody>
+      </table></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen" id="s-room" data-area="5" data-nav="community" data-name="Reading room (live)" data-note="New: staff view of a live room: participants, chat transcript and each member's reading progress.|Rule: staff controls mirror the host's (mute, lock chat, end room) and are logged. Muting here is for this room only; use Take action on a report for account-level mutes. The host sees 'Arpedia staff locked the chat'.|Rule: Join silently is logged and the host is not told.|New: simplified. Header has Join silently and Lock chat (toast with Undo); End room is in the more menu and the side panel and can be undone. Participants and room settings are folded; the book is one line in the header." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="rooms">Reading rooms</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Ruth of Ibadan, chapter 9</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Ruth of Ibadan, chapter 9</h1><div class="ph__meta"><span>Live · host Tolu Adebayo</span><span>Started 10:15 · 41 readers</span><span>Join code <span class="mono">RUTH-9X4K</span></span><span>Book: Ruth of Ibadan, chapter 9 of 24</span><span>1 open report</span></div></div>
+      <div class="ph__acts"><a class="btn btn-g" data-toast="Chat locked. The host sees: Arpedia staff locked the chat." data-undo="room">Lock chat</a><a class="btn btn-p" data-toast="Joined silently. Logged; the host is not told.">Join silently</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Join code RUTH-9X4K copied">Copy join code</a><a data-go="report">Open the report</a><hr><a class="danger" data-go="rooms" data-toast="Room ended. 41 readers and Tolu told. Transcript kept 90 days." data-undo="room">End room for everyone</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Chat</h2><span class="sub">Live · 214 messages · last at 10:47</span></div>
+          <div class="panel__body">
+            <div class="msg"><span class="av sm o">CO</span><div class="msg__b"><small>Chiamaka Obi · 10:43</small>Let's calm down jare, it's a book.</div></div>
+            <div class="msg flagged"><span class="av sm r">TR</span><div class="msg__b"><small>@tobi_reads · 10:44 · hidden, 4 reports</small>Message hidden pending review. <a class="link" data-go="report">Open report</a></div></div>
+            <div class="msg"><span class="av sm g">HM</span><div class="msg__b"><small>Hauwa Musa · 10:44</small>Is that a threat? I'm reporting this.</div></div>
+            <div class="msg"><span class="av sm k">KN</span><div class="msg__b"><small>Kelechi Nwosu · 10:45</small>That is not okay at all. @tobi_reads please leave the room.</div></div>
+            <div class="msg"><span class="av sm r">TR</span><div class="msg__b"><small>@tobi_reads · 10:46</small>Lol relax, everyone is too sensitive these days</div></div>
+            <div class="msg"><span class="av sm t">TA</span><div class="msg__b"><small>Tolu Adebayo (host) · 10:47</small>Reported. Sorry everyone. Staff will look at it.</div></div>
+          </div>
+          <div class="panel__foot"><span>Staff view only. You are not in the room.</span></div>
+        </div>
+        <details class="fold"><summary>Participants <small>41 in the room</small></summary><div class="fold__b">
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Reader</th><th>Role</th><th>Progress in chapter 9</th><th class="acts"></th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span class="av sm t">TA</span><span><b>Tolu Adebayo</b></span></div></td><td>Host</td><td><div class="row" style="gap:8px;min-width:140px"><div class="meter grow"><i style="--v:100%"></i></div><span class="faint" style="font-size:12.5px">100%</span></div></td><td class="acts"></td></tr>
+              <tr><td><div class="who"><span class="av sm r">TR</span><span><b>@tobi_reads</b></span></div></td><td><span class="st st-warn">Reported</span></td><td><div class="row" style="gap:8px;min-width:140px"><div class="meter grow"><i style="--v:34%"></i></div><span class="faint" style="font-size:12.5px">34%</span></div></td><td class="acts"><a class="btn btn-q sm" data-toast="@tobi_reads muted in this room" data-undo="room">Mute</a><a class="btn btn-q sm" data-toast="@tobi_reads removed from the room" data-undo="room">Remove</a></td></tr>
+              <tr><td><div class="who"><span class="av sm o">CO</span><span><b>Chiamaka Obi</b></span></div></td><td>Reader</td><td><div class="row" style="gap:8px;min-width:140px"><div class="meter grow"><i style="--v:92%"></i></div><span class="faint" style="font-size:12.5px">92%</span></div></td><td class="acts"><a class="btn btn-q sm" data-toast="Chiamaka Obi muted in this room" data-undo="room">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm g">HM</span><span><b>Hauwa Musa</b></span></div></td><td>Reader</td><td><div class="row" style="gap:8px;min-width:140px"><div class="meter grow"><i style="--v:100%"></i></div><span class="faint" style="font-size:12.5px">100%</span></div></td><td class="acts"><a class="btn btn-q sm" data-toast="Hauwa Musa muted in this room" data-undo="room">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm k">KN</span><span><b>Kelechi Nwosu</b></span></div></td><td>Reader</td><td><div class="row" style="gap:8px;min-width:140px"><div class="meter grow"><i style="--v:71%"></i></div><span class="faint" style="font-size:12.5px">71%</span></div></td><td class="acts"><a class="btn btn-q sm" data-toast="Kelechi Nwosu muted in this room" data-undo="room">Mute</a></td></tr>
+              <tr><td><div class="who"><span class="av sm b">FA</span><span><b>Funke Alabi</b></span></div></td><td>Reader</td><td><div class="row" style="gap:8px;min-width:140px"><div class="meter grow"><i style="--v:58%"></i></div><span class="faint" style="font-size:12.5px">58%</span></div></td><td class="acts"><a class="btn btn-q sm" data-toast="Funke Alabi muted in this room" data-undo="room">Mute</a></td></tr>
+            </tbody>
+          </table></div>
+          <span class="hint">Showing 6 of 41.</span>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Staff controls</h2></div>
+          <div class="panel__body">
+            <a class="btn btn-g block" data-toast="@tobi_reads muted in this room" data-undo="room">Mute @tobi_reads in this room</a>
+            <a class="btn btn-d block" data-go="rooms" data-toast="Room ended. 41 readers and Tolu told. Transcript kept 90 days." data-undo="room">End room for everyone</a>
+            <span class="hint">All staff controls are written to the audit log.</span>
+          </div>
+        </div>
+        <details class="fold"><summary>Room settings</summary><div class="fold__b">
+            <div class="setrow"><span class="setrow__b"><b>Chat open</b><small>Participants can write</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Slow mode</b><small>One message every 10 s</small></span><span class="switch" role="switch" aria-checked="false"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Spoiler guard</b><small>Hide chat beyond reader's progress</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Join by code only</b><small>RUTH-9X4K</small></span><span class="switch" role="switch" aria-checked="false"></span></div>
+        </div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 05 Trust: Claims and appeals ===================== -->
+<section class="screen" id="s-claims" data-area="5" data-nav="claims" data-name="Copyright claims" data-note="Same as v25: copyright claims on books with a decision.|New: claim types (copyright, plagiarism, impersonation) and a 7 day promise to the claimant, shown as a due date. 2 open, 1 waiting on author.|Rule: taking a book down freezes its author earnings until the claim is decided.|Rule: authors always get a chance to respond before a decision, unless the claim is an obvious full copy.|New: simplified. Plain header, claim id and author under the book, claim type under the claimant. Only New and Waiting on author get pills; the copyright policy is behind the icon." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Copyright claims</h1></div>
+      <div class="band__acts"><a class="ib" data-go="policies" aria-label="Copyright policy"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="true" class="is-selected">Open <span class="c">2</span></a><a role="tab" aria-selected="false">Waiting on author <span class="c">1</span></a><a role="tab" aria-selected="false">Decided <span class="c">9</span></a>
+  </div>
+  <div class="page">
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Book</th><th>Claimant</th><th>Received</th><th>Due</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="claim"><td><div class="who"><span class="cv c4 x32"></span><span><b>Kano Nights</b><small>Abubakar Sani · <span class="mono">CLM-0412</span></small></span></div></td><td>Paramount Books Ltd<br><small class="faint">Copyright</small></td><td class="nw">12 Nov, 08:40</td><td class="nw">19 Nov</td><td><span class="st st-org">New</span></td></tr>
+          <tr data-go="claim"><td><div class="who"><span class="cv c6 x32"></span><span><b>Lagos Lagoon Love</b><small>Temi Adewale · <span class="mono">CLM-0409</span></small></span></div></td><td>Ada Nwosu (author)<br><small class="faint">Plagiarism</small></td><td class="nw">10 Nov</td><td class="nw">17 Nov</td><td><span class="st st-warn">Waiting on author</span></td></tr>
+          <tr data-go="claim"><td><div class="who"><span class="cv c8 x32"></span><span><b>Bread on Water</b><small>Halima Bello · <span class="mono">CLM-0401</span></small></span></div></td><td>@halima_bello_ng<br><small class="faint">Impersonation</small></td><td class="nw">29 Oct</td><td class="nw">5 Nov</td><td>Upheld</td></tr>
+          <tr data-go="claim"><td><div class="who"><span class="cv c2 x32"></span><span><b>Okada Man's Prayer</b><small>Sunday Ojo · <span class="mono">CLM-0396</span></small></span></div></td><td>Rotimi Press<br><small class="faint">Copyright</small></td><td class="nw">22 Oct</td><td class="nw">29 Oct</td><td>Rejected</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>4 shown · 2 open, 1 waiting on author</span><span>Promise: decision within 7 days</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-claim" data-area="5" data-nav="claims" data-name="Claim: Kano Nights" data-note="Rule: Take down book moves the book to Taken down (copyright). Readers who unlocked it keep access to what they unlocked until the claim is decided; new unlocks stop.|Rule: author earnings for this book are frozen while it is taken down (released if the claim is rejected, held back if upheld). The author is told the reason and how to respond.|Rule: Ask author gives Abubakar Sani 7 days to answer (due 16 Nov); the claimant is told the claim is being investigated.|Data: similarity is a passage match across 6 flagged chapters, not a verdict.|New: simplified. Evidence, the author's response and the timeline are in More details. Claimant, book and author are one side panel; Decisions sit in the bar at the bottom." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="claims">Copyright claims</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>CLM-0412</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Kano Nights <span class="st st-org">New</span></h1><div class="ph__meta"><span>Copyright · Paramount Books Ltd</span><span>Received 12 Nov, 08:40</span><span>Due 19 Nov</span></div></div>
+      <div class="ph__acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-go="book">Open the book</a><a data-go="author">Open Abubakar Sani</a><a data-go="policies">Copyright policy</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Matching passages</h2><span class="sub">Chapter 3 against "The Night Train to Kano" (2019)</span></div>
+          <div class="panel__body">
+            <div class="row" style="gap:20px"><span class="ts-sim">74%</span><span class="muted">of the 6 flagged passages match the 2019 text, word for word or with small changes.</span></div>
+            <div class="ts-cols2">
+              <div class="stack s8"><b>Paramount, "The Night Train to Kano", p. 41</b><div class="quote"><mark>The harmattan dust sat on the windowsill like a debt nobody wanted to name.</mark> Musa counted the coins twice, then a third time, as if the numbers might change their mind.</div></div>
+              <div class="stack s8"><b>Kano Nights, chapter 3</b><div class="quote"><mark>The harmattan dust sat on the windowsill like a debt nobody wanted to name.</mark> Garba counted the coins twice, then a third time, as if the numbers might change their mind.</div></div>
+            </div>
+            <div class="ts-cols2">
+              <div class="stack s8"><div class="quote"><mark>"You will not leave this city with my brother's name in your mouth," she said.</mark></div></div>
+              <div class="stack s8"><div class="quote"><mark>"You will not leave this city with my brother's name in your mouth," she told him.</mark></div></div>
+            </div>
+          </div>
+        </div>
+        <details class="fold"><summary>More details <small>evidence, author's response, timeline</small></summary><div class="fold__b">
+          <b>Evidence from the claimant</b>
+          <div class="file"><span class="grow"><b>The-Night-Train-to-Kano-2019-edition.pdf</b><small>PDF · 3.8 MB · uploaded 12 Nov</small></span><a class="btn btn-g sm" data-toast="Evidence file opened">Open</a></div>
+          <div class="file"><span class="grow"><b>Paramount-copyright-registration-NCC-2019-0873.pdf</b><small>PDF · 640 KB · Nigerian Copyright Commission certificate</small></span><a class="btn btn-g sm" data-toast="Evidence file opened">Open</a></div>
+          <p class="muted">"Kano Nights reuses our client's 2019 novel almost line by line from chapter 3 on. We request removal and a written undertaking." Legal contact: Barr. Yetunde Coker, legal@paramountbooks.ng</p>
+          <b>Author's response · <span class="st st-warn">Requested, due 16 Nov</span></b>
+          <p class="muted">Requested 12 Nov. Abubakar Sani got a push and an email with the claim text (claimant contact details withheld) and has until 16 Nov. Use Ask author to send a reminder or extend.</p>
+          <b>Timeline</b>
+          <div class="tl">
+            <div class="tl__i org"><b>Claim received</b><small>12 Nov, 08:40 · by email form</small></div>
+            <div class="tl__i"><b>Similarity check run</b><small>12 Nov, 08:41 · 74% over 6 passages</small></div>
+            <div class="tl__i"><b>Book held out of Discover</b><small>12 Nov, 08:41 · stays in review</small></div>
+            <div class="tl__i"><b>Decision due</b><small>19 Nov</small></div>
+          </div>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Claimant and book</h2></div>
+          <div class="panel__body">
+            <dl class="kv tight"><dt>Company</dt><dd>Paramount Books Ltd, Lagos</dd><dt>Legal contact</dt><dd>Barr. Yetunde Coker</dd><dt>Registration</dt><dd class="mono">RC 1184092</dd><dt>Past claims</dt><dd>0 with Arpedia</dd></dl>
+            <div class="who"><span class="cv c4 x40"></span><span><b>Kano Nights</b><small>Abubakar Sani · Thriller · In review</small></span></div>
+            <dl class="kv tight"><dt>Author</dt><dd><a class="link" data-go="author">Abubakar Sani</a></dd><dt>Readers so far</dt><dd>0 (not yet live)</dd><dt>Earnings at stake</dt><dd>₦0</dd></dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Claim <b>1 of 2</b> · <a class="link" data-go="claims">Back to claims</a></div><span class="grow"></span><a class="btn btn-g" data-go="claims" data-toast="Claim rejected. Paramount Books Ltd and Abubakar Sani told." data-undo="claim">Reject claim</a><a class="btn btn-g" data-go="claims" data-toast="Abubakar has until 16 Nov to reply. Paramount is told it is being looked into." data-undo="claim">Ask author</a><a class="btn btn-d" data-go="book-unpublish">Uphold and take down</a><a class="btn btn-q sm" data-go="claims" data-toast="Skipped. CLM-0409 is waiting on the author.">Skip <span class="kbd">J</span></a></div>
+</section>
+
+<section class="screen" id="s-appeals" data-area="5" data-nav="appeals" data-name="Appeals" data-note="Same as v25: users could write to support to dispute a decision. Now readers and authors ask staff to reverse a decision from a proper queue, with the original decision and who made it.|Rule: an appeal must be decided by a different staff member than the original decision.|Rule: promise is 3 days; the appellant is told the outcome in the app and by email.|New: simplified. Plain header and 5 columns. Only New appeals get a pill; In review is plain text." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Appeals</h1></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="true" class="is-selected">Open <span class="c">4</span></a><a role="tab" aria-selected="false">Decided <span class="c">37</span></a>
+  </div>
+  <div class="page">
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Appellant</th><th>Appealing</th><th>Original decision by</th><th>Received</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="appeal"><td><div class="who"><span class="av sm r">TR</span><span><b>@tobi_reads</b><small>Reader</small></span></div></td><td>30-day suspension</td><td>Zainab Yusuf, Moderator</td><td class="nw">Today 09:12</td><td><span class="st st-org">New</span></td></tr>
+          <tr data-go="appeal"><td><div class="who"><span class="av sm o">KN</span><span><b>Kelechi Nwosu</b><small>Reader</small></span></div></td><td>Removed review (The Alignment)</td><td>Zainab Yusuf, Moderator</td><td class="nw">Yesterday</td><td>In review</td></tr>
+          <tr data-go="appeal"><td><div class="who"><span class="av sm b">YC</span><span><b>Yemi Coker</b><small>Applicant</small></span></div></td><td>Rejected author application</td><td>Tunde Bakare, Publisher</td><td class="nw">10 Nov</td><td>In review</td></tr>
+          <tr data-go="appeal"><td><div class="who"><span class="av sm t">SO</span><span><b>Sunday Ojo</b><small>Author</small></span></div></td><td>Book rejection (Okada Man's Prayer)</td><td>Ifeanyi Obi, Publisher</td><td class="nw">9 Nov</td><td><span class="st st-org">New</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>4 open appeals</span><span>Promise: decision within 3 days</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-appeal" data-area="5" data-nav="appeals" data-name="Appeal: @tobi_reads" data-note="Rule: you cannot decide an appeal on a decision you made. The decision buttons are disabled for the original decider (Zainab Yusuf). Here you are signed in as Amaka Okafor, so you can decide this one.|Rule: Reduce to 7 days restores access at once if 7 days have already passed.|New: the appellant's own words, the original report and prior history are on one page.|New: simplified. History and the appellant's account facts are in More details; the different-reviewer rule is one line under the reply." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="appeals">Appeals</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Appeal from @tobi_reads</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>@tobi_reads appeals a 30-day suspension <span class="st st-org">New</span></h1><div class="ph__meta"><span>Received today 09:12</span><span>Decided by Zainab Yusuf on 12 Nov</span><span>Promise: 3 days</span></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Original report</h2><a class="link" data-go="report" style="font-size:13px">Open report</a></div>
+          <div class="panel__body">
+            <div class="msg flagged"><span class="av sm r">TR</span><div class="msg__b"><small>@tobi_reads · 10:44 · Ruth of Ibadan, chapter 9</small>Say that again and I will find you after the meetup in Ibadan. You don't know who you're talking to.</div></div>
+            <dl class="kv tight"><dt>Reason</dt><dd>Violence or threats · 4 reporters</dd><dt>Outcome</dt><dd>Message removed, suspended 30 days</dd><dt>Decided by</dt><dd>Zainab Yusuf, 12 Nov 11:20</dd></dl>
+            <b>What the user says</b>
+          <div class="ts-review" style="font-family:var(--f-ui);font-size:14.5px">"I was joking with my friends and it was taken the wrong way. I would never hurt anybody. I have been reading on Arpedia every day and my subscription is paid till December. Please reduce the suspension. I am sorry to Hauwa and the others."</div>
+          </div>
+        </div>
+        <details class="fold"><summary>More details <small>history, appellant</small></summary><div class="fold__b">
+          <b>Appellant · <a class="link" data-go="user">Open reader</a></b>
+          <dl class="kv tight"><dt>Account age</dt><dd>11 days</dd><dt>Plan</dt><dd>Monthly · paid to 1 Dec</dd><dt>Past appeals</dt><dd>0</dd></dl>
+          <b>History</b>
+          <div class="tl">
+            <div class="tl__i org"><b>Appeal sent from the app</b><small>12 Nov, 09:12</small></div>
+            <div class="tl__i err"><b>Suspended 30 days (until 12 Dec)</b><small>12 Nov, 11:20 · Zainab Yusuf</small></div>
+            <div class="tl__i"><b>Warning: rude in a discussion</b><small>7 Nov · Zainab Yusuf</small></div>
+            <div class="tl__i"><b>Joined Arpedia</b><small>1 Nov</small></div>
+          </div>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Reply to @tobi_reads</h2></div>
+          <div class="panel__body">
+            <div class="f"><label>Sent with your decision</label><textarea class="inp ta" rows="4">Hi Tobi, thank you for explaining. A message like that can scare people, so we cannot lift the suspension fully. We have reduced it to 7 days. You can read again from 19 November. Another incident will lead to a longer suspension.</textarea></div>
+            <span class="hint">A different staff member than Zainab Yusuf must decide, so you can decide this one.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Appeal <b>1 of 4</b> · <a class="link" data-go="appeals">Back to appeals</a></div><span class="grow"></span><a class="btn btn-g" data-go="appeals" data-toast="Suspension kept. @tobi_reads told by app message and email." data-undo="appeal">Uphold</a><a class="btn btn-p" data-go="appeals" data-toast="Suspension reduced to 7 days. @tobi_reads can read again from 19 Nov." data-undo="appeal">Reduce to 7 days</a><a class="btn btn-g" data-go="appeals" data-toast="Suspension lifted. @tobi_reads told and the strike removed." data-undo="appeal">Overturn</a><a class="btn btn-q sm" data-go="appeals" data-toast="Skipped. Next appeal: Kelechi Nwosu.">Skip <span class="kbd">J</span></a></div>
+</section>
+
+<!-- ===================== 05 Trust: Safety rules ===================== -->
+<section class="screen" id="s-automod" data-area="5" data-nav="automod" data-name="Safety rules" data-note="New: one place for the automatic rules that protect chat, reviews and DMs (v25 hard-coded these). Staff set what Arpedia blocks, limits and hides before staff see it.|Rule: changes apply to new messages straight away and are written to the audit log. Only Moderators and Super admins can edit.|Rule: auto-hide at 3 different reporters is the default (staff are alerted at the same time); High severity reasons can be set to hide at 1.|New: simplified. Muted words stay open with the action as plain text; adding or removing a word and every switch change show a toast, and one Save changes button saves them. Report reasons, link rules, rate limits, new-account restrictions and spam detection are folded; Auto-hide stays visible on the side." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Safety rules</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-toast="Safety rules saved. Applies to new messages now.">Save changes</a><a class="ib" data-go="audit" aria-label="Change history"><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Muted words</h2><span class="sub">38 words and phrases</span><a class="btn btn-s sm" data-toast="Word added to the list"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>Add word</a></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Word or phrase</th><th>Category</th><th>Applies to</th><th>Action</th><th class="r">Hits, 7 days</th><th class="acts"></th></tr></thead>
+            <tbody>
+              <tr><td><b>find you</b></td><td>Threats</td><td>Everywhere</td><td>Hide and report</td><td class="n">7</td><td class="acts"><a class="ib sm" data-toast="'find you' removed from muted words" data-undo="automod" aria-label="Remove find you"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+              <tr><td><b>send nudes</b></td><td>Sexual content</td><td>Chat and DMs</td><td>Hide and report</td><td class="n">3</td><td class="acts"><a class="ib sm" data-toast="'send nudes' removed from muted words" data-undo="automod" aria-label="Remove send nudes"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+              <tr><td><b>whatsapp me</b></td><td>Spam</td><td>Chat</td><td>Hide</td><td class="n">41</td><td class="acts"><a class="ib sm" data-toast="'whatsapp me' removed from muted words" data-undo="automod" aria-label="Remove whatsapp me"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+              <tr><td><b>cheap data, naira exchange</b></td><td>Spam</td><td>Everywhere</td><td>Hide</td><td class="n">112</td><td class="acts"><a class="ib sm" data-toast="'cheap data, naira exchange' removed from muted words" data-undo="automod" aria-label="Remove cheap data, naira exchange"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+              <tr><td><b>pdf free, free download</b></td><td>Piracy</td><td>Chat and reviews</td><td>Hide</td><td class="n">58</td><td class="acts"><a class="ib sm" data-toast="'pdf free, free download' removed from muted words" data-undo="automod" aria-label="Remove pdf free, free download"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+              <tr><td><b>dies in chapter</b></td><td>Spoilers</td><td>Reviews</td><td>Blur and flag</td><td class="n">19</td><td class="acts"><a class="ib sm" data-toast="'dies in chapter' removed from muted words" data-undo="automod" aria-label="Remove dies in chapter"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+              <tr><td><b>shut up, stupid</b></td><td>Harassment</td><td>Chat</td><td>Warn sender</td><td class="n">86</td><td class="acts"><a class="ib sm" data-toast="'shut up, stupid' removed from muted words" data-undo="automod" aria-label="Remove shut up, stupid"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></a></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <details class="fold"><summary>Report reasons <small>shown to readers when they tap Report</small></summary><div class="fold__b" style="padding:0">
+          <div class="list">
+            <div class="ts-rule"><span><b>Spam or scams</b><small>Selling, links, repeated posts</small></span><span class="muted">Medium</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Harassment or bullying</b><small>Insults, targeting a person</small></span><span class="muted">Medium</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Hate speech</b><small>Tribe, religion, gender, disability</small></span><span class="st st-err">High</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Sexual content</b><small>Explicit images or messages</small></span><span class="st st-err">High</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Violence or threats</b><small>Threats against a person</small></span><span class="st st-err">High</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Spoilers</b><small>Reviews and discussions</small></span><span class="muted">Low</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Impersonation</b><small>Pretending to be an author or staff</small></span><span class="muted">Medium</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="ts-rule"><span><b>Something else</b><small>Free text, staff sort it</small></span><span class="muted">Low</span><span class="switch on" role="switch" aria-checked="true"></span></div>
+          </div>
+        </div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Auto-hide</h2></div>
+          <div class="panel__body">
+            <div class="f"><label>Hide content when reported by</label><div class="inp"><input value="3"><span class="suf">different readers</span></div><span class="hint">Staff are alerted at the same time.</span></div>
+            <div class="setrow" style="padding:0"><span class="setrow__b"><b>High severity hides at 1 report</b><small>Threats and sexual content</small></span><span class="switch" role="switch" aria-checked="false"></span></div>
+          </div>
+        </div>
+        <details class="fold"><summary>More rules <small>links, limits, new accounts, spam</small></summary><div class="fold__b">
+          <b>Link rules</b>
+            <div class="setrow" style="padding:0"><span class="setrow__b"><b>Block links from new accounts</b><small>Accounts under 7 days old</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow" style="padding:0"><span class="setrow__b"><b>Block links in DMs to authors</b><small>Except arpedia.africa</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+          <div class="f"><label>Allowed domains</label><div class="ts-chips"><span class="ts-pill">arpedia.africa</span><span class="ts-pill">flutterwave.com</span><span class="fchip" data-toast="Domain added">+ Add</span></div></div>
+          <b>Rate limits</b>
+            <div class="f"><label>Messages per minute, chat</label><div class="inp"><input value="12"><span class="suf">per reader</span></div></div>
+            <div class="f"><label>DMs per day, accounts under 7 days</label><div class="inp"><input value="5"><span class="suf">per day</span></div></div>
+            <div class="f"><label>Reports per reader per day</label><div class="inp"><input value="20"><span class="suf">max</span></div></div>
+          <b>New-account restrictions · first 7 days</b>
+            <div class="setrow"><span class="setrow__b"><b>No posting in reading rooms</b><small>Can read and react</small></span><span class="switch" role="switch" aria-checked="false"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Reviews wait for the 3-day mark</b><small>Stops review bombing</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+          <b>Spam detection</b>
+            <div class="setrow"><span class="setrow__b"><b>Repeated identical messages</b><small>3 in 5 minutes</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Same text in many channels</b><small>5 channels in 1 hour</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Phone numbers in chat</b><small>Hide, ask sender to edit</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+        </div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 06 Support ===================== -->
+<section class="screen" id="s-support" data-area="6" data-nav="support" data-name="Support inbox" data-note="Same as v25: tickets from in-app help and email with a reply thread. 12 open, 2 over 24 hours.|New: first reply is promised within 1 day; over-SLA tickets show a red hours chip, the rest show time left. Tabs Mine, Unassigned, Waiting on reader, Solved.|New: the preview shows the context staff need (plan, credits, last transaction) without opening the reader.|Rule: a reader reply reopens a Solved ticket for 7 days.|New: simplified. Rows show subject, reader and category only; channel (In-app or Email) is in Filters and on the ticket. Category and channel dropdowns moved into Filters. Help articles are behind the icon." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Support inbox</h1></div>
+      <div class="band__acts"><a class="ib" data-go="help" aria-label="Help articles"><svg class="ico" aria-hidden="true"><use href="#i-help"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="false">Mine <span class="c">5</span></a><a role="tab" aria-selected="true" class="is-selected">Unassigned <span class="c">4</span></a><a role="tab" aria-selected="false">Waiting on reader <span class="c">3</span></a><a role="tab" aria-selected="false">Solved <span class="c">214</span></a>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Subject, reader or email" aria-label="Search tickets"></label>
+      <button class="fbtn" data-toast="Filters: reason, severity, assignee"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+    </div>
+    <div class="ts-two">
+      <div class="panel panel--flush">
+        <div class="list">
+          <div class="ts-tk sel" data-go="ticket"><b>I paid but my credits didn't arrive</b><div class="ts-tk__r"><span>Funke Alabi · Billing</span><span class="grow"></span><span class="st st-err">28 h</span></div></div>
+          <div class="ts-tk" data-go="ticket"><b>Cannot open Harmattan Letters after unlocking</b><div class="ts-tk__r"><span>Ibrahim Lawal · Book access</span><span class="grow"></span><span class="st st-err">26 h</span></div></div>
+          <div class="ts-tk" data-go="ticket"><b>How do I change my phone number?</b><div class="ts-tk__r"><span>Ngozi Okonkwo · Account</span><span class="grow"></span>18 h left</div></div>
+          <div class="ts-tk" data-go="ticket"><b>My October earnings show ₦0</b><div class="ts-tk__r"><span>Esther Akande · Author help</span><span class="grow"></span>22 h left</div></div>
+          <div class="ts-tk" data-go="ticket"><b>App crashes when I open a reading room</b><div class="ts-tk__r"><span>Hauwa Musa · Bug</span><span class="grow"></span>20 h left</div></div>
+          <div class="ts-tk" data-go="ticket"><b>Refund for my yearly plan (web)</b><div class="ts-tk__r"><span>Tunji Adebisi · Billing</span><span class="grow"></span>Waiting on reader</div></div>
+        </div>
+        <div class="pager"><span>6 of 12 open</span><span>Oldest first</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><h2>I paid but my credits didn't arrive</h2><span class="st st-err">28 h, over SLA</span></div>
+        <div class="panel__body">
+          <div class="who"><span class="av b">FA</span><span><b>Funke Alabi</b><small>Quarterly plan · Lagos · In-app · App 26.0 on Android 13</small></span></div>
+          <div class="ts-thread"><div class="msg"><span class="av sm b">FA</span><div class="msg__b"><small>Funke Alabi · yesterday 07:48</small>I bought the 500 credits top-up on Google Play and I was charged ₦1,500 but my balance is still 38.</div></div></div>
+          <dl class="kv tight"><dt>Credits balance</dt><dd>38</dd><dt>Latest purchase</dt><dd>500 credits top-up, ₦1,500, Google Play <span class="st st-warn">Pending</span></dd><dt>Assigned</dt><dd>Nobody</dd></dl>
+          <div class="row"><a class="btn btn-p" data-go="ticket">Open ticket</a><a class="btn btn-g" data-toast="Ticket assigned to you" data-undo="support">Assign to me</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-ticket" data-area="6" data-nav="support" data-name="Ticket" data-note="Same as v25: reply thread, status and assignee.|New: macros (saved replies) and internal notes that readers never see.|New: context sidebar shows the plan and credits; the device, recent transactions and joined date are in More details. A store purchase that is still pending explains most credit delays.|Rule: granting credits needs a reason and is logged; Support can grant up to 200 credits, more needs a Super admin.|Data: transactions come from store purchase events (technical names are in More details).|New: simplified. Send and Send and solve sit in the bar at the bottom; Grant credits is the one header action. Macros insert a saved reply, notes are staff only." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="support">Support inbox</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span class="mono">TKT-3318</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>I paid but my credits didn't arrive <span class="st st-err">28 h, over SLA</span></h1><div class="ph__meta"><span>Funke Alabi</span><span>In-app · Billing</span><span>Opened yesterday 07:48</span></div></div>
+      <div class="ph__acts"><a class="btn btn-p" data-go="user-grant">Grant credits</a></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="panel">
+        <div class="panel__head"><h2>Conversation</h2></div>
+        <div class="panel__body">
+          <div class="ts-thread">
+            <div class="msg"><span class="av sm b">FA</span><div class="msg__b"><small>Funke Alabi · yesterday 07:48</small>I bought the 500 credits top-up on Google Play and I was charged ₦1,500 but my balance is still 38. I wanted to unlock Still Waters, Lagos tonight.</div></div>
+            <div class="msg staff"><span class="av sm r">BA</span><div class="msg__b"><small>Bisi Adeyemi · yesterday 15:20</small>Hi Funke, sorry about this. We can see your payment and we are checking why the credits did not land. Please keep the app open and don't buy again.</div></div>
+            <div class="msg"><span class="av sm b">FA</span><div class="msg__b"><small>Funke Alabi · yesterday 19:02</small>Okay. Still nothing o. Google sent me the receipt GPA.3391-8812-4402-17733.</div></div>
+            <div class="msg"><span class="av sm b">FA</span><div class="msg__b"><small>Funke Alabi · today 10:30</small>Please I really need this fixed today.</div></div>
+          </div>
+          <div class="ts-note"><b>Internal note, Bisi Adeyemi, yesterday 15:25</b>The store told us about the purchase, but our payment notice failed twice before it went through. Credits were not added. Safe to grant 250 by hand and tell Femi.<small>Only staff can see this</small></div>
+        </div>
+        <div class="ts-reply">
+          <div class="row"><div class="seg" data-single><button class="is-selected">Reply to reader</button><button>Internal note</button></div><span class="grow"></span><div class="mwrap"><button class="dd" data-menu aria-expanded="false">Macro: <b>Credits delayed after store purchase</b><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></button><div class="menu" hidden><a data-toast="Macro added">Credits delayed after store purchase</a><a data-toast="Macro added">Book will not open after unlocking</a><a data-toast="Macro added">Refund for a web purchase</a><a data-toast="Macro added">How to change your phone number</a></div></div></div>
+          <textarea class="inp ta" rows="4">Hi Funke, thank you for your patience. Your Google Play purchase was received but our system did not add the credits automatically. We have added 500 credits to your account by hand, and you should see 538 now. Sorry for the delay. If it does not show, restart the app and tell us.</textarea>
+          <div class="row"><span class="grow"></span><a class="btn btn-g" data-toast="Draft saved">Save draft</a><a class="btn btn-g" data-toast="Internal note saved. Only staff can see it.">Add as internal note</a></div>
+        </div>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Ticket and reader</h2><a class="link" data-go="user" style="font-size:13px">Open reader</a></div>
+          <div class="panel__body">
+            <div class="f"><label>Status</label><div class="inp sel"><span>Open</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            <div class="f"><label>Assignee</label><div class="inp sel"><span>Bisi Adeyemi</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            <div class="f"><label>Category</label><div class="inp sel"><span>Billing</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            <dl class="kv tight"><dt>Plan</dt><dd>Quarterly · renews 2 Dec</dd><dt>Credits balance</dt><dd><b>38</b></dd></dl>
+          </div>
+        </div>
+        <details class="fold"><summary>More details <small>device, transactions</small></summary><div class="fold__b">
+          <b>Technical details</b>
+          <dl class="kv tight"><dt>Store event</dt><dd class="mono">RevenueCat INITIAL_PURCHASE</dd><dt>Payment notice</dt><dd>Webhook retried 2 times</dd></dl>
+          <dl class="kv tight"><dt>Device</dt><dd>Android 13 · Tecno Spark 10</dd><dt>App version</dt><dd>26.0 (build 412)</dd><dt>Joined</dt><dd>19 Jun 2026</dd></dl>
+          <b>Recent transactions · <a class="link" data-go="transactions">All</a></b>
+          <div class="list">
+            <div class="li" data-go="transaction"><span class="li__body"><b>500 credits top-up · ₦1,500</b><small>11 Nov 07:44 · Google Play · store purchase received</small></span><span class="st st-warn">Pending</span></div>
+            <div class="li" data-go="transaction"><span class="li__body"><b>Quarterly plan · ₦2,400</b><small>2 Sep · Google Play</small></span><span class="li__trail">Paid</span></div>
+            <div class="li" data-go="transaction"><span class="li__body"><b>Unlock: Still Waters, Lagos · 90 credits</b><small>8 Nov · failed during outage, refunded</small></span><span class="li__trail">Refunded</span></div>
+          </div>
+        </div></details>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Ticket <b>1 of 12</b> · <a class="link" data-go="support">Back to inbox</a></div><span class="grow"></span><a class="btn btn-g" data-toast="Reply sent to Funke. She gets an in-app message and an email.">Send</a><a class="btn btn-p" data-go="support" data-toast="Reply sent to Funke. Ticket solved." data-undo="ticket">Send and solve</a><a class="btn btn-q sm" data-go="support" data-toast="Skipped. TKT-3318 stays unassigned.">Skip <span class="kbd">J</span></a></div>
+</section>
+
+<section class="screen" id="s-help" data-area="6" data-nav="help" data-name="Help articles" data-note="Same as v25: help articles shown in the app. 34 articles in the app Help screen and on arpedia.africa/help.|New: the same articles also appear on the website help centre; each one lists where it shows (under the title).|New: views and helpful votes help staff improve what readers can't find.|Rule: published articles are live for readers within a minute; edits stay as drafts until Publish.|New: simplified. One primary action, one row of category chips, 5 columns. Only Draft gets a pill." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Help articles</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="help-article"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>New article</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Search articles" aria-label="Search articles"></label>
+      <span class="row" style="gap:6px" data-single><button class="fchip is-selected">All <span class="c">34</span></button><button class="fchip">Getting started <span class="c">5</span></button><button class="fchip">Credits and plans <span class="c">8</span></button><button class="fchip">Reading <span class="c">6</span></button><button class="fchip">Community <span class="c">5</span></button><button class="fchip">Authors <span class="c">6</span></button><button class="fchip">Account and privacy <span class="c">4</span></button></span>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Article</th><th>Status</th><th class="r">Views, 30 days</th><th class="r">Helpful</th><th>Updated</th></tr></thead>
+        <tbody>
+          <tr data-go="help-article"><td><b>How credits work</b><br><small class="faint">Credits and plans · App and website</small></td><td>Published</td><td class="n">4,820</td><td class="n">81%</td><td class="nw">10 Nov</td></tr>
+          <tr data-go="help-article"><td><b>Getting started with Arpedia</b><br><small class="faint">Getting started · App and website</small></td><td>Published</td><td class="n">3,912</td><td class="n">88%</td><td class="nw">2 Nov</td></tr>
+          <tr data-go="help-article"><td><b>Why was I charged but have no credits?</b><br><small class="faint">Credits and plans · App and website</small></td><td>Published</td><td class="n">2,640</td><td class="n">63%</td><td class="nw">5 Nov</td></tr>
+          <tr data-go="help-article"><td><b>Reading with the free 10% preview</b><br><small class="faint">Reading · App and website</small></td><td>Published</td><td class="n">2,104</td><td class="n">90%</td><td class="nw">20 Oct</td></tr>
+          <tr data-go="help-article"><td><b>Reporting and blocking</b><br><small class="faint">Community · App</small></td><td>Published</td><td class="n">977</td><td class="n">79%</td><td class="nw">12 Nov</td></tr>
+          <tr data-go="help-article"><td><b>Becoming an Arpedia author</b><br><small class="faint">Authors · Website</small></td><td>Published</td><td class="n">1,508</td><td class="n">84%</td><td class="nw">28 Oct</td></tr>
+          <tr data-go="help-article"><td><b>How author earnings are paid</b><br><small class="faint">Authors · App and website</small></td><td><span class="st st-warn">Draft</span></td><td class="n">0</td><td class="n">n/a</td><td class="nw">11 Nov</td></tr>
+          <tr data-go="help-article"><td><b>Deleting your account and your data</b><br><small class="faint">Account and privacy · App and website</small></td><td>Published</td><td class="n">642</td><td class="n">72%</td><td class="nw">1 Nov</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>8 of 34 articles</span><span>Articles under 70% helpful are worth rewriting</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-help-article" data-area="6" data-nav="help" data-name="Help article editor" data-note="New: edit once, show in the app Help screen and on the website.|Rule: Publish creates a new version; older versions stay in history and can be restored.|Data: related articles show at the bottom of the article in the app.|New: simplified. Related articles, the preview and version history are folded away; the editor and where the article shows stay in view." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="help">Help articles</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>How credits work</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>How credits work</h1><div class="ph__meta"><span>Published · version 7 · edited by Bisi Adeyemi, 10 Nov</span><span>4,820 views · 81% helpful</span></div></div>
+      <div class="ph__acts"><a class="btn btn-g" data-toast="Draft saved">Save draft</a><a class="btn btn-p" data-go="help" data-toast="Published. Live in the app and on the website within a minute." data-undo="help-article">Publish</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Preview opened as readers will see it">Preview</a><a data-toast="Link copied: arpedia.africa/help/how-credits-work">Copy web link</a><a data-toast="Version 6 restored as a draft">Restore previous version</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__body" style="padding-top:18px">
+            <div class="fgrid">
+              <div class="f full"><label>Title</label><div class="inp"><input value="How credits work"></div></div>
+              <div class="f"><label>Category</label><div class="inp sel"><span>Credits and plans</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+              <div class="f"><label>Web address</label><div class="inp ro"><span class="mono">/help/how-credits-work</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="editor">
+          <div class="editor__bar"><button class="ib sm" data-toast="Bold applied" aria-label="Bold"><svg class="ico s" aria-hidden="true"><use href="#i-aa"/></svg></button><button class="ib sm" data-toast="List added" aria-label="List"><svg class="ico s" aria-hidden="true"><use href="#i-list"/></svg></button><button class="ib sm" data-toast="Link added" aria-label="Link"><svg class="ico s" aria-hidden="true"><use href="#i-link"/></svg></button><button class="ib sm" data-toast="Image picker opened" aria-label="Image"><svg class="ico s" aria-hidden="true"><use href="#i-image"/></svg></button><span class="sep"></span><span class="faint" style="font-size:12.5px">Saved 10 Nov, 14:02</span></div>
+          <div class="ts-help">
+            <p>Credits are how you unlock books beyond the free preview, message authors and send tips. 1 credit is ₦3.</p>
+            <h3>What a book costs</h3>
+            <ul><li>Every book costs ½ credit per page, shown before you start. A 250-page book is 125 credits.</li><li>Pay upfront for the whole book, or pay as you read, one chapter at a time. Both add up to the same price.</li><li>Changed your mind? Undo a chapter within 10 minutes and get the credits back.</li><li>The first 10% of every book is free, and re-reading is always free.</li></ul>
+            <h3>Where credits come from</h3>
+            <p>Your plan gives you credits every period: 300 on Monthly, 800 on Quarterly and 3,000 on Yearly. Unused plan credits carry over one period. Subscribers can top up: 200 credits for ₦600, 500 for ₦1,500 or 1,000 for ₦3,000.</p>
+            <h3>What if my credits are missing?</h3>
+            <p>Store purchases can take a few minutes to arrive. If nothing shows after 30 minutes, open Help and tap "Contact support" with your receipt number.</p>
+          </div>
+        </div>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Shown where</h2></div>
+          <div class="list">
+            <div class="setrow"><span class="setrow__b"><b>In-app Help</b><small>Credits and plans section</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Website help centre</b><small>arpedia.africa/help</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+            <div class="setrow"><span class="setrow__b"><b>Search suggestions</b><small>Offered for "credits" and "balance"</small></span><span class="switch on" role="switch" aria-checked="true"></span></div>
+          </div>
+        </div>
+        <details class="fold"><summary>More details <small>related, preview, versions</small></summary><div class="fold__b">
+          <b>Related articles</b>
+          <div class="ts-chips"><span class="ts-pill">Why was I charged but have no credits?</span><span class="ts-pill">Top-ups and plan prices</span><span class="ts-pill">Messaging an author</span><span class="fchip" data-toast="Related article added">+ Add</span></div>
+          <b>Preview</b>
+          <div class="seg" data-single><button class="is-selected">App</button><button>Website</button></div>
+          <div class="quote" style="font-family:var(--f-ui);font-size:14px"><b>How credits work</b><br>Credits are how you unlock books beyond the free preview, message authors and send tips. 1 credit is ₦3.</div>
+          <b>Version history</b>
+          <div class="tl">
+            <div class="tl__i ok"><b>Version 7 · live</b><small>10 Nov · Bisi Adeyemi · added missing-credits section</small></div>
+            <div class="tl__i"><b>Version 6</b><small>2 Nov · Bisi Adeyemi · new pack prices</small></div>
+            <div class="tl__i"><b>Version 5</b><small>14 Oct · Amaka Okafor · unlock prices by length</small></div>
+          </div>
+        </div></details>
+      </div>
+    </div>
+  </div>
+</section>

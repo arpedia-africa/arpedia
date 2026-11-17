@@ -1,0 +1,723 @@
+<style>
+/* ---- worker C: subscription, profile, studio ---- */
+.sub-hero .hero__body{padding-bottom:44px}
+.sub-star,.sub-done{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--night);color:#FFD27A;box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+.sub-done{border-radius:50%;background:#fff;color:var(--ok)}
+.sub-star .ico,.sub-done .ico{width:28px;height:28px}
+.sub-pad{padding:22px 20px 24px}
+.sub-benefits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.sub-benefits li{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600;line-height:1.4}
+.sub-benefits .ico{flex:0 0 auto;width:20px;height:20px;padding:3px;border-radius:50%;background:var(--ok-t);color:var(--ok);margin-top:-1px}
+.sub-legal{font-size:12px;color:var(--ink-3);text-align:center;line-height:1.5}
+.sub-links{font-size:12.5px;text-align:center;color:var(--ink-3)}
+.sub-links a{color:var(--ink-2);font-weight:600;text-decoration:underline;cursor:pointer}
+.sub-pay{font-family:var(--f-d);font-weight:800;font-size:44px;letter-spacing:-0.03em;line-height:1}
+.sub-balance{font-family:var(--f-d);font-weight:800;font-size:52px;letter-spacing:-0.03em;line-height:.95;font-variant-numeric:tabular-nums}
+.sub-balance small{font-size:20px;letter-spacing:0;margin-left:6px}
+.sub-amt{font-weight:700;font-variant-numeric:tabular-nums}
+.sub-amt.plus{color:var(--ok)}
+.sub-amt.minus{color:var(--err)}
+.cell--child{min-height:40px;padding-top:6px;padding-bottom:6px;padding-left:32px}
+.cell--child .cell__title{font-size:13.5px}
+.cell--child .sub-amt{font-size:13px;color:var(--ink-2)}
+.cn-note{font-size:12.5px;color:var(--ink-2)}
+.st-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.st-grid .hero-panel{display:flex;flex-direction:column;gap:2px}
+.pro-who{display:flex;align-items:center;gap:14px}
+.pro-who .v4{min-width:0}
+.pro-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.9);border-radius:14px;padding:12px 14px}
+.pro-goal{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;cursor:pointer}
+.pro-goal .ring{background:conic-gradient(var(--night) calc(var(--p)*1%),rgba(26,17,0,.15) 0)}
+.pro-goal .ring{width:64px;height:64px}
+.pro-goal .ring b{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:var(--acc)}
+#s-goal .amounts{grid-template-columns:repeat(4,1fr)}
+.swatch{gap:2px;align-content:center}
+.pro-session{display:flex;flex-direction:column;gap:10px;padding:8px 16px 0}
+.pro-danger{color:var(--err);font-weight:700;text-align:center;padding:8px;cursor:pointer;text-decoration:none;font-size:14px}
+.st-steps{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none;counter-reset:st}
+.st-steps li{display:flex;gap:12px;align-items:flex-start;counter-increment:st}
+.st-steps li::before{content:counter(st);flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--night);color:#FFD27A;font-weight:800;font-size:13px}
+.st-steps b{display:block;font-size:14.5px}
+.st-steps span{font-size:13px;color:var(--ink-2)}
+.st-approved{display:flex;gap:12px;align-items:flex-start;background:var(--night);color:#fff;border-radius:14px;padding:14px}
+.st-approved .ic-bub{background:var(--org);color:var(--on-org)}
+.st-approved b{display:block;font-size:14.5px}
+.st-approved span{font-size:13px;color:rgba(255,255,255,.8)}
+
+.st-flow{height:4px;border-radius:4px;background:rgba(26,17,0,.18);overflow:hidden;margin-top:10px}
+.st-flow i{display:block;height:100%;background:var(--night);border-radius:4px}
+.st-badge{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border-radius:999px;background:var(--night);color:#FFD27A;font-size:11px;font-weight:700;margin-left:6px}
+.st-proc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.st-proc li{display:flex;gap:12px;align-items:center;font-size:15px;color:var(--ink-3)}
+.st-proc li::before{content:"";flex:0 0 auto;width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--line)}
+.st-proc li.done{color:var(--ink)}
+.st-proc li.done::before{background:var(--ok);box-shadow:none}
+.st-proc li.now{color:var(--ink);font-weight:700}
+.st-proc li.now::before{background:var(--org);box-shadow:0 0 0 4px var(--org-tint)}
+.st-chap{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.st-chap:last-child{border-bottom:0}
+.st-chap .n{flex:0 0 26px;font-weight:800;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.st-chap .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.st-chap .tx b{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-chap .tx span{font-size:12px;color:var(--ink-3)}
+.st-lnk{background:none;border:0;padding:6px 4px;font:inherit;font-size:13px;font-weight:700;color:var(--org-ink);cursor:pointer}
+.st-pages{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 16px 8px;margin:0 -16px}
+.st-pg{flex:0 0 74%;scroll-snap-align:center;background:#FBF6EC;border-radius:16px;padding:18px 18px 14px;box-shadow:0 0 0 1px var(--line);display:flex;flex-direction:column;gap:8px;min-height:250px}
+.st-pg small{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.st-pg p{margin:0;font-family:var(--f-r);font-size:14px;line-height:1.6;color:#2a2622}
+.st-pg .end{margin-top:auto;padding-top:10px;border-top:2px dashed var(--acc);font-size:12.5px;font-weight:700;color:var(--org-ink)}
+.st-meter{display:flex;align-items:baseline;gap:8px}
+.st-meter b{font-family:var(--f-d);font-weight:800;font-size:34px;letter-spacing:-.02em}
+.st-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.st-list li{display:flex;gap:8px;justify-content:space-between}
+.st-list span:last-child{color:var(--ink-3);text-align:right}
+</style>
+
+<!-- ===================== FLOW 9 · CREDITS AND PLANS ===================== -->
+
+<section class="screen" id="s-credits" data-flow="9" data-name="Credits" data-sb="org" data-note="Same as v25: available balance, what credits do, top-ups and transactions.|New: one credit is worth ₦3 everywhere. Plans and top-ups both cost ₦3 a credit, so prices are easy to compare; books cost half a credit per page.|New: balance shows as books (≈ 6 books), and splits this period's plan credits from rolled-over credits.|Rule: unused credits roll over for one more period, up to one plan's worth. Top-ups are for subscribers only.|New: history groups pay-as-you-read chapter charges under their book, so a run of small charges reads as one line.|Fixed: transaction dates are readable (v25 showed raw timestamps)." hidden>
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="profile" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><a class="pill night" data-go="plans"><svg class="ico xs" aria-hidden="true"><use href="#i-cal"/></svg>Your plan</a></div>
+      <div class="hero__body">
+        <span class="t-label">Available balance</span>
+        <span class="sub-balance">840<small>credits</small></span>
+        <p class="hero__sub">≈ 6 books. Unlock a whole book or pay as you read, chapter by chapter.</p>
+        <div class="st-grid"><div class="hero-panel"><span class="stat__value">800</span><span class="t-xs">This quarter · refills 12 Feb</span></div><div class="hero-panel"><span class="stat__value">40</span><span class="t-xs">Rolled over · use by 12 Feb</span></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">Top up</h2><span class="t-sm t-soft">₦3 a credit · for subscribers</span></div>
+      <div class="inset v12">
+        <div class="option-list" data-single><button class="option"><span class="option__body"><span class="option__title">200 credits</span><span class="option__sub">≈ 1½ books</span></span><span class="option__trail">₦600</span></button><button class="option is-selected"><span class="option__body"><span class="option__title">500 credits</span><span class="option__sub">≈ 4 books</span></span><span class="option__trail">₦1,500</span></button><button class="option"><span class="option__body"><span class="option__title">1,000 credits</span><span class="option__sub">≈ 8 books</span></span><span class="option__trail">₦3,000</span></button></div>
+        <p class="cn-note">Unused credits roll over for one more quarter, up to 800. Books you unlock stay yours for good, even if you cancel.</p>
+        <a class="btn btn-p block" data-go="pack-sheet">Buy 500 credits · ₦1,500</a>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">What credits buy</h2></div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">Books</span><span class="cell__sub">Half a credit a page · a 250-page book is 125</span></div><span class="cell__trail"><span class="t-strong">All at once or as you read</span></span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Messages to authors</span><span class="cell__sub">Replies are free</span></div><span class="cell__trail"><span class="t-num t-strong">5 each</span></span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Tips</span><span class="cell__sub">₦1.60 of each credit reaches the author</span></div><span class="cell__trail"><span class="t-num t-strong">From 20</span></span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Gifts</span><span class="cell__sub">A book for a friend</span></div><span class="cell__trail"><span class="t-strong">Book price</span></span></div>
+      </div>
+    </div>
+    <div class="section body-end">
+      <div class="section__head"><h2 class="section__title">Transactions</h2></div>
+      <div class="group"><div class="cell"><div class="cell__body"><span class="cell__title">Harmattan Letters</span><span class="cell__sub">Pay as you read · 36 of 125 paid</span></div><span class="cell__trail sub-amt minus">−36 cr</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 5</span><span class="cell__sub">13 Nov, 21:40</span></div><span class="cell__trail sub-amt minus">−9</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 4</span><span class="cell__sub">12 Nov, 22:05</span></div><span class="cell__trail sub-amt minus">−9</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 3</span><span class="cell__sub">11 Nov, 21:12</span></div><span class="cell__trail sub-amt minus">−9</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 2</span><span class="cell__sub">10 Nov, 20:30</span></div><span class="cell__trail sub-amt minus">−9</span></div></div><div class="group"><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Message to Ifeoma Nwachukwu</span><span class="cell__sub">12 Nov 2026, 09:14</span></div><span class="cell__trail sub-amt minus">−5 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Plan credits · Quarterly</span><span class="cell__sub">12 Nov 2026</span></div><span class="cell__trail sub-amt plus">+800 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Rolled over from last quarter</span><span class="cell__sub">12 Nov 2026 · unused credits carried in</span></div><span class="cell__trail sub-amt plus">+40 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Unlocked all · A House Called Grace</span><span class="cell__sub">2 Nov 2026, 13:32</span></div><span class="cell__trail sub-amt minus">−110 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Top-up · 200 credits</span><span class="cell__sub">29 Oct 2026, 18:10</span></div><span class="cell__trail sub-amt plus">+200 cr</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-pack-sheet" data-base="credits" data-flow="9" data-name="Google Play: buy credits" data-note="Store sheet for a credit pack, drawn here for flow review.|Credits land in the wallet right after the store confirms." hidden>
+  <a class="backdrop" data-go="credits" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="pb">
+      <div class="h8 t-xs t-soft"><span class="t-strong">Google Play</span><span class="push">ngozi.eze@example.com</span></div>
+      <div class="sheet-sum"><svg width="44" height="44" aria-hidden="true"><use href="#i-appicon"/></svg><div class="fill v4"><span class="t-title">500 credits · top-up</span><span class="t-xs t-muted">Arpedia Reads · one-time</span></div><span class="t-title t-num">₦1,500</span></div>
+      <div class="h8 t-sm"><svg class="ico s" aria-hidden="true"><use href="#i-wallet"/></svg><span class="fill">Verve ···· 4417</span><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chev"/></svg></div>
+      <a class="btn btn-play block" data-go="credits">Buy</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-plans" data-flow="9" data-name="Your plan" data-sb="org" data-note="Same as v25 Subscription page: the plan list with prices and the Subscribe button, opened from Settings.|New: your current plan, renewal date and price sit on top; switching and cancelling happen in Google Play, and the screen says so.|New: plan ladder is ₦900, ₦800 and ₦700 a month, all at ₦3 a credit (Yearly adds 200 bonus credits), so Yearly is honestly Best value.|New: Pause or cancel leads to a pause offer first." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Your plan</h1><p class="hero__sub">Quarterly · 800 credits every 3 months</p><span class="h8"><span class="pill night">Active</span><span class="pill">Renews 12 Feb 2027 · ₦2,400</span></span></div></div>
+  <div class="body onb-sheet">
+    <div class="sub-pad v16 body-end">
+      <div class="option-list" data-single><button class="option"><span class="radio"></span><span class="option__body"><span class="option__title">Monthly </span><span class="option__sub">300 credits ≈ 2 books · ₦900 a month</span></span><span class="option__trail">₦900</span></button><button class="option"><span class="radio"></span><span class="option__body"><span class="option__title">Quarterly <span class="pill night">Current</span></span><span class="option__sub">800 credits ≈ 6 books · ₦800 a month</span></span><span class="option__trail">₦2,400</span></button><button class="option is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">Yearly <span class="pill ok">Best value</span></span><span class="option__sub">3,000 credits ≈ 24 books · ₦700 a month</span></span><span class="option__trail">₦8,400</span></button></div>
+      <ul class="sub-benefits"><li><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Credits refill every renewal; unused ones roll over once</li><li><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Unlock whole books or pay as you read</li><li><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>First 10% of every book free</li><li><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Offline reading, book rooms and clubs</li><li><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Message authors for 5 credits; cancel anytime</li></ul>
+      <div class="callout callout--info"><span>Books you unlock stay in your library for good, even if you cancel.</span></div>
+      <p class="sub-legal">Renews automatically at the end of each period. Cancel anytime in Google Play; your library, history and progress stay.</p><p class="sub-links"><a>Terms of Service</a> · <a>Privacy Policy</a></p>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="checkout">Switch to Yearly · ₦8,400</a><a class="link t-sm t-center" data-go="plan-cancel">Pause or cancel plan</a></div>
+</section>
+
+<section class="screen" id="s-checkout" data-flow="9" data-name="Secure checkout" data-sb="org" data-note="Same as v25: Pay amount, plan name, Subscribe with Google Play, Restore purchases, one-charge note, Terms and Privacy.|New: a summary of what the plan gives before paying." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="plans-onboard" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="t-strong">Secure checkout</span><span class="fill"></span><svg class="ico s" aria-hidden="true"><use href="#i-lock"/></svg></div><div class="hero__body"><span class="sub-pay">Pay ₦2,400</span><p class="hero__sub">Arpedia Quarterly · every 3 months</p></div></div>
+  <div class="body onb-sheet">
+    <div class="sub-pad v16 body-end">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Credits every 3 months</span><span class="kv__v">800</span></div>
+        <div class="kv__row"><span class="kv__k">About</span><span class="kv__v">6 books of 250 pages</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">Today</span><span class="kv__v">₦2,400</span></div>
+      </div>
+      <a class="btn btn-p block" data-go="play-sheet"><svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg>Subscribe with Google Play</a>
+      <button class="link t-center">Restore purchases</button>
+      <p class="sub-legal">One charge through Google Play, no other payment method. Reading access starts as soon as the store confirms the purchase, and renews until you cancel in your Google Play account.</p>
+      <p class="sub-links"><a>Terms of Service</a> · <a>Privacy Policy</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-play-sheet" data-base="checkout" data-flow="9" data-name="Google Play: subscribe" data-note="Store sheet, drawn here for flow review. After success the app shows You are all set." hidden>
+  <a class="backdrop" data-go="checkout" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="pb">
+      <div class="h8 t-xs t-soft"><span class="t-strong">Google Play</span><span class="push">ngozi.eze@example.com</span></div>
+      <div class="sheet-sum"><svg width="44" height="44" aria-hidden="true"><use href="#i-appicon"/></svg><div class="fill v4"><span class="t-title">Arpedia Quarterly</span><span class="t-xs t-muted">Arpedia Reads</span></div><span class="t-title t-num">₦2,400</span></div>
+      <div class="callout callout--quiet"><span>₦2,400 every 3 months. Cancel any time in Google Play.</span></div>
+      <div class="h8 t-sm"><svg class="ico s" aria-hidden="true"><use href="#i-wallet"/></svg><span class="fill">Verve ···· 4417</span><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chev"/></svg></div>
+      <a class="btn btn-play block" data-go="all-set">Subscribe</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-plan-cancel" data-flow="9" data-name="Pause or cancel" data-sb="org" data-note="New: cancelling starts with a pause offer (1 to 3 months). Pausing keeps every credit, including rolled-over ones.|Honest about what is lost: cancelling ends the plan at the end of the period and rolled-over credits expire then. Credits from this period stay usable until the period ends.|Books already unlocked stay in the library for good either way.|The final cancel still happens in Google Play; we never hide the way out." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="plans" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Take a break instead?</h1><p class="hero__sub">Pause your plan and keep all 840 credits.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="sub-pad v16 body-end">
+      <div class="v8"><span class="t-label">Pause for</span><div class="seg" data-single><button class="on">1 month</button><button>2 months</button><button>3 months</button></div></div>
+      <p class="t-sm t-soft">Billing stops and starts again on 12 March. Your credits, rollover and library stay exactly as they are.</p>
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">If you cancel, you keep</span><span class="kv__v">800 credits until 12 Feb</span></div>
+        <div class="kv__row"><span class="kv__k">If you cancel, you lose</span><span class="kv__v">40 rolled-over credits</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">Books you unlocked</span><span class="kv__v">Stay yours</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="plans">Pause for 1 month</a><a class="link t-sm t-center" data-go="plans">Cancel in Google Play</a></div>
+</section>
+
+<!-- ===================== FLOW 10 · PROFILE AND SETTINGS ===================== -->
+
+<section class="screen" id="s-profile" data-flow="10" data-name="Profile" data-sb="org" data-note="Same as v25: Profile with settings gear, avatar, name and email, Books read / Following / Highlights, Reading goal (Books this year), My bookmarks / My highlights / My notes, Become an Arpedia author.|New: reading goal sits on an orange sunflower band with a progress ring.|Fixed: real numbers, no blank stat skeletons." hidden>
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar"><h1 class="hero__title fill">Profile</h1><button class="ib" data-go="account" aria-label="Settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg></button></div>
+      <div class="hero__body">
+        <div class="pro-who"><span class="av xl g ring-night">NE</span><div class="v4"><span class="t-h2">Ngozi Eze</span><span class="t-sm">ngozi.eze@example.com</span></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="stats">
+        <div class="stat"><span class="stat__value">14</span><span class="stat__label">Books read</span></div>
+        <div class="stat"><span class="stat__value">23</span><span class="stat__label">Following</span></div>
+        <a class="stat" data-go="my-highlights"><span class="stat__value">86</span><span class="stat__label">Highlights</span></a>
+      </div>
+    </div>
+    <div class="band">
+      <a class="pro-goal inset" data-go="goal"><div class="ring" style="--p:58"><b class="t-xs t-num">14/24</b></div><div class="fill v4"><span class="t-label">Reading goal</span><span class="t-h3">Books this year</span><span class="t-sm">14 of 24 · 10 to go, on track</span></div><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">My collection</h2></div>
+      <div class="group">
+        <a class="cell cell--tap" data-go="my-highlights"><span class="ic-bub "><svg class="ico s" aria-hidden="true"><use href="#i-bookmark"/></svg></span><div class="cell__body"><span class="cell__title">My bookmarks</span></div><span class="cell__trail"><span class="t-num">12</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="my-highlights"><span class="ic-bub b"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg></span><div class="cell__body"><span class="cell__title">My highlights</span></div><span class="cell__trail"><span class="t-num">86</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="my-highlights"><span class="ic-bub g"><svg class="ico s" aria-hidden="true"><use href="#i-file"/></svg></span><div class="cell__body"><span class="cell__title">My notes</span></div><span class="cell__trail"><span class="t-num">12</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+    <div class="section body-end">
+      <div class="section__head"><h2 class="section__title">Author</h2></div>
+      <div class="group"><a class="cell cell--tap" data-go="become-author"><span class="ic-bub n"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg></span><div class="cell__body"><span class="cell__title">Become an Arpedia author</span><span class="cell__sub">Publish, meet readers, earn monthly</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div>
+    </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab on" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen sheet" id="s-goal" data-base="profile" data-flow="10" data-name="Reading goal" data-note="Same as v25: Books this year, Finishing a book counts towards your goal, 6 / 12 / 24 / 52, Or enter your own number, Set goal.|Fixed: your current goal is picked, so Set goal is ready (v25 kept it disabled).|New: pace hint for the picked number." hidden>
+  <a class="backdrop" data-go="profile" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="ph"><h2>Books this year</h2><button class="ib" data-go="profile" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="pb">
+      <p class="t-sm t-soft">Finishing a book counts towards your goal.</p>
+      <div class="amounts" data-single><button class="amount"><b class="t-num">6</b></button><button class="amount"><b class="t-num">12</b></button><button class="amount is-selected"><b class="t-num">24</b></button><button class="amount"><b class="t-num">52</b></button></div>
+      <div class="field"><input placeholder="Or enter your own number" aria-label="Your own number" inputmode="numeric"></div>
+      <p class="t-sm t-soft t-center">24 books is about 2 a month. You've read 14 so far.</p>
+      <a class="btn btn-p block" data-go="profile"><svg class="ico s" aria-hidden="true"><use href="#i-trophy"/></svg>Set goal</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-my-highlights" data-flow="10" data-name="My highlights" data-sb="org" data-note="Same as v25: My bookmarks, My highlights and My notes lists, each item showing the book and date.|New: one screen with three tabs instead of three separate pages; items grouped by book; each opens the page it came from.|Fixed: dates read like 10 Nov, not timestamps." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="profile" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" aria-label="Search highlights"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">My highlights</h1><p class="hero__sub">86 highlights across 9 books</p></div>
+    <div class="hero__tabs" data-single><button>Bookmarks <span class="count">12</span></button><button class="on">Highlights <span class="count">86</span></button><button>Notes <span class="count">12</span></button></div>
+  </div>
+  <div class="body">
+    <div class="inset v24 pt16 body-end">
+      <div class="v12">
+        <div class="h12"><div class="cv c1 x40"><b>Harmattan</b></div><div class="v4"><span class="t-title">Harmattan Letters</span><span class="t-xs t-muted">6 highlights · 2 notes</span></div></div>
+        <div class="card card--pad v12">
+          <a class="annot" data-go="reader"><span class="t-xs t-muted">Ch. 7 · 10 Nov</span><span class="excerpt"><span class="hl-y">Each one smelled faintly of camphor</span></span></a>
+          <a class="annot" data-go="reader"><span class="t-xs t-muted">Ch. 4 · 8 Nov · shared to Grace Readers</span><span class="excerpt"><span class="hl-g">I have asked God for a wife who laughs at my jokes even when they are bad.</span></span><span class="annot__note">This made me laugh out loud on the bus.</span></a>
+        </div>
+      </div>
+      <div class="v12">
+        <div class="h12"><div class="cv c3 x40"><b>Alignment</b></div><div class="v4"><span class="t-title">The Alignment</span><span class="t-xs t-muted">11 highlights</span></div></div>
+        <div class="card card--pad v12"><a class="annot" data-go="reader"><span class="t-xs t-muted">Ch. 14 · 2 Nov</span><span class="excerpt"><span class="hl-p">He had prayed for her by name.</span></span></a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-account" data-flow="10" data-name="Settings" data-sb="org" data-note="Same as v25 order: your name and email with Edit; Account (Edit profile, Notifications, Security, Privacy); Reading (Preferences, Navigation); Default reader theme; Storage (Downloads); Payments (Credits, Subscription); App (Invite friends, About Arpedia, Help and support); Log out, Delete account.|Fixed: Notifications opens real preferences; Privacy opens blocked people; one support address.|Fixed: Delete account is a quiet red link, not a second big red button next to Log out." hidden>
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="profile" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><h1 class="hero__title fill">Settings</h1></div>
+      <div class="hero__body"><div class="pro-card"><span class="av lg g">NE</span><div class="fill v4"><span class="t-title">Ngozi Eze</span><span class="t-xs t-soft">ngozi.eze@example.com</span></div><a class="btn btn-n sm" data-go="edit-profile">Edit</a></div></div>
+    </div>
+    <div class="section"><div class="group-label">Account</div><div class="group"><a class="cell cell--tap" data-go="edit-profile"><div class="cell__body"><span class="cell__title">Edit profile</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="notif-prefs"><div class="cell__body"><span class="cell__title">Notifications</span><span class="cell__sub">Replies, authors, reminders</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="security"><div class="cell__body"><span class="cell__title">Security</span><span class="cell__sub">Password, devices</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="blocked"><div class="cell__body"><span class="cell__title">Privacy</span><span class="cell__sub">Blocked people · 2</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div></div>
+    <div class="section"><div class="group-label">Reading</div><div class="group"><a class="cell cell--tap" data-go="interests"><div class="cell__body"><span class="cell__title">Preferences</span></div><span class="cell__trail"><span class="t-sm t-soft">3 selected</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="reader-settings"><div class="cell__body"><span class="cell__title">Navigation</span></div><span class="cell__trail"><span class="t-sm t-soft">Swipe pages</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div></div>
+    <div class="section"><div class="group-label">Default reader theme</div><div class="inset"><div class="swatches" data-single><button class="swatch swatch--light is-selected">Light</button><button class="swatch swatch--sepia">Sepia</button><button class="swatch swatch--dark">Dark</button></div></div></div>
+    <div class="section"><div class="group-label">Storage</div><div class="group"><a class="cell cell--tap" data-go="library-offline"><div class="cell__body"><span class="cell__title">Downloads</span><span class="cell__sub">2 books · 4.8 MB · Wi-Fi only</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div></div>
+    <div class="section"><div class="group-label">Payments</div><div class="group"><a class="cell cell--tap" data-go="credits"><div class="cell__body"><span class="cell__title">Credits</span></div><span class="cell__trail"><span class="t-sm t-soft t-num">840 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="plans"><div class="cell__body"><span class="cell__title">Subscription</span></div><span class="cell__trail"><span class="pill ok">Active</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div></div>
+    <div class="section"><div class="group-label">App</div><div class="group"><a class="cell cell--tap" data-go="theme-settings"><div class="cell__body"><span class="cell__title">App colour</span><span class="cell__sub">Sunflower, Palm, Plum or Night</span></div><span class="cell__trail"><span class="t-sm t-soft" data-theme-name>Sunflower</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><div class="cell"><div class="cell__body"><span class="cell__title">Invite friends</span><span class="cell__sub">Share your link · you both get 50 credits</span></div></div><a class="cell cell--tap" data-go="about"><div class="cell__body"><span class="cell__title">About Arpedia</span><span class="cell__sub">Version 1.0.0</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="about"><div class="cell__body"><span class="cell__title">Help and support</span><span class="cell__sub">support@arpedia.africa</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div></div>
+    <div class="pro-session body-end"><a class="btn btn-g block" data-go="login"><svg class="ico s" aria-hidden="true"><use href="#i-out"/></svg>Log out</a><a class="pro-danger" data-go="delete-account">Delete account</a></div>
+  </div>
+</section>
+<section class="screen sheet" id="s-theme-settings" data-base="account" data-flow="10" data-name="App colour" data-note="New: change the app colour any time. Same four themes as onboarding; the whole app recolours straight away." hidden>
+  <a class="backdrop" data-go="account" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>App colour</h2><button class="ib" data-go="account" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="body" style="display:flex;flex-direction:column;gap:14px;padding:16px 0 22px"><div class="th-grid" data-single><button class="th-tile is-selected" data-theme-pick="sunflower" aria-label="Sunflower: Bright orange with olive accents" style="--f:#F5931F;--o:#4A2600;--pc:rgba(var(--petal-rgb),calc(.8 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#5E7A35"></i><i style="background:#E8A600"></i></span><b>Sunflower</b><small>Bright orange with olive accents</small></button><button class="th-tile" data-theme-pick="palm" aria-label="Palm: Deep green with warm orange" style="--f:#2F6B4F;--o:#FFFFFF;--pc:rgba(var(--petal-rgb),calc(.45 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#E8902A"></i><i style="background:#E8A600"></i></span><b>Palm</b><small>Deep green with warm orange</small></button><button class="th-tile" data-theme-pick="plum" aria-label="Plum: Muted purple with marigold" style="--f:#6B4A8E;--o:#FFFFFF;--pc:rgba(var(--petal-rgb),calc(.45 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#E0A030"></i><i style="background:#E8A600"></i></span><b>Plum</b><small>Muted purple with marigold</small></button><button class="th-tile" data-theme-pick="night" aria-label="Night: Warm black with sunflower" style="--f:#2A211A;--o:#FFF6EA;--pc:rgba(var(--petal-rgb),calc(.45 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#F5931F"></i><i style="background:#E8A600"></i></span><b>Night</b><small>Warm black with sunflower</small></button></div><div style="padding:0 16px"><a class="btn btn-p block" data-go="account">Done</a></div></div>
+  </div>
+</section>
+
+<section class="screen" id="s-notif-prefs" data-flow="10" data-name="Notification preferences" data-sb="org" data-note="New: real preferences (the v25 Notifications row opened the feed). Quiet hours for night readers." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" data-go="notifications" aria-label="Open notification feed"><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg></button></div><div class="hero__body"><h1 class="hero__title">Notifications</h1><p class="hero__sub">Choose what Arpedia tells you about</p></div></div>
+  <div class="body">
+    <div class="section">
+      <div class="group-label">Send me</div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">Club and room messages</span><span class="cell__sub">Mentions and replies only</span></div><button class="toggle on" aria-label="Club and room messages" aria-pressed="true"></button></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Authors you follow</span><span class="cell__sub">New books and posts</span></div><button class="toggle on" aria-label="Authors you follow" aria-pressed="true"></button></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Replies to your notes</span></div><button class="toggle on" aria-label="Replies to your notes" aria-pressed="true"></button></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Reading reminders</span><span class="cell__sub">A nudge if you haven't read in 3 days</span></div><button class="toggle" aria-label="Reading reminders" aria-pressed="false"></button></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">New arrivals and offers</span></div><button class="toggle" aria-label="New arrivals and offers" aria-pressed="false"></button></div>
+      </div>
+    </div>
+    <div class="section body-end">
+      <div class="group-label">Quiet hours</div>
+      <div class="group"><div class="cell"><div class="cell__body"><span class="cell__title">Pause notifications</span><span class="cell__sub">22:00 to 06:00</span></div><button class="toggle on" aria-label="Quiet hours" aria-pressed="true"></button></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-edit-profile" data-flow="10" data-name="Edit profile" data-sb="org" data-note="Same fields as v25 profile setup: photo, full name, phone number, date of birth, country.|New: a short bio, and a note on who can see each field. Validation only after leaving a field." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Edit profile</h1><p class="hero__sub">Only your name, photo and bio are public.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="onb-avatar"><span class="av xl g">NE</span><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-image"/></svg>Change photo</button></div>
+      <div class="input"><label for="ep-n">Full name</label><div class="field"><input id="ep-n" value="Ngozi Eze"></div></div>
+      <div class="input"><label for="ep-b">Bio</label><div class="field"><input id="ep-b" value="Choir alto. Reads on the BRT."></div><span class="hint t-num">30 / 160</span></div>
+      <div class="input"><label for="ep-p">Phone number</label><div class="field"><span class="t-soft t-strong">+234</span><input id="ep-p" value="803 412 7781"></div><span class="hint">Private. For account recovery only.</span></div>
+      <div class="input"><label for="ep-d">Date of birth</label><div class="field"><input id="ep-d" value="14 / 03 / 1996"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-cal"/></svg></div><span class="hint">Private.</span></div>
+      <div class="input"><label for="ep-c">Country</label><div class="field"><input id="ep-c" value="Nigeria"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="account">Save changes</a></div>
+</section>
+
+<section class="screen" id="s-security" data-flow="10" data-name="Security" data-sb="org" data-note="Fixed: was static text in v25. Shows sign-in methods and devices (book downloads are limited to 3 devices)." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Security</h1><p class="hero__sub">Sign-in methods and devices</p></div></div>
+  <div class="body">
+    <div class="section">
+      <div class="group-label">Sign-in</div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">Email</span><span class="cell__sub">ngozi.eze@example.com</span></div><span class="pill ok">Verified</span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Google</span><span class="cell__sub">Connected</span></div></div>
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Change password</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+    <div class="section">
+      <div class="group-label">Devices · 2 of 3</div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">Tecno Camon 30</span><span class="cell__sub">This phone · Enugu</span></div></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Samsung Galaxy A15</span><span class="cell__sub">Last used 3 Nov · Lagos</span></div><button class="btn btn-g sm">Remove</button></div>
+      </div>
+    </div>
+    <div class="inset pt16 body-end"><div class="callout callout--quiet"><span>Downloaded books work on up to 3 devices. Remove one to add another.</span></div></div>
+  </div>
+</section>
+
+<section class="screen" id="s-about" data-flow="10" data-name="About and help" data-sb="org" data-note="Same as v25 About Arpedia and Help and support rows, joined on one page.|Fixed: one support address everywhere (v25 mixed two)." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">About Arpedia</h1><p class="hero__sub">Version 1.0.0 (build 31)</p></div></div>
+  <div class="body">
+    <div class="section body-end">
+      <div class="group">
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Help centre</span><span class="cell__sub">Credits, plans, downloads</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Contact support</span><span class="cell__sub">support@arpedia.africa</span></div><button class="btn btn-g sm">Copy</button></div>
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Terms of Service</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Privacy Policy</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Report a copyright issue</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-delete-account" data-flow="10" data-name="Delete account" data-sb="org" data-note="Says exactly what is lost, that store subscriptions must be cancelled separately, and needs typed confirmation." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Delete account</h1><p class="hero__sub">This can't be undone.</p></div></div>
+  <div class="body">
+    <div class="inset v16 pt16 body-end">
+      <div class="callout callout--err"><span>Your 840 credits, 14 finished books, 86 highlights and all messages will be deleted.</span></div>
+      <div class="callout callout--warn"><span>Your Quarterly plan keeps billing until you cancel it in Google Play.</span></div>
+      <div class="input"><label for="da-c">Type DELETE to confirm</label><div class="field"><input id="da-c" value="DELE"></div></div>
+    </div>
+  </div>
+  <div class="foot flat"><span class="btn dis block">Delete my account</span><a class="btn btn-g block md" data-go="account">Keep my account</a></div>
+</section>
+
+<!-- ===================== FLOW 11 · AUTHOR STUDIO ===================== -->
+
+<section class="screen" id="s-become-author" data-flow="11" data-name="Become an author" data-sb="org" data-note="Same as v25: Share your stories with Arpedia readers, author access is reviewed, How it works in 3 steps, Start application.|New: what you earn (₦1.60 for every credit readers spend on your books), what to have ready, and how long review takes." hidden>
+  <div class="hero sub-hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="profile" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Share your stories with Arpedia readers.</h1><p class="hero__sub">Author access is reviewed so readers can trust every publishing profile.</p></div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="sub-pad v16 body-end">
+      <span class="t-label">How it works</span>
+      <ol class="st-steps">
+        <li><div><b>Complete your author profile</b><span>Name, pen name, a short bio and a writing sample.</span></div></li>
+        <li><div><b>Arpedia reviews your application</b><span>About 3 days. You get a notification either way.</span></div></li>
+        <li><div><b>Publish books and build your community</b><span>Your club opens the day you're approved.</span></div></li>
+      </ol>
+      <div class="callout callout--brand"><span><b>You earn ₦1.60 for every credit readers spend on your books.</b> A 250-page book is 125 credits, so each full read pays you ₦200.</span></div>
+      <div class="callout callout--quiet"><span>Have ready: a short bio, a writing sample (up to 10 pages) and your bank details for payouts. About 10 minutes.</span></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="apply">Start application</a></div>
+</section>
+
+<section class="screen" id="s-apply" data-flow="11" data-name="Application, step 1 of 4" data-sb="org" data-note="Same as v25 step 1 of 4, Your author profile: full name, email, phone (optional), pen name (optional), social media handle (optional), Continue, Save draft, Cancel.|Fixed: no error before you type (v25 showed one on Start); name and email carry over from your account.|New: drafts save as you type." hidden>
+  <div class="hero onb-step"><div class="hero__bar hero__bar--back"><button class="ib" data-go="become-author" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="4"><i style="width:25%"></i></div><span class="onb-count">1 of 4</span></div><div class="hero__body"><h1 class="hero__title">Your author profile</h1><p class="hero__sub">Tell us how readers should know you.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="input"><label for="ap-n">Full name</label><div class="field"><input id="ap-n" value="Ngozi Eze"></div><span class="hint">For contracts and payouts. Never shown publicly.</span></div>
+      <div class="input"><label for="ap-e">Email address</label><div class="field"><input id="ap-e" value="ngozi.eze@example.com"></div></div>
+      <div class="input"><label for="ap-p">Phone number (optional)</label><div class="field"><span class="t-soft t-strong">+234</span><input id="ap-p" placeholder="803 000 0000"></div></div>
+      <div class="input"><label for="ap-pn">Pen name (optional)</label><div class="field"><input id="ap-pn" placeholder="Name shown to readers"></div></div>
+      <div class="input"><label for="ap-s">Social media handle (optional)</label><div class="field"><span class="t-soft t-strong">@</span><input id="ap-s" placeholder="yourhandle"></div></div>
+      <span class="h6 t-xs t-muted"><svg class="ico xs" aria-hidden="true"><use href="#i-cloud"/></svg>Draft saves as you type</span>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="apply-2">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a><div class="btn-grid"><button class="btn btn-g">Save draft</button><a class="btn btn-g" data-go="become-author"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg>Cancel</a></div></div>
+</section>
+
+<section class="screen" id="s-apply-2" data-flow="11" data-name="Application, step 2 of 4" data-sb="org" data-note="Same as v25: what you write (categories), your bio and writing experience.|New: categories are tappable chips; the bio shows a character count." hidden>
+  <div class="hero onb-step"><div class="hero__bar hero__bar--back"><button class="ib" data-go="apply" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="2" aria-valuemin="1" aria-valuemax="4"><i style="width:50%"></i></div><span class="onb-count">2 of 4</span></div><div class="hero__body"><h1 class="hero__title">Your writing</h1><p class="hero__sub">What you write and who you are as a writer.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="v8"><span class="t-label">What do you write?</span><div class="h8 h-wrap" data-multi><button class="chip sel">Christian fiction</button><button class="chip">Clean romance</button><button class="chip sel">African stories</button><button class="chip">Poetry</button><button class="chip">Devotionals</button><button class="chip">Non-fiction</button><button class="chip">Short stories</button></div></div>
+      <div class="input"><label for="a2-b">Short bio</label><div class="field"><textarea id="a2-b" rows="3">Choir alto from Enugu. I write about faith, family and the small mercies of city life.</textarea></div><span class="hint t-num">96 / 300 · shown on your author page</span></div>
+      <div class="input"><label for="a2-x">Writing experience</label><div class="field"><input id="a2-x" value="2 self-published novellas, a church magazine column"></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="apply-3">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a><div class="btn-grid"><button class="btn btn-g">Save draft</button><a class="btn btn-g" data-go="become-author"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg>Cancel</a></div></div>
+</section>
+
+<section class="screen" id="s-apply-3" data-flow="11" data-name="Application, step 3 of 4" data-sb="org" data-note="Same as v25: a writing sample, uploaded as a file or pasted as text.|New: the file is checked on upload and shows its page count." hidden>
+  <div class="hero onb-step"><div class="hero__bar hero__bar--back"><button class="ib" data-go="apply-2" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="3" aria-valuemin="1" aria-valuemax="4"><i style="width:75%"></i></div><span class="onb-count">3 of 4</span></div><div class="hero__body"><h1 class="hero__title">Writing sample</h1><p class="hero__sub">Up to 10 pages of your best work.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="card card--pad"><div class="h12"><div class="fill v4"><span class="t-title ell">the-gatekeeper-ch1.docx</span><span class="t-xs t-muted">220 KB · 8 pages</span></div><button class="ib" aria-label="Remove file"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+      <div class="divider-or">or paste text</div>
+      <div class="input"><label for="a3-t">Sample text</label><div class="field"><textarea id="a3-t" rows="5" placeholder="Paste a chapter or a few pages"></textarea></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="apply-4">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a><div class="btn-grid"><button class="btn btn-g">Save draft</button><a class="btn btn-g" data-go="become-author"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg>Cancel</a></div></div>
+</section>
+
+<section class="screen" id="s-apply-4" data-flow="11" data-name="Application, step 4 of 4" data-sb="org" data-note="Same as v25: review your details and confirm before sending.|New: a summary with Edit links, and the publishing agreement in plain words." hidden>
+  <div class="hero onb-step"><div class="hero__bar hero__bar--back"><button class="ib" data-go="apply-3" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="4" aria-valuemin="1" aria-valuemax="4"><i style="width:100%"></i></div><span class="onb-count">4 of 4</span></div><div class="hero__body"><h1 class="hero__title">Review and send</h1><p class="hero__sub">Check everything once. You can edit it later.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="sub-pad v16 body-end">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Name</span><span class="kv__v">Ngozi Eze</span></div>
+        <div class="kv__row"><span class="kv__k">Pen name</span><span class="kv__v">N. C. Eze</span></div>
+        <div class="kv__row"><span class="kv__k">Writes</span><span class="kv__v">Christian fiction, African stories</span></div>
+        <div class="kv__row"><span class="kv__k">Sample</span><span class="kv__v">the-gatekeeper-ch1.docx</span></div>
+      </div>
+      <label class="h12 h-top t-sm"><button class="toggle on" aria-label="I agree" aria-pressed="true"></button><span>I own the rights to what I publish, and I agree to the Arpedia author terms: I earn ₦1.60 for every credit readers spend on my books.</span></label>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="apply-sent">Send application</a><a class="link t-center" data-go="apply">Edit details</a></div>
+</section>
+
+<section class="screen" id="s-apply-sent" data-flow="11" data-name="Application sent" data-sb="org" data-note="Shows what happens next and when, so authors are not left guessing." hidden>
+  <div class="hero hero--low">
+    <div class="hero__bar"><span class="fill"></span><button class="ib" data-go="profile" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Application received</h1><p class="hero__sub">We'll reply by Monday 16 November. You'll get a notification either way.</p></div>
+  </div>
+  <div class="body">
+    <div class="inset pt24 body-end">
+      <div class="timeline">
+        <div class="timeline__step is-done"><div class="v4"><span class="t-title">Sent</span><span class="t-xs t-muted">12 November</span></div></div>
+        <div class="timeline__step"><div class="v4"><span class="t-title">Editor review</span><span class="t-xs t-muted">About 3 days</span></div></div>
+        <div class="timeline__step"><div class="v4"><span class="t-title">Author Studio opens</span><span class="t-xs t-muted">Submit your first book</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-g block" data-go="studio">Preview Author Studio</a></div>
+</section>
+
+<section class="screen" id="s-studio" data-flow="11" data-name="Author Studio" data-sb="org" data-note="Same as v25: Hi with Your work this month and Reader mode; Published books, Total reads, Followers, Est. royalty; Submit a book for review, New post; Private messages, My community chat, My Books, Posts and comments, Royalties, Author profile settings.|Fixed: approval shows as a banner in the Studio, not a system popup; reads and earnings agree (v25 showed 0 reads next to ₦86,400).|New: stats on the orange band, and earnings per book at ₦1.60 a credit." hidden>
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar"><div class="fill v4"><span class="t-xs t-strong">Author Studio</span><span class="t-h2">Hi, Ifeoma</span></div><a class="btn btn-n sm" data-go="home">Reader mode</a></div>
+      <div class="hero__body">
+        <p class="hero__sub">Your work this month.</p>
+        <div class="st-grid"><div class="hero-panel"><span class="stat__value">2</span><span class="t-xs">Published books</span></div><div class="hero-panel"><span class="stat__value">41.2k</span><span class="t-xs">Minutes read</span></div><div class="hero-panel"><span class="stat__value">3.4k</span><span class="t-xs">Followers</span></div><div class="hero-panel"><span class="stat__value">₦184,304</span><span class="t-xs">Earned this month</span></div></div>
+      </div>
+    </div>
+    <div class="inset pt16"><div class="st-approved"><div class="fill"><b>You're approved as an Arpedia author</b><span>Create your public profile, upload books and manage your reader community.</span></div><button class="ib" aria-label="Dismiss"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">Quick actions</h2></div>
+      <div class="inset v8"><a class="btn btn-p block" data-go="studio-submit"><svg class="ico s" aria-hidden="true"><use href="#i-upload"/></svg>Submit a book for review</a><a class="btn btn-s block" data-go="studio-post"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg>New post</a></div>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">Earnings by book</h2><a class="section__link" data-go="studio-royalties">Details</a></div>
+      <div class="inset v8">
+        <div class="v4"><div class="h8 t-xs"><span class="fill t-strong">Harmattan Letters</span><span class="t-num t-strong">₦143,760</span></div><div class="bar"><i style="width:78%"></i></div><span class="t-xs t-muted">89,850 credits spent</span></div>
+        <div class="v4"><div class="h8 t-xs"><span class="fill t-strong">Morning Prayers, Volume 1</span><span class="t-num t-strong">₦40,544</span></div><div class="bar"><i style="width:22%"></i></div><span class="t-xs t-muted">25,340 credits spent</span></div>
+      </div>
+    </div>
+    <div class="section body-end">
+      <div class="section__head"><h2 class="section__title">Shortcuts</h2></div>
+      <div class="group">
+        <a class="cell cell--tap" data-go="studio-inbox"><div class="cell__body"><span class="cell__title">Private messages</span><span class="cell__sub">4 waiting for a reply</span></div><span class="cell__trail"><span class="count">4</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="channel"><div class="cell__body"><span class="cell__title">My community chat</span><span class="cell__sub">Ifeoma's Readers · 860 members</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="studio-books"><div class="cell__body"><span class="cell__title">My Books</span><span class="cell__sub">2 live · 1 in review</span></div><span class="cell__trail"><span class="t-num">3</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="post"><div class="cell__body"><span class="cell__title">Posts and comments</span><span class="cell__sub">12 new comments</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="studio-royalties"><div class="cell__body"><span class="cell__title">Earnings</span><span class="cell__sub">Next payout 15 Dec</span></div><span class="cell__trail"><span class="t-num t-strong">₦162,752</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="studio-profile"><div class="cell__body"><span class="cell__title">Author profile settings</span></div><span class="cell__trail"><span class="pill ok">Public</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="studio-payout"><div class="cell__body"><span class="cell__title">Payout account</span><span class="cell__sub">GTBank ···· 2291 · verified</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="studio-community"><div class="cell__body"><span class="cell__title">Club settings</span><span class="cell__sub">Who can post, slow mode</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-studio-profile" data-flow="11" data-name="Author profile settings" data-sb="org" data-note="Same as v25 Author profile settings row (Public): pen name, bio, photo, location and visibility.|New: preview of how readers see you." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><a class="pill night" data-go="author">Preview</a></div><div class="hero__body"><h1 class="hero__title">Author profile</h1><p class="hero__sub">What readers see on your page</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="onb-avatar"><span class="av xl m">IN</span><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-image"/></svg>Change photo</button></div>
+      <div class="input"><label for="sp-n">Pen name</label><div class="field"><input id="sp-n" value="Ifeoma Nwachukwu"></div></div>
+      <div class="input"><label for="sp-b">Bio</label><div class="field"><textarea id="sp-b" rows="3">Writes Christian fiction from Enugu. Harmattan Letters began as twelve letters in a notebook.</textarea></div></div>
+      <div class="input"><label for="sp-l">Location</label><div class="field"><input id="sp-l" value="Enugu, Nigeria"></div></div>
+      <div class="cell"><div class="cell__body"><span class="cell__title">Public profile</span><span class="cell__sub">Anyone can find and follow you</span></div><button class="toggle on" aria-label="Public profile" aria-pressed="true"></button></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="studio">Save</a></div>
+</section>
+
+<section class="screen" id="s-studio-books" data-flow="11" data-sb="org" data-name="My books" data-note="Every status explains itself and the next action. Updates to live books keep the old version live until approved." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" data-go="studio-submit" aria-label="Submit a book"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button></div><div class="hero__body"><h1 class="hero__title">My books</h1><p class="hero__sub">2 live · 1 in review · 1 draft</p></div></div>
+  <div class="body">
+    <div class="inset v12 pt16 body-end">
+      <div class="card card--pad"><div class="h12 h-top"><div class="cv c1 x48"><b>Harmattan</b></div><div class="fill v8">
+        <div class="h8"><span class="t-title fill">Harmattan Letters</span><span class="pill ok">Live</span></div>
+        <span class="t-xs t-soft t-num">2,104 readers · 4.7★ · 31.8k min this month</span>
+        <div class="h8"><span class="pill info">Update v2 in review · readers still see v1</span></div>
+      </div></div></div>
+      <div class="card card--pad"><div class="h12 h-top"><div class="cv c7 x48"><b>Letters</b></div><div class="fill v8">
+        <div class="h8"><span class="t-title fill">Nine More Letters</span><span class="pill warn">Changes requested</span></div>
+        <div class="callout callout--warn"><span>Editor: Chapter 3 repeats a page from chapter 2. Please re-upload.</span></div>
+        <div class="h8"><a class="btn btn-s sm" data-go="studio-submit">Upload new file</a></div>
+      </div></div></div>
+      <div class="card card--pad"><div class="h12 h-top"><div class="cv c5 x48"><b>Kaduna</b></div><div class="fill v8">
+        <div class="h8"><span class="t-title fill">Kaduna Nights</span><span class="pill grey">Draft</span></div>
+        <span class="t-xs t-soft">Uploaded 10 Nov. Confirm your chapters and submit when ready.</span>
+      </div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-studio-submit" data-flow="11" data-sb="org" data-name="Submit a book, 1 Upload" data-note="Same as v25: authors uploaded a manuscript, cover and book details.|New: Word is recommended, EPUB is fine, and PDF shows a plain warning. The app cleans and formats the file itself.|Fixed: v25 sent Word and PDF files to staff to format by hand, which took days." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><span class="t-xs t-strong">Step 1 of 5</span></div><div class="hero__body"><h1 class="hero__title">Upload your book</h1><p class="hero__sub">Word (.docx) works best. We format it for you.</p><div class="st-flow" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="5"><i style="width:20%"></i></div></div></div>
+  <div class="body">
+    <div class="form body-end">
+      <div class="v8"><span class="t-label">Manuscript</span>
+        <div class="v8" data-single>
+          <button class="option is-selected"><span class="option__body"><span class="option__title">Word file (.docx)<span class="st-badge">Recommended</span></span><span class="option__sub">Fastest. Chapters, quotes and italics come through cleanly.</span></span></button>
+          <button class="option"><span class="option__body"><span class="option__title">EPUB</span><span class="option__sub">Fine if it is already an ebook.</span></span></button>
+          <button class="option"><span class="option__body"><span class="option__title">PDF</span><span class="option__sub">Allowed, but slower.</span></span></button>
+        </div>
+        <div class="callout callout--warn"><span>PDFs take longer and are often sent back. Upload the Word file if you have it.</span></div>
+        <div class="card card--pad"><div class="h12"><div class="fill v4"><span class="t-title ell">market-day-in-onitsha-final.docx</span><span class="t-xs t-muted">2.1 MB · uploaded</span></div><button class="ib" aria-label="Remove file"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+      </div>
+      <div class="v8"><span class="t-label">Cover</span>
+        <button class="drop"><span class="v4"><span class="t-title">Add cover image</span><span class="t-xs">JPG or PNG. Best size is 1600 × 2560 pixels, portrait.</span></span></button>
+      </div>
+      <div class="input"><label for="sb-t">Title</label><div class="field"><input id="sb-t" value="Market Day in Onitsha"></div></div>
+      <div class="input"><label for="sb-s">Subtitle (optional)</label><div class="field"><input id="sb-s" placeholder="A line under the title"></div></div>
+      <div class="v8"><span class="t-label">Genres (pick up to 3)</span><div class="h8 h-wrap" data-multi><button class="chip sel">African stories</button><button class="chip sel">Fiction</button><button class="chip">Romance</button><button class="chip">History</button><button class="chip">Mystery</button><button class="chip">Non-fiction</button></div></div>
+      <div class="input"><label for="sb-d">Description</label><div class="field"><textarea id="sb-d" rows="3" placeholder="Two or three sentences readers see first"></textarea></div></div>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-p block" data-go="studio-processing">Continue</a></div>
+</section>
+
+<section class="screen" id="s-studio-processing" data-flow="11" data-sb="org" data-name="Submit a book, 2 Processing" data-note="Same as v25: authors waited to hear back after uploading.|New: the file is read and formatted in 1 to 3 minutes with live progress, and you can leave and get a notification.|Fixed: v25 gave no progress while staff formatted by hand." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio-submit" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><span class="t-xs t-strong">Step 2 of 5</span></div><div class="hero__body"><h1 class="hero__title">Getting your book ready</h1><p class="hero__sub">This takes 1 to 3 minutes.</p><div class="st-flow" role="progressbar" aria-valuenow="2" aria-valuemin="1" aria-valuemax="5"><i style="width:40%"></i></div></div></div>
+  <div class="body">
+    <div class="inset pt24 v24 body-end">
+      <ul class="st-proc">
+        <li class="done">Reading your file</li>
+        <li class="done">Cleaning text and quotes</li>
+        <li class="now">Finding chapters</li>
+        <li>Building the free 10% preview</li>
+        <li>Checking cover and content</li>
+      </ul>
+      <div class="bar"><i style="width:55%"></i></div>
+      <p class="t-sm t-soft">Nothing for you to do here. You can leave this screen; we'll send a notification when your chapters are ready to check.</p>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-p block" data-go="studio-chapters">Chapters are ready</a><a class="link t-center" data-go="studio">Leave and notify me</a></div>
+</section>
+
+<section class="screen" id="s-studio-chapters" data-flow="11" data-sb="org" data-name="Submit a book, 3 Chapters" data-note="Same as v25: staff decided the chapters while formatting.|New: you confirm the detected chapters, rename or merge them, and see the price readers pay and why.|New: price is automatic, half a credit per standard page of 250 words (each full-page image counts as one page).|New: books with no chapters, or chapters longer than about 20 pages, are split into parts automatically so pay-as-you-read steps stay small.|Fixed: problems like a missing title or an oversized image are flagged in plain words and mostly fixed for you." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio-processing" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><span class="t-xs t-strong">Step 3 of 5</span></div><div class="hero__body"><h1 class="hero__title">Check your chapters</h1><p class="hero__sub">We found 22 chapters in Market Day in Onitsha.</p><div class="st-flow" role="progressbar" aria-valuenow="3" aria-valuemin="1" aria-valuemax="5"><i style="width:60%"></i></div></div></div>
+  <div class="body">
+    <div class="inset pt16 v16 body-end">
+      <div class="v8">
+        <div class="callout callout--warn"><span>Chapter 4 has no title. Add one?</span></div>
+        <div class="callout callout--info"><span>Image on page 41 is too large, we'll shrink it.</span></div>
+        <div class="callout callout--info"><span>Chapter 17 runs to 31 pages, so we split it into two parts. Readers who pay as they read pay for it in two smaller steps.</span></div>
+      </div>
+      <div class="card card--pad"><div class="st-chap"><span class="n">1</span><span class="tx"><b>The Road to the Market</b><span>2,940 words</span></span><button class="st-lnk">Rename</button></div><div class="st-chap"><span class="n">2</span><span class="tx"><b>Mama Nkechi's Stall</b><span>3,120 words</span></span><button class="st-lnk">Rename</button></div><div class="st-chap"><span class="n">3</span><span class="tx"><b>Bargains and Whispers</b><span>2,780 words</span></span><button class="st-lnk">Rename</button></div><div class="st-chap"><span class="n">4</span><span class="tx"><b>No title</b><span>2,610 words</span></span><button class="st-lnk">Add title</button><button class="st-lnk">Merge up</button></div><div class="st-chap"><span class="n">5</span><span class="tx"><b>The Trader from Aba</b><span>3,350 words</span></span><button class="st-lnk">Rename</button></div><div class="st-chap"><span class="n">6</span><span class="tx"><b>Rain Over Main Market</b><span>2,490 words</span></span><button class="st-lnk">Rename</button></div><div class="st-chap"><span class="n">7</span><span class="tx"><b>A Debt Remembered</b><span>180 words</span></span><button class="st-lnk">Rename</button><button class="st-lnk">Merge up</button></div></div>
+      <span class="t-xs t-muted t-center">Showing 7 of 22. Scroll to see all chapters.</span>
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Total length</span><span class="kv__v t-num">62,400 words</span></div>
+        <div class="kv__row"><span class="kv__k">Standard pages (250 words each)</span><span class="kv__v t-num">250 pages</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">Readers pay</span><span class="kv__v t-num">125 credits · ₦375</span></div>
+      </div>
+      <p class="t-sm t-soft">Price is set by length, not by you: half a credit per page, rounded up. Readers see the first 10% free, then unlock the whole book or pay as they read, chapter by chapter. Either way the total is the same.</p>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-p block" data-go="studio-preview">Looks right, continue</a></div>
+</section>
+
+<section class="screen" id="s-studio-preview" data-flow="11" data-sb="org" data-name="Submit a book, 4 Preview" data-note="Same as v25: you could not see the finished book before staff published it.|New: swipe through real pages, see a readiness score and a plain checklist, then submit.|Fixed: the free preview cut-off is shown so you know exactly where readers stop.|New: the automatic price and what you earn per full read (₦1.60 a credit) sit above the submit button." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio-chapters" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><span class="t-xs t-strong">Step 4 of 5</span></div><div class="hero__body"><h1 class="hero__title">Preview on a phone</h1><p class="hero__sub">Swipe to see how readers will see it.</p><div class="st-flow" role="progressbar" aria-valuenow="4" aria-valuemin="1" aria-valuemax="5"><i style="width:80%"></i></div></div></div>
+  <div class="body">
+    <div class="inset pt16 v16 body-end">
+      <div class="st-pages">
+        <div class="st-pg"><small>First page</small><h3 class="t-h3">The Road to the Market</h3><p>Before the cocks had finished their quarrel, Mama Nkechi was already on the road, a basket of yams balanced on her head and the whole of Onitsha stirring around her.</p><p>She did not look back. Market day waited for no one.</p></div>
+        <div class="st-pg"><small>Chapter 9, page 3</small><p>"You will not sell that cloth for such a price," the trader said, laughing, and the crowd leaned in to hear what the old woman would answer.</p><p>She smiled, folded the cloth once, and named a number that made him stop laughing altogether.</p></div>
+        <div class="st-pg"><small>Chapter 3, page 8</small><p>By noon the heat sat on the stalls like a hand. Ada counted the coins twice, then a third time, as if the count itself might change.</p><span class="end">The free preview ends here (10%)</span></div>
+      </div>
+      <div class="card card--pad v8">
+        <div class="st-meter"><b class="t-num">92%</b><span class="t-title">Ready for review</span></div>
+        <div class="bar"><i style="width:92%"></i></div>
+      </div>
+      <ul class="st-list">
+        <li><span>File read and cleaned</span><span>Done</span></li>
+        <li><span>22 chapters confirmed</span><span>Done</span></li>
+        <li><span>Free 10% preview</span><span>Built</span></li>
+        <li><span>Cover</span><span>Good size</span></li>
+        <li><span>Chapter 4 title</span><span>Still to add</span></li>
+      </ul>
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">62,400 words → 250 pages</span><span class="kv__v">125 credits (₦375)</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">You earn per full read</span><span class="kv__v">₦200</span></div>
+      </div>
+      <label class="h12 h-top t-sm"><button class="toggle" aria-label="I agree" aria-pressed="false"></button><span>I own the rights to this book and agree to the Arpedia author terms.</span></label>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-p block" data-go="studio-submitted">Submit for review</a></div>
+</section>
+
+<section class="screen" id="s-studio-submitted" data-flow="11" data-sb="org" data-name="Submit a book, 5 Submitted" data-note="Same as v25: you were told the book was received.|New: a celebration with the review time and what happens next.|Fixed: review starts straight away, with no days of waiting for formatting first." hidden>
+  <div class="hero hero--fill">
+    <div class="hero__bar"><span class="fill"></span><button class="ib" data-go="studio-books" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title hero__title--xl">Market Day in Onitsha is in!</h1><p class="hero__sub">Our team will review it within 3 days. Most reviews take 5 minutes.</p></div>
+  </div>
+  <div class="body">
+    <div class="inset pt24 body-end">
+      <div class="kv"><div class="kv__row"><span class="kv__k">62,400 words → 250 pages</span><span class="kv__v">125 credits (₦375)</span></div><div class="kv__row"><span class="kv__k">You earn</span><span class="kv__v">₦1.60 a credit · ₦200 a full read</span></div></div>
+      <span class="t-label pt16">What happens next</span>
+      <div class="timeline pt8">
+        <div class="timeline__step is-done"><div class="v4"><span class="t-title">Submitted</span><span class="t-xs t-muted">12 November</span></div></div>
+        <div class="timeline__step"><div class="v4"><span class="t-title">Review</span><span class="t-xs t-muted">Our team reads it and checks the formatting</span></div></div>
+        <div class="timeline__step"><div class="v4"><span class="t-title">Approved, or sent back with a list</span><span class="t-xs t-muted">If sent back, you get a short list of fixes</span></div></div>
+        <div class="timeline__step"><div class="v4"><span class="t-title">Published</span><span class="t-xs t-muted">Your followers are notified</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-p block" data-go="studio-books">Back to My books</a></div>
+</section>
+
+<section class="screen" id="s-studio-post" data-flow="11" data-sb="org" data-name="Post an update" data-note="Posts go to followers and the author's club. Optional link to a book." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><a class="pill night" data-go="post">Post</a></div><div class="hero__body"><h1 class="hero__title">New post</h1><p class="hero__sub">Goes to your followers and your club</p></div></div>
+  <div class="body">
+    <div class="form body-end">
+      <div class="input"><label for="pp-t">Title</label><div class="field"><input id="pp-t" value="Why I wrote the letters first"></div></div>
+      <div class="input"><label for="pp-b">Post</label><div class="field"><textarea id="pp-b" rows="7">Before there was a story there were twelve letters in a notebook my late uncle gave me…</textarea></div></div>
+      <div class="v8"><span class="t-label">Goes to</span><div class="h8 h-wrap"><span class="pill grey"><svg class="ico xs" aria-hidden="true"><use href="#i-book"/></svg>Harmattan Letters</span><span class="pill grey"><svg class="ico xs" aria-hidden="true"><use href="#i-users"/></svg>3.4k followers + club</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-studio-inbox" data-flow="11" data-sb="org" data-name="Reader messages" data-note="Replies are free for authors. Waiting messages come first so nothing is missed." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Private messages</h1><p class="hero__sub">Replies are free for authors</p></div></div>
+  <div class="chips pt16" data-single><button class="chip on">Waiting 4</button><button class="chip">Replied</button><button class="chip">All</button></div>
+  <div class="body">
+    <div class="section body-end">
+      <div class="group">
+        <a class="cell cell--tap" data-go="dm"><span class="av g">NE</span><div class="cell__body"><span class="cell__title">Ngozi Eze</span><span class="cell__sub ell">Is the man who fixes the gate the same one…</span></div><span class="cell__trail">09:14</span></a>
+        <a class="cell cell--tap" data-go="dm"><span class="av t">KO</span><div class="cell__body"><span class="cell__title">Kemi O.</span><span class="cell__sub ell">Will there be a sequel? My whole fellowship…</span></div><span class="cell__trail">Yesterday</span></a>
+        <a class="cell cell--tap" data-go="dm"><span class="av b">TA</span><div class="cell__body"><span class="cell__title">Tolu A.</span><span class="cell__sub ell">Thank you for chapter 4. I lost my husband in…</span></div><span class="cell__trail">10 Nov</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-studio-royalties" data-flow="11" data-sb="org" data-name="Earnings" data-note="New: no pool and no reading-time maths. You earn a fixed ₦1.60 for every credit readers spend on your books.|Split shows Unlock all (paid in full up front) and Pay as you read (paid chapter by chapter). A pay-as-you-read reader who stops halfway pays half, and the screen says so plainly.|Same 30-day hold before payout, to cover refunds and the 10-minute Undo on chapters. Payout history has statuses." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Earnings</h1><p class="hero__sub">October · paid after a 30-day hold</p><span class="sub-balance">₦162,752</span></div></div>
+  <div class="body">
+    <div class="inset v8 pt16">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Unlock all · 78,400 credits</span><span class="kv__v">₦125,440</span></div>
+        <div class="kv__row"><span class="kv__k">Pay as you read · 23,320 credits</span><span class="kv__v">₦37,312</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">101,720 credits × ₦1.60</span><span class="kv__v">₦162,752</span></div>
+      </div>
+      <p class="t-xs t-muted">Readers who pay as they read pay chapter by chapter, so someone who stops halfway pays half. Readers who unlock all pay the whole price up front. Your own reading and refunds don't count. Minimum payout ₦1,000.</p>
+    </div>
+    <div class="section body-end">
+      <div class="section__head"><h3 class="section__title">Payouts</h3></div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">October</span><span class="cell__sub">To GTBank ···· 2291</span></div><div class="v4"><span class="t-title t-num">₦162,752</span><span class="pill warn">Releases 15 Dec</span></div></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">September</span><span class="cell__sub">Paid 15 Nov</span></div><div class="v4"><span class="t-title t-num">₦98,400</span><span class="pill ok">Paid</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-studio-payout" data-flow="11" data-sb="org" data-name="Payout account" data-note="Account number masked; verified name shown so authors can catch mistakes." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Payout account</h1><p class="hero__sub">Where your earnings are paid</p></div></div>
+  <div class="body">
+    <div class="inset v16 pt16 body-end">
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">GTBank ···· 2291</span><span class="cell__sub">IFEOMA C. NWACHUKWU</span></div><span class="pill ok">Verified</span></div>
+      </div>
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Payout day</span><span class="kv__v">15th of each month</span></div>
+        <div class="kv__row"><span class="kv__k">Method</span><span class="kv__v">Bank transfer</span></div>
+        <div class="kv__row"><span class="kv__k">Minimum</span><span class="kv__v">₦1,000</span></div>
+      </div>
+      <div class="callout callout--info"><span>Changing account pauses payouts for 48 hours for safety.</span></div>
+      <a class="btn btn-g block md">Change account</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-studio-community" data-flow="11" data-sb="org" data-name="Club settings" data-note="Fixed: these were static rows in v25. Now real controls." hidden>
+  <div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="studio" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Ifeoma's Readers</h1><p class="hero__sub">Club settings · 860 members</p></div></div>
+  <div class="body">
+    <div class="inset v8 pt16"><span class="t-label">Who can post</span><div class="seg" data-single><button class="on">Everyone</button><button>Only me</button><button>Moderators</button></div></div>
+    <div class="section body-end">
+      <div class="group-label">Club</div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">Public club</span><span class="cell__sub">Anyone can find and join</span></div><button class="toggle on" aria-label="Public club" aria-pressed="true"></button></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Slow mode</span><span class="cell__sub">One message per 30 seconds</span></div><button class="toggle" aria-label="Slow mode" aria-pressed="false"></button></div>
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Muted words</span><span class="cell__sub">3 words</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap"><div class="cell__body"><span class="cell__title">Moderators</span><span class="cell__sub">Chioma, Kemi</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+  </div>
+</section>

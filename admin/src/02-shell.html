@@ -1,0 +1,61 @@
+
+<header class="pbar">
+  <button class="pbtn" id="idxOpen" aria-controls="pidx" aria-expanded="false"><svg class="ico s" aria-hidden="true"><use href="#i-list"/></svg><span class="lbl">Screens</span></button>
+  <span class="pbrand"><svg width="22" height="22" aria-hidden="true"><use href="#i-sun"/></svg>Arpedia Admin <small>prototype</small></span>
+  <button class="pbtn ib" id="prev" aria-label="Previous screen"><svg class="ico s" aria-hidden="true"><use href="#i-back"/></svg></button>
+  <div class="pcur" id="pcur" aria-live="polite">Sign in</div>
+  <button class="pbtn ib" id="next" aria-label="Next screen"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></button>
+  <button class="pbtn" id="notesBtn" aria-expanded="false" aria-controls="pnotes"><svg class="ico s" aria-hidden="true"><use href="#i-info"/></svg><span class="lbl">Notes</span></button>
+  <button class="pbtn fb-btn" data-fb-open="screen" aria-label="Comment on this screen"><svg class="ico s" aria-hidden="true"><use href="#i-chat"/></svg><span class="lbl">Comment</span><span class="fb-count" id="fbCount" hidden></span></button>
+</header>
+<nav class="pidx" id="pidx" aria-label="All screens"></nav>
+<aside class="pnotes" id="pnotes" hidden></aside>
+
+<div class="console" id="console">
+  <aside class="side" id="side" aria-label="Admin navigation">
+    <div class="side__brand"><svg width="32" height="32" aria-hidden="true"><use href="#i-sun"/></svg><div><span class="wmk wmk--light" role="img" aria-label="arpedia" style="height:22px"></span><small style="margin-top:4px">Admin console</small></div></div>
+    <div class="env"><span class="dot"></span><span><b>Production</b> · admin.arpedia.africa</span></div>
+    <nav class="side__nav">
+      <div class="side__sec" data-sec="home"><a class="side__item" data-go="overview" data-key="overview"><svg class="ico" aria-hidden="true"><use href="#i-layout"/></svg>Home</a>
+      </div>
+      <div class="side__sec" data-sec="books"><a class="side__item" data-go="books" data-key="sec-books"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Books<span class="cnt hot">7</span></a>
+        <div class="side__sub"><a data-go="books" data-key="books">Pipeline</a><a data-go="curation" data-key="curation">Discover curation</a><a data-go="genres" data-key="genres">Genres and tags</a></div>
+      </div>
+      <div class="side__sec" data-sec="people"><a class="side__item" data-go="users" data-key="sec-people"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>People<span class="cnt hot">7</span></a>
+        <div class="side__sub"><a data-go="users" data-key="users">Readers</a><a data-go="applications" data-key="authors">Authors and applications</a><a data-go="data-requests" data-key="data-requests">Privacy requests</a></div>
+      </div>
+      <div class="side__sec" data-sec="safety"><a class="side__item" data-go="reports" data-key="sec-safety"><svg class="ico" aria-hidden="true"><use href="#i-flag"/></svg>Safety<span class="cnt hot">18</span></a>
+        <div class="side__sub"><a data-go="reports" data-key="reports">Reports</a><a data-go="community" data-key="community">Community</a><a data-go="claims" data-key="claims">Copyright claims</a><a data-go="appeals" data-key="appeals">Appeals</a><a data-go="automod" data-key="automod">Safety rules</a></div>
+      </div>
+      <div class="side__sec" data-sec="support"><a class="side__item" data-go="support" data-key="sec-support"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg>Support<span class="cnt hot">12</span></a>
+        <div class="side__sub"><a data-go="support" data-key="support">Inbox</a><a data-go="help" data-key="help">Help articles</a></div>
+      </div>
+      <div class="side__sec" data-sec="money"><a class="side__item" data-go="revenue" data-key="sec-money"><svg class="ico" aria-hidden="true"><use href="#i-chart"/></svg>Money</a>
+        <div class="side__sub"><a data-go="revenue" data-key="revenue">Revenue</a><a data-go="subscriptions" data-key="subscriptions">Subscriptions</a><a data-go="transactions" data-key="transactions">Transactions</a><a data-go="refunds" data-key="refunds">Refunds</a><a data-go="credits" data-key="credits">Credits</a><a data-go="pricing" data-key="pricing">Plans and pricing</a><a data-go="promos" data-key="promos">Promo codes</a></div>
+      </div>
+      <div class="side__sec" data-sec="payouts"><a class="side__item" data-go="royalties" data-key="sec-payouts"><svg class="ico" aria-hidden="true"><use href="#i-bank"/></svg>Payouts</a>
+        <div class="side__sub"><a data-go="royalties" data-key="royalties">Author earnings</a><a data-go="payouts" data-key="payouts">Transfers</a><a data-go="bank-accounts" data-key="bank-accounts">Bank accounts</a></div>
+      </div>
+      <div class="side__sec" data-sec="messages"><a class="side__item" data-go="campaigns" data-key="sec-messages"><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg>Messages</a>
+        <div class="side__sub"><a data-go="campaigns" data-key="campaigns">Push notifications</a><a data-go="banners" data-key="banners">In-app announcements</a><a data-go="emails" data-key="emails">Emails</a></div>
+      </div>
+      <div class="side__sec" data-sec="insights"><a class="side__item" data-go="analytics" data-key="sec-insights"><svg class="ico" aria-hidden="true"><use href="#i-line"/></svg>Insights</a>
+        <div class="side__sub"><a data-go="analytics" data-key="analytics">Analytics</a><a data-go="exports" data-key="exports">Exports</a></div>
+      </div>
+      <div class="side__sec" data-sec="settings"><a class="side__item" data-go="team" data-key="sec-settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg>Settings</a>
+        <div class="side__sub"><a data-go="team" data-key="team">Team and roles</a><a data-go="audit" data-key="audit">Audit log</a><a data-go="config" data-key="config">App config</a><a data-go="pricing-rules" data-key="pricing-rules">Pricing rules</a><a data-go="policies" data-key="policies">Policies</a><a data-go="integrations" data-key="integrations">Integrations</a></div>
+      </div>
+    </nav>
+    <a class="side__me" data-go="account" data-key="account"><span class="av sm g">AO</span><span><b>Amaka Okafor</b><small>Super admin</small></span></a>
+  </aside>
+
+  <div class="workspace">
+    <div class="topbar">
+      <button class="ib topmenu" id="sideOpen" aria-label="Open navigation"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <a class="gsearch" data-go="cmdk"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><span>Search readers, books, authors, payments</span><kbd>Ctrl K</kbd></a>
+      <span class="spacer"></span>
+      <a class="btn btn-g sm" data-go="book-new"><svg class="ico xs" aria-hidden="true"><use href="#i-plus"/></svg>New book</a>
+      <a class="ib" data-go="staff-alerts" aria-label="Staff alerts, 4 new"><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg><span class="badge">4</span></a>
+      <a class="ib" data-go="help" aria-label="Help"><svg class="ico" aria-hidden="true"><use href="#i-help"/></svg></a>
+    </div>
+    <main class="view" id="view">

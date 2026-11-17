@@ -1,0 +1,628 @@
+<style>
+/* ---- Book and Reader (v25 flow, Direction B look) ---- */
+.bk-hero .hero__body{align-items:center;padding:0 16px 46px}
+.bk-hero .cv{box-shadow:0 14px 30px rgba(26,17,0,.32);transform:rotate(-2deg)}
+.bk-sheet{background:var(--white);border-radius:24px 24px 0 0;margin-top:-24px;position:relative;z-index:2;padding:22px 0 0}
+.bk-head{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 20px;text-align:center}
+.bk-title{font-family:var(--f-d);font-weight:800;font-size:27px;line-height:1.08;letter-spacing:-.02em;text-wrap:balance}
+.bk-author{color:var(--org-ink);font-weight:700;font-size:15px;text-decoration:none;cursor:pointer}
+.bk-meta{font-size:13px;color:var(--ink-2)}
+.bk-tags{display:flex;gap:6px;flex-wrap:wrap;padding-top:12px}
+.bk-byline{display:flex;align-items:center;gap:10px}
+.bk-follow{border:0;background:var(--night);color:var(--white);font:inherit;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer}
+.bk-follow[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
+.bk-toprev{display:flex;flex-direction:column;gap:8px;margin:16px 16px 0;padding:14px;border-radius:14px;background:var(--surface)}
+.bk-toprev p{font-size:14px;line-height:1.5}
+.bk-toprev .bk-review__head b{flex:1;font-size:14.5px}
+.bk-revlinks{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0}
+.bk-seeall{color:var(--org-ink);font-weight:700;font-size:14px;text-decoration:none;cursor:pointer}
+.bk-stats{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 16px 0;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.bk-stat{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:inherit;border-left:1px solid var(--line)}
+.bk-stat:first-child{border-left:0}
+.bk-stat b{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:3px}
+.bk-stat span{font-size:12px;color:var(--ink-3)}
+a.bk-stat{cursor:pointer}
+.bk-actions{display:flex;flex-direction:column;gap:10px;padding:18px 16px 0}
+.bk-arrow{color:var(--org-ink);display:grid;place-items:center;width:36px;height:36px;border-radius:10px;cursor:pointer;text-decoration:none}
+.bk-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bk-rating{display:flex;align-items:center;gap:18px;padding:0 16px}
+.bk-rating__big{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto}
+.bk-rating__big b{font-family:var(--f-d);font-weight:800;font-size:48px;line-height:.9;font-variant-numeric:tabular-nums}
+.bk-rating__big span{font-size:12px;color:var(--ink-3)}
+.bk-bars{flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.bk-bars .h8{align-items:center}
+.bk-rate{display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 16px}
+.bk-locked{display:flex;align-items:center;gap:12px;margin:0 16px;padding:14px;border-radius:14px;background:var(--surface);text-decoration:none;color:inherit;cursor:pointer}
+.bk-locked__body{flex:1;display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--ink-2)}
+.bk-locked__body b{font-size:15px;color:var(--ink)}
+.bk-facts{display:grid;grid-template-columns:1fr 1fr;gap:18px 16px}
+.bk-facts div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bk-facts dt{font-size:13px;font-weight:700}
+.bk-facts dd{font-size:14px;color:var(--ink-2);margin:0}
+.bk-facts a{color:var(--org-ink);font-weight:600;text-decoration:none;cursor:pointer}
+.bk-starpill{display:inline-flex;align-items:center;gap:3px;padding:2px 10px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--star);color:var(--org-ink);font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
+.bk-starchips .chip{gap:4px}
+.bk-review{display:flex;flex-direction:column;gap:8px;padding:16px;border-bottom:1px solid var(--line)}
+.bk-review__head{display:flex;align-items:center;gap:10px}
+.bk-review__head b{flex:1;font-size:15px}
+.bk-review p{font-size:14px;line-height:1.5}
+.bk-review__foot{display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--ink-3)}
+.bk-review__foot button{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--ink-2);font:inherit;font-weight:600;cursor:pointer;padding:0}
+.bk-sheethead{background:var(--org);color:var(--on-org);position:relative;overflow:hidden;flex:0 0 auto;padding-bottom:8px}
+.bk-sheethead::after{content:"";position:absolute;right:-90px;top:-120px;width:220px;height:220px;border-radius:50%;background:repeating-conic-gradient(rgba(var(--petal-rgb),calc(.72 * var(--petal-k))) 0 14deg,transparent 14deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%);opacity:.55;pointer-events:none}
+.bk-sheethead > *{position:relative;z-index:1}
+.panel .bk-sheethead .grab{background:rgba(var(--on-org-rgb),.35)}
+.bk-sheethead .ph h2{color:var(--on-org)}
+.bk-sheethead .ib{color:var(--on-org)}
+.bk-sheethead__sub{padding:0 18px 6px;font-size:13.5px;color:rgba(var(--on-org-rgb),.78)}
+.panel.bk-bold{overflow:hidden}
+.panel.bk-bold > .pb{padding-top:16px}
+.bk-hlrow{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.bk-hl{height:34px;border-radius:10px;border:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(17,24,39,.08)}
+.bk-hl.is-selected{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--org)}
+.bk-hl--g{background:#B7F0C8}.bk-hl--y{background:#FDE08A}.bk-hl--b{background:#B3E3F8}.bk-hl--p{background:#F7BBD0}.bk-hl--v{background:#D8BFE6}.bk-hl--o{background:#FCD2A8}
+.bk-size{display:flex;align-items:center;gap:10px}
+.bk-size .fill{text-align:center}
+.rd-menu .cell{min-height:52px}
+.bk-empty-prog{display:flex;flex-direction:column;gap:6px;width:100%;max-width:260px;font-size:12.5px;color:var(--ink-2)}
+.bk-rating__big .stars{color:var(--star)}
+.bk-endcard{background:var(--org);color:var(--on-org);box-shadow:none;position:relative;overflow:hidden}
+.bk-endcard::after{content:"";position:absolute;right:-100px;top:-110px;width:240px;height:240px;border-radius:50%;background:repeating-conic-gradient(rgba(var(--petal-rgb),calc(.72 * var(--petal-k))) 0 14deg,transparent 14deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%);opacity:.55;pointer-events:none}
+.bk-endcard > *{position:relative;z-index:1}
+.bk-endcard .btn-p{background:var(--night);color:#fff}
+.bk-endcard .section__link{color:var(--on-org)}
+.band .bk--author span{color:rgba(var(--on-org-rgb),.78)}
+.bk-buy{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bk-opt{display:flex;flex-direction:column;gap:4px;padding:14px 14px 12px;border-radius:16px;background:var(--white);box-shadow:inset 0 0 0 1px var(--line);transition:transform var(--m-fast) var(--m-ease),box-shadow var(--m-base) var(--m-ease)}
+.bk-opt{position:relative;overflow:hidden;isolation:isolate}
+.bk-opt--all{background:var(--org-tint-2);box-shadow:inset 0 0 0 1.5px rgba(var(--org-rgb),.55)}
+/* sun on Unlock all: soft theme-matched colour (--sun-rgb), blooms in, turns gently, opens up on hover and press */
+.bk-opt--all::after,.bk-opt--all::before{content:"";position:absolute;z-index:-1;border-radius:50%;pointer-events:none}
+.bk-opt--all::after{right:-30px;top:-30px;width:92px;height:92px;background:repeating-conic-gradient(rgba(var(--sun-rgb),.4) 0 14deg,transparent 14deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0 24%,#000 25%);mask:radial-gradient(circle,transparent 0 24%,#000 25%);animation:bk-bloom 900ms var(--m-ease) 200ms backwards,m-drift 45s linear infinite;transition:scale var(--m-slow) var(--m-ease)}
+.bk-opt--all::before{right:5px;top:5px;width:22px;height:22px;background:rgb(var(--sun-rgb));opacity:.85;box-shadow:0 0 0 4px rgba(var(--sun-rgb),.14);animation:bk-glow 4s var(--m-ease-io) 1.1s infinite,bk-pop 600ms var(--m-ease) 300ms backwards}
+@keyframes bk-bloom{from{scale:.35;opacity:0}to{scale:1;opacity:1}}
+@keyframes bk-pop{from{scale:0}to{scale:1}}
+@keyframes bk-glow{0%,100%{box-shadow:0 0 0 4px rgba(var(--sun-rgb),.14)}50%{box-shadow:0 0 0 8px rgba(var(--sun-rgb),0)}}
+@media (hover:hover){.bk-opt--all:hover::after{scale:1.12}}
+.bk-opt--all:active::after{scale:1.18}
+@media (prefers-reduced-motion:reduce){.bk-opt--all::after,.bk-opt--all::before{animation:none}}
+.bk-opt small{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-left:4px;letter-spacing:0}
+.bk-opt em{font-style:normal;font-size:11.5px;color:var(--ink-3);line-height:1.3}
+.bk-seg{display:block;height:6px;margin:6px 0 4px;border-radius:3px;-webkit-mask:repeating-linear-gradient(90deg,#000 0 calc(100% / 14 - 2px),transparent 0 calc(100% / 14));mask:repeating-linear-gradient(90deg,#000 0 calc(100% / 14 - 2px),transparent 0 calc(100% / 14))}
+.bk-opt--all .bk-seg{background:var(--org)}
+.bk-opt--go .bk-seg{background:linear-gradient(90deg,var(--org) 0 calc(100% * 3 / 14),var(--line) 0)}
+.screen.enter .bk-seg{transform-origin:left center;animation:m-fill var(--m-fill) var(--m-ease) 160ms backwards}
+.bk-opt:active{transform:scale(.97)}
+@media (hover:hover){.bk-opt:hover{box-shadow:inset 0 0 0 1.5px var(--org)}}
+.bk-opt span{font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.bk-opt b{display:flex;align-items:baseline;font-family:var(--f-d);font-size:24px;line-height:1.1;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.bk-balance{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:2px 4px 0;font-size:12.5px;color:var(--ink-3)}
+.bk-balance b{color:var(--ink);font-weight:600}
+.bk-balance a{font-weight:600;color:var(--org-ink,var(--ink))}
+.pay-perks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--ink-2)}
+.pay-perks li{display:flex;gap:10px;align-items:baseline}
+.pay-perks li::before{content:"";flex:0 0 6px;height:6px;border-radius:50%;background:var(--org);transform:translateY(-2px)}
+.pg-card .t-label{color:var(--on-org)}
+.pg-card .toggle.on{background:var(--night)}
+.pg-auto{display:flex;align-items:center;gap:12px;padding-top:4px;border-top:1px solid rgba(var(--on-org-rgb),.14)}
+.rd-toast{position:absolute;left:16px;right:16px;bottom:64px;z-index:50;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:var(--night);color:#fff;font-family:var(--f-ui);font-size:13.5px;box-shadow:0 12px 28px -12px rgba(0,0,0,.5);animation:m-rise var(--m-slow) var(--m-ease) 200ms backwards}
+.rd-toast span{flex:1}
+.rd-toast a{color:var(--org);font-weight:700;cursor:pointer}
+
+</style>
+
+<!-- ===================== FLOW 3 · BOOK PAGE, PREVIEW AND UNLOCK ===================== -->
+<section class="screen" id="s-book" data-flow="3" data-name="Book page" data-sb="org" data-note="Same as v25: save and share, cover, title, author, genre, rating, reads, comments, Start reading, Follow, About, Ratings and reviews, Write a review, and the Discussion that unlocks when you finish.|New: cover on an orange sunflower band; price and your balance show before you spend; Readers also loved on its own band.|New: two ways to pay under the main button, Unlock all (whole book offline, author paid now) or Pay as you read (about 9 credits a chapter, never more than the full price). Prices come from length: half a credit per standard page.|Decluttered: one main button; the file format is gone (readers never need it); Follow sits next to the author's name; tags moved under About; one top review instead of a star row plus a separate Rate section; Download, Gift and Tip moved into the ⋯ menu.|Fixed: one rating everywhere (v25 showed 4.7 here and 4.4 on Reviews)." hidden>
+  <div class="body">
+    <div class="hero bk-hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" aria-label="Save to library"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg></button><button class="ib" aria-label="Share"><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></button><button class="ib" data-go="book-more" aria-label="More options"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+      <div class="hero__body"><div class="cv c1 x128"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></div></div>
+    </div>
+    <div class="bk-sheet">
+      <div class="bk-head">
+        <h1 class="bk-title">Harmattan Letters</h1>
+        <div class="bk-byline"><a class="bk-author" data-go="author">Ifeoma Nwachukwu</a><button class="bk-follow" aria-pressed="false">Follow</button></div>
+        <span class="bk-meta">Christian &amp; Faith · 250 pages · about 5 hr read</span>
+      </div>
+      <div class="bk-stats">
+        <a class="bk-stat" data-go="reviews"><b><span class="star">★</span>4.7</b><span>rating</span></a>
+        <div class="bk-stat"><b>18K</b><span>reads</span></div>
+        <a class="bk-stat" data-go="book-discussion"><b>640</b><span>comments</span></a>
+      </div>
+      <div class="bk-actions">
+        <a class="btn btn-p block" data-go="reader">Start reading · first 10% free</a>
+        <div class="bk-buy">
+          <a class="bk-opt bk-opt--all" data-go="unlock"><span>Unlock all</span><b>125<small>credits</small></b><i class="bk-seg" aria-hidden="true"></i><em>Whole book, offline</em></a>
+          <a class="bk-opt bk-opt--go" data-go="unlock-paygo"><span>Pay as you read</span><b>≈ 9<small>a chapter</small></b><i class="bk-seg" aria-hidden="true"></i><em>Stop anytime</em></a>
+          <div class="bk-balance"><span>Your balance <b>840 credits</b></span><a data-go="credits">Top up</a></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section__head"><h2 class="section__title">About this book</h2><a class="bk-arrow" data-go="book-about" aria-label="More about this book"><svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <p class="inset t-body bk-clamp">A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage.</p>
+        <div class="bk-tags inset"><span class="pill grey">Family</span><span class="pill grey">Enugu</span><span class="pill grey">Kaduna</span><span class="pill grey">Letters</span></div>
+      </div>
+      <div class="section">
+        <div class="section__head"><h2 class="section__title">Ratings &amp; reviews</h2><a class="bk-arrow" data-go="reviews" aria-label="All reviews"><svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <div class="bk-rating">
+          <div class="bk-rating__big"><b>4.7</b><span class="stars"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg></span><span>1,284 reviews</span></div>
+          <div class="bk-bars">
+            <div class="h8"><span class="t-num">5</span><div class="bar fill"><i style="width:80%"></i></div></div>
+            <div class="h8"><span class="t-num">4</span><div class="bar fill"><i style="width:14%"></i></div></div>
+            <div class="h8"><span class="t-num">3</span><div class="bar fill"><i style="width:4%"></i></div></div>
+            <div class="h8"><span class="t-num">2</span><div class="bar fill"><i style="width:1%"></i></div></div>
+            <div class="h8"><span class="t-num">1</span><div class="bar fill"><i style="width:1%"></i></div></div>
+          </div>
+        </div>
+        <div class="bk-toprev"><div class="bk-review__head"><span class="av sm t">CO</span><b>Chiamaka Obi</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</span></div><p>I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.</p></div>
+        <div class="bk-revlinks"><a class="btn btn-s sm" data-go="write-review"><svg class="ico xs" aria-hidden="true"><use href="#i-pen"/></svg>Write a review</a><a class="bk-seeall" data-go="reviews">See all reviews</a></div>
+      </div>
+      <div class="section">
+        <a class="bk-locked" data-go="book-discussion"><span class="bk-locked__body"><b>Discussion</b>Unlocks when you finish the book, so nothing spoils the story</span><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      </div>
+      <div class="band body-end">
+        <div class="section__head"><div class="v2"><h2 class="section__title">Readers also loved</h2><p class="section__sub">From readers who finished Harmattan Letters</p></div></div>
+        <div class="rail">
+          <a class="bk bk--author" data-go="book"><div class="cv c6 x104"><b>A House Called Grace</b><small>Kemi Ogunleye</small></div><b>A House Called Grace</b><span>Kemi Ogunleye</span></a>
+          <a class="bk bk--author" data-go="book"><div class="cv c5 x104"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></div><b>Ruth of Ibadan</b><span>Tolu Adebayo</span></a>
+          <a class="bk bk--author" data-go="book"><div class="cv c3 x104"><b>The Alignment</b><small>Adaeze R. Possible</small></div><b>The Alignment</b><span>Adaeze R. Possible</span></a>
+          <a class="bk bk--author" data-go="book"><div class="cv c7 x104"><b>Psalms for the Danfo</b><small>Emeka Obi</small></div><b>Psalms for the Danfo</b><span>Emeka Obi</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="screen sheet" id="s-book-more" data-base="book" data-flow="3" data-name="Book options" data-note="New: the ⋯ on the book page. Holds the less-used actions so the page itself stays calm." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Harmattan Letters</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="body"><div class="group group--flush rd-menu">
+      <a class="cell cell--tap" data-go="book"><span class="cell__body"><span class="cell__title">Download for offline</span><span class="cell__sub">Whole book with Unlock all; paid chapters with pay as you read</span></span></a>
+      <a class="cell cell--tap" data-go="gift"><span class="cell__body"><span class="cell__title">Gift this book</span><span class="cell__sub">Send it to a friend with your credits</span></span></a>
+      <a class="cell cell--tap" data-go="tip"><span class="cell__body"><span class="cell__title">Tip the author</span><span class="cell__sub">Credits go straight to Ifeoma</span></span></a>
+      <a class="cell cell--tap" data-go="book"><span class="cell__body"><span class="cell__title">Report this book</span><span class="cell__sub">Wrong content, copyright or abuse</span></span></a>
+    </div></div>
+  </div>
+</section>
+
+<section class="screen" id="s-book-about" data-flow="3" data-name="About this ebook" data-sb="org" data-note="Same as v25: full description, then Language, Age, Author, Publisher, Published on, ISBN, Genre, Purchases and Size.|New: length in standard pages, the price that comes from it, chapters and reading time; content notes for faith-based readers.|Fixed: no made-up fallbacks like 'Ages 13 &amp; Up' or 'Arpedia Press'; missing facts are left out." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="book" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">About this ebook</h1><p class="hero__sub">Harmattan Letters · Ifeoma Nwachukwu</p></div>
+  </div>
+  <div class="body">
+    <div class="inset v24 pt24 body-end">
+      <p class="t-reading">A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage, her faith and the man next door who keeps fixing her gate.</p>
+      <dl class="bk-facts">
+        <div><dt>Language</dt><dd>English</dd></div>
+        <div><dt>Age</dt><dd>16+</dd></div>
+        <div><dt>Author</dt><dd><a data-go="author">Ifeoma Nwachukwu</a></dd></div>
+        <div><dt>Publisher</dt><dd>Arpedia Originals</dd></div>
+        <div><dt>Published on</dt><dd>3 October 2026</dd></div>
+        <div><dt>ISBN</dt><dd class="t-num">978-978-101-2007-1</dd></div>
+        <div><dt>Genre</dt><dd><a data-go="explore">Christian &amp; Faith</a></dd></div>
+        <div><dt>Purchases</dt><dd class="t-num">4,605</dd></div>
+        <div><dt>Length</dt><dd>62,400 words · 250 pages</dd></div>
+        <div><dt>Price</dt><dd>125 credits (₦375) · half a credit a page</dd></div>
+        <div><dt>Chapters</dt><dd>14 · about 4 h 30 min</dd></div>
+        <div><dt>Size</dt><dd>1.4 MB</dd></div>
+      </dl>
+      <div class="v8"><h3 class="t-h3">Content notes</h3><div class="h6 h-wrap"><span class="pill grey">Grief</span><span class="pill grey">Prayer</span><span class="pill grey">Slow-burn romance</span><span class="pill ok">No explicit content</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-reviews" data-flow="3" data-name="Ratings and reviews" data-sb="org" data-note="Same as v25: overall rating with a 5-to-1 breakdown, star filters, and each review with name, stars, likes and age.|New: orange band; Write a review sits under the summary.|Fixed: the ⋯ on a review opens Report and Hide (it did nothing in v25); the rating matches the book page." hidden>
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="book" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+      <div class="hero__body"><h1 class="hero__title">Ratings &amp; reviews</h1><p class="hero__sub">Harmattan Letters · 1,284 reviews</p></div>
+    </div>
+    <div class="pt24 bk-rating">
+      <div class="bk-rating__big"><b>4.7</b><span class="stars"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg></span><span>(1,284 reviews)</span></div>
+      <div class="bk-bars">
+        <div class="h8"><span class="t-num">5</span><div class="bar fill"><i style="width:80%"></i></div></div>
+        <div class="h8"><span class="t-num">4</span><div class="bar fill"><i style="width:14%"></i></div></div>
+        <div class="h8"><span class="t-num">3</span><div class="bar fill"><i style="width:4%"></i></div></div>
+        <div class="h8"><span class="t-num">2</span><div class="bar fill"><i style="width:1%"></i></div></div>
+        <div class="h8"><span class="t-num">1</span><div class="bar fill"><i style="width:1%"></i></div></div>
+      </div>
+    </div>
+    <div class="inset pt16"><a class="btn btn-p block md" data-go="write-review"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg>Write a review</a></div>
+    <div class="chips pt16 bk-starchips" data-single><button class="chip on"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>All</button><button class="chip"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</button><button class="chip"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>4</button><button class="chip"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>3</button><button class="chip"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>2</button><button class="chip"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>1</button></div>
+    <div class="pt8 body-end"><div class="bk-review"><div class="bk-review__head"><span class="av sm t">CO</span><b>Chiamaka Obi</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</span><button class="ib" data-go="review-actions" aria-label="More: report or hide"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></button></div><p>I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.</p><div class="bk-review__foot"><button><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>24</button><span>2 days ago</span></div></div><div class="bk-review"><div class="bk-review__head"><span class="av sm k">TA</span><b>Tunji Adebisi</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</span><button class="ib" data-go="review-actions" aria-label="More: report or hide"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></button></div><p>Quiet, observant and deeply moving. Mama Nkem is one of the best mothers-in-law in recent Nigerian fiction.</p><div class="bk-review__foot"><button><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>18</button><span>5 days ago</span></div></div><div class="bk-review"><div class="bk-review__head"><span class="av sm r">HM</span><b>Hauwa Musa</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>4</span><button class="ib" data-go="review-actions" aria-label="More: report or hide"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></button></div><p>The letters structure is brilliant. I was nervous about the ending and the author stuck the landing.</p><div class="bk-review__foot"><button><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>11</button><span>1 week ago</span></div></div><div class="bk-review"><div class="bk-review__head"><span class="av sm m">KN</span><b>Kelechi Nwosu</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</span><button class="ib" data-go="review-actions" aria-label="More: report or hide"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></button></div><p>The neighbour who fixes the gate deserves his own book. That is all.</p><div class="bk-review__foot"><button><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>7</button><span>2 weeks ago</span></div></div><div class="bk-review"><div class="bk-review__head"><span class="av sm b">FA</span><b>Funke Alabi</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>4</span><button class="ib" data-go="review-actions" aria-label="More: report or hide"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></button></div><p>Beautiful prose. A few slow patches in the middle, but the last two chapters made up for them.</p><div class="bk-review__foot"><button><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>5</button><span>3 weeks ago</span></div></div><div class="bk-review"><div class="bk-review__head"><span class="av sm o">IL</span><b>Ibrahim Lawal</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</span><button class="ib" data-go="review-actions" aria-label="More: report or hide"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></button></div><p>Gave my mother a copy. She called me from Kaduna to talk about it for an hour.</p><div class="bk-review__foot"><button><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>3</button><span>1 month ago</span></div></div></div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-review-actions" data-base="reviews" data-flow="3" data-name="Review options" data-note="New: the ⋯ menu on a review now works. Report goes to moderators; Hide removes this person's reviews for you only." hidden>
+  <a class="backdrop" data-go="reviews" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Chiamaka's review</h2><button class="ib" data-go="reviews" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="body"><div class="group group--flush rd-menu">
+      <a class="cell cell--tap" data-go="reviews"><span class="cell__body"><span class="cell__title">Report review</span><span class="cell__sub">Spoilers, abuse or spam</span></span></a>
+      <a class="cell cell--tap" data-go="reviews"><span class="cell__body"><span class="cell__title">Hide reviews from Chiamaka</span><span class="cell__sub">Only you stop seeing them</span></span></a>
+      <a class="cell cell--tap" data-go="reviews"><span class="cell__body"><span class="cell__title">Copy text</span></span></a>
+    </div></div>
+  </div>
+</section>
+
+<section class="screen" id="s-write-review" data-flow="3" data-name="Write a review" data-sb="org" data-note="Same as v25: Rate this ebook with five stars, then Write a review.|New: stars and text on one screen, 44px star targets, and a spoiler switch that hides your text behind a tap for others." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="reviews" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Rate this ebook</h1><p class="hero__sub">Harmattan Letters · you finished it on 10 November</p></div>
+  </div>
+  <div class="body">
+    <div class="inset v16 pt24">
+      <div class="star-input" aria-label="4 of 5 stars"><button class="ib" aria-label="1 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="2 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="3 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="4 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib off" aria-label="5 stars"><svg class="ico l" aria-hidden="true"><use href="#i-star"/></svg></button></div>
+      <div class="input"><label for="wr-t">Write a review</label><div class="field"><textarea id="wr-t" rows="5">The letters are the best part. I wanted more of Mama Nkem.</textarea></div><span class="hint t-num">58 / 1,000</span></div>
+      <div class="h12"><div class="fill v4"><b class="t-title">Contains spoilers</b><span class="t-xs t-muted">Others tap to reveal your review</span></div><button class="toggle" aria-label="Contains spoilers" aria-pressed="false"></button></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="reviews">Post review</a></div>
+</section>
+
+<section class="screen" id="s-book-discussion" data-flow="3" data-name="Book discussion" data-sb="org" data-note="Same as v25: the whole-book discussion stays locked until you finish, so nothing spoils the story.|New: shows how far you are, a Keep reading button, and points to the chapter-by-chapter talk that is open now." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="book" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Discussion</h1><p class="hero__sub">Harmattan Letters · reader notes and reactions</p></div>
+  </div>
+  <div class="body body-end">
+    <div class="empty"><h3>Finish the book to join in</h3><p>The discussion opens once you reach the end, so nothing here spoils the story.</p>
+      <div class="bk-empty-prog"><div class="between"><span>You're 38% through</span><span class="t-num">Chapter 7 of 14</span></div><div class="bar"><i style="width:38%"></i></div></div>
+      <a class="btn btn-p" data-go="reader"><svg class="ico s" aria-hidden="true"><use href="#i-book"/></svg>Keep reading</a>
+    </div>
+    <div class="section"><div class="group">
+      <a class="cell cell--tap" data-go="discuss"><span class="cell__body"><span class="cell__title">Passage talk is open</span><span class="cell__sub">12 comments on chapter 7 · only up to where you are</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="cell cell--tap" data-go="channel"><span class="av sq n">GR</span><span class="cell__body"><span class="cell__title">Grace Readers are on chapter 8</span><span class="cell__sub">1,240 members reading together</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+    </div></div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-unlock" data-base="book" data-flow="3" data-name="Unlock: whole book" data-note="New: two ways to pay for every book, same total. Unlock all charges the whole price now; Pay as you read charges chapter by chapter.|Price rule: half a credit per standard page of 250 words (a full-page image counts as one page), rounded up. Harmattan Letters is 62,400 words, so 250 pages and 125 credits (₦375 at ₦3 a credit).|Why pick Unlock all: the whole book downloads for offline reading and the author is paid in full today.|Unlocked books stay in your library for good, even if you cancel your plan." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Unlock Harmattan Letters</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">250 pages · 14 chapters · 125 credits</p></div>
+    <div class="pb">
+      <div class="seg" data-single><button class="on">Unlock all</button><button data-go="unlock-paygo">Pay as you read</button></div>
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Your balance</span><span class="kv__v">840 credits</span></div>
+        <div class="kv__row"><span class="kv__k">This book</span><span class="kv__v">− 125</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">After unlock</span><span class="kv__v">715 credits</span></div>
+      </div>
+      <ul class="pay-perks"><li>The whole book downloads for offline reading</li><li>Ifeoma is paid in full today</li><li>Yours to keep, even if you cancel your plan</li></ul>
+      <a class="btn btn-p block" data-go="reader">Unlock for 125 credits</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-unlock-paygo" data-base="book" data-flow="3" data-name="Unlock: pay as you read" data-note="New: pay as you read. Same total as Unlock all, charged one chapter at a time.|We take a chapter's credits when you turn past its first page, so a stray swipe into the next chapter costs nothing. Re-reading is free.|The total can never go over the book's price (125 credits). Pay the rest any time and only what is left is charged.|Auto-unlock is on by default; turn it off to be asked at every chapter.|Chapters longer than about 20 pages are split into parts when the book is processed, so each step stays small." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Pay as you read</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Harmattan Letters · 125 credits in total</p></div>
+    <div class="pb">
+      <div class="seg" data-single><button data-go="unlock">Unlock all</button><button class="on">Pay as you read</button></div>
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">First 10% (about 25 pages)</span><span class="kv__v">Free</span></div>
+        <div class="kv__row"><span class="kv__k">Each chapter after that</span><span class="kv__v">About 9 credits</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">Most you'll ever pay</span><span class="kv__v">125 credits</span></div>
+      </div>
+      <p class="t-sm t-soft">We take a chapter's credits when you turn past its first page. Re-reading is free, and you can pay the rest whenever you like.</p>
+      <div class="h12"><div class="fill v4"><b class="t-title">Auto-unlock next chapter</b><span class="t-xs t-muted">Off: we ask at the start of each chapter</span></div><button class="toggle on" aria-label="Auto-unlock next chapter" aria-pressed="true"></button></div>
+      <a class="btn btn-p block" data-go="reader-chapter">Start reading</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-unlock-low" data-base="book" data-flow="3" data-name="Unlock: not enough credits" data-note="Shows exactly how many credits are missing and the cheapest fix, priced.|Top-ups are for subscribers only and cost ₦3 a credit, the same as plans, so the plan stays the best way to get credits.|Pay as you read is offered as the free alternative: the balance covers the next few chapters." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>You need 156 more credits</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Seven Bridges to Jos costs 196 credits</p></div>
+    <div class="pb">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Seven Bridges to Jos · 392 pages</span><span class="kv__v">196 credits</span></div>
+        <div class="kv__row"><span class="kv__k">Your balance</span><span class="kv__v">40 credits</span></div>
+      </div>
+      <p class="t-sm t-soft">Your plan adds 800 more on 12 February, or top up now. Or switch to pay as you read: your 40 credits cover the next 4 chapters.</p>
+      <div class="option-list" data-single>
+        <button class="option option--compact is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">200 credits</span><span class="option__sub">Enough for this book</span></span><span class="option__trail">₦600</span></button>
+        <button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">500 credits</span><span class="option__sub">≈ 4 books</span></span><span class="option__trail">₦1,500</span></button>
+      </div>
+      <a class="btn btn-p block" data-go="pack-sheet">Buy 200 credits · ₦600</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-unlock-nosub" data-base="book" data-flow="3" data-name="Unlock: no plan yet" data-note="Readers without a plan learn why before seeing prices." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Credits come with a plan</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="pb">
+      <p class="t-sm t-soft">A plan gives you credits every time it renews. This book costs 125 credits. Quarterly gives you 800, about 6 books like this one over three months.</p>
+      <div class="callout callout--brand"><span>The first 10% of every book stays free, with or without a plan.</span></div>
+      <a class="btn btn-p block" data-go="plans">See plans from ₦700 a month</a>
+      <a class="btn btn-g block md" data-go="reader">Keep reading the free 10%</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-gift" data-base="book" data-flow="3" data-name="Gift this book" data-note="Gifts use credits. The friend gets a push and the book in their library." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Gift Harmattan Letters</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">125 credits from your balance</p></div>
+    <div class="pb">
+      <div class="field"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-search"/></svg><input id="gift-q" placeholder="Search friends" aria-label="Search friends"></div>
+      <div class="option-list option-list--flush" data-single>
+        <button class="option"><span class="av sm t">KO</span><span class="option__body"><span class="option__title">Kemi Ogunleye</span><span class="option__sub">Follows you</span></span><span class="radio"></span></button>
+        <button class="option is-selected"><span class="av sm r">EA</span><span class="option__body"><span class="option__title">Emeka Agu</span><span class="option__sub">In Grace Readers</span></span><span class="radio"></span></button>
+      </div>
+      <div class="input"><label for="gift-m">Message</label><div class="field"><input id="gift-m" value="Read the third letter and call me."></div></div>
+      <a class="btn btn-p block" data-go="book">Send gift · 125 credits</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-tip" data-base="book" data-flow="3" data-name="Tip the author" data-note="Tips go to the author's earnings at the same ₦1.60 a credit as book sales. Amounts are presets in credits." hidden>
+  <a class="backdrop" data-go="book" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Tip Ifeoma</h2><button class="ib" data-go="book" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">₦80 of 50 credits reaches her with her monthly earnings</p></div>
+    <div class="pb">
+      <div class="amounts" data-single>
+        <button class="amount"><b>20</b><span>credits</span></button>
+        <button class="amount is-selected"><b>50</b><span>credits</span></button>
+        <button class="amount"><b>100</b><span>credits</span></button>
+      </div>
+      <div class="field"><input id="tip-m" placeholder="Add a note (optional)" aria-label="Note"></div>
+      <a class="btn btn-p block" data-go="book">Send 50 credits</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FLOW 4 · READING ===================== -->
+<!-- ===================== FLOW 4 · READING ===================== -->
+<section class="screen rdr" id="s-reader" data-flow="4" data-name="Reader" data-note="Same as v25: back, book title and a ⋯ menu on top; Literata text; orange margin dots open passage discussions.|Fixed: the header sits below the status bar and its back button works.|Dotted underline = passage other readers are discussing; the orange count opens it.|Your highlights show inline. Tap the middle of the page for controls." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Harmattan Letters</b><span>14 reading now</span></div><button class="ib" aria-label="Bookmark this page"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg></button><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page" data-go="reader-chrome">
+    <div class="chap-h"><small>Chapter 7</small>The Third Letter</div>
+    <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams. Mama Nkem swept twice a day and still the floor sang under our feet.</p>
+    <p>I kept the letters in a biscuit tin under my bed. <span class="hl-y">Each one smelled faintly of camphor</span> and of the hands that had carried it from Kaduna to Enugu.</p>
+    <p><span class="comm" data-go="discuss">Grace did not ask her to be ready. It only asked her to come.</span><span class="pnum" data-go="discuss" aria-label="12 comments on this passage"><svg class="ico xs" aria-hidden="true"><use href="#i-chat"/></svg>12</span> I read that line until the paper went soft at the fold.</p>
+    <p>Outside, the neighbours argued about the price of kerosene, and somewhere a radio played the same highlife song it had played all week.</p>
+  </div>
+  <div class="rd-foot"><span class="t-num">38%</span><div class="bar thin"><i style="width:38%"></i></div><span>11 min left in chapter</span></div>
+</section>
+
+<section class="screen rdr" id="s-reader-chrome" data-flow="4" data-name="Reader controls" data-note="Same as v25: tap the page for a dark bar with progress, % read, Chapter x of y, and Chapters, Night, Notes, Settings.|New: page number, a draggable progress handle, and Room to open this book's room without losing your place." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Harmattan Letters</b><span>Chapter 7 · The Third Letter</span></div><button class="ib" aria-label="Bookmark this page"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg></button><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page page--dim" data-go="reader">
+    <div class="chap-h"><small>Chapter 7</small>The Third Letter</div>
+    <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams. Mama Nkem swept twice a day and still the floor sang under our feet.</p>
+    <p>I kept the letters in a biscuit tin under my bed. <span class="hl-y">Each one smelled faintly of camphor</span> and of the hands that had carried it from Kaduna to Enugu.</p>
+    <p>Grace did not ask her to be ready. It only asked her to come. I read that line until the paper went soft at the fold.</p>
+  </div>
+  <div class="chrome">
+    <div class="slider" style="--v:38%"><div class="bar"><i style="width:38%"></i></div><span class="slider__thumb"></span></div>
+    <div class="between t-xs"><span class="t-num"><b>38% read</b> · page 84 of 221</span><b>Chapter 7 of 14</b></div>
+    <div class="acts"><a data-go="chapters"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>Chapters</a><a data-go="reader-dark"><svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg>Night</a><a data-go="notes"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg>Notes</a><a data-go="reader-settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg>Settings</a><a data-go="channel"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Room</a></div>
+  </div>
+</section>
+
+<section class="screen rdr" id="s-reader-select" data-flow="4" data-name="Highlight toolbar" data-note="Same as v25: Highlight, Note, Discuss and Share on the selection.|Fixed: the toolbar appears after the finger lifts, above the selection, and never covers it. It flips below when the selection is near the top.|Colors first, then Note, Discuss, Club, Share. Phone's own copy menu is turned off." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Harmattan Letters</b><span>14 reading now</span></div><button class="ib" aria-label="Bookmark this page"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg></button><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page">
+    <div class="chap-h"><small>Chapter 7</small>The Third Letter</div>
+    <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams. Mama Nkem swept twice a day and still the floor sang under our feet.</p>
+    <p>I kept the letters in a biscuit tin under my bed. <span class="hl-y">Each one smelled faintly of camphor</span> and of the hands that had carried it from Kaduna to Enugu.</p>
+    <p><span class="sel">Grace did not ask her to be ready. It only asked her to come.</span> I read that line until the paper went soft at the fold.</p>
+    <p>Outside, the neighbours argued about the price of kerosene, and somewhere a radio played the same highlife song it had played all week.</p>
+    <div class="selbar" role="toolbar" aria-label="Selected text" style="top:296px">
+      <div class="dots" data-single><button class="hl-y on" aria-label="Yellow"></button><button class="hl-g" aria-label="Green"></button><button class="hl-p" aria-label="Pink"></button></div>
+      <button data-go="note-dialog"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg>Note</button><button data-go="discuss"><svg class="ico s" aria-hidden="true"><use href="#i-chat"/></svg>Discuss</button><button data-go="share-club"><svg class="ico s" aria-hidden="true"><use href="#i-users"/></svg>Club</button><button><svg class="ico s" aria-hidden="true"><use href="#i-share"/></svg>Share</button>
+    </div>
+  </div>
+  <div class="rd-foot"><span class="t-num">38%</span><div class="bar thin"><i style="width:38%"></i></div><span>11 min left in chapter</span></div>
+</section>
+
+<section class="screen sheet" id="s-chapters" data-base="reader" data-flow="4" data-name="Chapters" data-note="Same as v25: Chapters from the reader bar.|New: progress per chapter and where your club is.|Shows progress per chapter and where your club is." hidden>
+  <a class="backdrop" data-go="reader" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Chapters</h2><button class="ib" data-go="reader" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Chapter 7 of 14 · 38% read</p></div>
+    <div class="inset pb16"><div class="seg" data-single><button class="on">Chapters</button><button>Bookmarks 3</button></div></div>
+    <div class="body"><div class="group group--flush">
+      <a class="cell cell--tap" data-go="reader"><span class="cell__lead t-num t-muted">5</span><span class="cell__body"><span class="cell__title cell__title--reg">Kerosene and Candles</span></span><span class="cell__trail"><span class="pill ok">Read</span></span></a>
+      <a class="cell cell--tap" data-go="reader"><span class="cell__lead t-num t-muted">6</span><span class="cell__body"><span class="cell__title cell__title--reg">A Gate That Squeaks</span></span><span class="cell__trail"><span class="pill ok">Read</span></span></a>
+      <a class="cell cell--tap cell--hl" data-go="reader"><span class="cell__lead t-num t-brand t-strong">7</span><span class="cell__body"><span class="cell__title">The Third Letter</span><span class="cell__sub">You're here · 40% through</span></span><span class="cell__trail"><span class="ring" style="--p:40"><span></span></span></span></a>
+      <a class="cell cell--tap" data-go="reader"><span class="cell__lead t-num t-muted">8</span><span class="cell__body"><span class="cell__title cell__title--reg">Night Vigil</span><span class="cell__sub">Grace Readers are here</span></span></a>
+      <a class="cell cell--tap" data-go="reader"><span class="cell__lead t-num t-muted">9</span><span class="cell__body"><span class="cell__title cell__title--reg">What the Tailor Knew</span></span></a>
+      <a class="cell cell--tap" data-go="reader"><span class="cell__lead t-num t-muted">10</span><span class="cell__body"><span class="cell__title cell__title--reg">Rain, Finally</span></span></a>
+    </div></div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-notes" data-base="reader" data-flow="4" data-name="Notes and highlights" data-note="Same as v25: Notes from the reader bar.|Fixed: chapter labels are real (v25 showed 'Chapter 3' when unknown).|Each note shows whether it's private or shared." hidden>
+  <a class="backdrop" data-go="reader" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Your notes</h2><button class="ib" data-go="reader" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Highlights, notes and bookmarks in this book</p></div>
+    <div class="inset pb16"><div class="seg" data-single><button class="on">Highlights 6</button><button>Notes 2</button><button>Bookmarks 3</button></div></div>
+    <div class="pb">
+      <a class="annot" data-go="reader"><span class="t-xs t-muted">Chapter 7 · The Third Letter</span><span class="excerpt"><span class="hl-y">Each one smelled faintly of camphor</span></span></a>
+      <a class="annot" data-go="reader"><div class="h8"><span class="t-xs t-muted fill">Chapter 4 · Letters from Kaduna</span><span class="pill grey"><svg class="ico xs" aria-hidden="true"><use href="#i-users"/></svg>Grace Readers</span></div><span class="excerpt"><span class="hl-g">I have asked God for a wife who laughs at my jokes even when they are bad.</span></span><span class="annot__note">This made me laugh out loud on the bus.</span></a>
+      <a class="annot" data-go="reader"><span class="t-xs t-muted">Chapter 2 · The Biscuit Tin</span><span class="excerpt"><span class="hl-p">Grief is a house you learn to walk through in the dark.</span></span></a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-reader-settings" data-base="reader" data-flow="4" data-name="Reading settings" data-note="Same as v25: Highlight color (six), Background color Light, Sepia, Dark, Font size, and Done.|New: the current size shows as a number; font, line spacing and pages or scroll.|New: Auto-unlock next chapter, for books you pay for as you read. On by default." hidden>
+  <a class="backdrop" data-go="reader" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Settings</h2><button class="ib" data-go="reader" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="pb">
+      <div class="v8"><span class="t-label">Highlight color</span><div class="bk-hlrow" data-single><button class="bk-hl bk-hl--g" aria-label="Green"></button><button class="bk-hl bk-hl--y is-selected" aria-label="Yellow"></button><button class="bk-hl bk-hl--b" aria-label="Blue"></button><button class="bk-hl bk-hl--p" aria-label="Pink"></button><button class="bk-hl bk-hl--v" aria-label="Purple"></button><button class="bk-hl bk-hl--o" aria-label="Peach"></button></div></div>
+      <div class="v8"><span class="t-label">Background color</span><div class="swatches" data-single><button class="swatch swatch--light is-selected">Light</button><button class="swatch swatch--sepia">Sepia</button><button class="swatch swatch--dark" data-go="reader-dark">Dark</button></div></div>
+      <div class="v8"><span class="t-label">Font size</span><div class="bk-size"><button class="btn btn-s sm" aria-label="Smaller text">− A</button><span class="fill t-h3 t-num">17</span><button class="btn btn-p sm" aria-label="Larger text">+ A</button></div></div>
+      <div class="v8"><span class="t-label">Font</span><div class="h8 h-wrap" data-single><button class="chip on">Literata</button><button class="chip">Inter</button><button class="chip">Georgia</button><button class="chip">Atkinson</button></div></div>
+      <div class="v8"><span class="t-label">Line spacing</span><div class="seg" data-single><button>Tight</button><button class="on">Normal</button><button>Loose</button></div></div>
+      <div class="v8"><span class="t-label">Layout</span><div class="seg" data-single><button class="on">Pages</button><button>Scroll</button></div></div>
+      <div class="h12"><div class="fill v4"><b class="t-title">Auto-unlock next chapter</b><span class="t-xs t-muted">For pay-as-you-read books. Off: we ask at each chapter.</span></div><button class="toggle on" aria-label="Auto-unlock next chapter" aria-pressed="true"></button></div>
+      <a class="btn btn-p block" data-go="reader"><svg class="ico s" aria-hidden="true"><use href="#i-check"/></svg>Done</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen rdr dark" id="s-reader-dark" data-flow="4" data-sb="dark" data-name="Reader, night" data-note="Same as v25: Night from the reader bar.|Warm dark theme, not pure black. Highlights are dimmed so they don't glare at night." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Harmattan Letters</b><span>14 reading now</span></div><button class="ib" aria-label="Bookmark this page"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg></button><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page">
+    <div class="chap-h"><small>Chapter 7</small>The Third Letter</div>
+    <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams. Mama Nkem swept twice a day and still the floor sang under our feet.</p>
+    <p>I kept the letters in a biscuit tin under my bed. <span class="hl-y">Each one smelled faintly of camphor</span> and of the hands that had carried it from Kaduna to Enugu.</p>
+    <p><span class="comm">Grace did not ask her to be ready. It only asked her to come.</span> I read that line until the paper went soft at the fold.</p>
+    <p>Outside, the neighbours argued about the price of kerosene, and somewhere a radio played the same highlife song it had played all week.</p>
+  </div>
+  <div class="rd-foot"><span class="t-num">38%</span><div class="bar thin"><i style="width:38%"></i></div><span>11 min left in chapter</span></div>
+</section>
+
+<section class="screen sheet" id="s-discuss" data-base="reader-select" data-flow="4" data-name="Passage discussion" data-note="Same as v25: Discuss on a selected passage.|Fixed: v25 showed a dead-end popup (Comments are not available in this book yet); now the passage thread opens, and an empty passage invites the first comment.|Discussion is pinned to the exact passage and survives book updates.|Author replies are badged. Spoilers past your position are hidden." hidden>
+  <a class="backdrop" data-go="reader" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>12 comments</h2><button class="ib" data-go="reader" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">On this passage in chapter 7</p></div>
+    <div class="inset"><div class="quote">“Grace did not ask her to be ready. It only asked her to come.”<span class="quote__src">Harmattan Letters · Ch. 7</span></div></div>
+    <div class="body"><div class="chat">
+      <div class="msg"><span class="av sm o">CO</span><div class="bub"><span class="who">Chioma</span>I needed this today. Underlined it in my real Bible too.<div class="reac">❤️ 9</div></div></div>
+      <div class="msg"><span class="av sm m">IN</span><div class="bub"><span class="who">Ifeoma <span class="badge-auth">Author</span></span>This line came from my grandmother. She said it at every wedding.<div class="reac">🙏 21</div></div></div>
+      <div class="msg"><span class="av sm k">BL</span><div class="bub"><span class="who">Bisi</span>Wait till chapter 11 💛<span class="tm">Spoiler hidden until you reach ch. 11</span></div></div>
+    </div></div>
+    <div class="composer"><div class="field"><input id="dc-in" placeholder="Add to the discussion" aria-label="Comment"></div><button class="send" aria-label="Send"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg></button></div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-note-dialog" data-base="reader-select" data-flow="4" data-name="Add a note" data-note="Same as v25: Note on a selected passage.|Private by default. Sharing to a club is one switch, and the club is named." hidden>
+  <a class="backdrop" data-go="reader-select" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Note</h2><button class="ib" data-go="reader-select" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Chapter 7 · The Third Letter</p></div>
+    <div class="pb">
+      <p class="excerpt"><span class="hl-y">Grace did not ask her to be ready. It only asked her to come.</span></p>
+      <div class="field"><textarea id="nd-t" rows="4" aria-label="Your note">Say this to Ada before her interview on Monday.</textarea></div>
+      <div class="h12"><div class="fill v4"><b class="t-title">Share with Grace Readers</b><span class="t-xs t-muted">Off: only you can see this note</span></div><button class="toggle" aria-label="Share with Grace Readers" aria-pressed="false"></button></div>
+      <a class="btn btn-p block" data-go="reader">Save note</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-share-club" data-base="reader-select" data-flow="4" data-name="Share to a club" data-note="The highlight posts as a quote card in the club chat, linked back to the page." hidden>
+  <a class="backdrop" data-go="reader-select" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Share to a club</h2><button class="ib" data-go="reader-select" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="pb">
+      <div class="quote">“Grace did not ask her to be ready. It only asked her to come.”<span class="quote__src">Harmattan Letters · Ch. 7</span></div>
+      <div class="option-list option-list--flush" data-single>
+        <button class="option is-selected"><span class="av sq n">GR</span><span class="option__body"><span class="option__title">Grace Readers</span><span class="option__sub">1,240 members</span></span><span class="radio"></span></button>
+        <button class="option"><span class="av sq g">SG</span><span class="option__body"><span class="option__title">Sunday Grace Circle</span><span class="option__sub">Reading room · 8 members</span></span><span class="radio"></span></button>
+      </div>
+      <div class="input"><label for="sc-m">Add a message</label><div class="field"><input id="sc-m" value="This one is for everyone waiting on God 🙏🏾"></div></div>
+      <a class="btn btn-p block" data-go="channel">Post to Grace Readers</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-reader-menu" data-base="reader" data-flow="4" data-name="Reader menu" data-note="Same as v25: the ⋯ in the reader header.|New: everything you might need mid-book in one list: book details, search, the book room, and reporting a problem with the file." hidden>
+  <a class="backdrop" data-go="reader" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Harmattan Letters</h2><button class="ib" data-go="reader" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Ifeoma Nwachukwu · 38% read</p></div>
+    <div class="body"><div class="group group--flush rd-menu">
+      <a class="cell cell--tap" data-go="book-about"><span class="cell__body"><span class="cell__title">About this ebook</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="cell cell--tap" data-go="reader"><span class="cell__body"><span class="cell__title">Search in book</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="cell cell--tap" data-go="channel"><span class="cell__body"><span class="cell__title">Book room</span><span class="cell__sub">38 talking now</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="cell cell--tap" data-go="share-club"><span class="cell__body"><span class="cell__title">Share this book</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="cell cell--tap" data-go="reader"><span class="cell__body"><span class="cell__title">Report a problem with this book</span><span class="cell__sub">Missing pages, wrong chapter, broken text</span></span></a>
+    </div></div>
+  </div>
+</section>
+
+<section class="screen rdr" id="s-preview-end" data-flow="4" data-name="End of free preview" data-note="Unlock card sits inside the page flow, states the price and balance, and offers a way back.|New: both ways to pay are offered here too. Same total either way." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Seven Bridges to Jos</b><span>Free preview</span></div><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page v16">
+    <p class="first t-muted">The bus left Lokoja at dawn, and by the second bridge Danjuma had decided he would not tell his father about the letter. Not yet. Maybe not ever.</p>
+    <div class="endcard bk-endcard">
+      <div><span class="pill night">You've read the free 10%</span></div>
+      <h2 class="t-h2">Keep going with Danjuma</h2>
+      <div class="kv kv--white">
+        <div class="kv__row"><span class="kv__k">Whole book · 392 pages</span><span class="kv__v">196 credits</span></div>
+        <div class="kv__row"><span class="kv__k">Your balance</span><span class="kv__v">840 credits</span></div>
+      </div>
+      <a class="btn btn-p block" data-go="reader">Unlock all · 196 credits</a>
+      <a class="btn btn-s block md" data-go="reader-chapter">Pay as you read · about 9 a chapter</a>
+      <a class="section__link t-center" data-go="book">Not now, back to the book</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen rdr" id="s-reader-chapter" data-flow="4" data-name="Pay as you read: next chapter" data-note="New: the pay-as-you-read moment. The card sits at the start of the next chapter, inside the page, never as a popup mid-sentence.|Charging happens when you turn past the chapter's first page, so peeking at the title is free. Re-reading a paid chapter is always free.|Paid so far plus Pay the rest always adds up to the book's price (125). You can never pay more than Unlock all.|With Auto-unlock on, this card is skipped and you only see a small toast with Undo." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Harmattan Letters</b><span>Pay as you read</span></div><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page v16">
+    <p class="first t-muted">She folded the fourth letter back along its old creases and set it on the pile. Outside, the gate squeaked open and shut again.</p>
+    <div class="endcard bk-endcard pg-card">
+      <span class="t-label">Next up</span>
+      <h2 class="t-h2">Chapter 5 · Kerosene and Candles</h2>
+      <div class="kv kv--white">
+        <div class="kv__row"><span class="kv__k">This chapter</span><span class="kv__v">9 credits</span></div>
+        <div class="kv__row"><span class="kv__k">Paid so far</span><span class="kv__v">27 of 125</span></div>
+        <div class="kv__row"><span class="kv__k">Your balance</span><span class="kv__v">840 credits</span></div>
+      </div>
+      <a class="btn btn-p block" data-go="reader-unlocked">Unlock chapter · 9 credits</a>
+      <a class="btn btn-s block md" data-go="pay-rest">Pay the rest · 98 credits</a>
+      <div class="pg-auto"><div class="fill v4"><b class="t-title">Auto-unlock next chapter</b><span class="t-xs">Take each chapter's credits as I turn the page</span></div><button class="toggle on" aria-label="Auto-unlock next chapter" aria-pressed="true"></button></div>
+    </div>
+  </div>
+  <div class="rd-foot"><span class="t-num">29%</span><div class="bar thin"><i style="width:29%"></i></div><span>End of chapter 4</span></div>
+</section>
+
+<section class="screen rdr" id="s-reader-unlocked" data-flow="4" data-name="Pay as you read: chapter unlocked" data-note="New: after a chapter unlocks (by tap or Auto-unlock) a small toast confirms the charge with Undo.|Undo works for 10 minutes and returns the credits, so an accidental skip ahead costs nothing. The author is only paid for chapters you keep." hidden>
+  <div class="rd-top"><button class="ib" data-go="book" aria-label="Back to book"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="t"><b>Harmattan Letters</b><span>Chapter 5 · Kerosene and Candles</span></div><button class="ib" data-go="reader-menu" aria-label="More"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  <div class="page" data-go="reader-chrome">
+    <div class="chap-h"><small>Chapter 5</small>Kerosene and Candles</div>
+    <p class="first">NEPA took the light on the third night of the harmattan, and nobody in the compound was surprised. Mama Nkem lit the kerosene lamp and set it on the table between us like a peace offering.</p>
+    <p>I read the fifth letter by its yellow glow. He had written it in Kaduna during a storm, he said, and the ink had run where the roof leaked onto his desk.</p>
+    <p>Some of the words were gone. The ones that stayed were enough.</p>
+  </div>
+  <div class="rd-toast" role="status"><span>Chapter 5 unlocked · 9 credits</span><a data-go="reader-chapter">Undo</a></div>
+  <div class="rd-foot"><span class="t-num">29%</span><div class="bar thin"><i style="width:29%"></i></div><span>14 min left in chapter</span></div>
+</section>
+
+<section class="screen sheet" id="s-reader-chapter-low" data-base="reader-chapter" data-flow="4" data-name="Pay as you read: not enough credits" data-note="New: when the balance can't cover the next chapter, reading pauses at the chapter break, never mid-page.|Your place is saved; after a top-up you go straight back to page 1 of the chapter.|Top-ups are for subscribers only, at ₦3 a credit." hidden>
+  <a class="backdrop" data-go="reader-chapter" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Not enough credits for Chapter 5</h2><button class="ib" data-go="reader-chapter" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">You have 4 credits · this chapter is 9</p></div>
+    <div class="pb">
+      <p class="t-sm t-soft">Your place is saved. Top up and you'll be back on page 1 of Chapter 5. Your plan adds 800 credits on 12 February.</p>
+      <div class="option-list" data-single>
+        <button class="option option--compact is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">200 credits</span><span class="option__sub">The rest of this book and more</span></span><span class="option__trail">₦600</span></button>
+        <button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">500 credits</span><span class="option__sub">≈ 4 books</span></span><span class="option__trail">₦1,500</span></button>
+        <button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">1,000 credits</span><span class="option__sub">≈ 8 books</span></span><span class="option__trail">₦3,000</span></button>
+      </div>
+      <a class="btn btn-p block" data-go="pack-sheet">Top up 200 credits · ₦600</a>
+      <a class="btn btn-g block md" data-go="library">Read something already unlocked</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-pay-rest" data-base="reader-chapter" data-flow="4" data-name="Pay the rest" data-note="New: switch from pay as you read to the whole book at any time. Only what is left is charged, so the total matches Unlock all exactly.|After paying the rest the whole book downloads for offline reading." hidden>
+  <a class="backdrop" data-go="reader-chapter" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Pay the rest</h2><button class="ib" data-go="reader-chapter" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">Harmattan Letters · chapters 5 to 14</p></div>
+    <div class="pb">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Book price</span><span class="kv__v">125 credits</span></div>
+        <div class="kv__row"><span class="kv__k">Already paid · chapters 2 to 4</span><span class="kv__v">− 27</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">Left to pay</span><span class="kv__v">98 credits</span></div>
+      </div>
+      <ul class="pay-perks"><li>The whole book downloads for offline reading</li><li>No more chapter stops</li></ul>
+      <a class="btn btn-p block" data-go="reader-unlocked">Pay 98 credits</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-book-end" data-flow="4" data-sb="org" data-name="Finished the book" data-note="New: v25 had no finish screen.|Finishing is a moment: rate, open the full book discussion (unlocks at 95%), tip, then a next book." hidden>
+  <div class="hero hero--low">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="library" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body">
+      <div><span class="pill night"><svg class="ico xs" aria-hidden="true"><use href="#i-trophy"/></svg>Book 14 this year</span></div>
+      <h1 class="hero__title hero__title--xl">You finished Harmattan Letters.</h1>
+      <p class="hero__sub">4 h 26 min across 9 days.</p>
+    </div>
+  </div>
+  <div class="body">
+    <div class="inset v8 pt16"><span class="t-label">Rate this ebook</span><div class="star-input" aria-label="Rate 1 to 5 stars"><button class="ib" aria-label="1 star"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="2 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="3 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="4 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="5 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button></div></div>
+    <div class="section"><div class="group">
+      <a class="cell cell--tap" data-go="channel"><span class="cell__body"><span class="cell__title">The discussion is open</span><span class="cell__sub">212 readers who finished · spoilers allowed</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="cell cell--tap" data-go="tip"><span class="av m">IN</span><span class="cell__body"><span class="cell__title">Thank Ifeoma with a tip</span><span class="cell__sub">From 20 credits</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+    </div></div>
+    <div class="section body-end">
+      <div class="section__head"><h3 class="section__title">Read next</h3></div>
+      <div class="group">
+        <a class="cell cell--tap" data-go="book"><div class="cv c6 x48"><b>A House Called Grace</b></div><span class="cell__body"><span class="cell__title">A House Called Grace</span><span class="cell__sub">Kemi Ogunleye · readers of this book loved it</span></span><svg class="ico s cell__trail" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      </div>
+    </div>
+  </div>
+</section>

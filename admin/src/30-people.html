@@ -1,0 +1,804 @@
+<style>
+/* ===== People (pp-) ===== */
+.pp-flag{color:var(--err);font-weight:700;font-size:12.5px}
+.pp-late{color:var(--org-ink);font-weight:700}
+.pp-pos{color:var(--ok);font-weight:700}.pp-neg{color:var(--ink);font-weight:700}
+.pp-big{font-family:var(--f-d);font-weight:800;font-size:40px;letter-spacing:-0.02em;line-height:1}
+.pp-covers{display:flex;gap:12px;flex-wrap:wrap}
+.pp-covers div{display:flex;flex-direction:column;gap:4px;font-size:12.5px;width:80px}
+.pp-covers small{color:var(--ink-3)}
+.pp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pp-cnt{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}
+.pp-cnt div{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--ink-2)}
+.pp-cnt b{font-family:var(--f-d);font-weight:800;font-size:24px;color:var(--ink);letter-spacing:-0.02em}
+.pp-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:var(--surface);font-size:13.5px}
+.pp-note small{color:var(--ink-3);font-size:12.5px}
+.pp-read{display:grid;grid-template-columns:40px minmax(0,1fr) 54px;gap:12px;align-items:center;font-size:13.5px}
+.pp-read .meter{margin-top:6px}
+.pp-chk{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
+.pp-chk:last-child{border-bottom:0}
+.pp-chk small{display:block;color:var(--ink-3);font-size:12.5px}
+.pp-ans{display:grid;grid-template-columns:minmax(120px,32%) minmax(0,1fr);gap:8px 16px;font-size:13.5px;margin:0}
+.pp-ans dt{color:var(--ink-2)}.pp-ans dd{margin:0;font-weight:500}
+.pp-sample{font-family:var(--f-r);font-size:15.5px;line-height:1.75;padding:18px 22px;border-radius:12px;background:var(--canvas);color:#1D1A16;display:flex;flex-direction:column;gap:10px}
+.pp-prev{padding:12px 14px;border-radius:12px;background:var(--surface);font-size:13.5px;line-height:1.5}
+.pp-prev small{display:block;color:var(--ink-3);margin-bottom:4px;font-size:12px}
+.pp-amt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pp-amt .inp{width:140px}
+.pp-quick{display:flex;gap:6px;flex-wrap:wrap}
+.pp-stat{display:flex;flex-direction:column;gap:2px}
+.pp-stat span{font-size:12.5px;color:var(--ink-2)}
+.pp-more{margin-top:6px}.pp-more>summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--org-ink);list-style:none;padding:4px 0}.pp-more>summary::-webkit-details-marker{display:none}.pp-more[open]>summary{margin-bottom:6px}
+</style>
+
+<!-- ===================== 04 People: Readers list ===================== -->
+<section class="screen" id="s-users" data-area="4" data-nav="users" data-name="Readers" data-note="Same as v25: readers list with plan, credits and join date.|New: one Filters button (plan, platform, country or state, join date, role) with the active filters shown as chips, instead of five dropdowns.|New: simpler table. Location sits under the name, normal plans are plain text, and only lapsed or suspended readers get a status pill.|New: Flags column shows open reports and privacy requests against a reader so moderators spot problem accounts quickly.|Rule: staff see phone numbers masked; full details need the Super admin or Support role and are written to the audit log.|Data: registered readers 38,240; active subscribers 4,812; 21,900 opened the app in the last 30 days." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Readers</h1></div>
+      <div class="band__acts"><a class="ib" data-go="exports" aria-label="Export readers"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" data-single>
+    <a role="tab" aria-selected="true" class="is-selected">All <span class="c">38,240</span></a>
+    <a role="tab" aria-selected="false">Subscribers <span class="c">4,812</span></a>
+    <a role="tab" aria-selected="false">Lapsed <span class="c">3,106</span></a>
+    <a role="tab" aria-selected="false">No plan <span class="c">30,262</span></a>
+    <a role="tab" aria-selected="false">Suspended <span class="c">9</span></a>
+    <a role="tab" aria-selected="false">Deleted <span class="c">412</span></a>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Name, email, phone or user id" aria-label="Search readers"></label>
+      <button class="fbtn" data-toast="Filters: plan, platform, location and join date"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+      <span class="achip">Country: Nigeria<button aria-label="Remove filter" data-toast="Filter removed"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+      <span class="achip">Role: Reader and author<button aria-label="Remove filter" data-toast="Filter removed"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Reader</th><th>Plan</th><th class="r">Credits</th><th>Last active</th><th>Joined</th><th>Flags</th></tr></thead>
+        <tbody>
+          <tr data-go="user"><td><div class="who"><span class="av sm g">NE</span><span><b>Ngozi Eze</b><small>ngozi.eze@gmail.com · Lagos</small></span></div></td><td>Quarterly · active</td><td class="n">963</td><td class="nw">Today, 08:12</td><td class="nw">4 Mar 2026</td><td class="muted">None</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm t">CO</span><span><b>Chiamaka Obi</b><small>chiamaka.obi@yahoo.com · Enugu</small></span></div></td><td>Monthly · active</td><td class="n">212</td><td class="nw">Today, 07:40</td><td class="nw">19 Jan 2026</td><td class="muted">None</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm b">TA</span><span><b>Tunji Adebisi</b><small>tunji.a@gmail.com · Ibadan</small></span></div></td><td>Yearly · active</td><td class="n">3,210</td><td class="nw">Yesterday</td><td class="nw">2 Nov 2025</td><td class="muted">None</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm m">HM</span><span><b>Hauwa Musa</b><small>hauwa.musa@gmail.com · Kano</small></span></div></td><td class="muted">No plan</td><td class="n">45</td><td class="nw">9 Nov</td><td class="nw">22 Oct 2026</td><td class="muted">Correction request</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm k">KN</span><span><b>Kelechi Nwosu</b><small>kelechi.nwosu@gmail.com · Abuja</small></span></div></td><td><span class="st st-warn">Monthly · lapsed 3 Nov</span></td><td class="n">60</td><td class="nw">5 Nov</td><td class="nw">8 Jun 2026</td><td class="muted">Export request</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm r">FA</span><span><b>Funke Alabi</b><small>funke.alabi@gmail.com · Abeokuta</small></span></div></td><td>Quarterly · active</td><td class="n">518</td><td class="nw">Today, 06:55</td><td class="nw">14 Feb 2026</td><td class="muted">None</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm o">IL</span><span><b>Ibrahim Lawal</b><small>ibrahim.lawal@outlook.com · Kaduna</small></span></div></td><td>Monthly · active</td><td class="n">96</td><td class="nw">Yesterday</td><td class="nw">30 Sep 2026</td><td><span class="pp-flag">2 reports</span></td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm n">NO</span><span><b>Ngozi Okonkwo</b><small>ngozi.okonkwo@gmail.com · Port Harcourt</small></span></div></td><td>Yearly · active</td><td class="n">1,880</td><td class="nw">11 Nov</td><td class="nw">17 Dec 2025</td><td>Author</td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm r">LD</span><span><b>@lagosdeals</b><small>lagosdeals.ng@mail.com · Unknown</small></span></div></td><td><span class="st st-err">Suspended</span></td><td class="n">0</td><td class="nw">10 Nov</td><td class="nw">9 Nov 2026</td><td><span class="pp-flag">5 reports · spam</span></td></tr>
+          <tr data-go="user"><td><div class="who"><span class="av sm t">AB</span><span><b>Adaora Benson</b><small>adaora.b@gmail.com · Lagos</small></span></div></td><td><span class="st st-warn">Quarterly · lapsed 28 Oct</span></td><td class="n">0</td><td class="nw">1 Nov</td><td class="nw">3 Apr 2026</td><td class="muted">Deletion request</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>1 to 10 of 38,240</span><div class="row"><button class="btn btn-g sm" data-toast="You are on the first page">Previous</button><button class="btn btn-g sm" data-toast="Showing the next 10">Next</button></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Reader detail ===================== -->
+<section class="screen" id="s-user" data-area="4" data-nav="users" data-name="Reader: Overview" data-note="Same as v25: reader profile with plan, credits and unlocked books.|New: one subscription block, one credits block, unlocked books and a slim profile. Staff notes, tickets, consent, recent activity and account actions are folded away so the page stays short.|New: the ⋯ menu in the header (same on all four tabs) holds password reset, sign out everywhere, export data, change role and delete account. Grant credits is the primary action, Suspend the secondary.|Rule: Grants over 500 credits need a second staff approval. Every staff action here is written to the audit log.|Rule: Store subscriptions (Google Play, App Store) can only be cancelled by the reader; staff cannot cancel them here.|Data: subscription state comes from store purchase events." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="users">Readers</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Ngozi Eze</span></div>
+    <div class="ph__row">
+      <span class="av xl g">NE</span>
+      <div class="ph__title"><h1>Ngozi Eze</h1>
+        <div class="ph__meta"><span>Active</span><span>User id <span class="mono">usr_8f3a2c19</span></span><span>Joined 4 Mar 2026</span><span>Lagos</span><span>Android 14 · app 26.1</span><span>Google sign-in</span></div></div>
+      <div class="ph__acts"><a class="btn btn-p" data-go="user-grant">Grant credits</a><a class="btn btn-g" data-go="user-suspend">Suspend</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Password reset email sent to ngozi.eze@gmail.com">Send password reset</a><a data-toast="Ngozi was signed out on all 3 devices">Sign out all devices</a><a data-go="data-request">Export data</a><a data-toast="Role changed to Reader. Ngozi was not notified.">Change role</a><hr><a class="danger" data-go="user-delete">Delete account…</a></div></div></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="true" class="is-selected" data-go="user">Overview</a>
+    <a role="tab" aria-selected="false" data-go="user-credits">Credits</a>
+    <a role="tab" aria-selected="false" data-go="user-activity">Reading and devices</a>
+    <a role="tab" aria-selected="false" data-go="user-safety">Safety</a>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Subscription</h2><span class="st-plain">Active</span><a class="link" data-go="subscription" style="font-size:13px">Open subscription</a></div>
+          <div class="panel__body"><dl class="kv">
+            <dt>Plan</dt><dd>Quarterly</dd>
+            <dt>Bought through</dt><dd>Google Play</dd>
+            <dt>Price</dt><dd>₦2,400 every 3 months</dd>
+            <dt>Current period</dt><dd>2 Nov 2026 to 2 Feb 2027 (renewed from 2 Aug 2026)</dd>
+            <dt>Renews</dt><dd>2 Feb 2027</dd>
+            <dt>Store order id</dt><dd class="mono">GPA.3341-8820-5517-20418</dd>
+            <dt>Credits per period</dt><dd>900</dd>
+          </dl></div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Credits</h2><a class="link" data-go="user-credits" style="font-size:13px">Open ledger</a></div>
+          <div class="panel__body">
+            <div class="pp-stat"><span class="pp-big">963</span><span>credits now, worth about ₦2,889</span></div>
+            <div><div class="kv-row"><span>Rolled over from last period</span><b>260</b></div><div class="kv-row"><span>Granted by plan this period</span><b>800</b></div><div class="kv-row"><span>Topped up (200, 5 Nov)</span><b>200</b></div><div class="kv-row"><span>Spent on books, chapters, messages, tips and gifts</span><b>−266</b></div><div class="kv-row"><span>Staff return, gift received, refund clawback</span><b>−31</b></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Unlocked books</h2><span class="sub">5 books · stay in the library forever</span></div>
+          <div class="panel__body"><div class="pp-covers">
+            <div><span class="cv c1 x80"></span><b>Harmattan Letters</b><small>3 Nov · 90 cr</small></div>
+            <div><span class="cv c3 x80"></span><b>The Alignment</b><small>6 Nov · 135 cr</small></div>
+            <div><span class="cv c2 x80"></span><b>Still Waters, Lagos</b><small>12 Sep · 90 cr</small></div>
+            <div><span class="cv c6 x80"></span><b>A House Called Grace</b><small>24 Jul · 90 cr</small></div>
+            <div><span class="cv c5 x80"></span><b>Ruth of Ibadan</b><small>9 Jun · 45 cr</small></div>
+          </div></div>
+        </div>
+        <details class="fold">
+          <summary>Recent activity <small>last 7 events</small></summary>
+          <div class="fold__b"><div class="tl">
+            <div class="tl__i org"><b>Opened Harmattan Letters, chapter 14</b><small>Today, 08:12 · Android app</small></div>
+            <div class="tl__i"><b>Messaged Halima Bello (5 credits)</b><small>11 Nov, 19:40</small></div>
+            <div class="tl__i"><b>Staff note added by Bisi Adeyemi</b><small>10 Nov, 11:02</small></div>
+            <div class="tl__i"><b>Gift received from Chiamaka Obi (15 credits)</b><small>9 Nov, 20:15</small></div>
+            <div class="tl__i err"><b>Failed sign-in attempt from an unknown device in Kano</b><small>8 Nov, 03:21 · wrong password</small></div>
+            <div class="tl__i ok"><b>Topped up 200 credits (₦600, Google Play)</b><small>5 Nov, 18:30</small></div>
+            <div class="tl__i ok"><b>Quarterly plan renewed, 800 credits granted</b><small>2 Nov, 00:01</small></div>
+          </div></div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Profile</h2></div>
+          <div class="panel__body"><dl class="kv tight">
+            <dt>Email</dt><dd>ngozi.eze@gmail.com</dd>
+            <dt>Phone</dt><dd>+234 803 ••• ••12</dd>
+            <dt>Date of birth</dt><dd>14 Aug 1994</dd>
+            <dt>Country</dt><dd>Nigeria · Lagos</dd>
+            <dt>Role</dt><dd>Reader</dd>
+            <dt>Sign-in</dt><dd>Google</dd>
+          </dl>
+          <div><div class="hint" style="margin-bottom:6px">Interests chosen at sign-up</div><div class="pp-chips"><span class="tag org">Christian &amp; Faith</span><span class="tag org">Clean romance</span><span class="tag org">African stories</span><span class="tag org">Devotionals</span></div></div></div>
+        </div>
+        <details class="fold">
+          <summary>Notes, tickets and consent <small>2 notes, 3 tickets</small></summary>
+          <div class="fold__b">
+            <b>Staff notes <span class="faint" style="font-weight:500">· only staff see these</span></b>
+            <div class="pp-note"><span><b>Bisi Adeyemi</b> · 10 Nov</span>Asked why Seven Bridges to Jos did not unlock. We granted 45 credits. Told her to update to app 26.1.<small>Linked to ticket #4821</small></div>
+            <div class="pp-note"><span><b>Bisi Adeyemi</b> · 2 Sep</span>Reader asked to switch from Monthly to Quarterly. Explained the switch happens in Google Play.</div>
+            <div class="f"><label for="pp-n1">Add a note</label><textarea id="pp-n1" class="inp ta" placeholder="What should the next person know?"></textarea></div>
+            <div><a class="btn btn-g sm" data-toast="Note saved. Only staff can see it.">Save note</a></div>
+            <b>Recent support tickets</b>
+            <div class="list">
+              <a class="li" data-go="ticket"><span class="li__body"><b>Book did not unlock after paying</b><small>#4821 · 10 Nov · Bisi Adeyemi · Solved</small></span></a>
+              <a class="li" data-go="ticket"><span class="li__body"><b>Change from Monthly to Quarterly</b><small>#4318 · 2 Sep · Bisi Adeyemi · Solved</small></span></a>
+              <a class="li" data-go="ticket"><span class="li__body"><b>Cannot hear audio preview</b><small>#3702 · 14 Jun · Femi Lawson · Solved</small></span></a>
+            </div>
+            <b>Notification consent</b>
+            <dl class="kv tight">
+              <dt>Push</dt><dd>On</dd>
+              <dt>Email updates</dt><dd>On</dd>
+              <dt>Marketing email</dt><dd>Off since 2 Apr</dd>
+              <dt>Terms accepted</dt><dd>v4, 4 Mar 2026</dd>
+            </dl>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Credits ledger ===================== -->
+<section class="screen" id="s-user-credits" data-area="4" data-nav="users" data-name="Reader: Credits" data-note="New: full ledger with reference ids and running balance, so Support can explain any balance without engineers.|New: the four credit figures moved from a kpi strip into the header line, so the ledger starts straight away. Only refund clawbacks are marked with a pill.|Rule (v4 credits): unused plan credits roll over one period while subscribed (up to one plan’s worth), then expire. Top-up credits do not expire while the account is open.|Rule: pay as you read charges one chapter at a time. Readers can undo a chapter charge themselves within 10 minutes; after that, Support can return it here with a reason. Returned chapters are not paid to the author.|Rule: Refund clawbacks remove credits that came from a refunded top-up; the balance never goes below zero.|Data: ledger rows are written whenever a reader unlocks, messages, tips, gifts or buys." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="users">Readers</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><a data-go="user">Ngozi Eze</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Credits</span></div>
+    <div class="ph__row"><span class="av lg g">NE</span><div class="ph__title"><h1>Ngozi Eze</h1><div class="ph__meta"><span>Balance <b>963</b> (about ₦2,889)</span><span>Plan grant <b>800</b></span><span>Topped up <b>200</b></span><span>Spent <b>266</b></span><span class="mono">usr_8f3a2c19</span><span>Quarterly · period 2 Nov 2026 to 2 Feb 2027</span></div></div><div class="ph__acts"><a class="btn btn-p" data-go="user-grant">Grant credits</a><a class="btn btn-g" data-go="user-suspend">Suspend</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Password reset email sent to ngozi.eze@gmail.com">Send password reset</a><a data-toast="Ngozi was signed out on all 3 devices">Sign out all devices</a><a data-go="data-request">Export data</a><a data-toast="Role changed to Reader. Ngozi was not notified.">Change role</a><hr><a class="danger" data-go="user-delete">Delete account…</a></div></div></div></div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="user">Overview</a>
+    <a role="tab" aria-selected="true" class="is-selected" data-go="user-credits">Credits</a>
+    <a role="tab" aria-selected="false" data-go="user-activity">Reading and devices</a>
+    <a role="tab" aria-selected="false" data-go="user-safety">Safety</a>
+  </div>
+  <div class="page">
+    <div class="row" data-single>
+      <button class="fchip is-selected">All <span class="c">16</span></button><button class="fchip">Plan and top-ups <span class="c">3</span></button><button class="fchip">Books and chapters <span class="c">5</span></button><button class="fchip">Messages <span class="c">3</span></button><button class="fchip">Tips and gifts <span class="c">3</span></button><button class="fchip">Staff and refunds <span class="c">2</span></button>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Date</th><th>Type</th><th>Detail</th><th>Reference</th><th class="r">Credits</th><th class="r">Balance</th></tr></thead>
+        <tbody>
+          <tr><td class="nw">Today, 08:12</td><td>Pay as you read</td><td>The Alignment, chapter 6 · <a class="link" data-go="unlock-return">Return</a></td><td class="mono">ch_b2091f</td><td class="n pp-neg">−14</td><td class="n">963</td></tr>
+          <tr><td class="nw">Today, 08:10</td><td>Pay as you read</td><td>The Alignment, chapter 5</td><td class="mono">ch_b2090a</td><td class="n pp-neg">−15</td><td class="n">977</td></tr>
+          <tr><td class="nw">12 Nov, 21:14</td><td>Pay as you read</td><td>The Alignment, chapter 4</td><td class="mono">ch_b1f77c</td><td class="n pp-neg">−13</td><td class="n">992</td></tr>
+          <tr><td class="nw">11 Nov, 19:40</td><td>DM to author</td><td>Message to Halima Bello</td><td class="mono">dm_55c1a8</td><td class="n pp-neg">−5</td><td class="n">1,005</td></tr>
+          <tr><td class="nw">10 Nov, 14:22</td><td><span class="st st-err">Refund clawback</span></td><td>Web top-up refund, 200 credits (₦600); 60 were still unspent, so 60 removed</td><td class="mono">rf_2207</td><td class="n pp-neg">−60</td><td class="n">1,010</td></tr>
+          <tr><td class="nw">9 Nov, 20:15</td><td>Gift received</td><td>From Chiamaka Obi</td><td class="mono">gf_9d03e2</td><td class="n pp-pos">+15</td><td class="n">1,070</td></tr>
+          <tr><td class="nw">8 Nov, 18:02</td><td>Gift sent</td><td>To Funke Alabi</td><td class="mono">gf_9c7b10</td><td class="n pp-neg">−50</td><td class="n">1,055</td></tr>
+          <tr><td class="nw">7 Nov, 21:09</td><td>DM to author</td><td>Message to Chioma Okafor</td><td class="mono">dm_55a017</td><td class="n pp-neg">−5</td><td class="n">1,105</td></tr>
+          <tr><td class="nw">7 Nov, 21:03</td><td>Tip</td><td>Tip to Chioma Okafor</td><td class="mono">tp_3381f4</td><td class="n pp-neg">−20</td><td class="n">1,110</td></tr>
+          <tr><td class="nw">6 Nov, 12:48</td><td>Staff return</td><td>Seven Bridges to Jos, chapter 5 failed to open · Bisi Adeyemi · ticket #4821</td><td class="mono">sg_1140</td><td class="n pp-pos">+14</td><td class="n">1,130</td></tr>
+          <tr><td class="nw">6 Nov, 09:30</td><td>Pay as you read</td><td>The Alignment, chapter 3</td><td class="mono">ch_a8820c</td><td class="n pp-neg">−14</td><td class="n">1,116</td></tr>
+          <tr><td class="nw">5 Nov, 18:30</td><td>Top-up</td><td>200 credits · ₦600 · Google Play</td><td class="mono">GPA.3340-1192</td><td class="n pp-pos">+200</td><td class="n">1,130</td></tr>
+          <tr><td class="nw">4 Nov, 08:50</td><td>DM to author</td><td>Message to Ifeoma Nwachukwu</td><td class="mono">dm_5412dd</td><td class="n pp-neg">−5</td><td class="n">930</td></tr>
+          <tr><td class="nw">3 Nov, 07:15</td><td>Book, upfront</td><td>Harmattan Letters · 250 pages</td><td class="mono">ul_a7f142</td><td class="n pp-neg">−125</td><td class="n">935</td></tr>
+          <tr><td class="nw">2 Nov, 00:01</td><td>Plan grant</td><td>Quarterly plan renewed, 800 credits</td><td class="mono">GPA.3341-8820</td><td class="n pp-pos">+800</td><td class="n">1,060</td></tr>
+          <tr><td class="nw">2 Nov, 00:00</td><td>Expiry</td><td>Rolled over from August and unused again</td><td class="mono">ex_77120</td><td class="n pp-neg">−120</td><td class="n">260</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>16 entries this period · older periods are in the export</span><div class="row"><a class="btn btn-g sm" data-go="exports">Export ledger</a></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Return a chapter charge ===================== -->
+<section class="screen overlay" id="s-unlock-return" data-area="4" data-base="user-credits" data-name="Return a chapter charge" data-note="New (v4 credits): Support can give back a pay-as-you-read chapter charge after the reader's own 10-minute undo has passed.|Rule: the credits go back to the reader straight away; the chapter locks again; the author is not paid for it. Logged with the reason.|Rule: returns over 50 credits, or more than 3 for one reader in 30 days, need a Finance approver.|Data: the reader read 1 page of chapter 6 before asking (support ticket #4907)." hidden>
+  <a class="backdrop" data-go="user-credits" aria-label="Close"></a>
+  <div class="modal" role="dialog" aria-label="Return a chapter charge">
+    <div class="modal__h"><div class="grow"><h2>Return 14 credits to Ngozi?</h2><p>The Alignment, chapter 6 · charged today, 08:12</p></div><a class="ib" data-go="user-credits" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="kv-row"><span>Read before asking</span><b>1 of 22 pages</b></div>
+      <div class="kv-row"><span>Her own undo window</span><b>Ended 08:22</b></div>
+      <div class="f"><span class="lbl">Reason</span>
+        <div class="radios" data-single>
+          <span class="radio is-selected"><span><b>Skipped ahead by mistake</b><small>Reader moved past the first page without meaning to</small></span></span>
+          <span class="radio"><span><b>Chapter didn’t open or display</b><small>Technical fault</small></span></span>
+          <span class="radio"><span><b>Wrong book</b><small>Reader meant to open another title</small></span></span>
+        </div>
+      </div>
+      <span class="muted" style="font-size:13px">Chapter 6 locks again and Adaeze Rosemary Possible is not paid for it.</span>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="user-credits">Cancel</a><a class="btn btn-p" data-go="user-credits" data-toast="14 credits returned to Ngozi. Chapter 6 is locked again." data-undo="unlock-return">Return 14 credits</a></div>
+  </div>
+</section>
+
+<!-- ===================== Reading and devices ===================== -->
+<section class="screen" id="s-user-activity" data-area="4" data-nav="users" data-name="Reader: Reading and devices" data-note="New: devices and sessions so Support can sign out a lost phone without asking the reader to do it.|New: library and highlights counts share one slim panel, and the sign-in history is folded below the devices. Only failed sign-ins carry a status pill.|Rule: Signing out a device ends its session within a minute; downloaded books stay on the phone but stop opening until the reader signs in again.|Data: reading time counts only active reading on a page, not time the app is open in the background." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="users">Readers</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><a data-go="user">Ngozi Eze</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Reading and devices</span></div>
+    <div class="ph__row"><span class="av lg g">NE</span><div class="ph__title"><h1>Ngozi Eze</h1><div class="ph__meta"><span>Active</span><span class="mono">usr_8f3a2c19</span><span>Last active today, 08:12</span></div></div><div class="ph__acts"><a class="btn btn-p" data-go="user-grant">Grant credits</a><a class="btn btn-g" data-go="user-suspend">Suspend</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Password reset email sent to ngozi.eze@gmail.com">Send password reset</a><a data-toast="Ngozi was signed out on all 3 devices">Sign out all devices</a><a data-go="data-request">Export data</a><a data-toast="Role changed to Reader. Ngozi was not notified.">Change role</a><hr><a class="danger" data-go="user-delete">Delete account…</a></div></div></div></div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="user">Overview</a>
+    <a role="tab" aria-selected="false" data-go="user-credits">Credits</a>
+    <a role="tab" aria-selected="true" class="is-selected" data-go="user-activity">Reading and devices</a>
+    <a role="tab" aria-selected="false" data-go="user-safety">Safety</a>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Currently reading</h2></div>
+          <div class="panel__body">
+            <div class="pp-read"><span class="cv c1 x40"></span><div><b>Harmattan Letters</b><div class="hint">Chapter 14 of 26 · Ifeoma Nwachukwu</div><div class="meter"><i style="--v:54%"></i></div></div><b class="n">54%</b></div>
+            <div class="pp-read"><span class="cv c3 x40"></span><div><b>The Alignment</b><div class="hint">Chapter 5 of 31 · Adaeze Rosemary Possible</div><div class="meter"><i style="--v:16%"></i></div></div><b class="n">16%</b></div>
+            <div class="pp-read"><span class="cv c2 x40"></span><div><b>Still Waters, Lagos</b><div class="hint">Finished 30 Sep · Chioma Okafor</div><div class="meter"><i class="ok" style="--v:100%"></i></div></div><b class="n">100%</b></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Reading time, last 30 days</h2><span class="sub">38 h 20 min total · 1 h 17 min a day</span></div>
+          <div class="panel__body"><div class="chart">
+            <div class="cols" style="height:150px">
+              <div class="col"><i style="--v:40%"></i></div><div class="col"><i style="--v:55%"></i></div><div class="col"><i style="--v:30%"></i></div><div class="col"><i style="--v:62%"></i></div><div class="col"><i style="--v:70%"></i></div><div class="col"><i style="--v:48%"></i></div><div class="col"><i style="--v:20%"></i></div><div class="col"><i style="--v:58%"></i></div><div class="col"><i style="--v:66%"></i></div><div class="col"><i style="--v:74%"></i></div><div class="col"><i style="--v:52%"></i></div><div class="col"><i style="--v:80%"></i></div><div class="col"><i style="--v:44%"></i></div><div class="col"><i style="--v:36%"></i></div><div class="col"><i style="--v:60%"></i></div><div class="col"><i style="--v:68%"></i></div><div class="col"><i style="--v:90%"></i></div><div class="col"><i style="--v:100%"></i></div><div class="col"><i style="--v:72%"></i></div><div class="col"><i style="--v:56%"></i></div><div class="col"><i style="--v:64%"></i></div><div class="col"><i style="--v:46%"></i></div><div class="col"><i style="--v:38%"></i></div><div class="col"><i style="--v:76%"></i></div><div class="col"><i style="--v:82%"></i></div><div class="col"><i style="--v:50%"></i></div><div class="col"><i style="--v:42%"></i></div><div class="col"><i style="--v:70%"></i></div><div class="col"><i style="--v:78%"></i></div><div class="col now"><i style="--v:34%"></i></div>
+            </div>
+            <div class="axis"><span>14 Oct</span><span style="flex:28"></span><span>Today</span></div>
+            <div class="legend"><span><i></i>Minutes read per day</span><span>Peak: 1 Nov, 2 h 05 min</span></div>
+          </div></div>
+        </div>
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Devices and sessions</h2><span class="sub">3 signed in</span></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Device</th><th>App version</th><th>Last seen</th><th>City</th><th class="acts"></th></tr></thead>
+            <tbody>
+              <tr><td><b>Tecno Spark 20 · Android 14</b><br><span class="hint">This device</span></td><td class="nw">26.1</td><td class="nw">Today, 08:12</td><td class="nw">Lagos</td><td class="acts"><a class="btn btn-g sm" data-toast="Tecno Spark 20 signed out. It stops working within a minute.">Sign out</a></td></tr>
+              <tr><td><b>Samsung Galaxy Tab A8 · Android 13</b></td><td class="nw">25.9</td><td class="nw">2 Nov</td><td class="nw">Lagos</td><td class="acts"><a class="btn btn-g sm" data-toast="Galaxy Tab A8 signed out. Downloaded books stop opening until Ngozi signs in.">Sign out</a></td></tr>
+              <tr><td><b>Chrome on Windows · web reader</b></td><td class="nw">Web</td><td class="nw">28 Oct</td><td class="nw">Ikeja</td><td class="acts"><a class="btn btn-g sm" data-toast="Web reader on Windows signed out.">Sign out</a></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <details class="fold">
+          <summary>Sign-in history <small>4 recent sign-ins, 1 failed</small></summary>
+          <div class="fold__b"><div class="tw"><table class="tbl">
+            <thead><tr><th>When</th><th>Method</th><th>Device</th><th>City</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td class="nw">Today, 08:10</td><td>Google</td><td>Tecno Spark 20</td><td>Lagos</td><td><span class="st-plain">Signed in</span></td></tr>
+              <tr><td class="nw">8 Nov, 03:21</td><td>Email and password</td><td>Unknown Android</td><td>Kano</td><td><span class="st st-err">Failed · wrong password</span></td></tr>
+              <tr><td class="nw">2 Nov, 07:02</td><td>Google</td><td>Galaxy Tab A8</td><td>Lagos</td><td><span class="st-plain">Signed in</span></td></tr>
+              <tr><td class="nw">28 Oct, 21:40</td><td>Google</td><td>Chrome on Windows</td><td>Ikeja</td><td><span class="st-plain">Signed in</span></td></tr>
+            </tbody>
+          </table></div></div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Library and notes</h2></div>
+          <div class="panel__body"><div class="pp-cnt"><div><b>14</b>Saved</div><div><b>5</b>Unlocked</div><div><b>7</b>Finished</div><div><b>3</b>Downloaded</div></div>
+          <div class="pp-cnt"><div><b>86</b>Highlights</div><div><b>21</b>Notes</div><div><b>9</b>Discussion comments</div><div><b>4</b>Reviews</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Safety ===================== -->
+<section class="screen" id="s-user-safety" data-area="4" data-nav="users" data-name="Reader: Safety" data-note="Same as v25: report history.|New: one place for what the reader reported, who they blocked and any sanctions. The counts are in the header and the two empty panels (reports against her, sanctions) became one line.|New: moderation notes are folded away until needed.|Rule: Staff can see who a reader blocked to investigate harassment, but cannot see the content of private messages.|Rule: Sanctions, warnings and bans are only applied from the Suspend action and are logged with the linked report." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="users">Readers</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><a data-go="user">Ngozi Eze</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Safety</span></div>
+    <div class="ph__row"><span class="av lg g">NE</span><div class="ph__title"><h1>Ngozi Eze</h1><div class="ph__meta"><span>Active</span><span class="mono">usr_8f3a2c19</span><span>2 reports made</span><span>0 reports against her</span><span>2 blocks</span><span>No sanctions</span></div></div><div class="ph__acts"><a class="btn btn-p" data-go="user-grant">Grant credits</a><a class="btn btn-g" data-go="user-suspend">Suspend</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Password reset email sent to ngozi.eze@gmail.com">Send password reset</a><a data-toast="Ngozi was signed out on all 3 devices">Sign out all devices</a><a data-go="data-request">Export data</a><a data-toast="Role changed to Reader. Ngozi was not notified.">Change role</a><hr><a class="danger" data-go="user-delete">Delete account…</a></div></div></div></div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="user">Overview</a>
+    <a role="tab" aria-selected="false" data-go="user-credits">Credits</a>
+    <a role="tab" aria-selected="false" data-go="user-activity">Reading and devices</a>
+    <a role="tab" aria-selected="true" class="is-selected" data-go="user-safety">Safety</a>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Reports she made</h2><span class="sub">both actioned</span></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Date</th><th>About</th><th>Reason</th><th>Outcome</th></tr></thead>
+            <tbody>
+              <tr data-go="report"><td class="nw">29 Oct</td><td>Message from @lagosdeals</td><td>Spam or scams</td><td>Account suspended</td></tr>
+              <tr data-go="report"><td class="nw">3 Aug</td><td>Discussion comment in Still Waters, Lagos</td><td>Spoilers</td><td>Comment hidden</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div class="sline"><span class="dot"></span><b>Clean record</b><span>Nobody has reported Ngozi's messages, comments, reviews or profile, and there are no warnings, mutes, suspensions or bans.</span></div>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Blocks she made</h2><span class="sub">2 users</span></div>
+          <div class="list">
+            <div class="li"><div class="who grow"><span class="av sm r">LD</span><span><b>@lagosdeals</b><small>Blocked 29 Oct</small></span></div><a class="btn btn-g sm" data-go="user">View</a></div>
+            <div class="li"><div class="who grow"><span class="av sm o">IL</span><span><b>Ibrahim Lawal</b><small>Blocked 17 Sep</small></span></div><a class="btn btn-g sm" data-go="user">View</a></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>Moderation notes <small>1 note</small></summary>
+          <div class="fold__b">
+            <div class="pp-note"><span><b>Zainab Yusuf</b> · 30 Oct</span>Reliable reporter. Her spam report on @lagosdeals was correct.</div>
+            <div class="f"><label for="pp-n2">Add a moderation note</label><textarea id="pp-n2" class="inp ta" placeholder="Visible to Moderators and Super admins"></textarea></div>
+            <div><a class="btn btn-g sm" data-toast="Note saved. Only staff can see it.">Save note</a></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Overlay: grant credits ===================== -->
+<section class="screen overlay" id="s-user-grant" data-area="4" data-base="user" data-name="Grant or remove credits" data-note="Rule: Grants or removals up to 500 credits apply immediately with an Undo. Over 500 needs a second approver (shown inline when the custom amount is over 500).|Rule: Reason is required and is written to the audit log and the credits ledger.|New: optional push and in-app message to the reader with a preview.|Data: 1 credit is worth ₦3." hidden>
+  <a class="backdrop" data-go="user" aria-label="Close"></a>
+  <div class="modal" role="dialog" aria-label="Grant or remove credits">
+    <div class="modal__h"><div class="grow"><h2>Grant or remove credits</h2><p>Ngozi Eze · balance 963</p></div><a class="ib" data-go="user" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="seg" data-single style="align-self:flex-start"><button class="is-selected">Add credits</button><button>Remove credits</button></div>
+      <div class="f"><span class="lbl">Amount</span>
+        <div class="pp-amt">
+          <div class="pp-quick" data-single><button class="fchip">45</button><button class="fchip is-selected">90</button><button class="fchip">135</button><button class="fchip">180</button></div>
+          <span class="muted">or</span>
+          <div class="inp"><input value="90" aria-label="Custom amount"><span class="suf">credits</span></div>
+        </div>
+        <span class="hint">90 credits unlocks one Standard book. New balance 930. Up to 500 applies straight away.</span></div>
+      <div class="note warn"><div class="grow"><b>If you type more than 500</b>For example 800: the button changes to "Ask Femi Lawson to approve". Nothing is added until a second staff member approves, and Ngozi is not told yet.</div></div>
+      <div class="f"><label>Reason</label><div class="inp sel"><span>Failed unlock</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div><span class="hint">Failed unlock, Goodwill, Contest prize, Correction, Other</span></div>
+      <div class="f"><label for="pp-gn">Note <span class="opt">(staff only)</span></label><textarea id="pp-gn" class="inp ta" style="min-height:64px">Book did not unlock after payment. Ticket #4821.</textarea></div>
+      <div class="setrow" style="padding:0"><div class="setrow__b"><b>Tell the reader</b><small>Sends a push and an in-app message</small></div><button class="switch on" aria-label="Notify reader"></button></div>
+      <div class="pp-prev"><small>Preview</small>Hi Ngozi, we added 90 credits to your Arpedia account to make up for a book that did not unlock. Enjoy your reading.</div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="user">Cancel</a><a class="btn btn-p" data-go="user-credits" data-toast="90 credits added. Ngozi was told." data-undo="user-credits">Add 90 credits</a></div>
+  </div>
+</section>
+
+<!-- ===================== Overlay: suspend ===================== -->
+<section class="screen overlay" id="s-user-suspend" data-area="4" data-base="user" data-name="Sanction a reader" data-note="Rule: Warn, mute, suspend and ban are logged against the reader with the linked report and are visible on the Safety tab.|Rule: Store subscriptions cannot be cancelled by staff. A suspended reader keeps being billed by Google Play or App Store until they cancel, so the message tells them how.|Rule: Permanent bans need a Moderator and a Super admin.|New: the reader can appeal; appeals go to the Appeals queue." hidden>
+  <a class="backdrop" data-go="user" aria-label="Close"></a>
+  <div class="modal danger wide" role="dialog" aria-label="Sanction a reader">
+    <div class="modal__h"><div class="grow"><h2>Sanction Ngozi Eze</h2><p>Choose the lightest action that fits.</p></div><a class="ib" data-go="user" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="radios" data-single>
+        <div class="radio"><span><b>Warn</b><small>Ngozi sees a message. Nothing is restricted.</small></span></div>
+        <div class="radio"><span><b>Mute</b><small>Cannot post, comment, message authors or join rooms. Can still read.</small></span></div>
+        <div class="radio is-selected"><span><b>Suspend</b><small>Signed out everywhere and cannot sign in. Books and credits are kept.</small></span></div>
+        <div class="radio"><span><b>Ban</b><small>Account closed for good. Credits are lost. Needs a Super admin to confirm.</small></span></div>
+      </div>
+      <div class="fgrid">
+        <div class="f"><label>How long <span class="opt">(Mute and Suspend only)</span></label><div class="seg" data-single style="align-self:flex-start"><button>7 days</button><button class="is-selected">30 days</button></div></div>
+        <div class="f"><label>Reason</label><div class="inp sel"><span>Harassment or bullying</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+      </div>
+      <div class="pp-prev"><small>Ngozi will get this by email and push (editable)</small>Hi Ngozi, your Arpedia account is suspended for 30 days because of harassing messages in a community room. You can appeal from the email we sent you. If you pay through Google Play or the App Store, your subscription will keep renewing until you cancel it there.</div>
+      <div class="note warn"><div class="grow"><b>Effect on the subscription</b>Her Quarterly plan (renews 2 Feb 2027) keeps renewing. We cannot cancel Google Play subscriptions. Credits stay on the account and are not refunded.</div></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="user">Cancel</a><a class="btn btn-dd" data-go="user-safety" data-toast="Ngozi Eze suspended for 30 days. She was signed out and told how to appeal." data-undo="user-safety">Suspend for 30 days</a></div>
+  </div>
+</section>
+
+<!-- ===================== Overlay: delete ===================== -->
+<section class="screen overlay" id="s-user-delete" data-area="4" data-base="user" data-name="Delete reader account" data-note="Rule: NDPA 2023 gives readers the right to ask for deletion. We must act within 30 days.|Rule: Financial records are kept for 6 years by law; reviews and discussion comments are anonymised rather than removed.|Rule: An active store subscription is not cancelled by deleting the account. The reader must cancel in Google Play or the App Store first.|New: optional 30-day grace period so the reader can change their mind." hidden>
+  <a class="backdrop" data-go="user" aria-label="Close"></a>
+  <div class="modal danger wide" role="dialog" aria-label="Delete reader account">
+    <div class="modal__h"><div class="grow"><h2>Delete Ngozi Eze's account</h2><p>This follows the Nigeria Data Protection Act (NDPA) 2023.</p></div><a class="ib" data-go="user" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="note err"><div class="grow"><b>Active subscription</b>Ngozi has a Quarterly plan on Google Play, renewing 2 Feb 2027. Deleting the account does not cancel it. Ask her to cancel in Google Play first, or she will keep being charged.</div></div>
+      <div class="fgrid">
+        <div class="f"><span class="lbl">Deleted</span><div class="stack s4 muted" style="font-size:13.5px"><span>Name, email, phone and date of birth</span><span>Profile photo and interests</span><span>Reading history, highlights and notes</span><span>Library, saved books and unlocked books</span><span>Direct messages and support tickets</span><span>Remaining 840 credits (worth about ₦4,200)</span></div></div>
+        <div class="f"><span class="lbl">Kept</span><div class="stack s4 muted" style="font-size:13.5px"><span>Payment and tax records for 6 years</span><span>Reviews and discussion comments, anonymised as "Former reader"</span><span>Reports she made, with her name removed</span><span>An audit log entry of this deletion</span></div></div>
+      </div>
+      <div class="radios" data-single>
+        <div class="radio is-selected"><span><b>Delete after 30 days</b><small>Account is hidden and signed out now. She can restore it by signing in within 30 days.</small></span></div>
+        <div class="radio"><span><b>Delete now</b><small>Permanent. Only when the reader has asked in writing and confirmed.</small></span></div>
+      </div>
+      <div class="f"><label for="pp-del">Type DELETE to confirm</label><div class="inp"><input id="pp-del" placeholder="DELETE"></div></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="user">Cancel</a><a class="btn btn-dd" data-go="data-requests" data-toast="Ngozi's account is hidden and will be deleted on 12 Dec. She can restore it by signing in." data-undo="user">Delete account</a></div>
+  </div>
+</section>
+
+<!-- ===================== Authors list ===================== -->
+<section class="screen" id="s-authors" data-area="4" data-nav="authors" data-name="Authors" data-note="Same as v25: authors list with books and earnings.|New: one Filters button (payout account, genre, earning) instead of three dropdowns, and a six-column table. Followers and join month sit under the author's name.|New: payout account status next to earnings so Finance can see who will not get paid on 15 Nov. Only Failed and Not set carry a pill; Verified is plain text.|New: the community channel column links to each author's channel.|Data: earnings are the September cycle (paid 15 Oct). Reads are the last 30 days. 131 authors, 63 earning, 7 applications waiting." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Authors</h1></div>
+      <div class="band__acts"><a class="ib" data-go="exports" aria-label="Export authors"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="true" class="is-selected" data-go="authors">Authors <span class="c">131</span></a>
+    <a role="tab" aria-selected="false" data-go="applications">Applications <span class="c">7</span></a>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Author name, pen name or email" aria-label="Search authors"></label>
+      <button class="fbtn" data-toast="Filters: plan, platform, location and join date"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Author</th><th class="r">Books live</th><th class="r">Reads, 30 days</th><th class="r">Earned, Sep</th><th>Payout account</th><th>Channel</th></tr></thead>
+        <tbody>
+          <tr data-go="author"><td><div class="who"><span class="av sm g">IN</span><span><b>Ifeoma Nwachukwu</b><small>Christian &amp; Faith · 1,240 followers · Jan 2025</small></span></div></td><td class="n">3</td><td class="n">18,204</td><td class="n">₦412,800</td><td><span class="st-plain">Verified</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm t">CO</span><span><b>Chioma Okafor</b><small>African stories · 910 followers · Mar 2025</small></span></div></td><td class="n">2</td><td class="n">9,870</td><td class="n">₦268,300</td><td><span class="st-plain">Verified</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm m">AP</span><span><b>Adaeze Rosemary Possible</b><small>Fiction · 2,015 followers · Nov 2024</small></span></div></td><td class="n">4</td><td class="n">14,330</td><td class="n">₦351,900</td><td><span class="st-plain">Verified</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm b">MD</span><span><b>Musa Danladi</b><small>Thriller · 388 followers · Jun 2025</small></span></div></td><td class="n">1</td><td class="n">4,120</td><td class="n">₦96,400</td><td><span class="st st-err">Failed · name mismatch</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm r">TA</span><span><b>Tolu Adebayo</b><small>Clean romance · 702 followers · Apr 2025</small></span></div></td><td class="n">2</td><td class="n">5,640</td><td class="n">₦131,250</td><td><span class="st-plain">Verified</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm k">KO</span><span><b>Kemi Ogunleye</b><small>Christian &amp; Faith · 455 followers · Aug 2025</small></span></div></td><td class="n">1</td><td class="n">3,980</td><td class="n">₦88,700</td><td><span class="st-plain">Verified</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm o">EO</span><span><b>Emeka Obi</b><small>Poetry · 214 followers · Sep 2026</small></span></div></td><td class="n">1</td><td class="n">1,206</td><td class="n">₦0</td><td><span class="st st-warn">Not set</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm n">HB</span><span><b>Halima Bello</b><small>African stories · 329 followers · Feb 2026</small></span></div></td><td class="n">1</td><td class="n">2,870</td><td class="n">₦61,500</td><td><span class="st-plain">Verified</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+          <tr data-go="author"><td><div class="who"><span class="av sm t">EA</span><span><b>Esther Akande</b><small>Christian &amp; Faith · 41 followers · Oct 2026</small></span></div></td><td class="n">0</td><td class="n">0</td><td class="n">₦0</td><td><span class="st st-warn">Not set</span></td><td><a class="link" data-go="channel">Open</a></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>1 to 9 of 131 · most earned first</span><div class="row"><button class="btn btn-g sm" data-toast="You are on the first page">Previous</button><button class="btn btn-g sm" data-toast="Showing the next 10">Next</button></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Applications queue ===================== -->
+<section class="screen" id="s-applications" data-area="4" data-nav="authors" data-name="Author applications" data-note="Same as v25: 5-step application reviewed by staff.|New: waiting time with a 5-day promise. Late applications (more than 5 days since submission) turn orange; 2 of the 7 are late.|New: six-column table with city and genres under the applicant's name. New is plain text; only Needs more info is a pill.|New: assign an application to a staff member so two people do not review the same one.|Fixed: v25 bug where the writing sample file was never uploaded; the file is now stored in Cloudflare R2 and opens from here." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Authors</h1></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="authors">Authors <span class="c">131</span></a>
+    <a role="tab" aria-selected="true" class="is-selected" data-go="applications">Applications <span class="c">7</span></a>
+  </div>
+  <div class="page">
+    <div class="row" data-single>
+      <button class="fchip is-selected">All <span class="c">7</span></button><button class="fchip">New <span class="c">5</span></button><button class="fchip">Needs more info <span class="c">2</span></button><button class="fchip">Approved <span class="c">31</span></button><button class="fchip">Rejected <span class="c">12</span></button>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Applicant</th><th>Writing sample</th><th>Submitted</th><th>Waiting</th><th>Assigned</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="application"><td><div class="who"><span class="av sm g">BU</span><span><b>Blessing Udo</b><small>Port Harcourt · Clean romance</small></span></div></td><td class="mono">Blessing_Udo_sample.docx</td><td class="nw">6 Nov</td><td class="nw pp-late">6 days</td><td class="muted">Nobody</td><td>New</td></tr>
+          <tr data-go="application"><td><div class="who"><span class="av sm t">YC</span><span><b>Yemi Coker</b><small>Lagos · Thriller, Fiction</small></span></div></td><td class="mono">Coker_Midnight_Ferry.pdf</td><td class="nw">6 Nov</td><td class="nw pp-late">6 days</td><td><div class="who"><span class="av xs b">TB</span><span><small>Tunde</small></span></div></td><td><span class="st st-warn">Needs more info</span></td></tr>
+          <tr data-go="application"><td><div class="who"><span class="av sm m">AB</span><span><b>Aisha Bello</b><small>Kano · Young adult</small></span></div></td><td class="mono">Aisha_Bello_ch1-3.docx</td><td class="nw">8 Nov</td><td class="nw">4 days</td><td class="muted">Nobody</td><td>New</td></tr>
+          <tr data-go="application"><td><div class="who"><span class="av sm o">DO</span><span><b>Daniel Okeke</b><small>Enugu · Christian &amp; Faith</small></span></div></td><td class="mono">DOkeke_Devotional_Sample.docx</td><td class="nw">9 Nov</td><td class="nw">3 days</td><td><div class="who"><span class="av xs t">IO</span><span><small>Ifeanyi</small></span></div></td><td>New</td></tr>
+          <tr data-go="application"><td><div class="who"><span class="av sm r">PE</span><span><b>Precious Etim</b><small>Uyo · Poetry</small></span></div></td><td class="mono">Precious_Etim_poems.pdf</td><td class="nw">10 Nov</td><td class="nw">2 days</td><td class="muted">Nobody</td><td>New</td></tr>
+          <tr data-go="application"><td><div class="who"><span class="av sm k">MI</span><span><b>Musa Ibrahim</b><small>Kaduna · Non-fiction</small></span></div></td><td class="mono">MIbrahim_Essays.docx</td><td class="nw">11 Nov</td><td class="nw">1 day</td><td class="muted">Nobody</td><td><span class="st st-warn">Needs more info</span></td></tr>
+          <tr data-go="application"><td><div class="who"><span class="av sm n">GN</span><span><b>Grace Nnamdi</b><small>Onitsha · Short stories</small></span></div></td><td class="mono">Grace_Nnamdi_stories.docx</td><td class="nw">12 Nov</td><td class="nw">3 hours</td><td class="muted">Nobody</td><td>New</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>7 waiting · promise: a decision within 5 days</span><span>Late means more than 5 days since the application was submitted</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Application detail ===================== -->
+<section class="screen" id="s-application" data-area="4" data-nav="authors" data-name="Application" data-note="Same as v25: five steps with all answers shown to the reviewer.|Fixed: v25 bug where the writing sample file was never uploaded. The file is now saved to Cloudflare R2 and Open full sample works.|New: steps are compact. The long bio and the sample excerpt are clamped with a Read more link, and the five automatic checks (email, phone, duplicate account, copied text, age) are one summary line with the detail folded.|New: The decision bar at the bottom holds Approve, Ask for info and Reject, with Skip and a link back to the queue. Reviewer history is folded.|Rule: Approve creates the author's community channel and unlocks Author Studio. Reject lets the applicant reapply after 30 days if allowed." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="applications">Applications</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Blessing Udo</span></div>
+    <div class="ph__row">
+      <span class="av lg g">BU</span>
+      <div class="ph__title"><h1>Blessing Udo</h1><div class="ph__meta"><span>New</span><span>Submitted 6 Nov 2026</span><span class="pp-late">Waiting 6 days (promise 5)</span><span>Clean romance</span><span>Port Harcourt, Rivers</span></div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Application steps</h2><span class="sub">All 5 submitted</span></div>
+          <div class="panel__body"><div class="steps"><span class="ok"></span><span class="ok"></span><span class="ok"></span><span class="ok"></span><span class="ok"></span></div>
+          <div class="stepper">
+            <div class="stp ok"><i>1</i><div class="grow"><b>Personal details</b>
+              <dl class="pp-ans" style="margin-top:8px"><dt>Legal name</dt><dd>Blessing Ekaette Udo</dd><dt>Pen name</dt><dd>Blessing Udo</dd><dt>Phone</dt><dd>+234 706 ••• ••48</dd><dt>Email</dt><dd>blessing.udo@gmail.com</dd><dt>State</dt><dd>Rivers</dd><dt>Date of birth</dt><dd>3 Feb 1996 (age 30)</dd></dl></div></div>
+            <div class="stp ok"><i>2</i><div class="grow"><b>About you</b>
+              <p style="margin-top:8px;line-height:1.55">I am a primary school teacher in Port Harcourt who has loved romance stories since my aunt lent me her old Mills and Boon books at fourteen. I write clean love stories set in Rivers and Lagos where faith, family and ambition shape the characters as much as the romance does.</p>
+              <details class="pp-more"><summary>Read the full bio</summary><p style="line-height:1.55">My readers on Facebook, about 900 of them, tell me they like that they can share my stories with their mothers. I write at night after marking, usually two chapters a week, and I have finished four novels, two of them still in draft. I am applying to Arpedia because I want my work to reach readers who cannot find stories that look and sound like home, and to earn something from it so I can write more. I belong to a writers' circle that meets every second Saturday. I reply to every comment I get and I plan to do the same in my community channel here.</p></details></div></div>
+            <div class="stp ok"><i>3</i><div class="grow"><b>Genres and writing</b>
+              <dl class="pp-ans" style="margin-top:8px"><dt>Genres</dt><dd>Clean romance, African stories</dd><dt>Published before?</dt><dd>Yes, self-published on Facebook and Wattpad</dd><dt>Links</dt><dd><a class="link" data-toast="Opens facebook.com/blessingudowrites in a new tab">facebook.com/blessingudowrites</a>, <a class="link" data-toast="Opens wattpad.com/user/BlessingUdo in a new tab">wattpad.com/user/BlessingUdo</a></dd></dl></div></div>
+            <div class="stp ok"><i>4</i><div class="grow"><b>Writing sample</b>
+              <div class="file" style="margin:8px 0"><span class="grow"><b>Blessing_Udo_sample.docx</b><small>12 pages · 4,180 words · 0.3 MB · uploaded 6 Nov</small></span><a class="btn btn-g sm" data-toast="Opening Blessing_Udo_sample.docx">Open full sample</a></div>
+              <details class="pp-more"><summary>Read the excerpt</summary><div class="pp-sample"><p>The generator coughed twice and died, and the whole of Aba Road went dark at once. Ifeyinwa did not move from her stall. She had counted fabric yards by feel since she was nine, and she could finish the customer's order in the dark if she had to.</p><p>"Mama Ifey, you are still here?" The voice was young and a little out of breath. She knew it before she turned. Tonye, who sold phone credit three stalls down and had been finding reasons to walk past her for a month.</p></div></details></div></div>
+            <div class="stp ok"><i>5</i><div class="grow"><b>Payout and agreement</b>
+              <dl class="pp-ans" style="margin-top:8px"><dt>Author agreement</dt><dd>Version 3 accepted on 6 Nov 2026, 21:14</dd><dt>Bank account</dt><dd>To be added in Author Studio after approval</dd></dl></div></div>
+          </div></div>
+        </div>
+      </div>
+      <div class="stack s20">
+        <div class="sline"><span class="dot"></span><b>All 5 checks passed</b></div>
+        <details class="fold">
+          <summary>Check details <small>email, phone, duplicates, plagiarism, age</small></summary>
+          <div class="fold__b" style="gap:0">
+            <div class="pp-chk"><span>Email verified<small>blessing.udo@gmail.com</small></span><span>Pass</span></div>
+            <div class="pp-chk"><span>Phone verified<small>Code confirmed 6 Nov</small></span><span>Pass</span></div>
+            <div class="pp-chk"><span>Duplicate account<small>No matching email, phone or name</small></span><span>None found</span></div>
+            <div class="pp-chk"><span>Plagiarism check on sample<small>3% similarity, only common phrases</small></span><span>OK</span></div>
+            <div class="pp-chk"><span>Age 18 or over<small>Age 30</small></span><span>OK</span></div>
+          </div>
+        </details>
+        <div class="panel">
+          <div class="panel__head"><h2>Reviewer notes</h2></div>
+          <div class="panel__body">
+            <div class="pp-note"><span><b>Ifeanyi Obi</b> · 10 Nov</span>Prose is clean and the voice is consistent. Dialogue is strong. Would approve.</div>
+            <div class="f"><label for="pp-n3">Add a note</label><textarea id="pp-n3" class="inp ta" style="min-height:64px" placeholder="Only staff see this"></textarea></div>
+            <div><a class="btn btn-g sm" data-toast="Note saved. Only staff can see it.">Save note</a></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>History <small>3 events</small></summary>
+          <div class="fold__b"><div class="tl">
+            <div class="tl__i org"><b>Note added by Ifeanyi Obi</b><small>10 Nov, 15:20</small></div>
+            <div class="tl__i ok"><b>Checks completed automatically</b><small>6 Nov, 21:16</small></div>
+            <div class="tl__i"><b>Application submitted</b><small>6 Nov, 21:14 · Android app 26.1</small></div>
+          </div></div>
+        </details>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Application <b>1 of 7</b> · <a class="link" data-go="applications">Back to queue</a></div><span class="grow"></span><a class="btn btn-g" data-go="application-reject">Reject</a><a class="btn btn-g" data-go="application-info">Ask for info</a><a class="btn btn-p" data-go="application-approve">Approve</a><a class="btn btn-q sm" data-go="application">Skip <span class="kbd">J</span></a></div>
+</section>
+
+<!-- ===================== Overlay: approve ===================== -->
+<section class="screen overlay" id="s-application-approve" data-area="4" data-base="application" data-name="Approve application" data-note="Rule: Approving unlocks Author Studio and creates the community channel straight away.|Rule: The verified badge stays off until the author's first book is published.|New: the welcome message is editable and is sent as a push and an email." hidden>
+  <a class="backdrop" data-go="application" aria-label="Close"></a>
+  <div class="modal" role="dialog" aria-label="Approve application">
+    <div class="modal__h"><div class="grow"><h2>Approve Blessing Udo</h2><p>Here is what happens when you approve.</p></div><a class="ib" data-go="application" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="list" style="border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)">
+        <div class="li"><span class="li__body"><b>Author Studio is unlocked</b><small>She can upload books and add a payout account</small></span></div>
+        <div class="li"><span class="li__body"><b>Community channel created</b><small>"Blessing Udo's readers"</small></span></div>
+        <div class="li"><span class="li__body"><b>Push and email sent</b><small>Welcome message below</small></span></div>
+        <div class="li"><span class="li__body"><b>Verified badge stays off</b><small>Turns on after her first book is published</small></span></div>
+      </div>
+      <div class="f"><label for="pp-wm">Welcome message</label><textarea id="pp-wm" class="inp ta">Hi Blessing, congratulations. You are now an Arpedia author. Open Author Studio to upload your first book, add your payout account, and say hello in your new community channel. We are glad to have you.</textarea></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="application">Cancel</a><a class="btn btn-ok" data-go="applications" data-toast="Blessing is now an author. She got a push and email, Author Studio is open and her community channel is live." data-undo="application">Approve author</a></div>
+  </div>
+</section>
+
+<!-- ===================== Overlay: ask for info ===================== -->
+<section class="screen overlay" id="s-application-info" data-area="4" data-base="application" data-name="Ask applicant for info" data-note="New: pick what is missing and the message is filled in for you; edit it if you like.|Rule: The application moves to Needs more info and the applicant gets a push and an email. Nothing is rejected.|Rule: The 5-day promise pauses while we wait for her reply." hidden>
+  <a class="backdrop" data-go="application" aria-label="Close"></a>
+  <div class="modal" role="dialog" aria-label="Ask applicant for info">
+    <div class="modal__h"><div class="grow"><h2>Ask Blessing for more info</h2><p>Tick what is missing.</p></div><a class="ib" data-go="application" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="stack s8">
+        <span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>A longer writing sample</span>
+        <span class="checkrow"><span class="cb" role="checkbox" aria-checked="false"></span>A fuller bio</span>
+        <span class="checkrow"><span class="cb" role="checkbox" aria-checked="false"></span>A photo of her ID</span>
+      </div>
+      <div class="f"><label for="pp-im">Message to Blessing</label><textarea id="pp-im" class="inp ta">Hi Blessing, thank you for applying. Could you send a longer writing sample, about 3,000 words from one story? Reply in the app and we will look at it straight away.</textarea></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="application">Cancel</a><a class="btn btn-p" data-go="applications" data-toast="Asked Blessing for a longer writing sample. She gets a push and an email." data-undo="application">Send message</a></div>
+  </div>
+</section>
+
+<!-- ===================== Overlay: reject ===================== -->
+<section class="screen overlay" id="s-application-reject" data-area="4" data-base="application" data-name="Reject application" data-note="Rule: A reason and a message are required; the applicant sees both by email and push.|Rule: By default the applicant can apply again after 30 days.|New: duplicate rejections link the other account in the audit log." hidden>
+  <a class="backdrop" data-go="application" aria-label="Close"></a>
+  <div class="modal danger" role="dialog" aria-label="Reject application">
+    <div class="modal__h"><div class="grow"><h2>Reject Blessing Udo's application</h2><p>She will be told why, kindly.</p></div><a class="ib" data-go="application" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="f"><label>Reason</label><div class="inp sel"><span>Sample not ready</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div><span class="hint">Sample not ready, Incomplete details, Duplicate application, Against our content policy</span></div>
+      <div class="f"><label for="pp-rm">Message to the applicant</label><textarea id="pp-rm" class="inp ta">Hi Blessing, thank you for applying. We are not able to accept your application this time because the writing sample is not yet ready for our readers. We would love to see you apply again with a polished sample.</textarea></div>
+      <div class="setrow" style="padding:0"><div class="setrow__b"><b>Allow her to apply again after 30 days</b><small>She sees the date in the app</small></div><button class="switch on" aria-label="Allow reapply"></button></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="application">Cancel</a><a class="btn btn-dd" data-go="applications" data-toast="Blessing was told why by email and push. She can apply again from 12 Dec.">Reject application</a></div>
+  </div>
+</section>
+
+<!-- ===================== Author detail ===================== -->
+<section class="screen" id="s-author" data-area="4" data-nav="authors" data-name="Author" data-note="Same as v25: author profile with books and earnings.|New: the five-number kpi strip is gone; followers, reads and September earnings sit in the header line. Tips, messages and community counts are folded into one block.|New: Message is the primary action; Edit profile, Download statement, Pause payouts and Suspend author rights are in the ⋯ menu. Studio activity is folded.|Rule: Suspending author rights hides new uploads and tips but readers keep reading live books; earnings for the open month are held.|Data (v4 credits): earnings by month come from Author earnings: credits spent on her books, tips and messages × ₦1.60." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="authors">Authors</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Ifeoma Nwachukwu</span></div>
+    <div class="ph__row">
+      <span class="av xl g">IN</span>
+      <div class="ph__title"><h1>Ifeoma Nwachukwu</h1><div class="ph__meta"><span>Verified author</span><span>Since Jan 2025</span><span>Christian &amp; Faith</span><span><b>1,240</b> followers (+38 this month)</span><span><b>18,204</b> reads, 30 days</span><span><b>₦412,800</b> earned in September</span><a class="link" data-go="channel">Community channel</a></div></div>
+      <div class="ph__acts"><a class="btn btn-p" data-toast="Message to Ifeoma sent. She gets a push.">Message</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Profile editor opened for Ifeoma">Edit profile</a><a data-toast="Statement for September downloaded (PDF)">Download statement</a><a data-toast="Payouts paused for Ifeoma. Her earnings are kept until you turn this off." data-undo="author">Pause payouts</a><hr><a class="danger" data-toast="Author rights suspended for Ifeoma. Her live books stay readable and this month’s earnings are held." data-undo="author">Suspend author rights…</a></div></div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Books</h2><span class="sub">3 live</span></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Book</th><th>Stage</th><th class="r">Reads</th><th class="r">Rating</th></tr></thead>
+            <tbody>
+              <tr data-go="book"><td><div class="who"><span class="cv c1 x32"></span><span><b>Harmattan Letters</b><small>250 pages · 125 credits</small></span></div></td><td>Live</td><td class="n">18,000</td><td class="n">4.7</td></tr>
+              <tr data-go="book"><td><div class="who"><span class="cv c6 x32"></span><span><b>Dry Season Prayers</b><small>164 pages · 82 credits</small></span></div></td><td>Live</td><td class="n">6,420</td><td class="n">4.5</td></tr>
+              <tr data-go="book"><td><div class="who"><span class="cv c8 x32"></span><span><b>Mama's Last Sermon</b><small>88 pages · 44 credits</small></span></div></td><td>Live</td><td class="n">2,310</td><td class="n">4.6</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Earnings by month</h2><a class="link" data-go="author-payout" style="font-size:13px">Payout account and statements</a></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Month</th><th class="r">Credits spent</th><th class="r">Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr data-go="royalty-cycle"><td>October 2026</td><td class="n">311,500</td><td class="n">₦498,400</td><td><span class="st st-org">Ready to release</span></td></tr>
+              <tr data-go="royalty-cycle"><td>September 2026</td><td class="n">258,000</td><td class="n">₦412,800</td><td>Paid 15 Oct</td></tr>
+              <tr data-go="royalty-cycle"><td>August 2026</td><td class="n">235,600</td><td class="n">₦376,960</td><td>Paid 15 Sep</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <details class="fold">
+          <summary>Studio activity <small>5 recent events</small></summary>
+          <div class="fold__b"><div class="tl">
+            <div class="tl__i org"><b>Posted "Chapter 15 is coming Friday" to her channel</b><small>Today, 07:30 · 112 reactions</small></div>
+            <div class="tl__i"><b>Replied to 14 messages</b><small>11 Nov</small></div>
+            <div class="tl__i ok"><b>Dry Season Prayers revision 2 published</b><small>4 Nov · approved by Tunde Bakare</small></div>
+            <div class="tl__i"><b>Updated bio and cover photo</b><small>29 Oct</small></div>
+            <div class="tl__i ok"><b>Received September payout, ₦412,800</b><small>15 Oct · GTBank ••••4471</small></div>
+          </div></div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Payout account</h2><span class="st-plain">Verified</span></div>
+          <div class="panel__body"><dl class="kv tight"><dt>Bank</dt><dd>GTBank ••••4471</dd><dt>Verified with</dt><dd>Flutterwave, 12 Feb 2025</dd><dt>Name match</dt><dd>Ifeoma Chinwe Nwachukwu, matches</dd></dl>
+          <a class="btn btn-g sm" data-go="author-payout" style="align-self:flex-start">Open payout account</a></div>
+        </div>
+        <details class="fold">
+          <summary>Messages, tips and community <small>strikes 0</small></summary>
+          <div class="fold__b">
+            <b>Reader messages</b>
+            <div class="pp-cnt"><div><b>214</b>Received this month</div><div><b>88%</b>Reply rate</div><div><b>5 h</b>Median reply</div></div>
+            <b>Tips received</b>
+            <dl class="kv tight"><dt>Last 30 days</dt><dd>530 credits (₦1,590 value)</dd><dt>Author earns, ₦1.60 a credit</dt><dd>₦848 paid with the October cycle</dd><dt>Tippers</dt><dd>41 readers</dd></dl>
+            <b>Community</b>
+            <dl class="kv tight"><dt>Posts</dt><dd>38 total, 6 this month</dd><dt>Comments on posts</dt><dd>1,204</dd><dt>Open reports</dt><dd>0</dd><dt>Strikes</dt><dd>0 · clean record</dd></dl>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Author payout ===================== -->
+<section class="screen" id="s-author-payout" data-area="4" data-nav="authors" data-name="Author payout account" data-note="Rule: Payouts go by Flutterwave to a verified Nigerian bank account whose name matches the author's legal name.|Rule: Below ₦1,000 the amount carries to next month. WHT (withholding tax) is only applied to company payees, not to individual authors like Ifeoma.|Rule: Pausing payouts holds the amount until a Finance or Super admin lifts it; the reason is logged and the author is not notified.|Rule: A bank account change needs a new name check before the next payout. Ifeoma has no open change requests.|New: payout history is the main block; verification history is folded and the Tax explainer moved here into notes.|Data: Flutterwave references link to the transfer in the Flutterwave dashboard." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="authors">Authors</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><a data-go="author">Ifeoma Nwachukwu</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Payout account</span></div>
+    <div class="ph__row"><span class="av lg g">IN</span><div class="ph__title"><h1>Ifeoma Nwachukwu</h1><div class="ph__meta"><span>Payouts on</span><span>Next payout: October earnings, ₦498,400, after the hold ends on Sat 15 Nov</span></div></div><div class="ph__acts"><a class="btn btn-p" data-toast="Statement for September downloaded (PDF)">Download statement</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Message to Ifeoma sent. She gets a push.">Message Ifeoma</a><a data-toast="Payouts paused for Ifeoma. Her earnings are kept until you turn this off." data-undo="author-payout">Pause payouts</a></div></div></div></div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Account</h2><span class="st-plain">Verified</span></div>
+          <div class="panel__body"><dl class="kv"><dt>Bank</dt><dd>Guaranty Trust Bank (GTBank)</dd><dt>Account number</dt><dd class="mono">••••4471</dd><dt>Account name</dt><dd>Ifeoma C. Nwachukwu</dd><dt>Legal name on file</dt><dd>Ifeoma Chinwe Nwachukwu · matches</dd><dt>Verified with</dt><dd>Bank name check, 12 Feb 2025</dd><dt>Account type</dt><dd>Individual · WHT not applied</dd></dl></div>
+        </div>
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Payout history</h2></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Cycle</th><th class="r">Amount</th><th>Transfer reference</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+              <tr><td>September 2026</td><td class="n">₦412,800</td><td class="mono">FLW-TRF-90817235</td><td>Paid</td><td class="nw">15 Oct</td></tr>
+              <tr><td>August 2026</td><td class="n">₦376,950</td><td class="mono">FLW-TRF-88120467</td><td>Paid</td><td class="nw">15 Sep</td></tr>
+              <tr><td>July 2026</td><td class="n">₦341,200</td><td class="mono">FLW-TRF-85533019</td><td>Paid</td><td class="nw">15 Aug</td></tr>
+              <tr><td>June 2026</td><td class="n">₦318,740</td><td class="mono">FLW-TRF-82904476</td><td>Paid</td><td class="nw">15 Jul</td></tr>
+            </tbody>
+          </table></div>
+          <div class="pager"><span>Statements</span><div class="row"><a class="btn btn-g sm" data-toast="September statement downloaded (PDF)"><svg class="ico s" aria-hidden="true"><use href="#i-down"/></svg>September PDF</a><a class="btn btn-g sm" data-toast="2026 year-to-date statement downloaded"><svg class="ico s" aria-hidden="true"><use href="#i-down"/></svg>2026 year to date</a></div></div>
+        </div>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Hold</h2></div>
+          <div class="panel__body">
+            <div class="setrow" style="padding:0"><div class="setrow__b"><b>Pause payouts for this author</b><small>Keeps her earnings until you turn it off</small></div><button class="switch" aria-label="Pause payouts"></button></div>
+            <div class="f"><label>Reason (required to pause)</label><div class="inp sel"><span>Choose a reason…</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div><span class="hint">Account dispute, Suspected fraud, Author request, Other</span></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>More details <small>verification history, change requests</small></summary>
+          <div class="fold__b">
+            <b>Verification history</b>
+            <div class="tl">
+              <div class="tl__i ok"><b>Account verified and name matched</b><small>12 Feb 2025 · Flutterwave</small></div>
+              <div class="tl__i"><b>Account added by author in Author Studio</b><small>12 Feb 2025</small></div>
+            </div>
+            <b>Change requests</b>
+            <span class="muted" style="font-size:13.5px">None open. Ifeoma has not asked to change her bank account.</span>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Privacy requests ===================== -->
+<section class="screen" id="s-data-requests" data-area="4" data-nav="data-requests" data-name="Privacy requests" data-note="Rule: Nigeria Data Protection Act (NDPA) 2023: we must respond to a data request within 30 days of receiving it. The 30 days start the day we receive the request, not the day identity is verified, so ask for verification on the first working day.|New: due date and days left on every request; anything with 5 days or less is orange. 3 requests are open.|New: only a request that is stuck (waiting for the reader) carries a pill; New, Ready to send and Completed are plain text.|Rule: Identity is verified by a link sent to the account email before any data leaves. Completed requests are kept for 3 years as proof.|Data: requests come from the in-app Privacy page and from privacy@arpedia.africa. Readers can ask for their data, ask us to delete it, or ask us to correct it." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Privacy requests</h1></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Requester</th><th>Type</th><th>Received</th><th>Due</th><th>Status</th><th>Assigned</th></tr></thead>
+        <tbody>
+          <tr data-go="data-request"><td><div class="who"><span class="av sm k">KN</span><span><b>Kelechi Nwosu</b><small>kelechi.nwosu@gmail.com</small></span></div></td><td>Export my data</td><td class="nw">6 Nov</td><td class="nw">6 Dec · 24 days left</td><td>Ready to send</td><td><div class="who"><span class="av xs r">BA</span><span><small>Bisi</small></span></div></td></tr>
+          <tr data-go="data-request"><td><div class="who"><span class="av sm t">AB</span><span><b>Adaora Benson</b><small>adaora.b@gmail.com</small></span></div></td><td>Delete my account</td><td class="nw">17 Oct</td><td class="nw pp-late">16 Nov · 4 days left</td><td><span class="st st-warn">Waiting for reader to cancel Google Play</span></td><td><div class="who"><span class="av xs r">BA</span><span><small>Bisi</small></span></div></td></tr>
+          <tr data-go="data-request"><td><div class="who"><span class="av sm m">HM</span><span><b>Hauwa Musa</b><small>hauwa.musa@gmail.com</small></span></div></td><td>Correct my data</td><td class="nw">9 Nov</td><td class="nw">9 Dec · 27 days left</td><td>New</td><td class="muted">Nobody</td></tr>
+          <tr data-go="data-request"><td><div class="who"><span class="av sm o">TE</span><span><b>Temitope Ejiro</b><small>temi.ejiro@gmail.com</small></span></div></td><td>Export my data</td><td class="nw">2 Oct</td><td class="nw">1 Nov</td><td>Completed 9 Oct</td><td><div class="who"><span class="av xs r">BA</span><span><small>Bisi</small></span></div></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>4 requests in the last 60 days</span><span>Completed requests are kept for 3 years as proof</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Privacy request detail ===================== -->
+<section class="screen" id="s-data-request" data-area="4" data-nav="data-requests" data-name="Privacy request" data-note="Rule: The download link is sent only to the email on the account and expires in 7 days.|Rule: The decision bar sends the link or marks the request complete. Marking complete closes the request and logs the date as proof for the NDPA 30-day deadline.|New: status moved into the header line, identity and export file share the side column, and the timeline is folded.|New: the export is built automatically; staff check it and send the link.|Data: the zip is stored in Cloudflare R2 and deleted after 7 days." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="data-requests">Privacy requests</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Kelechi Nwosu</span></div>
+    <div class="ph__row">
+      <span class="av lg k">KN</span>
+      <div class="ph__title"><h1>Export my data</h1><div class="ph__meta"><span>Ready to send</span><span>Kelechi Nwosu</span><span>Received 6 Nov 2026</span><span>Due 6 Dec · 24 days left</span><span>Assigned to Bisi Adeyemi</span></div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>What is included</h2></div>
+          <div class="panel__body" style="gap:0">
+            <div class="pp-chk"><span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Profile and account details</span><small class="faint">1 file</small></div>
+            <div class="pp-chk"><span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Reading history</span><small class="faint">412 sessions</small></div>
+            <div class="pp-chk"><span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Highlights and notes</span><small class="faint">64 items</small></div>
+            <div class="pp-chk"><span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Messages</span><small class="faint">9 conversations</small></div>
+            <div class="pp-chk"><span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Purchases and credits</span><small class="faint">11 entries</small></div>
+            <div class="pp-chk"><span class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Support tickets</span><small class="faint">2 tickets</small></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>Timeline <small>3 events</small></summary>
+          <div class="fold__b"><div class="tl">
+            <div class="tl__i org"><b>Export built and checked</b><small>6 Nov, 11:05 · 18 MB zip</small></div>
+            <div class="tl__i ok"><b>Identity verified</b><small>6 Nov, 10:42</small></div>
+            <div class="tl__i"><b>Request received from the app</b><small>6 Nov, 09:14 · assigned to Bisi Adeyemi</small></div>
+          </div></div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Export file</h2><span class="st-plain">Ready</span></div>
+          <div class="panel__body">
+            <div class="file"><span class="grow"><b>arpedia-export-usr_2b71e064.zip</b><small>18 MB · built 6 Nov, 11:05</small></span><a class="btn btn-g sm" data-toast="Export file downloaded for checking">Download</a></div>
+            <dl class="kv tight"><dt>Link expires</dt><dd>7 days after you send it</dd><dt>Sent to</dt><dd>kelechi.nwosu@gmail.com</dd></dl>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Identity</h2><span class="st-plain">Verified</span></div>
+          <div class="panel__body"><dl class="kv tight"><dt>Method</dt><dd>Link sent to the account email, clicked 6 Nov, 10:42</dd><dt>Account</dt><dd>kelechi.nwosu@gmail.com · <a class="link" data-go="user">Open reader</a></dd><dt>User id</dt><dd class="mono">usr_2b71e064</dd></dl></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Request <b>1 of 3</b> · <a class="link" data-go="data-requests">Back to queue</a></div><span class="grow"></span><a class="btn btn-g" data-go="data-requests" data-toast="Request closed. The date is saved as proof for the 30-day deadline.">Mark complete</a><a class="btn btn-p" data-go="data-requests" data-toast="Download link sent to kelechi.nwosu@gmail.com. It works for 7 days.">Send download link</a><a class="btn btn-q sm" data-go="data-request">Skip <span class="kbd">J</span></a></div>
+</section>

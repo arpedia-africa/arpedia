@@ -1,0 +1,241 @@
+
+<!-- ===================== 01 Sign-in and access ===================== -->
+<section class="screen" id="s-signin" data-area="1" data-full data-name="Sign in" data-note="Staff only. Email and password, then a 6-digit code from an authenticator app (two-step is required for every staff account).|Rule: there is no sign-up here. Staff are invited from Team and roles.|New: Continue with Google limited to @arpedia.africa accounts.|Fixed: v25 console relied on role checks only; every request is still checked on the server against the staff role." hidden>
+  <div class="auth">
+    <div class="auth__art">
+      <div class="row"><svg width="40" height="40" aria-hidden="true"><use href="#i-sun"/></svg><span class="wmk wmk--night" role="img" aria-label="arpedia" style="height:30px"></span></div>
+      <div class="stack s16"><h1>Run the reading room.</h1><p>Books, people, safety and money for Arpedia, in one place. Staff accounts only.</p></div>
+      <p style="font-size:13px">admin.arpedia.africa · Production</p>
+    </div>
+    <div class="auth__form">
+      <form class="auth__card" onsubmit="return false">
+        <div class="stack s4"><h2>Staff sign in</h2><p class="muted">Use the email your invite was sent to.</p></div>
+        <div class="f"><label for="si-e">Work email</label><div class="inp"><input id="si-e" value="amaka@arpedia.africa" autocomplete="username"></div></div>
+        <div class="f"><label for="si-p">Password</label><div class="inp"><input id="si-p" type="password" value="password123" autocomplete="current-password"><svg class="ico s faint" aria-hidden="true"><use href="#i-eye"/></svg></div><a class="link" style="font-size:13px;align-self:flex-end" data-go="signin-reset">Forgot password?</a></div>
+        <a class="btn btn-p lg block" data-go="signin-2fa">Continue</a>
+        <div class="row" style="gap:12px;color:var(--ink-3);font-size:12.5px"><span class="hr grow"></span>or<span class="hr grow"></span></div>
+        <a class="btn btn-g lg block" data-go="signin-2fa"><svg class="ico" aria-hidden="true"><use href="#i-g"/></svg>Continue with Google</a>
+        <p class="hint">Google sign-in works only for @arpedia.africa accounts. Lost access? Ask a super admin to reset your two-step code.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-signin-2fa" data-area="1" data-full data-name="Two-step code" data-note="Required on every sign-in from a new device, and every 12 hours on a known one.|New: Trust this browser for 12 hours. Super admins and Finance must enter a code before releasing payouts or changing prices, even inside a session." hidden>
+  <div class="auth">
+    <div class="auth__art">
+      <div class="row"><svg width="40" height="40" aria-hidden="true"><use href="#i-sun"/></svg><span class="wmk wmk--night" role="img" aria-label="arpedia" style="height:30px"></span></div>
+      <div class="stack s16"><h1>One more step.</h1><p>Every staff account uses two-step sign-in. It protects readers' data and authors' money.</p></div>
+      <p style="font-size:13px">admin.arpedia.africa · Production</p>
+    </div>
+    <div class="auth__form">
+      <form class="auth__card" onsubmit="return false">
+        <div class="stack s4"><h2>Enter your code</h2><p class="muted">Open your authenticator app and enter the 6-digit code for Arpedia Admin.</p></div>
+        <div class="otp" aria-label="6-digit code"><span>4</span><span>8</span><span>1</span><span class="f">2</span><span></span><span></span></div>
+        <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span><span>Trust this browser for 12 hours</span></label>
+        <a class="btn btn-p lg block" data-go="overview">Verify and sign in</a>
+        <p class="hint">Can't use your app? <a class="link" data-toast="Backup code field shown. Each code works once.">Use a backup code</a></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-signin-reset" data-area="1" data-full data-name="Reset password" data-note="Sends a reset link that expires in 30 minutes. Two-step is still required after the reset.|Rule: the message is the same whether or not the email has a staff account, so nobody can probe for staff emails." hidden>
+  <div class="auth">
+    <div class="auth__art">
+      <div class="row"><svg width="40" height="40" aria-hidden="true"><use href="#i-sun"/></svg><span class="wmk wmk--night" role="img" aria-label="arpedia" style="height:30px"></span></div>
+      <div class="stack s16"><h1>Back in, safely.</h1><p>We'll send a link to your work email. It works once and expires in 30 minutes.</p></div>
+      <p style="font-size:13px">admin.arpedia.africa · Production</p>
+    </div>
+    <div class="auth__form">
+      <form class="auth__card" onsubmit="return false">
+        <a class="link" data-go="signin" style="font-size:13.5px">Back to sign in</a>
+        <div class="stack s4"><h2>Reset password</h2><p class="muted">Enter your work email.</p></div>
+        <div class="f"><label for="rs-e">Work email</label><div class="inp"><input id="rs-e" value="amaka@arpedia.africa"></div></div>
+        <a class="btn btn-p lg block" data-go="signin">Send reset link</a>
+        <div class="note ok"><span class="grow"><b>Check your inbox</b>If amaka@arpedia.africa has a staff account, a link is on its way.</span></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-no-access" data-area="1" data-nav="royalties" data-name="No permission" data-note="What a staff member sees when their role can't open a page (here: a Moderator opening Author earnings).|Rule: links to pages a role can't use are hidden from the sidebar; this page covers pasted or shared links." hidden>
+  <div class="page page--narrow">
+    <div class="panel"><div class="empty" style="padding:64px 24px">
+      <b>You don't have access to Author earnings</b>
+      <span>Your role is Moderator. Author earnings are open to Finance and Super admins.</span>
+      <span>If you need it for your work, ask a super admin to change your role.</span>
+      <div class="row" style="justify-content:center;margin-top:8px"><a class="btn btn-p" data-go="overview">Go to Overview</a><a class="btn btn-g" data-go="roles">See what each role can do</a></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ===================== 02 Overview ===================== -->
+<section class="screen" id="s-overview" data-area="2" data-nav="overview" data-name="Home · Super admin" data-note="Same as v25 Operations: priority queues, approvals, payments, royalties, claims.|New: My tasks. Each staff member sees only the queues their role owns, most urgent first, with one urgent card on top. Everything on time stays folded under Show more.|New: system health is one line and only speaks up when something is wrong; today’s numbers are one line linking to Analytics.|Moved: the revenue chart, most-read table and staff activity now live in Revenue, Analytics and the Audit log.|Use Preview as to see the Publisher, Moderator and Finance versions." hidden>
+  <div class="band band--home">
+    <div class="band__row">
+      <div class="band__text"><h1>Good morning, Amaka</h1><p>3 need you now. 13 tasks in total, most urgent first.</p></div>
+    </div>
+    <div class="preview-as" style="margin-top:14px"><span>Preview as</span><div class="seg"><a data-go="overview" class="is-selected" aria-selected="true">Super admin</a><a data-go="overview-publisher">Publisher</a><a data-go="overview-moderator">Moderator</a><a data-go="overview-finance">Finance</a></div></div>
+  </div>
+  <div class="page">
+    <div class="home">
+      <div class="urgent"><div class="urgent__b"><span class="urgent__k">Most urgent · Reports</span><h2>Threat reported in a reading room</h2><p>“Say that again and I will find you after the meetup in Ibadan.” 4 readers reported it 6 minutes ago. The message is hidden until someone decides.</p></div><a class="btn btn-p lg" data-go="report">Review now</a></div>
+      <div class="panel">
+        <div class="panel__head"><h2>Your tasks</h2><span class="sub">12 after the one above</span></div>
+        <div class="tasks"><a class="task" data-go="royalty-cycle"><span class="task__b"><b>Release October author earnings</b><small>₦3,937,776 to 58 authors · you are the second approver</small></span><span class="task__due">Due Sat 15 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="payouts"><span class="task__b"><b>Fix 2 failed payouts</b><small>Account names don’t match at the bank · Tolu Adebayo, Obinna Ekwueme</small></span><span class="task__due late">Today</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="applications"><span class="task__b"><b>Decide 2 late author applications</b><small>Blessing Udo has waited 6 days; the promise is 5</small></span><span class="task__due late">1 day late</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="book-preview"><span class="task__b"><b>Quick review: Garden of Small Mercies</b><small>Readiness 96% · no flags · waited 4 days</small></span><span class="task__due late">1 day late</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="support"><span class="task__b"><b>Answer 2 support tickets over 24 hours</b><small>“I paid but my credits didn’t arrive” and 1 more</small></span><span class="task__due late">Late</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div>
+        <details class="more"><summary>Show 7 more</summary><div class="tasks"><a class="task" data-go="reports"><span class="task__b"><b>15 other reports</b><small>Mostly spam and spoilers</small></span><span class="task__due">Within 24 h</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="books"><span class="task__b"><b>Fix flags on 2 books</b><small>Market Day in Onitsha, The Prayer Warrior’s Wife</small></span><span class="task__due">Tomorrow</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="bank-accounts"><span class="task__b"><b>Verify 5 bank accounts</b><small>Needed before Saturday’s payout</small></span><span class="task__due">Fri 14 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="claims"><span class="task__b"><b>2 copyright claims</b><small>Kano Nights and 1 more</small></span><span class="task__due">19 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="appeals"><span class="task__b"><b>4 appeals</b><small>A different staff member must decide each one</small></span><span class="task__due">Mon 17 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="refunds"><span class="task__b"><b>3 web refund requests</b><small>₦6,300 in total</small></span><span class="task__due">Fri 14 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="data-requests"><span class="task__b"><b>3 privacy requests</b><small>2 exports, 1 deletion</small></span><span class="task__due">26 days left</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div></details>
+      </div>
+      <div class="sline"><span class="dot warn"></span><span><b>Flutterwave transfers need a look</b> · 2 failed in the last run. Everything else is working.</span><a class="link" data-go="integrations">Integrations</a></div><div class="sline"><span class="dot"></span><span>Today: <b>4,812</b> subscribers · <b>₦121,400</b> revenue · <b>6,904</b> readers · <b>18,420</b> credits spent</span><a class="link" data-go="analytics">Open analytics</a></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s-overview-publisher" data-area="2" data-nav="overview" data-name="Home · Publisher" data-note="Publisher version of Home. Only book work: quick reviews, flagged fixes and updates.|Rule: books that pass every automated check never reach Fix flags; they go straight to Quick review.|New: Processing is shown as one line, since staff have nothing to do until the system finishes." hidden>
+  <div class="band band--home">
+    <div class="band__row">
+      <div class="band__text"><h1>Good morning, Tunde</h1><p>2 need you now. 8 tasks in total, most urgent first.</p></div>
+    </div>
+    <div class="preview-as" style="margin-top:14px"><span>Preview as</span><div class="seg"><a data-go="overview">Super admin</a><a data-go="overview-publisher" class="is-selected" aria-selected="true">Publisher</a><a data-go="overview-moderator">Moderator</a><a data-go="overview-finance">Finance</a></div></div>
+  </div>
+  <div class="page">
+    <div class="home">
+      <div class="urgent"><div class="urgent__b"><span class="urgent__k">Most urgent · Books</span><h2>Garden of Small Mercies is a day past its review promise</h2><p>Readiness 96%, no flags. The system already checked formatting, cover, preview cut and content policy; you spot-check 3 pages and decide.</p></div><a class="btn btn-p lg" data-go="book-preview">Start quick review</a></div>
+      <div class="panel">
+        <div class="panel__head"><h2>Your tasks</h2><span class="sub">7 after the one above</span></div>
+        <div class="tasks"><a class="task" data-go="book-formatter"><span class="task__b"><b>Fix 3 flags in Market Day in Onitsha</b><small>Word upload · 1 image too large, 2 chapter titles unclear</small></span><span class="task__due">Tomorrow</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="book-formatter"><span class="task__b"><b>Fix 9 flags in The Prayer Warrior’s Wife</b><small>PDF upload · consider sending back and asking for the Word file</small></span><span class="task__due">Tomorrow</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="book-revisions"><span class="task__b"><b>Compare The Alignment, revision 4</b><small>Update with a new epilogue, so it can’t use the fast lane</small></span><span class="task__due">13 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="book-preview"><span class="task__b"><b>Quick review: Kano Nights</b><small>Readiness 94% · open copyright claim, hold before publishing</small></span><span class="task__due">13 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="book-preview"><span class="task__b"><b>Quick review: Daughters of Zion Street</b><small>Readiness 98% · no flags</small></span><span class="task__due">14 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div>
+        <details class="more"><summary>Show 2 more</summary><div class="tasks"><a class="task" data-go="book-preview"><span class="task__b"><b>Quick review: Songs for Mama Ijeoma</b><small>Readiness 100% · poetry, 18k words</small></span><span class="task__due">15 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="curation-trending"><span class="task__b"><b>Refresh Trending for Monday</b><small>Rotates every Monday at 06:00</small></span><span class="task__due">Sun 16 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div></details>
+      </div>
+      <div class="sline"><span class="dot"></span><span><b>2 books processing now</b> · Lagos Lagoon Love and Okada Man’s Prayer will reach your list if anything is flagged.</span><a class="link" data-go="book-processing">See progress</a></div><div class="sline"><span class="dot"></span><span>This week: <b>6</b> published · <b>3</b> sent back · median review <b>11 min</b></span><a class="link" data-go="books">All books</a></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s-overview-moderator" data-area="2" data-nav="overview" data-name="Home · Moderator" data-note="Moderator version of Home. Reports, rooms, channels and appeals only. No money, no payouts.|Rule: appeals must be decided by someone other than the person who made the original decision." hidden>
+  <div class="band band--home">
+    <div class="band__row">
+      <div class="band__text"><h1>Good morning, Zainab</h1><p>3 need you now. 9 tasks in total, most urgent first.</p></div>
+    </div>
+    <div class="preview-as" style="margin-top:14px"><span>Preview as</span><div class="seg"><a data-go="overview">Super admin</a><a data-go="overview-publisher">Publisher</a><a data-go="overview-moderator" class="is-selected" aria-selected="true">Moderator</a><a data-go="overview-finance">Finance</a></div></div>
+  </div>
+  <div class="page">
+    <div class="home">
+      <div class="urgent"><div class="urgent__b"><span class="urgent__k">Most urgent · Reports</span><h2>Threat reported in a reading room</h2><p>4 readers reported @tobi_reads 6 minutes ago. The message is hidden. Credible threats can be escalated to a Super admin for police contact.</p></div><a class="btn btn-p lg" data-go="report">Review now</a></div>
+      <div class="panel">
+        <div class="panel__head"><h2>Your tasks</h2><span class="sub">8 after the one above</span></div>
+        <div class="tasks"><a class="task" data-go="reports"><span class="task__b"><b>2 more high-severity reports</b><small>Explicit photo in a DM to an author · hate speech in a discussion</small></span><span class="task__due">Within 24 h</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="report-review"><span class="task__b"><b>Spoiler review on Harmattan Letters</b><small>3 reporters · reviews can now be blurred as spoilers</small></span><span class="task__due">Today</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="channel"><span class="task__b"><b>2 flagged messages in Ifeoma’s Harmattan Circle</b><small>Spam and harassment</small></span><span class="task__due">Today</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="appeals"><span class="task__b"><b>4 appeals</b><small>You can’t decide appeals on your own decisions</small></span><span class="task__due">Mon 17 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="rooms"><span class="task__b"><b>Check 1 live reading room</b><small>Ruth of Ibadan, chapter 9 · 23 inside</small></span><span class="task__due">Now</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div>
+        <details class="more"><summary>Show 3 more</summary><div class="tasks"><a class="task" data-go="reports"><span class="task__b"><b>12 other reports</b><small>Spam and spoilers, all auto-hidden</small></span><span class="task__due">Within 24 h</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="automod"><span class="task__b"><b>Review 3 suggested muted words</b><small>From this week’s removed messages</small></span><span class="task__due">Fri 14 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="community"><span class="task__b"><b>12 members muted</b><small>3 mutes expire this week</small></span><span class="task__due">This week</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div></details>
+      </div>
+      <div class="sline"><span class="dot"></span><span><b>5 items auto-hidden</b> after 3 reports each, waiting for a decision.</span><a class="link" data-go="reports">Reports</a></div><div class="sline"><span class="dot"></span><span>Today: <b>41</b> reports handled · first decision in <b>2 h 10 min</b> on median</span><a class="link" data-go="audit">Audit log</a></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s-overview-finance" data-area="2" data-nav="overview" data-name="Home · Finance" data-note="Finance version of Home. Payouts, refunds, bank accounts and reconciliation.|Rule: the person who prepares a payout release can’t also approve it." hidden>
+  <div class="band band--home">
+    <div class="band__row">
+      <div class="band__text"><h1>Good morning, Chinedu</h1><p>2 need you now. 7 tasks in total, most urgent first.</p></div>
+    </div>
+    <div class="preview-as" style="margin-top:14px"><span>Preview as</span><div class="seg"><a data-go="overview">Super admin</a><a data-go="overview-publisher">Publisher</a><a data-go="overview-moderator">Moderator</a><a data-go="overview-finance" class="is-selected" aria-selected="true">Finance</a></div></div>
+  </div>
+  <div class="page">
+    <div class="home">
+      <div class="urgent"><div class="urgent__b"><span class="urgent__k">Most urgent · Payouts</span><h2>2 September payouts failed at Flutterwave</h2><p>Account names don’t match the bank record for Tolu Adebayo (₦48,900) and Obinna Ekwueme (₦21,640). Authors have been asked to fix their details.</p></div><a class="btn btn-p lg" data-go="payouts">Open failed payouts</a></div>
+      <div class="panel">
+        <div class="panel__head"><h2>Your tasks</h2><span class="sub">6 after the one above</span></div>
+        <div class="tasks"><a class="task" data-go="bank-accounts"><span class="task__b"><b>Verify 5 bank accounts before Saturday</b><small>New or changed author accounts</small></span><span class="task__due">Fri 14 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="royalty-cycle"><span class="task__b"><b>October earnings: waiting on Amaka</b><small>You prepared the release; a Super admin approves</small></span><span class="task__due">Sat 15 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="refunds"><span class="task__b"><b>3 web refund requests</b><small>₦6,300 · 180 credits already used on one</small></span><span class="task__due">Fri 14 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="credits"><span class="task__b"><b>1 credit anomaly</b><small>@lagosdeals sent 14 gifts in an hour</small></span><span class="task__due">Today</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a><a class="task" data-go="revenue"><span class="task__b"><b>Match Google Play’s October payout</b><small>Expected 15 Nov · ₦4.39M after fees</small></span><span class="task__due">Sat 15 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div>
+        <details class="more"><summary>Show 1 more</summary><div class="tasks"><a class="task" data-go="subscriptions"><span class="task__b"><b>Check 37 billing retries</b><small>Readers whose renewal failed this week</small></span><span class="task__due">This week</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a></div></details>
+      </div>
+      <div class="sline"><span class="dot"></span><span><b>Flutterwave balance ₦4,120,000</b> covers the October release of ₦3,887,440.</span><a class="link" data-go="payouts">Payouts</a></div><div class="sline"><span class="dot"></span><span>November so far: <b>₦2.16M</b> net · on pace for <b>₦5.4M</b> · <b>4,812</b> subscribers</span><a class="link" data-go="revenue">Revenue</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-overview-clear" data-area="2" data-nav="overview" data-name="Home · all caught up" data-note="What Home looks like when nothing needs you: a calm finish, not an empty page.|New: shows what is coming next so staff can plan, and links to the things worth a look." hidden>
+  <div class="band band--home"><div class="band__row"><div class="band__text"><h1>All caught up, Amaka</h1><p>Nothing needs you right now. We'll alert you if that changes.</p></div></div></div>
+  <div class="page"><div class="home">
+    <div class="panel"><div class="done"><b>Nothing waiting on you</b><span>14 items handled today. Next up: October author earnings unlock on Saturday 15 Nov.</span><a class="btn btn-g" data-go="overview">See what the team is working on</a></div></div>
+    <div class="panel"><div class="panel__head"><h2>Coming up</h2></div><div class="tasks">
+      <a class="task" data-go="royalty-cycle"><span class="task__b"><b>Release October author earnings</b><small>Hold ends Saturday</small></span><span class="task__due">Sat 15 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      <a class="task" data-go="curation-trending"><span class="task__b"><b>Trending rotates</b><small>Tunde has it</small></span><span class="task__due">Mon 17 Nov</span><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a>
+    </div></div>
+    <div class="sline"><span class="dot"></span><span>All systems working</span></div>
+  </div></div>
+</section>
+<section class="screen overlay" id="s-cmdk" data-area="2" data-base="overview" data-name="Search everything" data-note="New: one search for readers, authors, books, payments and staff actions (Ctrl K anywhere).|Searches by name, email, phone, book title, transaction or store order id.|Rule: results respect the staff role. Support sees readers and payments but not payout bank details." hidden>
+  <a class="backdrop" data-go="overview" aria-label="Close search"></a>
+  <div class="cmdk" role="dialog" aria-label="Search">
+    <div class="cmdk__in"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input value="ngozi" aria-label="Search"><span class="kbd">Esc</span></div>
+    <div class="cmdk__grp">Readers</div>
+    <a class="li is-active" data-go="user"><span class="av sm t">NE</span><span class="li__body"><b>Ngozi Eze</b><small>ngozi.eze@gmail.com · Quarterly plan · Lagos</small></span><span class="li__trail">Reader</span></a>
+    <a class="li" data-go="user"><span class="av sm m">NO</span><span class="li__body"><b>Ngozi Okonkwo</b><small>+234 803 *** 4471 · No plan · Enugu</small></span><span class="li__trail">Reader</span></a>
+    <div class="cmdk__grp">Authors</div>
+    <a class="li" data-go="author"><span class="av sm r">NA</span><span class="li__body"><b>Ngozi Adichie-Bello</b><small>3 books live · 1,240 followers</small></span><span class="li__trail">Author</span></a>
+    <div class="cmdk__grp">Payments</div>
+    <a class="li" data-go="transaction"><span class="li__body"><b>₦2,400 Quarterly plan · Google Play</b><small>GPA.3391-2210-5530-41877 · Ngozi Eze · 2 Nov</small></span><span class="li__trail">Transaction</span></a>
+    <div class="cmdk__grp">Actions</div>
+    <a class="li" data-go="user-grant"><span class="li__body"><b>Grant credits to a reader</b></span><span class="li__trail">Action</span></a>
+    <a class="li" data-go="campaign-new"><span class="li__body"><b>Send a push notification</b></span><span class="li__trail">Action</span></a>
+    <div class="panel__foot" style="justify-content:space-between"><span>Up and down to move · Enter to open</span><span>6 results</span></div>
+  </div>
+</section>
+
+<section class="screen overlay" id="s-staff-alerts" data-area="2" data-base="overview" data-name="Staff alerts" data-note="New: alerts for staff, separate from what readers get. Each one links to the item.|Staff choose which alerts they get in My account." hidden>
+  <a class="backdrop" data-go="overview" aria-label="Close alerts"></a>
+  <div class="drawer" role="dialog" aria-label="Staff alerts">
+    <div class="modal__h"><div class="grow"><h2>Alerts</h2><p>4 new since you signed in</p></div><a class="ib" data-go="overview" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b" style="padding:0">
+      <div class="list">
+        <a class="li" data-go="report"><span class="li__body"><b>High-severity report: threat in a reading room</b><small>Reading room "Ruth of Ibadan, chapter 9" · 6 min ago</small></span><span class="st st-err">New</span></a>
+        <a class="li" data-go="payouts"><span class="li__body"><b>2 payouts failed at Flutterwave</b><small>Account name doesn't match BVN · 22 min ago</small></span><span class="st st-err">New</span></a>
+        <a class="li" data-go="claim"><span class="li__body"><b>New copyright claim on Kano Nights</b><small>From Paramount Books Ltd · 1 h ago</small></span><span class="st st-org">New</span></a>
+        <a class="li" data-go="applications"><span class="li__body"><b>2 author applications are past 5 days</b><small>Assigned to nobody · 3 h ago</small></span><span class="st st-org">New</span></a>
+        <a class="li" data-go="book-preview"><span class="li__body"><b>Garden of Small Mercies is ready for review</b><small>EPUB rebuilt automatically · yesterday</small></span></a>
+        <a class="li" data-go="integrations"><span class="li__body"><b>RevenueCat webhook retried 3 times</b><small>Recovered on its own · yesterday</small></span></a>
+      </div>
+    </div>
+    <div class="modal__f"><a class="btn btn-q sm" data-go="overview" data-toast="All alerts marked as read" data-undo="staff-alerts">Mark all read</a><a class="btn btn-g sm" data-go="account">Alert settings</a></div>
+  </div>
+</section>
+
+<!-- ===================== 03 Catalogue: Books list (reference table) ===================== -->
+<section class="screen" id="s-books" data-area="3" data-nav="books" data-name="Books" data-note="New pipeline: authors upload Word or EPUB in Author Studio, the system converts and checks the book, and the author confirms chapters and previews before submitting.|New: Needs you shows only books a person must touch: Needs fixes (the system flagged something) and Ready for review. Books still processing or sent back to the author are in their own tabs.|New: readiness score from the automated checks. 90% and up with no flags goes straight to Quick review.|Rule: fix within 2 days, review within 3 days of submission. Late waits turn orange.|Same as v25: every change is a new revision; readers keep the approved one." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Books</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="book-new"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>New book</a><a class="ib" data-go="exports" aria-label="Export books"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="true" data-go="books">Needs you <span class="c">7</span></a>
+    <a role="tab" aria-selected="false" data-go="book-processing">Processing <span class="c">2</span></a>
+    <a role="tab" aria-selected="false" data-go="books-sentback">Sent back <span class="c">3</span></a>
+    <a role="tab" aria-selected="false" data-go="book">Live <span class="c">412</span></a>
+    <div class="mwrap" style="align-self:center"><a role="tab" aria-selected="false" data-menu aria-expanded="false" style="cursor:pointer">More<svg class="ico xs" aria-hidden="true"><use href="#i-chevd"/></svg></a><div class="menu" hidden><a data-toast="Showing 2 scheduled books">Scheduled · 2</a><a data-toast="Showing 6 unpublished books">Unpublished · 6</a><a data-toast="Showing 1 book taken down">Taken down · 1</a><a data-toast="Showing 14 rejected books">Rejected · 14</a></div></div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Title or author" aria-label="Search books"></label>
+      <div class="mwrap"><button class="fbtn" data-menu aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button><div class="menu" hidden style="left:0;right:auto"><a data-toast="Showing Word and PDF uploads">File type: Word or PDF</a><a data-toast="Showing books nobody is on yet">Nobody on it</a><a data-toast="Showing books past their promise">Late only</a><a data-toast="Showing Christian &amp; Faith">Genre: Christian &amp; Faith</a></div></div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Book</th><th>Stage</th><th>Readiness</th><th>Waiting</th><th>On it</th><th class="acts"></th></tr></thead>
+        <tbody><tr data-go="book-formatter"><td><div class="who"><span class="cv c6 x32"></span><span><b>Market Day in Onitsha</b><small>Obiageli Nnaji · Word</small></span></div></td><td class="nw">Needs fixes</td><td><span class="score"><span class="meter"><i class="warn" style="--v:78%"></i></span>78% <small>3 flags</small></span></td><td class="nw">1 day</td><td><span class="faint">Nobody</span></td><td class="acts"><a class="btn btn-s sm" data-go="book-formatter">Fix</a></td></tr><tr data-go="book-formatter"><td><div class="who"><span class="cv c5 x32"></span><span><b>The Prayer Warrior’s Wife</b><small>Grace Effiong · PDF</small></span></div></td><td class="nw">Needs fixes</td><td><span class="score"><span class="meter"><i class="err" style="--v:61%"></i></span>61% <small>9 flags</small></span></td><td class="nw">2 days</td><td><div class="who"><span class="av xs b">TB</span><span><small>Tunde</small></span></div></td><td class="acts"><a class="btn btn-s sm" data-go="book-formatter">Fix</a></td></tr><tr data-go="book-preview"><td><div class="who"><span class="cv c7 x32"></span><span><b>Garden of Small Mercies</b><small>Esther Akande · EPUB</small></span></div></td><td class="nw">Ready for review</td><td><span class="score"><span class="meter"><i class="ok" style="--v:96%"></i></span>96% </span></td><td class="nw"><b class="warn-t">4 days</b></td><td><div class="who"><span class="av xs t">IO</span><span><small>Ifeanyi</small></span></div></td><td class="acts"><a class="btn btn-s sm" data-go="book-preview">Review</a></td></tr><tr data-go="book-revisions"><td><div class="who"><span class="cv c3 x32"></span><span><b>The Alignment</b><small>Update · new epilogue, 1.1% changed</small></span></div></td><td class="nw">Update to review</td><td><span class="score"><span class="meter"><i class="ok" style="--v:98%"></i></span>98% </span></td><td class="nw">1 day</td><td><div class="who"><span class="av xs b">TB</span><span><small>Tunde</small></span></div></td><td class="acts"><a class="btn btn-s sm" data-go="book-revisions">Compare</a></td></tr><tr data-go="book-preview"><td><div class="who"><span class="cv c4 x32"></span><span><b>Kano Nights</b><small>Abubakar Sani · copyright claim open</small></span></div></td><td class="nw">Ready for review</td><td><span class="score"><span class="meter"><i class="ok" style="--v:94%"></i></span>94% </span></td><td class="nw">2 days</td><td><div class="who"><span class="av xs t">IO</span><span><small>Ifeanyi</small></span></div></td><td class="acts"><a class="btn btn-s sm" data-go="book-preview">Review</a></td></tr><tr data-go="book-preview"><td><div class="who"><span class="cv c8 x32"></span><span><b>Daughters of Zion Street</b><small>Ruth Okoro · EPUB</small></span></div></td><td class="nw">Ready for review</td><td><span class="score"><span class="meter"><i class="ok" style="--v:98%"></i></span>98% </span></td><td class="nw">1 day</td><td><span class="faint">Nobody</span></td><td class="acts"><a class="btn btn-s sm" data-go="book-preview">Review</a></td></tr><tr data-go="book-preview"><td><div class="who"><span class="cv c1 x32"></span><span><b>Songs for Mama Ijeoma</b><small>Chidi Nwachukwu · Word</small></span></div></td><td class="nw">Ready for review</td><td><span class="score"><span class="meter"><i class="ok" style="--v:100%"></i></span>100% </span></td><td class="nw">5 hours</td><td><span class="faint">Nobody</span></td><td class="acts"><a class="btn btn-s sm" data-go="book-preview">Review</a></td></tr></tbody>
+      </table></div>
+      <div class="pager"><span>7 books need a person · 2 processing · 3 with their authors</span><span>Fix within 2 days · review within 3</span></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s-books-sentback" data-area="3" data-nav="books" data-name="Books · Sent back" data-note="Books waiting on their authors after a Send back. Nothing for staff to do; they come back through Processing when the author resubmits.|New: a gentle reminder goes to the author after 7 days; staff can send one sooner." hidden>
+  <div class="band"><div class="band__row"><div class="band__text"><h1>Books</h1></div><div class="band__acts"><a class="btn btn-n" data-go="book-new"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>New book</a></div></div></div>
+  <div class="tabs" role="tablist"><a role="tab" aria-selected="false" data-go="books">Needs you <span class="c">7</span></a><a role="tab" aria-selected="false" data-go="book-processing">Processing <span class="c">2</span></a><a role="tab" aria-selected="true" data-go="books-sentback">Sent back <span class="c">3</span></a><a role="tab" aria-selected="false" data-go="book">Live <span class="c">412</span></a></div>
+  <div class="page">
+    <div class="panel panel--flush"><div class="tw"><table class="tbl">
+      <thead><tr><th>Book</th><th>What the author must fix</th><th>Sent back</th><th class="acts"></th></tr></thead>
+      <tbody>
+        <tr><td><div class="who"><span class="cv c2 x32"></span><span><b>Lagos at Dawn</b><small>Kunle Ade · Word</small></span></div></td><td class="muted">2 issues · chapter titles, cover too small</td><td class="nw">3 days ago</td><td class="acts"><a class="btn btn-g sm" data-toast="Reminder sent to Kunle by push and email">Remind</a></td></tr>
+        <tr><td><div class="who"><span class="cv c8 x32"></span><span><b>The Pastor's Daughter</b><small>Ese Okoro · PDF</small></span></div></td><td class="muted">Asked for the Word file</td><td class="nw">5 days ago</td><td class="acts"><a class="btn btn-g sm" data-toast="Reminder sent to Ese by push and email">Remind</a></td></tr>
+        <tr><td><div class="who"><span class="cv c4 x32"></span><span><b>Jos Winter</b><small>Danjuma Pam · EPUB</small></span></div></td><td class="muted">1 issue · repeated chapter</td><td class="nw">8 days ago</td><td class="acts"><span class="faint" style="font-size:12.5px">Reminded yesterday</span></td></tr>
+      </tbody></table></div>
+      <div class="pager"><span>3 books with their authors</span><span>Authors get an automatic reminder after 7 days</span></div>
+    </div>
+  </div>
+</section>

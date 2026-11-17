@@ -1,0 +1,564 @@
+<title>Arpedia Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+/* Layout: page = intro + three stacked direction bands; each band = three phone mockups (Home, Book, Reader) in a scrollable row. */
+:root{
+  /* page chrome (theme-aware) */
+  --pg-bg:#fafafa; --pg-fg:#14161a; --pg-muted:#5b616b; --pg-line:#e4e6ea; --pg-card:#ffffff; --pg-chip:#f1f2f4;
+  /* app tokens — kept exactly from v25 */
+  --org:#F5931F; --org-ink:#9A4F00; --org-tint:#FDEEDB; --org-tint-2:#FFF6EA;
+  --ink:#111827; --ink-2:#4B5563; --ink-3:#6B7280; --line:#E5E7EB; --surface:#F3F4F6; --white:#ffffff;
+  --slate:#263238; --mauve:#8B5E83; --olive:#5F6B3A; --brown:#6B3F1D; --sun:#F9C623;
+  --hl-y:#FDE68A; --hl-g:#BBF7D0; --hl-b:#BFDBFE; --hl-p:#FBCFE8;
+  --f-ui:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-lit:"Literata",Georgia,"Times New Roman",serif;
+  --f-bri:"Bricolage Grotesque","Inter",system-ui,sans-serif;
+  --f-news:"Newsreader",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg-bg:#121315;--pg-fg:#eceef1;--pg-muted:#a3a9b3;--pg-line:#2a2d32;--pg-card:#1a1c1f;--pg-chip:#24272b;color-scheme:dark}}
+:root[data-theme="dark"]{--pg-bg:#121315;--pg-fg:#eceef1;--pg-muted:#a3a9b3;--pg-line:#2a2d32;--pg-card:#1a1c1f;--pg-chip:#24272b;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-fg);font-family:var(--f-ui);font-size:15px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.intro{display:flex;flex-direction:column;gap:14px;max-width:68ch}
+.brandrow{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.intro h1{font-size:clamp(28px,4vw,40px);line-height:1.1;letter-spacing:-0.02em}
+.intro p{margin:0;color:var(--pg-muted)}
+.kept{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.kept span{display:inline-flex;align-items:center;gap:8px;background:var(--pg-chip);border-radius:999px;padding:6px 12px 6px 6px;font-size:13px;font-weight:500}
+.kept i{width:18px;height:18px;border-radius:50%;display:inline-block;border:1px solid var(--pg-line)}
+.note{font-size:13px;color:var(--pg-muted)}
+
+.dir{display:flex;flex-direction:column;gap:20px;border-top:1px solid var(--pg-line);padding-top:32px}
+.dir-head{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline}
+.dir-letter{font-size:15px;font-weight:700;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--org);color:#1a1100;grid-row:span 2;align-self:start}
+.dir-head h2{font-size:24px;letter-spacing:-0.01em}
+.dir-head p{margin:0;color:var(--pg-muted);max-width:70ch}
+.traits{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--pg-muted);padding-left:52px}
+.traits b{color:var(--pg-fg);font-weight:600}
+.phones{display:flex;gap:28px;overflow-x:auto;padding:8px 4px 20px;scroll-snap-type:x mandatory}
+.shot{display:flex;flex-direction:column;gap:10px;scroll-snap-align:start;flex:0 0 auto}
+.shot figcaption{font-size:13px;color:var(--pg-muted);font-weight:500;padding-left:6px}
+figure{margin:0}
+
+/* ---------- phone shell ---------- */
+.phone{width:320px;height:680px;border-radius:40px;background:var(--white);color:var(--ink);overflow:hidden;position:relative;font-family:var(--f-ui);font-size:13px;line-height:1.4;box-shadow:0 0 0 8px #0d0e10,0 24px 48px -12px rgba(0,0,0,.35);display:flex;flex-direction:column}
+.sb{height:34px;flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;padding:6px 22px 0;font-size:12px;font-weight:600}
+.sb .r{display:flex;gap:5px;align-items:center}
+.sb .bat{width:20px;height:10px;border:1.5px solid currentColor;border-radius:3px;position:relative}
+.sb .bat::after{content:"";position:absolute;inset:1.5px 6px 1.5px 1.5px;background:currentColor;border-radius:1px}
+.scr{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.ico.s{width:16px;height:16px}.ico.xs{width:14px;height:14px}
+.ico.fill{fill:currentColor;stroke:none}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);padding:8px 6px 18px;background:var(--white)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--ink-3);font-weight:500}
+.tab.on{color:var(--org-ink)}
+.tab.on .ico{color:var(--org)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;font:inherit;font-weight:600;cursor:pointer;border-radius:14px;padding:12px 16px;font-size:14px}
+.btn-p{background:var(--org);color:#1a1100}
+.btn-s{background:var(--org-tint);color:var(--org-ink)}
+.btn-g{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;font-weight:600;font-size:12px;padding:5px 10px;background:var(--org-tint);color:var(--org-ink)}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;flex:0 0 auto;border:2px solid var(--white)}
+.av.m{background:var(--mauve)}.av.o{background:var(--olive)}.av.b{background:var(--brown)}.av.t{background:#1F6F78}.av.r{background:#A23B2A}.av.k{background:#3F4A8A}
+.stack{display:flex}.stack .av{margin-left:-8px}.stack .av:first-child{margin-left:0}
+.bar{height:4px;border-radius:4px;background:var(--surface);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--org);border-radius:4px}
+.muted{color:var(--ink-3)}
+.row{display:flex;align-items:center;gap:8px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+/* covers (sample, CSS-drawn) */
+.cv{border-radius:6px;position:relative;overflow:hidden;flex:0 0 auto;display:flex;flex-direction:column;justify-content:flex-end;padding:8px;color:#fff;box-shadow:0 6px 14px -6px rgba(0,0,0,.45),inset 3px 0 0 rgba(255,255,255,.18);font-family:var(--f-lit)}
+.cv b{font-weight:600;font-size:11px;line-height:1.15;display:block}
+.cv small{font-family:var(--f-ui);font-size:7.5px;opacity:.85;letter-spacing:.04em;margin-top:3px;display:block}
+.cv.c1{background:linear-gradient(160deg,#C9772B 0%,#7A2E14 100%)}
+.cv.c2{background:linear-gradient(170deg,#1F4D3F 0%,#0E2620 100%)}
+.cv.c3{background:linear-gradient(165deg,#F4EFE6 0%,#E8E0D2 100%);color:#7A1010}
+.cv.c3 small{color:#222}
+.cv.c4{background:linear-gradient(170deg,#30386E 0%,#141836 100%)}
+.cv.c5{background:linear-gradient(160deg,#8C2D4B 0%,#3F0F22 100%)}
+.cv.c6{background:linear-gradient(170deg,#D9A21B 0%,#8A5A08 100%)}
+.cv.c1::before,.cv.c6::before{content:"";position:absolute;right:-18px;top:-18px;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.35) 0 30%,transparent 31%),repeating-conic-gradient(rgba(255,255,255,.22) 0 12deg,transparent 12deg 30deg)}
+.cv.c2::before{content:"";position:absolute;left:8px;right:8px;top:12px;height:1px;background:rgba(255,255,255,.5);box-shadow:0 6px 0 rgba(255,255,255,.3)}
+.cv.c4::before{content:"";position:absolute;left:50%;top:22%;width:46px;height:46px;transform:translateX(-50%);border-radius:50%;border:1.5px solid rgba(255,255,255,.5)}
+.cv.c5::before{content:"";position:absolute;inset:auto -10px 40% -10px;height:30px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.12) 0 6px,transparent 6px 12px)}
+.cv.c3::before{content:"";position:absolute;left:22%;top:8%;width:56%;height:52%;background:linear-gradient(135deg,transparent 45%,#111 46% 54%,transparent 55%),linear-gradient(45deg,transparent 45%,#111 46% 54%,transparent 55%)}
+.w54{width:54px;height:80px}.w72{width:72px;height:106px}.w86{width:86px;height:128px}.w96{width:96px;height:142px}.w120{width:120px;height:178px}.w130{width:130px;height:192px}
+.cv.tiny b{font-size:8px}.cv.tiny small{display:none}
+
+/* reader shared */
+.rd-head{display:flex;align-items:center;gap:10px;padding:8px 16px 10px;border-bottom:1px solid var(--line)}
+.rd-head .t{flex:1;min-width:0}
+.rd-head .t b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rd-head .t span{font-size:11px;color:var(--ink-3)}
+.page{flex:1;padding:18px 22px 10px;position:relative;font-family:var(--f-lit);font-size:15.5px;line-height:1.7;color:#1d1a16}
+.page p{margin:0 0 10px;text-indent:1.4em}
+.page p.first{text-indent:0}
+.page .chap{font-family:var(--f-ui);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;text-indent:0}
+.sel{background:#C7DDF9;border-radius:2px;position:relative}
+.sel::before,.sel::after{content:"";position:absolute;width:10px;height:10px;border-radius:50% 50% 50% 0;background:#2563EB;bottom:-9px}
+.sel::before{left:-6px;transform:rotate(-45deg)}
+.sel::after{right:-6px;transform:rotate(-45deg) scaleX(-1)}
+.comm{text-decoration:underline dotted var(--org) 2px;text-underline-offset:4px}
+.mine{background:var(--hl-y);border-radius:2px}
+.rd-foot{display:flex;align-items:center;gap:10px;padding:10px 22px 22px;font-size:11px;color:var(--ink-3)}
+.rd-foot .bar{flex:1}
+.tb{position:absolute;z-index:2;font-family:var(--f-ui)}
+.dots{display:flex;gap:6px}
+.dots i{width:18px;height:18px;border-radius:50%;display:block;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.dots i.on{box-shadow:0 0 0 2px var(--ink)}
+
+/* ================= A — Warm, faithful, communal ================= */
+.pa{--r:18px}
+.pa .hd{display:flex;align-items:center;gap:8px;padding:6px 16px 4px}
+.pa .wm{font-weight:700;font-size:17px;color:var(--org-ink);line-height:1}
+.pa .wm small{display:block;font-size:8px;letter-spacing:.32em;color:var(--ink-2);font-weight:600;margin-top:2px}
+.pa .hd .sp{flex:1}
+.pa .greet{padding:10px 16px 4px;font-family:var(--f-lit);font-size:21px;line-height:1.25;color:var(--ink)}
+.pa .greet em{font-style:italic;color:var(--org-ink)}
+.pa .sub{padding:0 16px;color:var(--ink-2);font-size:12.5px}
+.pa .cont{margin:12px 16px 0;background:var(--org-tint-2);border:1px solid #F8DDB9;border-radius:var(--r);padding:12px;display:flex;gap:12px}
+.pa .cont .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.pa .cont h3{font-family:var(--f-lit);font-size:15px;font-weight:600}
+.pa .cont .who{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-2)}
+.pa .cont .btn{padding:8px 12px;font-size:12.5px;border-radius:12px;align-self:flex-start}
+.pa .sec{display:flex;justify-content:space-between;align-items:baseline;padding:16px 16px 8px}
+.pa .sec h4{margin:0;font-size:14px;font-weight:700}
+.pa .sec a{font-size:12px;color:var(--org-ink);font-weight:600;text-decoration:none}
+.pa .friends{display:flex;gap:14px;padding:0 16px;overflow:hidden}
+.pa .fr{display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex:0 0 auto}
+.pa .fr .pair{position:relative;width:54px;height:80px}
+.pa .fr .pair .av{position:absolute;right:-8px;bottom:-8px;width:26px;height:26px}
+.pa .fr span{font-size:11px;font-weight:500;text-align:center;line-height:1.2}
+.pa .quote{margin:16px 16px 0;padding:14px;border-radius:var(--r);background:var(--surface)}
+.pa .quote q{font-family:var(--f-lit);font-style:italic;font-size:14px;line-height:1.5;display:block;quotes:"\201C" "\201D"}
+.pa .quote .by{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--ink-2)}
+.pa .quote .by .av{width:22px;height:22px;font-size:9px;border:0}
+.pa .quote .by .sp{flex:1}
+/* A book */
+.pa .bk-top{display:flex;justify-content:space-between;padding:4px 14px}
+.pa .bk-hero{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 20px 0;text-align:center}
+.pa .bk-hero h2{font-family:var(--f-lit);font-size:22px;font-weight:600;margin-top:6px}
+.pa .auth{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600}
+.pa .auth .av{width:24px;height:24px;font-size:9px;border:0}
+.pa .auth .follow{font-size:11.5px;color:var(--org-ink);font-weight:600;padding:3px 9px;border:1px solid #F3C893;border-radius:999px}
+.pa .social{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2)}
+.pa .social .av{width:22px;height:22px;font-size:8.5px}
+.pa .ctas{display:grid;grid-template-columns:1fr auto;gap:8px;padding:14px 16px 0}
+.pa .room{margin:14px 16px 0;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px}
+.pa .room .h{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700}
+.pa .room .h span{color:var(--org-ink);font-weight:600;font-size:11.5px}
+.pa .room .msg{display:flex;gap:8px;font-size:12px;color:var(--ink-2)}
+.pa .room .msg .av{width:22px;height:22px;font-size:8.5px;border:0}
+.pa .room .msg b{color:var(--ink);font-weight:600}
+/* A reader */
+.pa .tb-a{left:14px;right:14px;top:206px;background:var(--white);border-radius:16px;box-shadow:0 12px 32px -8px rgba(17,24,39,.28),0 0 0 1px rgba(17,24,39,.06);padding:10px 10px 8px;display:flex;flex-direction:column;gap:8px}
+.pa .tb-a .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;border-top:1px solid var(--line);padding-top:6px}
+.pa .tb-a .acts span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--ink);padding:4px 0}
+.pa .tb-a .acts span.go{color:var(--org-ink)}
+.pa .tb-a .top{display:flex;justify-content:space-between;align-items:center;padding:0 4px}
+.pa .tb-a .top small{font-size:10.5px;color:var(--ink-2);display:flex;gap:6px;align-items:center}
+.pa .tb-a::after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;background:var(--white);transform:translateX(-50%) rotate(45deg);box-shadow:3px 3px 4px -2px rgba(17,24,39,.15)}
+.pa .margin-note{position:absolute;right:8px;top:118px;display:flex;align-items:center;gap:3px;font-family:var(--f-ui);font-size:10px;font-weight:600;color:var(--org-ink);background:var(--org-tint);border-radius:999px;padding:2px 7px 2px 3px}
+.pa .margin-note .av{width:16px;height:16px;border:0;font-size:7px}
+
+/* ================= B — Vibrant, proud, African ================= */
+.pb{--r:14px}
+.pb .band{background:var(--org);color:#1a1100;padding:6px 16px 18px;position:relative;overflow:hidden}
+.pb .band::after{content:"";position:absolute;right:-60px;top:-50px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,var(--brown) 0 17%,transparent 17.5%),repeating-conic-gradient(rgba(255,214,90,.75) 0 14deg,transparent 14deg 30deg);opacity:.55}
+.pb .band > *{position:relative;z-index:1}
+.pb .band .top{display:flex;justify-content:space-between;align-items:center}
+.pb .wm{font-family:var(--f-bri);font-weight:800;font-size:20px;letter-spacing:-0.02em}
+.pb .cr{background:#1a1100;color:#FFD9A8;border-radius:999px;font-weight:700;font-size:12px;padding:5px 10px}
+.pb .band h2{font-family:var(--f-bri);font-weight:800;font-size:27px;line-height:1.02;letter-spacing:-0.025em;margin:14px 0 12px;max-width:230px}
+.pb .search{display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:10px 12px;color:var(--ink-3);font-size:12.5px}
+.pb .chips{display:flex;gap:6px;padding:12px 16px 2px;overflow:hidden}
+.pb .chip{flex:0 0 auto;padding:7px 12px;border-radius:999px;font-weight:600;font-size:12px;background:var(--surface);color:var(--ink)}
+.pb .chip.on{background:#1a1100;color:#fff}
+.pb .sec{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 8px}
+.pb .sec h4{margin:0;font-family:var(--f-bri);font-weight:800;font-size:17px;letter-spacing:-0.01em}
+.pb .sec a{font-size:12px;color:var(--org-ink);font-weight:700;text-decoration:none}
+.pb .top10{display:flex;gap:4px;padding:0 0 0 8px;overflow:hidden}
+.pb .rk{display:flex;align-items:flex-end;flex:0 0 auto}
+.pb .rk .n{font-family:var(--f-bri);font-weight:800;font-size:84px;line-height:.78;color:var(--white);-webkit-text-stroke:2px var(--org);margin-right:-12px;z-index:1}
+.pb .live{margin:14px 16px 0;background:#1a1100;color:#fff;border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:10px}
+.pb .live .dot{width:8px;height:8px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 4px rgba(74,222,128,.25)}
+.pb .live div{flex:1;font-size:12px;line-height:1.35}
+.pb .live b{display:block;font-size:13px}
+.pb .live .btn{padding:7px 11px;font-size:12px;border-radius:10px}
+.pb .tab.on{color:#1a1100}
+.pb .tab.on .ico{color:#1a1100}
+.pb .tabbar .tab.on{position:relative}
+.pb .tabbar .tab.on::before{content:"";position:absolute;top:-8px;width:28px;height:3px;border-radius:3px;background:var(--org)}
+/* B book */
+.pb .bk-band{background:var(--org);padding:4px 16px 0;position:relative;overflow:hidden;height:206px}
+.pb .bk-band::after{content:"";position:absolute;left:-70px;bottom:-90px;width:220px;height:220px;border-radius:50%;background:repeating-conic-gradient(rgba(255,214,90,.6) 0 14deg,transparent 14deg 30deg);opacity:.6}
+.pb .bk-band .top{display:flex;justify-content:space-between;color:#1a1100;position:relative;z-index:1}
+.pb .bk-band .cv{position:absolute;right:20px;top:44px;z-index:1;transform:rotate(3deg)}
+.pb .bk-band .tags{position:absolute;left:16px;top:52px;z-index:1;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.pb .bk-band .tags span{background:#1a1100;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px}
+.pb .bk-band .tags span.l{background:#fff;color:#1a1100}
+.pb .bk-body{padding:14px 16px 0;display:flex;flex-direction:column;gap:6px}
+.pb .bk-body h2{font-family:var(--f-bri);font-weight:800;font-size:28px;line-height:1;letter-spacing:-0.025em}
+.pb .bk-body .by{font-size:13px;font-weight:600;color:var(--org-ink)}
+.pb .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px 16px 0}
+.pb .stats div{background:var(--surface);border-radius:12px;padding:8px 10px}
+.pb .stats b{display:block;font-family:var(--f-bri);font-size:18px;font-weight:800;line-height:1.1}
+.pb .stats span{font-size:10.5px;color:var(--ink-2)}
+.pb .unlock{margin:12px 16px 0;border:2px solid #1a1100;border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px}
+.pb .unlock .between{font-size:12px;color:var(--ink-2)}
+.pb .unlock .between b{color:var(--ink);font-size:13px}
+.pb .btn-p.big{width:100%;padding:13px;border-radius:12px;font-size:14.5px;font-weight:700}
+/* B reader */
+.pb .page{font-family:var(--f-lit)}
+.pb .tb-b{left:12px;right:12px;top:198px;background:#1a1100;color:#fff;border-radius:16px;padding:8px;display:flex;align-items:center;gap:4px;box-shadow:0 14px 30px -10px rgba(0,0,0,.5)}
+.pb .tb-b .dots{padding:0 6px 0 4px;border-right:1px solid rgba(255,255,255,.18);margin-right:2px}
+.pb .tb-b .dots i{width:20px;height:20px;border:0;box-shadow:none}
+.pb .tb-b .dots i.on{box-shadow:0 0 0 2px #1a1100,0 0 0 4px #fff}
+.pb .tb-b span{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:600;padding:2px 0}
+.pb .tb-b span .ico{color:var(--org)}
+.pb .tb-b::after{content:"";position:absolute;left:50%;bottom:-5px;width:10px;height:10px;background:#1a1100;transform:translateX(-50%) rotate(45deg)}
+.pb .rd-head{background:var(--white)}
+.pb .chap-b{font-family:var(--f-bri);font-weight:800;font-size:22px;letter-spacing:-0.02em;line-height:1.05;margin-bottom:12px;text-indent:0;color:var(--ink)}
+.pb .chap-b small{display:block;font-family:var(--f-ui);font-size:10.5px;font-weight:700;color:var(--org-ink);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+
+/* ================= C — Calm, literary, premium ================= */
+.pc{--r:10px}
+.pc .hd{display:flex;align-items:center;justify-content:space-between;padding:8px 22px 0}
+.pc .wm{font-family:var(--f-news);font-size:18px;font-weight:500;letter-spacing:.01em}
+.pc .hd .r{display:flex;gap:16px;color:var(--ink-2)}
+.pc .date{padding:26px 22px 0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.pc .hello{padding:4px 22px 0;font-family:var(--f-news);font-size:30px;line-height:1.1;font-weight:400;letter-spacing:-0.01em}
+.pc .cont{display:flex;gap:16px;padding:22px 22px 0}
+.pc .cont .meta{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;padding-top:4px}
+.pc .cont h3{font-family:var(--f-news);font-weight:500;font-size:19px;line-height:1.15}
+.pc .cont .a{font-size:12px;color:var(--ink-2)}
+.pc .cont .p{font-size:11.5px;color:var(--ink-3);margin-top:auto}
+.pc .cont .bar{height:2px;margin:4px 0 8px}
+.pc .link{color:var(--org-ink);font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:4px}
+.pc .rule{height:1px;background:var(--line);margin:24px 22px 0}
+.pc .sec{padding:18px 22px 6px;display:flex;justify-content:space-between;align-items:baseline}
+.pc .sec h4{margin:0;font-family:var(--f-news);font-weight:500;font-size:17px}
+.pc .sec a{font-size:12px;color:var(--ink-2);text-decoration:none}
+.pc .list{display:flex;flex-direction:column;padding:0 22px}
+.pc .li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.pc .li:last-child{border-bottom:0}
+.pc .li div{flex:1;min-width:0}
+.pc .li b{display:block;font-family:var(--f-news);font-weight:500;font-size:15px}
+.pc .li span{font-size:11.5px;color:var(--ink-3)}
+.pc .tab.on{color:var(--ink)}.pc .tab.on .ico{color:var(--ink)}
+.pc .tabbar{border-top-color:transparent}
+/* C book */
+.pc .bk{display:flex;flex-direction:column;padding:0 22px;gap:0}
+.pc .bk-top{display:flex;justify-content:space-between;padding:6px 18px;color:var(--ink-2)}
+.pc .bk-grid{display:grid;grid-template-columns:auto 1fr;gap:16px;padding:14px 22px 0;align-items:end}
+.pc .bk-grid h2{font-family:var(--f-news);font-weight:400;font-size:27px;line-height:1.05;letter-spacing:-0.01em}
+.pc .bk-grid .a{font-size:12.5px;color:var(--ink-2);margin-top:8px}
+.pc .bk-grid .rt{display:flex;align-items:center;gap:4px;font-size:12px;margin-top:10px;color:var(--ink-2)}
+.pc .bk-grid .rt .ico{color:var(--org)}
+.pc .blurb{padding:18px 22px 0;font-family:var(--f-news);font-size:15px;line-height:1.55;color:#2a2622}
+.pc .facts{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pc .facts div{padding:10px 0;display:flex;flex-direction:column;gap:2px}
+.pc .facts div+div{padding-left:12px;border-left:1px solid var(--line)}
+.pc .facts span{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+.pc .facts b{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.pc .bk-cta{display:grid;grid-template-columns:1fr auto;gap:8px;padding:18px 22px 0}
+.pc .bk-cta .btn{border-radius:10px}
+.pc .rev{padding:18px 22px 0;font-family:var(--f-news);font-style:italic;font-size:14px;color:var(--ink-2);line-height:1.5}
+.pc .rev small{display:block;font-family:var(--f-ui);font-style:normal;font-size:11px;margin-top:4px;color:var(--ink-3)}
+/* C reader */
+.pc .rd-head{border-bottom:0;padding-top:10px}
+.pc .page{font-family:var(--f-news);font-size:16.5px;line-height:1.65;padding:14px 26px 10px;color:#221f1b}
+.pc .page .chap{font-family:var(--f-news);font-style:italic;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink-3);text-align:center;margin-bottom:16px}
+.pc .tb-c{left:50%;transform:translateX(-50%);top:200px;background:var(--white);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px -10px rgba(17,24,39,.25);display:flex;align-items:center;padding:4px;gap:0;white-space:nowrap}
+.pc .tb-c span{display:flex;align-items:center;gap:5px;padding:8px 10px;font-size:12px;font-weight:600;color:var(--ink)}
+.pc .tb-c span+span{border-left:1px solid var(--line)}
+.pc .tb-c .sw{width:14px;height:14px;border-radius:50%;background:var(--hl-y);box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.pc .tb-c span.dim{color:var(--ink-3);padding:8px 8px}
+.pc .rd-foot{justify-content:center;gap:6px}
+
+.footer{border-top:1px solid var(--pg-line);padding-top:28px;display:flex;flex-direction:column;gap:12px;max-width:72ch}
+.footer h2{font-size:20px}
+.footer ul{margin:0;padding-left:18px;color:var(--pg-muted);display:flex;flex-direction:column;gap:6px}
+.footer li b{color:var(--pg-fg)}
+@media (max-width:640px){.traits{padding-left:0}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-lib" viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.3 4.6l3.9 1-3.9 15-3.9-1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.5 3.6 5.2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2zM22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-aa" viewBox="0 0 24 24"><path d="M3 18l4.5-12L12 18M4.8 14h5.4M15 18v-6.5a2.5 2.5 0 0 1 5 0V18M15 14.5h5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M8 8h11v12H8zM5 16V4h11"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 48 48"><g fill="#F9C623">
+    <ellipse cx="24" cy="8" rx="4.5" ry="7.5"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(45 24 24)"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(90 24 24)"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(135 24 24)"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(180 24 24)"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(225 24 24)"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(270 24 24)"/><ellipse cx="24" cy="8" rx="4.5" ry="7.5" transform="rotate(315 24 24)"/></g>
+    <g fill="#F5931F"><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(22.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(67.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(112.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(157.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(202.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(247.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(292.5 24 24)"/><ellipse cx="24" cy="10" rx="3.5" ry="6" transform="rotate(337.5 24 24)"/></g>
+    <circle cx="24" cy="24" r="7" fill="#6B3F1D"/></symbol>
+</svg>
+
+<div class="wrap">
+
+<header class="intro">
+  <div class="brandrow"><svg width="30" height="30" aria-hidden="true"><use href="#i-sun"/></svg>Arpedia</div>
+  <h1>Three personalities, one sunflower</h1>
+  <p>The same three screens drawn three ways: Home, a book page, and the reader with the highlight toolbar open. Colors stay exactly as in v25. What changes is type, shape, density, and how much of the community shows up around each book.</p>
+  <div class="kept" aria-label="Kept from v25">
+    <span><i style="background:#F5931F"></i>Orange #F5931F</span>
+    <span><i style="background:#FDEEDB"></i>Peach tint</span>
+    <span><i style="background:#ffffff"></i>White base</span>
+    <span><i style="background:#263238"></i>Slate</span>
+    <span><i style="background:#8B5E83"></i>Mauve avatars</span>
+  </div>
+  <p class="note">Books, people and messages are sample content. One accessibility fix applies in all three: text on orange buttons is dark ink instead of white, because white on #F5931F measures 2.3:1 and fails WCAG AA. Orange text links use a deeper shade (#9A4F00) for the same reason.</p>
+</header>
+
+<!-- ================= A ================= -->
+<section class="dir" aria-labelledby="ha">
+  <div class="dir-head">
+    <div class="dir-letter">A</div>
+    <h2 id="ha">Warm, faithful, communal</h2>
+    <p>A church-family reading circle. People sit around every book: friends' faces on covers, a shared line of the day, the book room one tap away. A bookish serif carries greetings and quotes; Inter carries everything you tap.</p>
+  </div>
+  <div class="traits"><span><b>Type</b> Literata + Inter</span><span><b>Shape</b> soft, 18px corners</span><span><b>Orange</b> actions + warm tint panels</span><span><b>Social</b> visible on every screen</span></div>
+  <div class="phones">
+    <figure class="shot"><div class="phone pa">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="hd"><svg width="28" height="28" aria-hidden="true"><use href="#i-sun"/></svg><div class="wm">Arpedia<small>READS</small></div><div class="sp"></div><span class="pill">840 credits</span><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg></div>
+        <div class="greet">Good evening, <em>Ngozi</em></div>
+        <div class="sub">Grace Readers meet on chapter 8 tonight.</div>
+        <div class="cont">
+          <div class="cv c1 w72"><b>Harmattan Letters</b><small>IFEOMA NWACHUKWU</small></div>
+          <div class="meta">
+            <h3>Harmattan Letters</h3>
+            <span class="muted" style="font-size:11.5px">Chapter 7 of 18 · 38%</span>
+            <div class="bar"><i style="width:38%"></i></div>
+            <div class="who"><span class="stack"><span class="av m">TA</span><span class="av o">CO</span><span class="av b">+4</span></span>in this chapter now</div>
+            <span class="btn btn-p">Continue reading</span>
+          </div>
+        </div>
+        <div class="sec"><h4>Friends are reading</h4><a href="#">See all</a></div>
+        <div class="friends">
+          <div class="fr"><div class="pair"><div class="cv c2 w54 tiny"><b>Still Waters, Lagos</b></div><span class="av t">KO</span></div><span>Kemi</span></div>
+          <div class="fr"><div class="pair"><div class="cv c3 w54 tiny"><b>The Alignment</b></div><span class="av r">EA</span></div><span>Emeka</span></div>
+          <div class="fr"><div class="pair"><div class="cv c4 w54 tiny"><b>Seven Bridges to Jos</b></div><span class="av k">BL</span></div><span>Bisi</span></div>
+          <div class="fr"><div class="pair"><div class="cv c5 w54 tiny"><b>Ruth of Ibadan</b></div><span class="av m">ZU</span></div><span>Zainab</span></div>
+        </div>
+        <div class="quote">
+          <q>Grace did not ask her to be ready. It only asked her to come.</q>
+          <div class="by"><span class="av o">CO</span>Chioma in Grace Readers<span class="sp"></span><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>46</div>
+        </div>
+      </div>
+      <nav class="tabbar"><span class="tab on"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</span></nav>
+    </div><figcaption>Home</figcaption></figure>
+
+    <figure class="shot"><div class="phone pa">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr" style="background:linear-gradient(var(--org-tint-2) 0 240px,var(--white) 240px)">
+        <div class="bk-top"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg><span class="row"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></span></div>
+        <div class="bk-hero">
+          <div class="cv c1 w120"><b style="font-size:15px">Harmattan Letters</b><small>IFEOMA NWACHUKWU</small></div>
+          <h2>Harmattan Letters</h2>
+          <div class="auth"><span class="av m">IN</span>Ifeoma Nwachukwu<span class="follow">Follow</span></div>
+          <div class="social"><svg class="ico xs fill" style="color:var(--org)" aria-hidden="true"><use href="#i-star"/></svg><b style="color:var(--ink)">4.7</b> · 212 readers · <span class="stack"><span class="av t">KO</span><span class="av r">EA</span></span>2 friends</div>
+        </div>
+        <div class="ctas"><span class="btn btn-p">Read free preview</span><span class="btn btn-s"><svg class="ico s" aria-hidden="true"><use href="#i-down"/></svg></span></div>
+        <div class="room">
+          <div class="h">Book room<span>38 talking · Open</span></div>
+          <div class="msg"><span class="av o">CO</span><span><b>Chioma</b> The letter in chapter 4 made me call my mother.</span></div>
+          <div class="msg"><span class="av m">IN</span><span><b>Ifeoma · author</b> I wrote that one first, years before the rest.</span></div>
+        </div>
+      </div>
+    </div><figcaption>Book page</figcaption></figure>
+
+    <figure class="shot"><div class="phone pa">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="rd-head"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg><div class="t"><b>Harmattan Letters</b><span>Ch. 7 · The Third Letter</span></div><svg class="ico" aria-hidden="true"><use href="#i-aa"/></svg><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg></div>
+        <div class="page">
+          <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams. Mama Nkem swept twice a day and still the floor sang under our feet.</p>
+          <p>I kept the letters in a biscuit tin under my bed. <span class="comm">Each one smelled faintly of camphor</span> and of the hands that had carried it.</p>
+          <p><span class="sel">Grace did not ask her to be ready. It only asked her to come.</span> I read that line until the paper went soft.</p>
+          <p>Outside, the neighbours argued about the price of kerosene.</p>
+          <span class="margin-note"><span class="stack"><span class="av t">K</span><span class="av o">C</span></span>5 marked this</span>
+          <div class="tb tb-a" role="toolbar" aria-label="Selection">
+            <div class="top"><div class="dots"><i class="on" style="background:var(--hl-y)"></i><i style="background:var(--hl-g)"></i><i style="background:var(--hl-b)"></i><i style="background:var(--hl-p)"></i></div><small><span class="stack"><span class="av o" style="width:16px;height:16px;font-size:7px">C</span></span>Chioma marked this too</small></div>
+            <div class="acts"><span><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg>Note</span><span><svg class="ico s" aria-hidden="true"><use href="#i-chat"/></svg>Discuss</span><span class="go"><svg class="ico s" aria-hidden="true"><use href="#i-users"/></svg>To club</span><span><svg class="ico s" aria-hidden="true"><use href="#i-copy"/></svg>Copy</span></div>
+          </div>
+        </div>
+        <div class="rd-foot"><span>38%</span><div class="bar"><i style="width:38%"></i></div><span>11 min left</span></div>
+      </div>
+    </div><figcaption>Reader, text selected</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================= B ================= -->
+<section class="dir" aria-labelledby="hb">
+  <div class="dir-head">
+    <div class="dir-letter">B</div>
+    <h2 id="hb">Vibrant, proud, African</h2>
+    <p>Lagos-modern energy. Orange fills whole bands at the top of the main screens, sunflower petals become a pattern, and a bold grotesque gives headings presence. Rankings and live rooms feel like events.</p>
+  </div>
+  <div class="traits"><span><b>Type</b> Bricolage Grotesque + Inter</span><span><b>Shape</b> chunky, 14px corners</span><span><b>Orange</b> full-width hero bands</span><span><b>Social</b> live activity, rankings</span></div>
+  <div class="phones">
+    <figure class="shot"><div class="phone pb">
+      <div class="sb" style="background:var(--org);color:#1a1100"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="band">
+          <div class="top"><span class="wm">arpedia</span><span class="row"><span class="cr">840 cr</span><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg></span></div>
+          <h2>Stories from home, read together.</h2>
+          <div class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search books, authors, rooms</div>
+        </div>
+        <div class="chips"><span class="chip on">For you</span><span class="chip">Christian fiction</span><span class="chip">African stories</span><span class="chip">Romance</span></div>
+        <div class="sec"><h4>Top 10 this week</h4><a href="#">See all</a></div>
+        <div class="top10">
+          <div class="rk"><span class="n">1</span><div class="cv c3 w72"><b>The Alignment</b><small>ADAEZE R. POSSIBLE</small></div></div>
+          <div class="rk"><span class="n">2</span><div class="cv c1 w72"><b>Harmattan Letters</b><small>I. NWACHUKWU</small></div></div>
+          <div class="rk"><span class="n">3</span><div class="cv c2 w72"><b>Still Waters, Lagos</b><small>C. OKAFOR</small></div></div>
+        </div>
+        <div class="live"><span class="dot"></span><div><b>Grace Readers is live</b>14 reading chapter 8 together</div><span class="btn btn-p">Join</span></div>
+      </div>
+      <nav class="tabbar"><span class="tab on"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</span></nav>
+    </div><figcaption>Home</figcaption></figure>
+
+    <figure class="shot"><div class="phone pb">
+      <div class="sb" style="background:var(--org);color:#1a1100"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="bk-band">
+          <div class="top"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg><span class="row"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></span></div>
+          <div class="tags"><span>#2 this week</span><span class="l">Christian fiction</span><span class="l">62k words</span></div>
+          <div class="cv c1 w120"><b style="font-size:15px">Harmattan Letters</b><small>IFEOMA NWACHUKWU</small></div>
+        </div>
+        <div class="bk-body"><h2>Harmattan Letters</h2><span class="by">Ifeoma Nwachukwu · Follow</span></div>
+        <div class="stats"><div><b>4.7★</b><span>186 ratings</span></div><div><b>2.1k</b><span>readers</span></div><div><b>38</b><span>in book room</span></div></div>
+        <div class="unlock">
+          <div class="between"><span>First 10% free</span><b>Full book · 90 credits</b></div>
+          <span class="btn btn-p big">Read free preview</span>
+        </div>
+      </div>
+    </div><figcaption>Book page</figcaption></figure>
+
+    <figure class="shot"><div class="phone pb">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="rd-head"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg><div class="t"><b>Harmattan Letters</b><span>14 reading now</span></div><svg class="ico" aria-hidden="true"><use href="#i-aa"/></svg><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg></div>
+        <div class="page">
+          <div class="chap-b"><small>Chapter 7</small>The Third Letter</div>
+          <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams.</p>
+          <p>I kept the letters in a biscuit tin under my bed. <span class="mine">Each one smelled faintly of camphor</span> and of the hands that had carried it.</p>
+          <p><span class="sel">Grace did not ask her to be ready. It only asked her to come.</span> I read that line until the paper went soft.</p>
+          <p>Outside, the neighbours argued about the price of kerosene.</p>
+          <div class="tb tb-b" role="toolbar" aria-label="Selection">
+            <div class="dots"><i class="on" style="background:var(--hl-y)"></i><i style="background:var(--hl-g)"></i><i style="background:var(--hl-p)"></i></div>
+            <span><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg>Note</span><span><svg class="ico s" aria-hidden="true"><use href="#i-chat"/></svg>Discuss</span><span><svg class="ico s" aria-hidden="true"><use href="#i-users"/></svg>Club</span><span><svg class="ico s" aria-hidden="true"><use href="#i-share"/></svg>Share</span>
+          </div>
+        </div>
+        <div class="rd-foot"><span>38%</span><div class="bar"><i style="width:38%"></i></div><span>Ch. 7 of 18</span></div>
+      </div>
+    </div><figcaption>Reader, text selected</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================= C ================= -->
+<section class="dir" aria-labelledby="hc">
+  <div class="dir-head">
+    <div class="dir-letter">C</div>
+    <h2 id="hc">Calm, literary, premium</h2>
+    <p>A quiet library. Lots of white, an editorial serif for titles and reading, hairline rules instead of boxes. Orange appears only where you act, which makes every button easy to find. Community stays one tap away instead of on every surface.</p>
+  </div>
+  <div class="traits"><span><b>Type</b> Newsreader + Inter</span><span><b>Shape</b> crisp, 10px corners</span><span><b>Orange</b> actions only</span><span><b>Social</b> present but quiet</span></div>
+  <div class="phones">
+    <figure class="shot"><div class="phone pc">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="hd"><span class="row"><svg width="22" height="22" aria-hidden="true"><use href="#i-sun"/></svg><span class="wm">Arpedia</span></span><span class="r"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg></span></div>
+        <div class="date">Thursday, 12 November</div>
+        <div class="hello">Good evening.</div>
+        <div class="cont">
+          <div class="cv c1 w96"><b style="font-size:13px">Harmattan Letters</b><small>IFEOMA NWACHUKWU</small></div>
+          <div class="meta">
+            <h3>Harmattan Letters</h3>
+            <span class="a">Ifeoma Nwachukwu</span>
+            <span class="p">Chapter 7 · 38% · 2 h 10 min left</span>
+            <div class="bar"><i style="width:38%"></i></div>
+            <span class="link">Continue <svg class="ico xs" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div class="sec"><h4>New this week</h4><a href="#">All</a></div>
+        <div class="list">
+          <div class="li"><div class="cv c2 w54 tiny" style="width:38px;height:56px"><b>Still Waters</b></div><div><b>Still Waters, Lagos</b><span>Chioma Okafor · Romance · 48k words</span></div></div>
+          <div class="li"><div class="cv c4 w54 tiny" style="width:38px;height:56px"><b>Seven Bridges</b></div><div><b>Seven Bridges to Jos</b><span>Musa Danladi · African stories · 71k</span></div></div>
+          <div class="li"><div class="cv c6 w54 tiny" style="width:38px;height:56px"><b>A House Called Grace</b></div><div><b>A House Called Grace</b><span>Kemi Ogunleye · Christian fiction · 55k</span></div></div>
+        </div>
+      </div>
+      <nav class="tabbar"><span class="tab on"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</span><span class="tab"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</span></nav>
+    </div><figcaption>Home</figcaption></figure>
+
+    <figure class="shot"><div class="phone pc">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="bk-top"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg><span class="row" style="gap:16px"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></span></div>
+        <div class="bk-grid">
+          <div class="cv c1 w96"><b style="font-size:13px">Harmattan Letters</b><small>IFEOMA NWACHUKWU</small></div>
+          <div><h2>Harmattan Letters</h2><div class="a">Ifeoma Nwachukwu</div><div class="rt"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>4.7 · 186 ratings</div></div>
+        </div>
+        <p class="blurb">A widow in Enugu finds her late husband's unsent letters and learns the man she married was praying for her long before they met.</p>
+        <div class="facts"><div><span>Length</span><b>62k words</b></div><div><span>Free</span><b>First 10%</b></div><div><span>Unlock</span><b>90 credits</b></div></div>
+        <div class="bk-cta"><span class="btn btn-p">Read free preview</span><span class="btn btn-g">Save</span></div>
+        <p class="rev">“Gentle and true. I finished it in one Sunday.”<small>Kemi O. · ★★★★★</small></p>
+      </div>
+    </div><figcaption>Book page</figcaption></figure>
+
+    <figure class="shot"><div class="phone pc">
+      <div class="sb"><span>9:41</span><span class="r">●●● <span class="bat"></span></span></div>
+      <div class="scr">
+        <div class="rd-head"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg><div class="t"></div><svg class="ico" aria-hidden="true"><use href="#i-aa"/></svg><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg></div>
+        <div class="page">
+          <div class="chap">Seven · The Third Letter</div>
+          <p class="first">The dust came in early that year, settling on the windowsills before the children had finished their exams.</p>
+          <p>I kept the letters in a biscuit tin under my bed. Each one smelled faintly of camphor and of the hands that had carried it.</p>
+          <p><span class="sel">Grace did not ask her to be ready. It only asked her to come.</span> I read that line until the paper went soft.</p>
+          <p>Outside, the neighbours argued about the price of kerosene.</p>
+          <div class="tb tb-c" role="toolbar" aria-label="Selection"><span><i class="sw"></i>Highlight</span><span>Note</span><span>Discuss</span><span>Share</span><span class="dim"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></div>
+        </div>
+        <div class="rd-foot"><span>Page 84 of 221</span></div>
+      </div>
+    </div><figcaption>Reader, text selected</figcaption></figure>
+  </div>
+</section>
+
+<footer class="footer">
+  <h2>How to pick</h2>
+  <ul>
+    <li><b>Reply with A, B or C</b>, or mix them, for example "C's reader with A's home".</li>
+    <li>Whichever you choose becomes the design system: tokens, type scale, components and states, then all 11 flows as a clickable prototype.</li>
+    <li>All three already fix two v25 problems: the reader header sits below the status bar, and the highlight toolbar appears above the selection, so it never covers the selected text.</li>
+  </ul>
+</footer>
+
+</div>

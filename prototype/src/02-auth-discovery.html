@@ -1,0 +1,505 @@
+
+<!-- ===================== FLOW 1 · SIGN-IN AND ONBOARDING ===================== -->
+<section class="screen" id="s-login" data-flow="1" data-name="Log in" data-sb="org" data-note="Same fields and order as v25: email, password, Forgot password, Log in, or Continue with Google, Create an account.|New: orange sunflower band with the app icon, and the form on a white sheet.|Fixed: password has a show/hide eye on every platform; a wrong password shows under the field, not as a popup." hidden>
+  <div class="hero onb-hero">
+    <div class="hero__body">
+      <svg class="onb-logo" viewBox="0 0 48 48" role="img" aria-label="Arpedia"><use href="#i-appicon"/></svg>
+      <h1 class="hero__title">Welcome back</h1>
+      <p class="hero__sub">Log in to continue reading.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="input"><label for="li-email">Email</label><div class="field"><input id="li-email" type="email" placeholder="you@example.com"></div></div>
+      <div class="input"><label for="li-pw">Password</label><div class="field"><input id="li-pw" type="password" placeholder="Your password"><button class="ib onb-eye" aria-label="Show password"><svg class="ico s" aria-hidden="true"><use href="#i-eye"/></svg></button></div></div>
+      <a class="link onb-forgot">Forgot password?</a>
+      <a class="btn btn-p block" data-go="home">Log in</a>
+      <div class="divider-or">or</div>
+      <button class="btn btn-g block"><svg class="ico s" aria-hidden="true"><use href="#i-g"/></svg>Continue with Google</button>
+      <p class="t-sm t-soft t-center onb-alt">New to Arpedia? <a class="link" data-go="signup">Create an account</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-signup" data-flow="1" data-name="Create account" data-sb="org" data-note="Same as v25: full name, email, password, Create account, or Sign up with Google, Log in.|New: orange sunflower band, form on a white sheet.|Fixed: the password rule shows under the field before typing, not only as a placeholder that disappears." hidden>
+  <div class="hero onb-hero">
+    <div class="hero__body">
+      <svg class="onb-logo" viewBox="0 0 48 48" role="img" aria-label="Arpedia"><use href="#i-appicon"/></svg>
+      <h1 class="hero__title">Create your account</h1>
+      <p class="hero__sub">Join Arpedia to read and connect.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="input"><label for="su-name">Full name</label><div class="field"><input id="su-name" placeholder="Ada Writer"></div></div>
+      <div class="input"><label for="su-email">Email</label><div class="field"><input id="su-email" type="email" placeholder="you@example.com"></div></div>
+      <div class="input"><label for="su-pw">Password</label><div class="field"><input id="su-pw" type="password" placeholder="At least 6 characters"><button class="ib onb-eye" aria-label="Show password"><svg class="ico s" aria-hidden="true"><use href="#i-eye"/></svg></button></div><span class="hint">Use at least 6 characters.</span></div>
+      <a class="btn btn-p block" data-go="interests">Create account</a>
+      <div class="divider-or">or</div>
+      <button class="btn btn-g block"><svg class="ico s" aria-hidden="true"><use href="#i-g"/></svg>Sign up with Google</button>
+      <p class="t-sm t-soft t-center onb-alt">Already have an account? <a class="link" data-go="login">Log in</a></p>
+      <p class="t-xs t-muted t-center">By creating an account you agree to the Terms and Privacy Policy.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+/* ---- App colour themes (user picks in onboarding or Settings). Default = Sunflower. All pass WCAG AA for text. ---- */
+.device[data-theme="palm"]{--acc:#E8902A;--acc-on:#4A2600;--org:#2F6B4F;--org-rgb:47,107,79;--org-ink:#2F6B4F;--org-tint:#E3F0E8;--org-tint-2:#F3F8F5;--on-org:#FFFFFF;--on-org-rgb:255,255,255;--petal-rgb:255,255,255;--petal-k:.42;--sun-rgb:214,168,74}
+.device[data-theme="plum"]{--acc:#E0A030;--acc-on:#4A2600;--org:#6B4A8E;--org-rgb:107,74,142;--org-ink:#5E3F80;--org-tint:#EEE7F6;--org-tint-2:#F8F4FB;--on-org:#FFFFFF;--on-org-rgb:255,255,255;--petal-rgb:255,255,255;--petal-k:.42;--sun-rgb:214,168,74}
+.device[data-theme="night"]{--acc:#F5931F;--acc-on:#4A2600;--org:#2A211A;--org-rgb:42,33,26;--org-ink:#9A4F00;--org-tint:#F1ECE6;--org-tint-2:#F8F5F1;--on-org:#FFF6EA;--on-org-rgb:255,246,234;--petal-rgb:245,147,31;--petal-k:.6;--sun-rgb:217,139,43}
+
+.device[data-theme="night"] .btn-p{background:var(--org);color:var(--on-org)}
+.device[data-theme="palm"] .wmk--night,.device[data-theme="plum"] .wmk--night,.device[data-theme="night"] .wmk--night{filter:brightness(0) invert(1)}
+.device[data-theme="night"] .hero .pill.night,.device[data-theme="night"] .hero .btn-n{background:rgba(255,246,234,.16);color:#FFF6EA}
+.hero-panel{color:var(--ink)}
+.hero-panel .t-xs,.hero-panel small,.hero-panel .t-label{color:var(--ink-2)}
+.onb-skip{border:0;background:none;font:inherit;font-weight:700;font-size:14px;color:inherit;cursor:pointer;padding:8px 10px}
+.th-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
+.th-tile{position:relative;border:0;font:inherit;cursor:pointer;text-align:left;aspect-ratio:1/1;border-radius:22px;padding:16px;background:var(--f);color:var(--o);display:flex;flex-direction:column;justify-content:flex-end;gap:2px;overflow:hidden;box-shadow:0 14px 26px -20px rgba(0,0,0,.55);transition:transform var(--m-fast,120ms) var(--m-ease,ease),box-shadow var(--m-base,200ms) var(--m-ease,ease)}
+.th-tile:active{transform:scale(.97)}
+.th-tile::before{content:"";position:absolute;right:-38px;top:-38px;width:110px;height:110px;border-radius:50%;background:repeating-conic-gradient(var(--pc) 0 14deg,transparent 14deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%)}
+.th-tile b{font-family:var(--f-d);font-weight:800;font-size:19px;letter-spacing:-.01em;position:relative}
+.th-tile small{font-size:12.5px;line-height:1.3;opacity:.88;position:relative}
+.th-acc{position:relative;display:flex;gap:5px;margin-bottom:8px}
+.th-acc i{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+.th-tile.is-selected{box-shadow:0 0 0 3px var(--white),0 0 0 5.5px var(--ink),0 14px 26px -20px rgba(0,0,0,.55)}
+.th-check{position:absolute;top:12px;left:12px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);display:grid;place-items:center;opacity:0;transform:scale(.6);transition:opacity var(--m-base,200ms) var(--m-ease,ease),transform var(--m-base,200ms) var(--m-ease,ease)}
+.th-check::after{content:"";width:10px;height:5px;border-left:2px solid #111827;border-bottom:2px solid #111827;transform:rotate(-45deg) translate(1px,-1px)}
+.th-tile.is-selected .th-check{opacity:1;transform:none}
+</style>
+<section class="screen" id="s-interests" data-flow="1" data-name="Choose genres" data-sb="org" data-note="Same 10 genres as v25, with Fiction and Nigerian books picked to start.|New: step band shows 1 of 3; picked genres turn orange with a tick.|Picks fill the For you rail on Home. Skip stays available." hidden>
+  <div class="hero onb-step">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="signup" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="3"><i style="width:33%"></i></div><span class="onb-count">1 of 3</span></div>
+    <div class="hero__body">
+      <h1 class="hero__title">Choose the genres you love</h1>
+      <p class="hero__sub">Pick a few for better recommendations, or skip it.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="onb-chips" data-multi><button class="onb-chip sel"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Fiction</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Christian</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Christian romance</button><button class="onb-chip sel"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Nigerian books</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>African literature</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Faith</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Romance</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Drama</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Short reads</button><button class="onb-chip"><svg class="ico xs onb-chip__tick" aria-hidden="true"><use href="#i-check"/></svg>Personal growth</button></div>
+  </div>
+  <div class="foot"><div class="btn-grid"><a class="btn btn-s" data-go="theme"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg>Skip</a><a class="btn btn-p" data-go="theme">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a></div></div>
+</section>
+<section class="screen" id="s-theme" data-flow="1" data-name="Pick your colour" data-sb="org" data-note="New: readers choose the app colour during onboarding: Sunflower (the original orange), Palm (green), Plum (purple) or Night (warm black).|Each choice is a rounded colour square with its name and feel. The chosen colour becomes the main colour (bands, main buttons, selections); each theme has its own accent for progress, badges and counts, and stars stay gold. Change it any time in Settings → App colour.|Rule: every theme passes WCAG AA; text on the coloured band switches between brown and cream automatically. Book covers, highlights and reader themes don't change." hidden>
+  <div class="hero onb-step">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="interests" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="onb-skip" data-go="role">Skip</button></div>
+    <div class="hero__body"><h1 class="hero__title">Pick your colour</h1><p class="hero__sub">Make Arpedia feel like yours. You can change it later.</p></div>
+  </div>
+  <div class="body onb-sheet" style="display:flex;flex-direction:column;gap:16px;padding-top:20px">
+    
+    <div class="th-grid" data-single><button class="th-tile is-selected" data-theme-pick="sunflower" aria-label="Sunflower: Bright orange with olive accents" style="--f:#F5931F;--o:#4A2600;--pc:rgba(var(--petal-rgb),calc(.8 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#5E7A35"></i><i style="background:#E8A600"></i></span><b>Sunflower</b><small>Bright orange with olive accents</small></button><button class="th-tile" data-theme-pick="palm" aria-label="Palm: Deep green with warm orange" style="--f:#2F6B4F;--o:#FFFFFF;--pc:rgba(var(--petal-rgb),calc(.45 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#E8902A"></i><i style="background:#E8A600"></i></span><b>Palm</b><small>Deep green with warm orange</small></button><button class="th-tile" data-theme-pick="plum" aria-label="Plum: Muted purple with marigold" style="--f:#6B4A8E;--o:#FFFFFF;--pc:rgba(var(--petal-rgb),calc(.45 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#E0A030"></i><i style="background:#E8A600"></i></span><b>Plum</b><small>Muted purple with marigold</small></button><button class="th-tile" data-theme-pick="night" aria-label="Night: Warm black with sunflower" style="--f:#2A211A;--o:#FFF6EA;--pc:rgba(var(--petal-rgb),calc(.45 * var(--petal-k)))"><span class="th-check"></span><span class="th-acc" aria-hidden="true"><i style="background:#F5931F"></i><i style="background:#E8A600"></i></span><b>Night</b><small>Warm black with sunflower</small></button></div>
+    <div style="padding:4px 16px 24px"><a class="btn btn-p block lg" data-go="role">Continue</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-role" data-flow="1" data-name="Reader or author" data-sb="org" data-note="Same choice and copy as v25: I&#39;m a reader, I&#39;m an author.|New: step band shows 2 of 3; the picked card fills with tint and a tick.|Authors still read first and apply from Profile; this only shapes their first screens." hidden>
+  <div class="hero onb-step">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="theme" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="2" aria-valuemin="1" aria-valuemax="3"><i style="width:66%"></i></div><span class="onb-count">2 of 3</span></div>
+    <div class="hero__body">
+      <h1 class="hero__title">How will you use Arpedia?</h1>
+      <p class="hero__sub">Pick one to start. You can always switch later.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="option-list onb-roles" data-single>
+      <button class="option is-selected"><span class="option__body"><span class="option__title">I&#39;m a reader</span><span class="option__sub">Discover, read, and follow authors. You can switch to author mode anytime.</span></span><span class="onb-tick"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg></span></button>
+      <button class="option"><span class="option__body"><span class="option__title">I&#39;m an author</span><span class="option__sub">Publish and manage your books in the Author Studio, and reach your readers.</span></span><span class="onb-tick"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg></span></button>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="profile-setup">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+</section>
+
+<section class="screen" id="s-profile-setup" data-flow="1" data-name="Complete your profile" data-sb="org" data-note="Same fields as v25: photo, full name, phone number, date of birth, country.|Fixed: full name carries over from sign-up, so Continue is ready (v25 kept it disabled on an optional screen).|Fixed: Add photo works for readers too (v25 showed a spinner).|New: Skip for now, and a line on why phone and birthday are asked." hidden>
+  <div class="hero onb-step">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="role" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="3" aria-valuemin="1" aria-valuemax="3"><i style="width:100%"></i></div><span class="onb-count">3 of 3</span></div>
+    <div class="hero__body">
+      <h1 class="hero__title">Complete your profile</h1>
+      <p class="hero__sub">Only you can see this. Optional, you can finish it later.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="onb-avatar"><span class="av xl g">NE</span><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-image"/></svg>Add photo</button></div>
+      <div class="input"><label for="ps-name">Full name</label><div class="field"><input id="ps-name" value="Ngozi Eze"></div></div>
+      <div class="input"><label for="ps-phone">Phone number</label><div class="field"><span class="t-soft t-strong">+234</span><input id="ps-phone" placeholder="803 000 0000"></div><span class="hint">For account recovery only. Never shown to others.</span></div>
+      <div class="input"><label for="ps-dob">Date of birth</label><div class="field"><input id="ps-dob" placeholder="DD / MM / YYYY"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-cal"/></svg></div><span class="hint">Helps us suggest age-appropriate books.</span></div>
+      <div class="input"><label for="ps-country">Country</label><div class="field"><input id="ps-country" value="Nigeria"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="plans-onboard">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="link t-center onb-skip" data-go="plans-onboard">Skip for now</a></div>
+</section>
+
+<style>
+/* ---- Paywall (rebuilt from paywall research: short form, personal, proof first, 2 plans, honest timeline, one CTA) ---- */
+.pw-hero .hero__body{align-items:center;text-align:center;padding:0 20px 26px;gap:10px}
+.pw-fan{position:relative;height:150px;width:220px;margin:2px auto 6px}
+.pw-fan .cv{position:absolute;top:8px;left:50%;box-shadow:0 16px 28px -14px rgba(0,0,0,.55)}
+.pw-fan .cv:nth-child(1){transform:translateX(-112%) rotate(-10deg) translateY(10px)}
+.pw-fan .cv:nth-child(2){transform:translateX(-50%);z-index:2;top:0}
+.pw-fan .cv:nth-child(3){transform:translateX(12%) rotate(10deg) translateY(10px)}
+.pw-hero .hero__title{font-size:28px}
+.pw-hero .hero__sub{font-size:14px;max-width:32ch}
+.pw-x{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.22);color:var(--on-org);display:grid;place-items:center;border:0;cursor:pointer}
+.pw-restore{font-size:13px;font-weight:700;color:var(--on-org);text-decoration:none;cursor:pointer;padding:8px 10px}
+.pw-proof{display:flex;flex-direction:column;gap:8px;padding:18px 16px 0}
+.pw-stars{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);justify-content:center}
+.pw-stars b{color:#E8A600;letter-spacing:1px;font-size:15px}
+.pw-stars strong{color:var(--ink)}
+.pw-quote{margin:0;font-family:var(--f-r);font-size:15px;line-height:1.5;text-align:center;color:var(--ink);padding:0 10px}
+.pw-quote cite{display:block;font-family:var(--f-ui);font-style:normal;font-size:12.5px;color:var(--ink-3);margin-top:4px}
+.pw-plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:20px 16px 0}
+.pw-plan{position:relative;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;background:var(--white);border-radius:18px;padding:22px 14px 14px;box-shadow:inset 0 0 0 1.5px var(--line);display:flex;flex-direction:column;gap:2px;transition:box-shadow var(--m-base,200ms) var(--m-ease,ease),background-color var(--m-base,200ms),transform var(--m-fast,120ms)}
+.pw-plan.is-selected{box-shadow:inset 0 0 0 2.5px var(--org);background:var(--org-tint-2)}
+.pw-plan:active{transform:scale(.98)}
+.pw-badge{position:absolute;top:-10px;left:12px;height:22px;padding:0 10px;border-radius:999px;background:var(--night);color:#fff;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center}
+.pw-plan .nm{font-size:13px;font-weight:700;color:var(--ink-2)}
+.pw-plan .pm{font-family:var(--f-d);font-weight:800;font-size:28px;letter-spacing:-.02em;line-height:1.05;margin-top:4px}
+.pw-plan .pm small{font-family:var(--f-ui);font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:0}
+.pw-plan .bill{font-size:12.5px;color:var(--ink-2)}
+.pw-plan .gets{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:12.5px;line-height:1.35;color:var(--ink)}
+.pw-plan .gets b{display:block;font-size:13.5px}
+.pw-plan .dot{position:absolute;top:14px;right:12px;width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C7CBD1}
+.pw-plan.is-selected .dot{box-shadow:inset 0 0 0 6px var(--org)}
+.pw-more{display:block;text-align:center;font-size:13.5px;font-weight:700;color:var(--org-ink);padding:12px 0 0;text-decoration:none;cursor:pointer}
+.pw-how{margin:22px 16px 0;padding:16px;border-radius:18px;background:var(--surface)}
+.pw-how h3{font-family:var(--f-d);font-weight:800;font-size:16px;margin-bottom:12px}
+.pw-steps{display:flex;flex-direction:column;position:relative;padding-left:26px}
+.pw-steps::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--acc),var(--acc) 34%,#D1D5DB 34%)}
+.pw-step{position:relative;padding-bottom:14px;font-size:13.5px;line-height:1.4;color:var(--ink-2)}
+.pw-step:last-child{padding-bottom:0}
+.pw-step::before{content:"";position:absolute;left:-26px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--white);box-shadow:inset 0 0 0 2px #C7CBD1}
+.pw-step.on::before{background:var(--acc);box-shadow:inset 0 0 0 3px var(--white),0 0 0 2px var(--acc)}
+.pw-step b{display:block;color:var(--ink);font-size:14px}
+.pw-foot{flex:0 0 auto;padding:12px 16px 18px;background:var(--white);box-shadow:0 -10px 24px -18px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:8px;position:relative;z-index:3}
+.pw-foot .btn{height:54px;font-size:16px;border-radius:14px}
+.pw-fine{font-size:12px;color:var(--ink-3);text-align:center;line-height:1.45}
+.pw-fine a{color:var(--ink-2);font-weight:600;text-decoration:none;cursor:pointer}
+.pw-list{display:flex;flex-direction:column;gap:10px;padding:16px}
+.pw-row{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;box-shadow:inset 0 0 0 1.5px var(--line);background:var(--white);border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}
+.pw-row.is-selected{box-shadow:inset 0 0 0 2.5px var(--org);background:var(--org-tint-2)}
+.pw-row .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pw-row b{font-size:15px}
+.pw-row small{font-size:12.5px;color:var(--ink-2)}
+.pw-row .pr{text-align:right;font-weight:800;font-size:15px}
+.pw-row .pr small{display:block;font-weight:500}
+.pw-badge--quiet{background:var(--org-tint-2);color:var(--on-org);box-shadow:inset 0 0 0 1px var(--org-tint)}
+.pw-row .dot{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C7CBD1;flex:0 0 auto}
+.pw-row.is-selected .dot{box-shadow:inset 0 0 0 6px var(--org)}
+</style>
+<section class="screen" id="s-plans-onboard" data-flow="1" data-name="Subscribe" data-sb="org" data-note="Rebuilt from paywall research (RevenueCat, Superwall, Blinkist's honest paywall). Short form instead of a long benefits list.|New: personal headline and covers from the genres the reader just picked, so the paywall feels like their shelf is ready rather than an ad.|New: social proof first (rating plus one real-sounding reader quote), then just two plans with the monthly price large; Monthly sits under See monthly plan.|New: an honest 'How it works' timeline (what happens today, when it renews, how to cancel) instead of fine print. We remind readers 3 days before each renewal.|Rule: price labels are honest. The ladder is Monthly ₦900, Quarterly ₦800 and Yearly ₦700 a month, so Yearly is genuinely Best value; Quarterly stays the default as Most popular.|Credits: every credit is worth ₦3, so plans are priced at ₦3 a credit (Yearly adds 200 bonus credits). Books cost half a credit per page, so 125 credits is about one 250-page book.|Same as v25: Browse first (now the ✕) lets new readers skip; prices are Google Play prices (web is cheaper)." hidden>
+  <div class="hero pw-hero">
+    <div class="hero__bar"><button class="pw-x" data-go="all-set" aria-label="Not now, browse first"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button><span class="fill"></span><a class="pw-restore" data-go="all-set">Restore</a></div>
+    <div class="hero__body">
+      <div class="pw-fan" aria-hidden="true"><span class="cv c6 x88"><b>A House Called Grace</b><small>Kemi Ogunleye</small></span><span class="cv c1 x104"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></span><span class="cv c2 x88"><b>Still Waters, Lagos</b><small>Chioma Okafor</small></span></div>
+      <h1 class="hero__title">Ngozi, your shelf is ready</h1>
+      <p class="hero__sub">412 books in Christian &amp; Faith, Clean romance and African stories. Start reading tonight.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet" style="padding-bottom:18px">
+    <div class="pw-proof">
+      <div class="pw-stars"><b>★★★★★</b><span><strong>4.8</strong> from 12,400 readers</span></div>
+      <blockquote class="pw-quote">“I’ve read 9 books since March. That’s cheaper than buying one paperback.”<cite>Chiamaka, Enugu</cite></blockquote>
+    </div>
+    <div class="pw-plans" data-single>
+      <button class="pw-plan is-selected"><span class="pw-badge">Most popular</span><span class="dot"></span><span class="nm">Quarterly</span><span class="pm">₦800<small> /month</small></span><span class="bill">₦2,400 every 3 months</span><span class="gets"><b>800 credits</b>≈ 6 books every quarter</span></button>
+      <button class="pw-plan"><span class="pw-badge pw-badge--quiet">Best value</span><span class="dot"></span><span class="nm">Yearly</span><span class="pm">₦700<small> /month</small></span><span class="bill">₦8,400 once a year</span><span class="gets"><b>3,000 credits</b>≈ 24 books every year</span></button>
+    </div>
+    <a class="pw-more" data-go="plans-all">See monthly plan</a>
+    <div class="pw-how"><h3>How it works</h3>
+      <div class="pw-steps">
+        <div class="pw-step on"><b>Today</b>800 credits land in your account. Unlock a whole book, or pay as you read, chapter by chapter. Same price either way, and the first 10% is always free.</div>
+        <div class="pw-step"><b>Every renewal</b>Your credits refill. Anything unused rolls over for one more period.</div>
+        <div class="pw-step"><b>Day 87</b>We remind you 3 days before your plan renews.</div>
+        <div class="pw-step"><b>Anytime</b>Pause or cancel in two taps. Books you unlocked stay in your library for good.</div>
+      </div>
+    </div>
+  </div>
+  <div class="pw-foot">
+    <a class="btn btn-p block" data-go="checkout">Continue · ₦2,400</a>
+    <p class="pw-fine">Billed by Google Play every 3 months until you cancel. <a data-go="all-set">Terms</a> · <a data-go="all-set">Privacy</a></p>
+  </div>
+</section>
+<section class="screen sheet" id="s-plans-all" data-base="plans-onboard" data-flow="1" data-name="All plans" data-note="New: Monthly lives here so the main paywall shows only two choices (fewer choices converts better). Each row shows the monthly price so plans are easy to compare: ₦900, ₦800, ₦700. Credits are ₦3 each on every plan; Yearly adds 200 bonus." hidden>
+  <a class="backdrop" data-go="plans-onboard" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>All plans</h2><button class="ib" data-go="plans-onboard" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="pw-list" data-single>
+      <button class="pw-row"><span class="dot"></span><span class="grow"><b>Monthly</b><small>300 credits · ≈ 2 books a month</small></span><span class="pr">₦900<small>every month</small></span></button>
+      <button class="pw-row is-selected"><span class="dot"></span><span class="grow"><b>Quarterly · Most popular</b><small>800 credits ≈ 6 books · ₦800 a month</small></span><span class="pr">₦2,400<small>every 3 months</small></span></button>
+      <button class="pw-row"><span class="dot"></span><span class="grow"><b>Yearly · Best value</b><small>3,000 credits ≈ 24 books · ₦700 a month</small></span><span class="pr">₦8,400<small>once a year</small></span></button>
+    </div>
+    <div style="padding:0 16px 20px"><a class="btn btn-p block lg" data-go="plans-onboard">Choose plan</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-all-set" data-flow="1" data-name="You're all set" data-sb="org" data-note="Same as v25: You're all set!, Subscription active, Go to Home.|New: shows the credits just added, when the plan renews, and three first steps." hidden>
+  <div class="hero hero--low">
+    <div class="hero__bar"><span class="fill"></span></div>
+    <div class="hero__body">
+      
+      <h1 class="hero__title hero__title--xl">You're all set!</h1>
+      <p class="hero__sub">Subscription active. Time to find your next read.</p>
+      <span class="h8"><span class="pill night"><svg class="ico xs" aria-hidden="true"><use href="#i-coin"/></svg>800 credits added</span><span class="pill">Quarterly · renews 12 Feb</span></span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">Start here</h2></div>
+      <div class="group">
+        <a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c1 x40"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title">Read the #2 book this week</span><span class="cell__sub">Harmattan Letters · 125 credits</span></span><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="channel"><span class="cell__body"><span class="cell__title">Join Grace Readers</span><span class="cell__sub">1,240 members · reading chapter 8</span></span><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="author"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="cell__title">Follow Ifeoma Nwachukwu</span><span class="cell__sub">Christian fiction · 3 books</span></span><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+  </div>
+  <div class="foot flat"><a class="btn btn-p block" data-go="home"><svg class="ico s" aria-hidden="true"><use href="#i-home"/></svg>Go to Home</a></div>
+</section>
+
+<!-- ===================== FLOW 2 · DISCOVERY ===================== -->
+<section class="screen" id="s-home" data-flow="2" data-name="Home" data-sb="org" data-note="Same rails and order as v25: Trending this week, Arpedia authors, New arrivals, Top 10 books, Recommended for you.|New: orange greeting band with search, credits and alerts; Top 10 sits on its own sunflower band with big rank numbers.|Fixed: Explore has a clear way in (grid button and Browse genres).|Removed: Continue reading; it lives in Library." hidden>
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar"><span class="wm"><svg width="30" height="30" aria-hidden="true"><use href="#i-appicon"/></svg><span class="wmk wmk--night" role="img" aria-label="arpedia" style="height:22px"></span></span><a class="pill night" data-go="credits" aria-label="840 credits"><svg class="ico xs" aria-hidden="true"><use href="#i-coin"/></svg>840</a><button class="ib" data-go="explore" aria-label="Explore"><svg class="ico" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib has-dot" data-go="notifications" aria-label="Notifications, 3 new"><svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg></button></div>
+      <div class="hero__body">
+        <h1 class="hero__title">Good evening, Ngozi.</h1>
+        <a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search books, authors, topics</a>
+      </div>
+    </div>
+    <div class="section"><div class="section__head"><div class="v2"><h2 class="section__title">Trending this week</h2></div><a class="section__link" data-go="see-all">See all</a></div><div class="rail"><a class="bk bk--author" data-go="book"><div class="cv c1 x104"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></div><b>Harmattan Letters</b><span>Ifeoma Nwachukwu</span></a><a class="bk bk--author" data-go="book"><div class="cv c3 x104"><b>The Alignment</b><small>Adaeze Rosemary Possible</small></div><b>The Alignment</b><span>Adaeze Rosemary Possible</span></a><a class="bk bk--author" data-go="book"><div class="cv c2 x104"><b>Still Waters, Lagos</b><small>Chioma Okafor</small></div><b>Still Waters, Lagos</b><span>Chioma Okafor</span></a><a class="bk bk--author" data-go="book"><div class="cv c4 x104"><b>Seven Bridges to Jos</b><small>Musa Danladi</small></div><b>Seven Bridges to Jos</b><span>Musa Danladi</span></a></div></div>
+    <div class="section"><div class="section__head"><div class="v2"><h2 class="section__title">Arpedia authors</h2></div></div><div class="rail"><a class="avatar-tile" data-go="author"><span class="av m">IN</span><span>Ifeoma N.</span></a><a class="avatar-tile" data-go="author"><span class="av r">AP</span><span>Adaeze R. P.</span></a><a class="avatar-tile" data-go="author"><span class="av o">MD</span><span>Musa D.</span></a><a class="avatar-tile" data-go="author"><span class="av k">KO</span><span>Kemi O.</span></a><a class="avatar-tile" data-go="author"><span class="av t">CO</span><span>Chioma O.</span></a></div></div>
+    <div class="section"><div class="section__head"><div class="v2"><h2 class="section__title">New arrivals</h2></div><a class="section__link" data-go="see-all">See all</a></div><div class="rail"><a class="bk bk--author" data-go="book"><div class="cv c6 x104"><b>A House Called Grace</b><small>Kemi Ogunleye</small></div><b>A House Called Grace</b><span>Kemi Ogunleye</span></a><a class="bk bk--author" data-go="book"><div class="cv c5 x104"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></div><b>Ruth of Ibadan</b><span>Tolu Adebayo</span></a><a class="bk bk--author" data-go="book"><div class="cv c7 x104"><b>Psalms for the Danfo</b><small>Emeka Obi</small></div><b>Psalms for the Danfo</b><span>Emeka Obi</span></a><a class="bk bk--author" data-go="book"><div class="cv c8 x104"><b>Bread on Water</b><small>Halima Bello</small></div><b>Bread on Water</b><span>Halima Bello</span></a></div></div>
+    <div class="band">
+      <div class="section__head"><div class="v2"><h2 class="section__title">Top 10 books</h2><p class="section__sub">Most read on Arpedia this week</p></div><a class="section__link" data-go="see-all">See all</a></div>
+      <div class="rail"><a class="rank" data-go="book"><span class="n">1</span><div class="cv c3 x88"><b>The Alignment</b><small>Adaeze Rosemary Possible</small></div></a><a class="rank" data-go="book"><span class="n">2</span><div class="cv c1 x88"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></div></a><a class="rank" data-go="book"><span class="n">3</span><div class="cv c2 x88"><b>Still Waters, Lagos</b><small>Chioma Okafor</small></div></a><a class="rank" data-go="book"><span class="n">4</span><div class="cv c4 x88"><b>Seven Bridges to Jos</b><small>Musa Danladi</small></div></a><a class="rank" data-go="book"><span class="n">5</span><div class="cv c5 x88"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></div></a></div>
+    </div>
+    <div class="section"><div class="section__head"><div class="v2"><h2 class="section__title">Recommended for you</h2><p class="section__sub">Because you picked Fiction and Nigerian books</p></div><a class="section__link" data-go="explore">See all</a></div><div class="rail"><a class="bk bk--author" data-go="book"><div class="cv c7 x104"><b>Psalms for the Danfo</b><small>Emeka Obi</small></div><b>Psalms for the Danfo</b><span>Emeka Obi</span></a><a class="bk bk--author" data-go="book"><div class="cv c6 x104"><b>A House Called Grace</b><small>Kemi Ogunleye</small></div><b>A House Called Grace</b><span>Kemi Ogunleye</span></a><a class="bk bk--author" data-go="book"><div class="cv c8 x104"><b>Bread on Water</b><small>Halima Bello</small></div><b>Bread on Water</b><span>Halima Bello</span></a><a class="bk bk--author" data-go="book"><div class="cv c5 x104"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></div><b>Ruth of Ibadan</b><span>Tolu Adebayo</span></a></div></div>
+    <div class="section body-end">
+      <div class="section__head"><h2 class="section__title">Browse genres</h2><a class="section__link" data-go="explore">Explore</a></div>
+      <div class="genre-grid">
+        <a class="genre genre--night" data-go="explore"><b>Christian &amp; Faith</b><span>142 books</span></a>
+        <a class="genre" data-go="explore"><b>Fiction</b><span>96 books</span></a>
+        <a class="genre" data-go="explore"><b>Romance</b><span>71 books</span></a>
+        <a class="genre genre--surface" data-go="explore"><b>Drama</b><span>38 books</span></a>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar"><a class="tab on" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-see-all" data-flow="2" data-name="Top 10 books" data-sb="org" data-note="Opens from See all on Home, like v25.|New: rank numbers, movement since last week, and credit cost before you open a book." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" data-go="explore-filter" aria-label="Filter"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Top 10 books</h1><p class="hero__sub">Most read on Arpedia this week</p></div>
+  </div>
+  <div class="body body-end">
+    <div class="group group--flush">
+      <a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">1</span></span><span class="cell__lead"><span class="cv c3 x48"><b>The Alignment</b></span></span><span class="cell__body"><span class="cell__title">The Alignment</span><span class="cell__sub t-brand t-strong">Adaeze Rosemary Possible</span><span class="cell__sub">Christian romance · 13 hr read · 184 cr</span></span><span class="cell__trail"><span class="pill grey">—</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">2</span></span><span class="cell__lead"><span class="cv c1 x48"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title">Harmattan Letters</span><span class="cell__sub t-brand t-strong">Ifeoma Nwachukwu</span><span class="cell__sub">Christian &amp; Faith · 6 hr read · 125 cr</span></span><span class="cell__trail"><span class="pill ok">▲ 3</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">3</span></span><span class="cell__lead"><span class="cv c2 x48"><b>Still Waters, Lagos</b></span></span><span class="cell__body"><span class="cell__title">Still Waters, Lagos</span><span class="cell__sub t-brand t-strong">Chioma Okafor</span><span class="cell__sub">Romance · 3 hr read · 60 cr</span></span><span class="cell__trail"><span class="pill ok">New</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">4</span></span><span class="cell__lead"><span class="cv c4 x48"><b>Seven Bridges to Jos</b></span></span><span class="cell__body"><span class="cell__title">Seven Bridges to Jos</span><span class="cell__sub t-brand t-strong">Musa Danladi</span><span class="cell__sub">Drama · 9 hr read · 196 cr</span></span><span class="cell__trail"><span class="pill err">▼ 1</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">5</span></span><span class="cell__lead"><span class="cv c5 x48"><b>Ruth of Ibadan</b></span></span><span class="cell__body"><span class="cell__title">Ruth of Ibadan</span><span class="cell__sub t-brand t-strong">Tolu Adebayo</span><span class="cell__sub">Christian &amp; Faith · 5 hr read · 117 cr</span></span><span class="cell__trail"><span class="pill grey">—</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">6</span></span><span class="cell__lead"><span class="cv c6 x48"><b>A House Called Grace</b></span></span><span class="cell__body"><span class="cell__title">A House Called Grace</span><span class="cell__sub t-brand t-strong">Kemi Ogunleye</span><span class="cell__sub">Drama · 5 hr read · 110 cr</span></span><span class="cell__trail"><span class="pill ok">▲ 2</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">7</span></span><span class="cell__lead"><span class="cv c7 x48"><b>Psalms for the Danfo</b></span></span><span class="cell__body"><span class="cell__title">Psalms for the Danfo</span><span class="cell__sub t-brand t-strong">Emeka Obi</span><span class="cell__sub">Fiction · 2 hr read · 44 cr</span></span><span class="cell__trail"><span class="pill err">▼ 2</span></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="rank-n">8</span></span><span class="cell__lead"><span class="cv c8 x48"><b>Bread on Water</b></span></span><span class="cell__body"><span class="cell__title">Bread on Water</span><span class="cell__sub t-brand t-strong">Halima Bello</span><span class="cell__sub">Nonfiction · 4 hr read · 96 cr</span></span><span class="cell__trail"><span class="pill ok">New</span></span></a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-explore" data-flow="2" data-name="Explore" data-sb="org" data-note="Same as v25: search by title, author or genre, a filter button, and the whole catalogue as a list with title, author, genre and reading time.|New: genre chips under the search for one-tap filtering, and each book shows its credit cost.|Removed: the separate info button on each row; tap the row to open the book." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+    <div class="hero__body">
+      <h1 class="hero__title">Explore</h1>
+      <div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Title, author, genre</a><button class="search-filter" data-go="explore-filter" aria-label="Filter by genre"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div>
+    </div>
+  </div>
+  <div class="body body-end">
+    <div class="chips pt16" data-single><button class="chip on">All</button><button class="chip">Christian &amp; Faith</button><button class="chip">Drama</button><button class="chip">Fiction</button><button class="chip">Nonfiction</button><button class="chip">Romance</button></div>
+    <div class="section">
+      <div class="section__head"><div class="v2"><h2 class="section__title">Browse catalogue</h2><p class="section__sub t-brand t-strong">10 books</p></div><button class="section__link h6">Most read<svg class="ico xs" aria-hidden="true"><use href="#i-chevd"/></svg></button></div>
+      <div class="group group--flush"><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c3 x48"><b>The Alignment</b></span></span><span class="cell__body"><span class="cell__title">The Alignment</span><span class="cell__sub t-brand t-strong">Adaeze Rosemary Possible</span><span class="cell__sub">Christian romance · 13 hr read</span></span><span class="cell__trail"><span class="pill grey">184 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c1 x48"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title">Harmattan Letters</span><span class="cell__sub t-brand t-strong">Ifeoma Nwachukwu</span><span class="cell__sub">Christian &amp; Faith · 6 hr read</span></span><span class="cell__trail"><span class="pill grey">125 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c2 x48"><b>Still Waters, Lagos</b></span></span><span class="cell__body"><span class="cell__title">Still Waters, Lagos</span><span class="cell__sub t-brand t-strong">Chioma Okafor</span><span class="cell__sub">Romance · 3 hr read</span></span><span class="cell__trail"><span class="pill grey">60 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c4 x48"><b>Seven Bridges to Jos</b></span></span><span class="cell__body"><span class="cell__title">Seven Bridges to Jos</span><span class="cell__sub t-brand t-strong">Musa Danladi</span><span class="cell__sub">Drama · 9 hr read</span></span><span class="cell__trail"><span class="pill grey">196 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c5 x48"><b>Ruth of Ibadan</b></span></span><span class="cell__body"><span class="cell__title">Ruth of Ibadan</span><span class="cell__sub t-brand t-strong">Tolu Adebayo</span><span class="cell__sub">Christian &amp; Faith · 5 hr read</span></span><span class="cell__trail"><span class="pill grey">117 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c6 x48"><b>A House Called Grace</b></span></span><span class="cell__body"><span class="cell__title">A House Called Grace</span><span class="cell__sub t-brand t-strong">Kemi Ogunleye</span><span class="cell__sub">Drama · 5 hr read</span></span><span class="cell__trail"><span class="pill grey">110 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c7 x48"><b>Psalms for the Danfo</b></span></span><span class="cell__body"><span class="cell__title">Psalms for the Danfo</span><span class="cell__sub t-brand t-strong">Emeka Obi</span><span class="cell__sub">Fiction · 2 hr read</span></span><span class="cell__trail"><span class="pill grey">44 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a><a class="cell cell--tap" data-go="book"><span class="cell__lead"><span class="cv c8 x48"><b>Bread on Water</b></span></span><span class="cell__body"><span class="cell__title">Bread on Water</span><span class="cell__sub t-brand t-strong">Halima Bello</span><span class="cell__sub">Nonfiction · 4 hr read</span></span><span class="cell__trail"><span class="pill grey">96 cr</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-explore-filter" data-base="explore" data-flow="2" data-name="Filter by genre" data-note="Same as v25: pick one genre, All selected by default.|New: book counts per genre, a length filter that matches credit cost, and a Show button that says how many books you'll see." hidden>
+  <a class="backdrop" data-go="explore" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="ph"><h2>Filter by genre</h2><button class="ib" data-go="explore" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="pb">
+      <div class="option-list" data-single><button class="option option--compact is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">All</span></span><span class="option__trail t-muted">10</span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Christian &amp; Faith</span></span><span class="option__trail t-muted">3</span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Drama</span></span><span class="option__trail t-muted">2</span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Fiction</span></span><span class="option__trail t-muted">2</span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Nonfiction</span></span><span class="option__trail t-muted">1</span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Romance</span></span><span class="option__trail t-muted">2</span></button></div>
+      <div class="v8"><span class="t-label">Length</span><div class="h8 h-wrap" data-multi><button class="chip">Under 150 pages · up to 75 cr</button><button class="chip">150–300 pages · 75–150 cr</button><button class="chip">300+ pages · 150 cr and up</button></div></div>
+      <div class="btn-grid"><button class="btn btn-g">Reset</button><a class="btn btn-p" data-go="explore">Show 10 books</a></div>
+    </div>
+  </div>
+</section>
+
+<style>
+/* ---- Search (rebuilt): orange search band, white body ---- */
+.sr-hero{padding-bottom:0}
+.sr-hero::after{right:-130px;top:-120px}
+.sr-bar{display:flex;align-items:center;gap:4px;padding:6px 16px 16px 6px}
+.sr-field{flex:1;background:var(--white);min-height:52px;border-radius:14px;box-shadow:0 10px 24px -14px rgba(74,38,0,.55)}
+.sr-field .ico{color:var(--ink-3)}
+.sr-field.focus,.sr-field:focus-within{border-color:var(--on-org);box-shadow:0 0 0 4px rgba(74,38,0,.14),0 10px 24px -14px rgba(74,38,0,.55)}
+.sr-x{width:32px;height:32px;margin-right:-6px;color:var(--ink-3)}
+.sr-scope{display:flex;align-items:center;gap:8px;padding:14px 16px 4px}
+.sr-scope .chips{padding:0;flex:1}
+.sr-sec{padding:20px 0 0}
+.sr-sec .section__head{padding:0 16px 10px}
+.sr-recent{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px}
+.sr-recent .chip{background:var(--white);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-2)}
+.sr-recent .chip .ico{color:var(--ink-3)}
+.sr-trend{display:flex;flex-direction:column;padding:0 16px}
+.sr-trend a{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);cursor:pointer}
+.sr-trend a:last-child{border-bottom:0}
+.sr-trend .rank-n{font-size:22px;min-width:18px}
+.sr-trend b{flex:1;font-weight:600;font-size:15px}
+.sr-trend small{font-size:12.5px;color:var(--ink-3)}
+.sr-genres{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+.sr-genre{position:relative;overflow:hidden;border-radius:16px;min-height:84px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;text-decoration:none;cursor:pointer;background:var(--org-tint);color:var(--on-org)}
+.sr-genre b{font-family:var(--f-d);font-weight:800;font-size:16px;line-height:1.1;position:relative;z-index:1}
+.sr-genre span{font-size:12px;opacity:.8;position:relative;z-index:1}
+.sr-genre::after{content:"";position:absolute;right:-34px;bottom:-34px;width:96px;height:96px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.55) 0 14deg,transparent 14deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%)}
+.sr-genre.g2{background:var(--night);color:#fff}.sr-genre.g2::after{background:repeating-conic-gradient(rgba(var(--org-rgb),.55) 0 14deg,transparent 14deg 30deg)}
+.sr-genre.g3{background:#1F4D3F;color:#fff}
+.sr-genre.g4{background:var(--org);color:var(--on-org)}
+.sr-genre.g5{background:#8C2D4B;color:#fff}
+.sr-genre.g6{background:var(--surface);color:var(--ink)}
+.sr-people{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;padding:0 16px}
+.sr-people::-webkit-scrollbar{display:none}
+.sr-person{display:flex;flex-direction:column;align-items:center;gap:6px;width:72px;text-decoration:none;color:var(--ink);cursor:pointer;text-align:center}
+.sr-person .av{width:60px;height:60px;font-size:18px}
+.sr-person b{font-size:12.5px;font-weight:600;line-height:1.2}
+.sr-sugg{display:flex;flex-direction:column;padding:6px 0}
+.sr-sugg a{display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;color:var(--ink);cursor:pointer}
+.sr-sugg a:active{background:var(--surface)}
+.sr-sugg .av{width:40px;height:40px}
+.sr-sugg .q{width:40px;height:40px;border-radius:12px;background:var(--org-tint);color:var(--org-ink);display:grid;place-items:center;flex:0 0 auto}
+.sr-sugg a > span:not(.cv):not(.av):not(.q){flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.sr-sugg a > span:not(.cv):not(.av):not(.q) b{font-weight:500;font-size:15px}
+.sr-sugg a > span:not(.cv):not(.av):not(.q) b strong{font-weight:800}
+.sr-sugg a > span:not(.cv):not(.av):not(.q) small{font-size:12.5px;color:var(--ink-3)}
+.sr-sugg .ico.go{color:var(--ink-3);transform:rotate(-45deg)}
+.sr-top{margin:14px 16px 0;padding:16px;border-radius:18px;background:var(--org-tint-2);box-shadow:inset 0 0 0 1px var(--org-tint);display:flex;gap:14px;text-decoration:none;color:inherit}
+.sr-top .cv{box-shadow:0 12px 24px -12px rgba(0,0,0,.55)}
+.sr-top__b{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.sr-top__k{font-size:12px;font-weight:700;color:var(--org-ink)}
+.sr-top__b h3{font-family:var(--f-d);font-weight:800;font-size:20px;line-height:1.1;letter-spacing:-.01em}
+.sr-top__b .by{font-size:14px;font-weight:600;color:var(--org-ink)}
+.sr-top__b .meta{font-size:12.5px;color:var(--ink-2)}
+.sr-top__acts{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:auto;padding-top:10px}
+.sr-top__price{font-size:12.5px;color:var(--ink-2)}
+.sr-top__price b{color:var(--ink);font-weight:700}
+.sr-list{display:flex;flex-direction:column}
+.sr-row{display:flex;gap:12px;padding:12px 16px;text-decoration:none;color:inherit;cursor:pointer;border-bottom:1px solid var(--line)}
+.sr-row:last-child{border-bottom:0}
+.sr-row__b{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.sr-row__b b{font-weight:700;font-size:15px}
+.sr-row__b .by{font-size:13px;color:var(--org-ink);font-weight:600}
+.sr-row__b .snip{font-family:var(--f-r);font-size:13.5px;line-height:1.45;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
+.sr-row__b .meta{font-size:12px;color:var(--ink-3)}
+.sr-row mark{background:var(--hl-y);color:inherit;border-radius:3px;padding:0 1px}
+.sr-row .pill{align-self:center}
+.sr-head{display:flex;align-items:baseline;justify-content:space-between;padding:22px 16px 6px}
+.sr-head h2{font-family:var(--f-d);font-weight:800;font-size:18px}
+.sr-head span{font-size:13px;color:var(--ink-3)}
+.sr-none{padding:28px 24px 8px;display:flex;flex-direction:column;gap:8px}
+.sr-none h2{font-family:var(--f-d);font-weight:800;font-size:24px;line-height:1.1;letter-spacing:-.02em;text-wrap:balance}
+.sr-none p{color:var(--ink-2);font-size:14.5px}
+.sr-none .btn{align-self:flex-start;margin-top:8px}
+.sr-tips{margin:18px 16px 0;padding:14px 16px;border-radius:14px;background:var(--surface);font-size:13.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:6px}
+.sr-tips b{color:var(--ink)}
+</style>
+<section class="screen" id="s-search" data-flow="2" data-name="Search" data-sb="org" data-note="Same as v25: one search box for books, authors and topics.|New: search sits on the orange band like Explore, with the keyboard up and the box ready to type.|New: recent searches, trending searches this week, colourful genre tiles and authors people look for, so the empty screen is useful before you type.|Fixed: the box no longer runs off the right edge; the empty Search the catalogue placeholder is gone." hidden>
+  <div class="hero sr-hero">
+    <div class="sr-bar"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="field sr-field focus"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input aria-label="Search" placeholder="Books, authors, clubs" data-go="search-typing"></div></div>
+  </div>
+  <div class="body body-end">
+    <div class="sr-sec"><div class="section__head"><h2 class="section__title">Recent</h2><button class="section__link" data-go="search">Clear</button></div>
+      <div class="sr-recent"><a class="chip" data-go="search-results"><svg class="ico xs" aria-hidden="true"><use href="#i-clock"/></svg>grace</a><a class="chip" data-go="author"><svg class="ico xs" aria-hidden="true"><use href="#i-clock"/></svg>Chioma Okafor</a><a class="chip" data-go="book"><svg class="ico xs" aria-hidden="true"><use href="#i-clock"/></svg>harmattan</a></div></div>
+    <div class="sr-sec"><div class="section__head"><h2 class="section__title">Trending searches</h2></div><div class="sr-trend"><a data-go="search-results"><span class="rank-n">1</span><b>grace</b><small>2.4k searches this week</small></a><a data-go="book"><span class="rank-n">2</span><b>harmattan letters</b><small>1.9k</small></a><a data-go="author"><span class="rank-n">3</span><b>Chioma Okafor</b><small>1.1k</small></a><a data-go="explore"><span class="rank-n">4</span><b>christian romance</b><small>860</small></a><a data-go="search-none"><span class="rank-n">5</span><b>things fall apart</b><small>540</small></a></div></div>
+    <div class="sr-sec"><div class="section__head"><h2 class="section__title">Browse genres</h2><a class="section__link" data-go="explore">See all</a></div><div class="sr-genres"><a class="sr-genre " data-go="explore"><b>Christian &amp; Faith</b><span>96 books</span></a><a class="sr-genre g2" data-go="explore"><b>Clean romance</b><span>74 books</span></a><a class="sr-genre g3" data-go="explore"><b>African stories</b><span>61 books</span></a><a class="sr-genre g4" data-go="explore"><b>Devotionals</b><span>38 books</span></a><a class="sr-genre g5" data-go="explore"><b>Thriller</b><span>29 books</span></a><a class="sr-genre g6" data-go="explore"><b>Poetry</b><span>22 books</span></a></div></div>
+    <div class="sr-sec"><div class="section__head"><h2 class="section__title">Authors readers look for</h2></div><div class="sr-people"><a class="sr-person" data-go="author"><span class="av g">IN</span><b>Ifeoma Nwachukwu</b></a><a class="sr-person" data-go="author"><span class="av t">CO</span><b>Chioma Okafor</b></a><a class="sr-person" data-go="author"><span class="av r">AP</span><b>Adaeze R. Possible</b></a><a class="sr-person" data-go="author"><span class="av k">MD</span><b>Musa Danladi</b></a><a class="sr-person" data-go="author"><span class="av m">KO</span><b>Kemi Ogunleye</b></a><a class="sr-person" data-go="author"><span class="av o">EO</span><b>Emeka Obi</b></a></div></div>
+  </div>
+</section>
+<section class="screen" id="s-search-typing" data-flow="2" data-name="Search · typing" data-sb="org" data-note="New: suggestions appear after 2 letters, mixing books, authors, clubs and genres. Matching letters are bold.|Tap a suggestion to go straight there, or the first row to see every result.|Works offline for books already in your library." hidden>
+  <div class="hero sr-hero">
+    <div class="sr-bar"><button class="ib" data-go="search" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="field sr-field focus"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input aria-label="Search" value="gra"><button class="ib sr-x" data-go="search" aria-label="Clear search"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+  </div>
+  <div class="body body-end">
+    <div class="sr-sugg">
+      <a data-go="search-results"><span class="q"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg></span><span><b>Search for “<strong>gra</strong>”</b><small>See all results</small></span><svg class="ico s go" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a data-go="book"><span class="cv c6 x40"><b>A House Called Grace</b></span><span><b>A House Called <strong>Gra</strong>ce</b><small>Book · Kemi Ogunleye</small></span></a>
+      <a data-go="author"><span class="av r">GE</span><span><b><strong>Gra</strong>ce Effiong</b><small>Author · 1 book coming soon</small></span></a>
+      <a data-go="book"><span class="cv c8 x40"><b>Bread on Water</b></span><span><b>Bread on Water</b><small>Book · Halima Bello · topic “<strong>gra</strong>ce”</small></span></a>
+      <a data-go="community"><span class="av g">GG</span><span><b><strong>Gra</strong>ce &amp; Glory Readers</b><small>Book club · 1,204 members</small></span></a>
+      <a data-go="explore"><span class="q"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></span><span><b><strong>Gra</strong>phic novels</b><small>Genre · 6 books</small></span></a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-search-results" data-flow="2" data-name="Search results" data-sb="org" data-note="Same as v25: books with title, author, genre and reading time.|New: a Top result card with Read free preview, then books where your words appear in the story (with the matching line), then authors and clubs.|New: one row of scope chips (All, Books, Authors, Clubs) and a Filter button, instead of a thin tab strip.|Fixed: a book listed in two genres shows once (v25 showed The Alignment twice)." hidden>
+  <div class="hero sr-hero">
+    <div class="sr-bar"><button class="ib" data-go="search" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="field sr-field"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input aria-label="Search" value="grace"><button class="ib sr-x" data-go="search" aria-label="Clear search"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+  </div>
+  <div class="sr-scope"><div class="chips" data-single><button class="chip on">All 7</button><button class="chip">Books 4</button><button class="chip">Authors 1</button><button class="chip">Clubs 2</button></div><button class="ib" data-go="explore-filter" aria-label="Filter results"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg></button></div>
+  <div class="body body-end">
+    <a class="sr-top" data-go="book"><span class="cv c6 x88"><b>A House Called Grace</b><small>Kemi Ogunleye</small></span><span class="sr-top__b"><span class="sr-top__k">Top result</span><h3>A House Called <mark class="hl-y">Grace</mark></h3><span class="by">Kemi Ogunleye</span><span class="meta">★ 4.6 · Christian &amp; Faith · 6 hr read</span><span class="sr-top__acts"><span class="btn btn-p sm">Read free preview</span><span class="sr-top__price">or unlock for <b>110 credits</b></span></span></span></a>
+    <div class="sr-head"><h2>Books</h2><span>4</span></div>
+    <div class="sr-list">
+      <a class="sr-row" data-go="book"><span class="cv c1 x48"><b>Harmattan Letters</b></span><span class="sr-row__b"><b>Harmattan Letters</b><span class="by">Ifeoma Nwachukwu</span><span class=snip>“<mark>Grace</mark> did not ask her to be ready. It came the way harmattan comes.”</span><span class="meta">Christian &amp; Faith · 6 hr read</span></span><span class="pill grey">125 cr</span></a>
+      <a class="sr-row" data-go="book"><span class="cv c8 x48"><b>Bread on Water</b></span><span class="sr-row__b"><b>Bread on Water</b><span class="by">Halima Bello</span><span class=snip>A widow, a bakery in Kano and the slow arithmetic of <mark>grace</mark>.</span><span class="meta">Fiction · 4 hr read</span></span><span class="pill grey">96 cr</span></a>
+      <a class="sr-row" data-go="book"><span class="cv c7 x48"><b>Psalms for the Danfo</b></span><span class="sr-row__b"><b>Psalms for the Danfo</b><span class="by">Emeka Obi</span><span class=snip>“<mark>Grace</mark> on the 4:15 to Obalende” and 40 more poems.</span><span class="meta">Poetry · 2 hr read</span></span><span class="pill grey">44 cr</span></a>
+    </div>
+    <div class="sr-head"><h2>Authors</h2><span>1</span></div>
+    <div class="sr-list"><a class="sr-row" data-go="author"><span class="av r" style="width:48px;height:48px">GE</span><span class="sr-row__b"><b><mark>Grace</mark> Effiong</b><span class="meta">The Prayer Warrior’s Wife · coming soon · 312 waiting</span></span><span class="btn btn-s sm" style="align-self:center">Follow</span></a></div>
+    <div class="sr-head"><h2>Clubs</h2><span>2</span></div>
+    <div class="sr-list">
+      <a class="sr-row" data-go="community"><span class="av g" style="width:48px;height:48px">GG</span><span class="sr-row__b"><b><mark>Grace</mark> &amp; Glory Readers</b><span class="meta">1,204 members · reading Harmattan Letters</span></span><span class="btn btn-s sm" style="align-self:center">Join</span></a>
+      <a class="sr-row" data-go="community"><span class="av k" style="width:48px;height:48px">AG</span><span class="sr-row__b"><b>Amazing <mark>Grace</mark> Book Club, Ibadan</b><span class="meta">318 members · meets Sundays</span></span><span class="btn btn-s sm" style="align-self:center">Join</span></a>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s-search-none" data-flow="2" data-name="Search · no results" data-sb="org" data-note="New: a real no-results screen. Says plainly the book isn’t on Arpedia yet and lets the reader ask for it (requests show up for staff in Search tuning as zero-result searches).|New: spelling tips and close matches, so the reader isn’t left at a dead end." hidden>
+  <div class="hero sr-hero">
+    <div class="sr-bar"><button class="ib" data-go="search" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="field sr-field"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input aria-label="Search" value="things fall apart"><button class="ib sr-x" data-go="search" aria-label="Clear search"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+  </div>
+  <div class="body body-end">
+    <div class="sr-none"><h2>“Things Fall Apart” isn’t on Arpedia yet</h2><p>We couldn’t find a book, author or club with those words. Ask for it and we’ll tell you if it arrives.</p><a class="btn btn-p" data-go="search-request">Ask for this book</a></div>
+    <div class="sr-tips"><b>Try</b><span>Checking the spelling, or searching just the author’s name</span><span>Fewer words, like “fall apart”</span></div>
+    <div class="sr-sec"><div class="section__head"><h2 class="section__title">You might like</h2><a class="section__link" data-go="explore">Explore</a></div>
+      <div class="rail">
+        <a class="bk bk--author" data-go="book"><div class="cv c4 x104"><b>Seven Bridges to Jos</b><small>Musa Danladi</small></div><b>Seven Bridges to Jos</b><span>Musa Danladi</span></a>
+        <a class="bk bk--author" data-go="book"><div class="cv c1 x104"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></div><b>Harmattan Letters</b><span>Ifeoma Nwachukwu</span></a>
+        <a class="bk bk--author" data-go="book"><div class="cv c5 x104"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></div><b>Ruth of Ibadan</b><span>Tolu Adebayo</span></a>
+      </div></div>
+  </div>
+</section>
+<section class="screen sheet" id="s-search-request" data-base="search-none" data-flow="2" data-name="Book requested" data-note="New: confirms the request. Staff see it in Admin → Search tuning → zero-result searches, which helps them decide which books to bring in." hidden>
+  <a class="backdrop" data-go="search-none" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Request sent</h2><button class="ib" data-go="search-none" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+    <div class="pb" style="display:flex;flex-direction:column;gap:12px;padding:16px 18px 22px"><p class="t-body">Thanks, Ngozi. 540 readers have asked for “Things Fall Apart”. We’ll send you a notification if it comes to Arpedia.</p><a class="btn btn-p block" data-go="search">Done</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-notifications" data-flow="2" data-name="Notifications" data-sb="org" data-note="Same as v25: new count, Mark all, settings, filters for Books, Authors and Community, then New and Earlier.|New: orange band; book alerts show the cover, people alerts show their avatar, unread items are tinted with a dot.|Fixed: the New section shows its items (it rendered blank in v25)." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" data-go="notif-prefs" aria-label="Notification settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg></button></div>
+    <div class="hero__body">
+      <h1 class="hero__title">Notifications</h1>
+      <div class="between"><p class="hero__sub">3 new since you last checked</p><button class="pill night"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Mark all read</button></div>
+    </div>
+    <div class="hero__tabs" data-single><button class="on">All <span class="count">3</span></button><button>Books</button><button>Authors</button><button>Community</button></div>
+  </div>
+  <div class="body body-end">
+    <div class="group-label">New</div>
+    <div class="group group--flush">
+      <a class="cell cell--tap cell--top cell--hl" data-go="book"><span class="cell__lead"><span class="cv c8 x40"><b>Bread on Water</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>New in the library.</b> Bread on Water by Halima Bello is now available.</span><span class="cell__sub">2 h ago</span></span><span class="unread"></span></a>
+      <a class="cell cell--tap cell--top cell--hl" data-go="discuss"><span class="cell__lead"><span class="cv c1 x40"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>New reply to your note.</b> Hauwa Musa replied to your note in Harmattan Letters.</span><span class="cell__sub">5 h ago</span></span><span class="unread"></span></a>
+      <a class="cell cell--tap cell--top cell--hl" data-go="post"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Ifeoma Nwachukwu posted.</b> Why Kemi had to take the train.</span><span class="cell__sub">7 h ago</span></span><span class="unread"></span></a>
+    </div>
+    <div class="group-label">Earlier</div>
+    <div class="group group--flush">
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Grace Readers.</b> Amaka: What is everyone reading this weekend?</span><span class="cell__sub">10 h ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="dm"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Reply from Ifeoma Nwachukwu.</b> She is a little bit of three women I knew in Kano.</span><span class="cell__sub">2 days ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="reader"><span class="cell__lead"><span class="cv c1 x40"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Pick up where you left off.</b> You are 34% through Harmattan Letters.</span><span class="cell__sub">2 days ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="profile"><span class="cell__body"><span class="cell__title cell__title--reg"><b>Reading challenge.</b> Finish one book this month to enter the free-year draw.</span><span class="cell__sub">4 days ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="book"><span class="cell__lead"><span class="cv c4 x40"><b>Seven Bridges to Jos</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Coming soon.</b> Seven Bridges to Jos has a new chapter excerpt.</span><span class="cell__sub">6 days ago</span></span></a>
+    </div>
+  </div>
+</section>
+<style>.device[data-theme]{--petals:radial-gradient(circle,var(--brown) 0 16%,transparent 16.5%),repeating-conic-gradient(rgba(var(--petal-rgb),calc(.78 * var(--petal-k))) 0 14deg,transparent 14deg 30deg)}</style>

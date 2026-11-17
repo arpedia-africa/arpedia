@@ -1,0 +1,31 @@
+{
+  "_readme": "Build queue for cloud lane agents. A lane agent picks the first flow in its lane whose status is 'todo', whose deps are all 'merged', and whose blocking questions are answered (see OPEN-QUESTIONS.md). Status values: todo, building, pr-open, merged, blocked. Update only your own flow's entry, inside your PR.",
+  "maxParallel": 3,
+  "lanes": {
+    "L1-critical": { "model": "opus", "flows": ["00", "12", "03", "04", "05", "17"] },
+    "L2-product": { "model": "sonnet", "flows": ["01", "02", "10", "06", "07", "15", "16"] },
+    "L3-money-ops": { "model": "opus", "flows": ["11", "09", "13", "08", "14"] }
+  },
+  "flows": {
+    "00": { "name": "Foundation", "file": "00-foundation.md", "deps": [], "questions": [], "status": "todo", "branch": "flow/00-foundation", "pr": null },
+    "01": { "name": "Sign-in and onboarding (+16 pass 1)", "file": "01-sign-in-onboarding.md", "deps": ["00"], "questions": [88, 89, 90, 91, 92], "status": "todo", "branch": "flow/01-sign-in", "pr": null },
+    "12": { "name": "Book pipeline", "file": "12-book-pipeline.md", "deps": ["00"], "questions": [47, 48, 50, 52], "status": "todo", "branch": "flow/12-book-pipeline", "pr": null },
+    "02": { "name": "Discovery", "file": "02-discovery.md", "deps": ["01"], "questions": [], "status": "todo", "branch": "flow/02-discovery", "pr": null },
+    "11": { "name": "Author Studio", "file": "11-author-studio.md", "deps": ["01", "12"], "questions": [35, 36, 37], "status": "todo", "branch": "flow/11-author-studio", "pr": null },
+    "03": { "name": "Book page and unlock", "file": "03-book-page-unlock.md", "deps": ["01", "12"], "questions": [62, 63], "status": "todo", "branch": "flow/03-book-page", "pr": null },
+    "04": { "name": "Reading", "file": "04-reading.md", "deps": ["03"], "questions": [54, 55, 56], "status": "todo", "branch": "flow/04-reading", "pr": null },
+    "09": { "name": "Credits and plans", "file": "09-credits-plans.md", "deps": ["03"], "questions": [9, 10, 11, 13], "status": "todo", "branch": "flow/09-credits", "pr": null },
+    "10": { "name": "Profile and settings", "file": "10-profile-settings.md", "deps": ["01"], "questions": [3], "status": "todo", "branch": "flow/10-profile", "pr": null },
+    "05": { "name": "Library", "file": "05-library.md", "deps": ["04"], "questions": [], "status": "todo", "branch": "flow/05-library", "pr": null },
+    "13": { "name": "Earnings and payouts", "file": "13-earnings-payouts.md", "deps": ["09"], "questions": [5, 26, 28, 31], "status": "todo", "branch": "flow/13-earnings", "pr": null },
+    "06": { "name": "Community + chat Durable Object", "file": "06-community.md", "deps": ["01"], "questions": [1, 2, 74], "status": "todo", "branch": "flow/06-community", "pr": null },
+    "07": { "name": "Reading rooms", "file": "07-reading-rooms.md", "deps": ["06", "03"], "questions": [81, 82], "status": "todo", "branch": "flow/07-rooms", "pr": null },
+    "08": { "name": "Authors", "file": "08-authors.md", "deps": ["06", "09"], "questions": [42, 43], "status": "todo", "branch": "flow/08-authors", "pr": null },
+    "14": { "name": "Trust, safety and support", "file": "14-trust-support.md", "deps": ["06", "12"], "questions": [6, 84, 85, 86], "status": "todo", "branch": "flow/14-trust", "pr": null },
+    "15": { "name": "Engage and insights", "file": "15-engage-insights.md", "deps": ["01", "06"], "questions": [97, 98], "status": "todo", "branch": "flow/15-engage", "pr": null },
+    "16": { "name": "Admin settings (pass 2)", "file": "16-admin-settings.md", "deps": ["01", "09"], "questions": [23, 24, 25, 95, 96], "status": "todo", "branch": "flow/16-admin-settings", "pr": null },
+    "17": { "name": "Migration and launch", "file": null, "deps": ["02", "04", "05", "06", "07", "08", "09", "10", "11", "13", "14", "15", "16"], "questions": [], "status": "todo", "branch": "flow/17-launch", "pr": null }
+  },
+  "answeredQuestions": [],
+  "acceptDefaultsFor": []
+}

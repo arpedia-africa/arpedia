@@ -1,0 +1,505 @@
+<style>
+/* Community: Read together */
+.rt{display:flex;flex-direction:column;gap:10px;padding:20px 16px 16px}
+.rt .section__title{margin:0 2px 2px}
+.rt-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:18px;background:var(--white);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);transition:transform var(--m-fast) var(--m-ease),box-shadow var(--m-base) var(--m-ease)}
+.rt-card:active{transform:scale(.98)}
+@media (hover:hover){.rt-card:hover{box-shadow:inset 0 0 0 1.5px rgba(var(--org-rgb),.5)}}
+.rt-card--rooms{flex-direction:row;align-items:center;gap:12px;background:var(--org-tint-2);box-shadow:inset 0 0 0 1px rgba(var(--org-rgb),.22)}
+.rt-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.rt-title{font-family:var(--f-d);font-size:18px;font-weight:700;letter-spacing:-.01em}
+.rt-sub{font-size:13px;color:var(--ink-2);line-height:1.35}
+.rt-people{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.rt-avs{display:flex}
+.rt-avs .av{box-shadow:0 0 0 2px var(--org-tint-2)}
+.rt-avs .av + .av{margin-left:-5px}
+.rt-covers{position:relative;flex:0 0 86px;height:96px}
+.rt-covers .cv{position:absolute;width:56px;height:84px;border-radius:6px;padding:6px;display:flex;align-items:flex-end;box-shadow:0 10px 18px -10px rgba(0,0,0,.45);transition:transform var(--m-slow) var(--m-ease)}
+.rt-covers .cv b{font-size:7.5px;line-height:1.15}
+.rt-covers .cv:first-child{right:0;top:2px;transform:rotate(8deg)}
+.rt-covers .cv:last-child{left:0;top:10px;transform:rotate(-6deg)}
+@media (hover:hover){.rt-card--rooms:hover .cv:first-child{transform:rotate(12deg) translateX(3px)}.rt-card--rooms:hover .cv:last-child{transform:rotate(-9deg) translateX(-3px)}}
+.screen.enter .rt-covers .cv{animation:rt-deal var(--m-slow) var(--m-ease) 160ms backwards}
+.screen.enter .rt-covers .cv:first-child{animation-delay:240ms}
+@keyframes rt-deal{from{opacity:0;translate:0 10px}to{opacity:1;translate:0 0}}
+.rt-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rt-tags span{padding:6px 11px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--org-ink);background:var(--org-tint-2);box-shadow:inset 0 0 0 1px rgba(var(--org-rgb),.18)}
+@media (prefers-reduced-motion:reduce){.screen.enter .rt-covers .cv{animation:none}}
+</style>
+<style>
+/* ---- Worker B: Library, Community, Rooms, Authors (v25 flow, Direction B look) ---- */
+.lib-toggle{display:flex;gap:2px;background:rgba(255,255,255,.55);border-radius:12px;padding:3px}
+.lib-toggle .ib{width:36px;height:36px;border-radius:9px}
+.lib-toggle .on{background:var(--night);color:#fff}
+.lib-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 10px;padding:4px 16px 24px}
+.lib-book{display:flex;flex-direction:column;gap:6px;min-width:0;text-decoration:none;color:inherit;cursor:pointer}
+.lib-cover{position:relative}
+.lib-cover .cv{width:100%;height:auto;aspect-ratio:2/3}
+.lib-more{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(26,17,0,.62);color:#fff;display:grid;place-items:center;z-index:2}
+.lib-pct{position:absolute;right:6px;bottom:12px;background:rgba(26,17,0,.78);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;z-index:2;font-variant-numeric:tabular-nums}
+.lib-prog{position:absolute;left:6px;right:6px;bottom:5px;height:3px;border-radius:3px;background:rgba(255,255,255,.4);z-index:2;overflow:hidden}
+.lib-prog i{display:block;height:100%;background:#fff}
+.lib-book b{font-size:13px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-book span.lib-au{font-size:12px;color:var(--org-ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}
+.lib-paygo{color:var(--org-ink,var(--ink));font-weight:700;padding:2px 10px;border-radius:999px;background:var(--org-tint-2);box-shadow:inset 0 0 0 1px var(--org-tint);cursor:pointer}
+.lib-book .lib-state{font-size:11.5px;color:var(--ink-3);margin-top:-4px}
+.lib-shelves{padding-top:14px}
+.lib-link{margin:0 16px}
+.lib-shelves + .section__head{margin-top:20px;margin-bottom:12px}
+
+.screen:has(> .com-head){background:var(--org)}
+.screen:has(> .com-head) > :not(.com-head){background:var(--white)}
+.com-head{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:4px 6px 12px;color:var(--on-org);position:relative;overflow:hidden}
+.com-head::after{content:"";position:absolute;right:-90px;top:-150px;width:220px;height:220px;border-radius:50%;background:repeating-conic-gradient(rgba(var(--petal-rgb),calc(.72 * var(--petal-k))) 0 14deg,transparent 14deg 30deg);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%);opacity:.5;pointer-events:none}
+.com-head > *{position:relative;z-index:1}
+.com-who{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.com-who b{display:block;font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.com-who small{display:block;font-size:12px;color:rgba(var(--on-org-rgb),.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.com-who .av{box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+.com-pin{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--org-tint-2);border-bottom:1px solid var(--line);text-decoration:none;color:inherit;cursor:pointer}
+.com-pin .t-brand{display:grid}
+.com-intro{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:18px 20px 6px}
+.com-intro .av{width:72px;height:72px;font-size:24px}
+.com-intro b{font-size:16px}
+.com-intro .callout{text-align:left;margin-top:8px;width:100%}
+.com-row-name{display:flex;align-items:center;gap:6px;min-width:0}
+.com-row-name .cell__title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.com-type{font-size:12px;color:var(--ink-3)}
+.com-reacts{display:flex;justify-content:space-between;padding:4px 2px 12px;border-bottom:1px solid var(--line)}
+.com-reacts button{font-size:28px;width:48px;height:48px;border-radius:50%;border:0;background:none;cursor:pointer}
+.com-reacts button:hover{background:var(--surface)}
+.com-danger{color:var(--err)}
+.com-pick{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 4px}
+.com-pick button{border:0;background:none;padding:4px;border-radius:12px;display:flex;flex-direction:column;gap:6px;width:86px;flex:0 0 auto;font:inherit;font-size:12px;font-weight:600;text-align:left;cursor:pointer;color:var(--ink)}
+.com-pick button .cv{width:78px;height:117px}
+.com-pick .is-selected{box-shadow:inset 0 0 0 2.5px var(--org);background:var(--org-tint-2)}
+.com-rooms-cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.com-members{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 12px 14px}
+.com-members .member{color:var(--night)}
+.com-members .ring{background:conic-gradient(var(--night) calc(var(--p)*1%),rgba(255,255,255,.45) 0)}
+.com-members .ring::before{background:var(--acc)}
+.com-head--room{flex-wrap:wrap}
+.com-head--room .com-members{flex:1 0 100%;padding:10px 6px 0}
+.com-sheet-foot{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;padding-top:4px}
+
+.au-meta{font-size:12.5px;color:rgba(var(--on-org-rgb),.75);font-weight:600}
+.au-actions{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;padding:16px 16px 0}
+.au-card{margin:16px 16px 0}
+.au-post{margin:12px 16px 0;border:1px solid var(--line);border-radius:16px}
+.au-post + .au-post{border-top:1px solid var(--line)}
+.au-like{display:flex;gap:8px}
+.au-comment{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--line)}
+.au-comment__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.au-comment .ib{width:32px;height:32px;margin:-6px -8px -6px auto}
+.au-comment__body p{font-size:14px;line-height:1.45}
+.au-box{margin:4px 16px 0;display:flex;align-items:flex-end;gap:8px;border:1px solid var(--line);border-radius:16px;padding:10px 10px 10px 14px}
+.au-box textarea{flex:1;border:0;outline:none;resize:none;font:inherit;font-size:14px;min-height:44px;background:transparent;color:var(--ink)}
+</style>
+
+<!-- ===================== FLOW 5 · LIBRARY ===================== -->
+<section class="screen" id="s-library" data-flow="5" data-sb="org" data-name="Library: reading" data-note="Same as v25: Library title, grid and list toggle, Search your library with a filter button, covers with reading progress and a more menu.|New: orange band; shelves (Reading, Saved, Finished, Offline) are visible chips with counts instead of hidden in the filter.|New: one tap to your highlights, notes and bookmarks.|Continue reading lives here now, not on Home." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Library</h1><div class="lib-toggle" data-single><button class="ib on" data-go="library" aria-label="Grid view"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib" data-go="library-list" aria-label="List view"><svg class="ico s" aria-hidden="true"><use href="#i-rows"/></svg></button></div></div>
+    <div class="hero__body"><div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search your library</a><button class="search-filter" data-go="library-filter" aria-label="Filter library"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div></div>
+  </div>
+  <div class="chips lib-shelves"><a class="chip on" data-go="library">Reading 3</a><a class="chip" data-go="library-saved">Saved 5</a><a class="chip" data-go="library-finished">Finished 14</a><a class="chip" data-go="library-offline">Offline 1</a></div>
+  <div class="section__head"><h2 class="section__title">Reading</h2><span class="t-sm t-soft">Last opened first</span></div>
+  <div class="lib-grid">
+    <a class="lib-book" data-go="reader"><span class="lib-cover"><span class="cv c1"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">34%</span><span class="lib-prog"><i style="width:34%"></i></span></span><b>Harmattan Letters</b><span class="lib-au">Ifeoma Nwachukwu</span></a>
+    <a class="lib-book" data-go="reader"><span class="lib-cover"><span class="cv c3"><b>The Alignment</b><small>Adaeze Rosemary Possible</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">72%</span><span class="lib-prog"><i style="width:72%"></i></span></span><b>The Alignment</b><span class="lib-au">Adaeze Rosemary Possible</span></a>
+    <a class="lib-book" data-go="preview-end"><span class="lib-cover"><span class="cv c4"><b>Seven Bridges to Jos</b><small>Musa Danladi</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">10%</span><span class="lib-prog"><i style="width:10%"></i></span></span><b>Seven Bridges to Jos</b><span class="lib-au">Musa Danladi</span><span class="lib-state">Preview ended</span></a>
+  </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab on" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-library-list" data-flow="5" data-sb="org" data-name="Library: reading, list" data-note="Same as v25: the list view from the grid and list toggle.|New: each row shows chapter, time left, offline status and how the book is paid for.|New: pay-as-you-read books show what you have paid so far and a Pay the rest shortcut, which only ever charges what is left." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Library</h1><div class="lib-toggle" data-single><button class="ib" data-go="library" aria-label="Grid view"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib on" data-go="library-list" aria-label="List view"><svg class="ico s" aria-hidden="true"><use href="#i-rows"/></svg></button></div></div>
+    <div class="hero__body"><div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search your library</a><button class="search-filter" data-go="library-filter" aria-label="Filter library"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div></div>
+  </div>
+  <div class="chips lib-shelves"><a class="chip on" data-go="library">Reading 3</a><a class="chip" data-go="library-saved">Saved 5</a><a class="chip" data-go="library-finished">Finished 14</a><a class="chip" data-go="library-offline">Offline 1</a></div>
+  <div class="group group--flush pt8">
+    <a class="cell cell--tap cell--top" data-go="reader"><span class="cell__lead"><span class="cv c1 x64"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></span></span><span class="cell__body v8"><span class="v4"><span class="cell__title">Harmattan Letters</span><span class="cell__sub t-brand t-strong">Ifeoma Nwachukwu</span><span class="cell__sub">Chapter 7 of 14 · unlocked</span></span><span class="bar"><i style="width:34%"></i></span><span class="h8 t-xs t-muted t-num">34% · 2 h 10 min left<span class="pill ok push">Offline</span></span></span></a>
+    <a class="cell cell--tap cell--top" data-go="reader"><span class="cell__lead"><span class="cv c3 x64"><b>The Alignment</b><small>Adaeze Rosemary Possible</small></span></span><span class="cell__body v8"><span class="v4"><span class="cell__title">The Alignment</span><span class="cell__sub t-brand t-strong">Adaeze Rosemary Possible</span><span class="cell__sub">Pay as you read · Paid 132 of 184 credits</span></span><span class="bar"><i style="width:72%"></i></span><span class="h8 t-xs t-muted t-num">72% · 1 h left<span class="lib-paygo push" data-go="pay-rest-lib">Pay the rest · 52</span></span></span></a>
+    <a class="cell cell--tap cell--top" data-go="preview-end"><span class="cell__lead"><span class="cv c4 x64"><b>Seven Bridges to Jos</b><small>Musa Danladi</small></span></span><span class="cell__body v8"><span class="v4"><span class="cell__title">Seven Bridges to Jos</span><span class="cell__sub t-brand t-strong">Musa Danladi</span><span class="cell__sub">Free preview finished</span></span><span class="bar"><i style="width:10%"></i></span><span class="h8 t-xs t-muted t-num">10% read<span class="t-brand t-strong push">Unlock · 196 credits</span></span></span></a>
+  </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab on" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen sheet" id="s-pay-rest-lib" data-base="library-list" data-flow="5" data-name="Pay the rest" data-note="New: from the library, finish paying for a pay-as-you-read book in one step. Only what is left is charged, so the total matches the book's price." hidden>
+  <a class="backdrop" data-go="library-list" aria-label="Close"></a>
+  <div class="panel bk-bold"><div class="bk-sheethead"><div class="grab"></div><div class="ph"><h2>Pay the rest</h2><button class="ib" data-go="library-list" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div><p class="bk-sheethead__sub">The Alignment · 368 pages</p></div>
+    <div class="pb">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Book price</span><span class="kv__v">184 credits</span></div>
+        <div class="kv__row"><span class="kv__k">Already paid</span><span class="kv__v">− 132</span></div>
+        <div class="kv__row kv__row--total"><span class="kv__k">Left to pay</span><span class="kv__v">52 credits</span></div>
+      </div>
+      <p class="t-sm t-soft">The whole book downloads for offline reading, and you won't stop at chapter breaks again.</p>
+      <a class="btn btn-p block" data-go="library-list">Pay 52 credits</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-library-saved" data-flow="5" data-sb="org" data-name="Library: saved" data-note="Same as v25: Saved shelf in the grid.|New: books you haven't unlocked show their credit cost; coming-soon books show their date." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Library</h1><div class="lib-toggle" data-single><button class="ib on" data-go="library" aria-label="Grid view"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib" data-go="library-list" aria-label="List view"><svg class="ico s" aria-hidden="true"><use href="#i-rows"/></svg></button></div></div>
+    <div class="hero__body"><div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search your library</a><button class="search-filter" data-go="library-filter" aria-label="Filter library"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div></div>
+  </div>
+  <div class="chips lib-shelves"><a class="chip" data-go="library">Reading 3</a><a class="chip on" data-go="library-saved">Saved 5</a><a class="chip" data-go="library-finished">Finished 14</a><a class="chip" data-go="library-offline">Offline 1</a></div>
+  <div class="section__head"><h2 class="section__title">Saved</h2><span class="t-sm t-soft">5 books</span></div>
+  <div class="lib-grid">
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c6"><b>A House Called Grace</b><small>Kemi Ogunleye</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>A House Called Grace</b><span class="lib-au">Kemi Ogunleye</span><span class="lib-state">110 credits</span></a>
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c5"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Ruth of Ibadan</b><span class="lib-au">Tolu Adebayo</span><span class="lib-state">117 credits</span></a>
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c7"><b>Psalms for the Danfo</b><small>Emeka Obi</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Psalms for the Danfo</b><span class="lib-au">Emeka Obi</span><span class="lib-state">44 credits</span></a>
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c2"><b>Still Waters, Lagos</b><small>Chioma Okafor</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Still Waters, Lagos</b><span class="lib-au">Chioma Okafor</span><span class="lib-state">Unlocked</span></a>
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c8"><b>Bread on Water</b><small>Halima Bello</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Bread on Water</b><span class="lib-au">Halima Bello</span><span class="lib-state">Out 4 December</span></a>
+  </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab on" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-library-finished" data-flow="5" data-sb="org" data-name="Library: finished" data-note="Same as v25: Finished shelf.|New: finished books show your rating and open their room annotations, which unlock when you finish." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Library</h1><div class="lib-toggle" data-single><button class="ib on" data-go="library" aria-label="Grid view"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib" data-go="library-list" aria-label="List view"><svg class="ico s" aria-hidden="true"><use href="#i-rows"/></svg></button></div></div>
+    <div class="hero__body"><div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search your library</a><button class="search-filter" data-go="library-filter" aria-label="Filter library"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div></div>
+  </div>
+  <div class="chips lib-shelves"><a class="chip" data-go="library">Reading 3</a><a class="chip" data-go="library-saved">Saved 5</a><a class="chip on" data-go="library-finished">Finished 14</a><a class="chip" data-go="library-offline">Offline 1</a></div>
+  <div class="section__head"><h2 class="section__title">Finished</h2><span class="t-sm t-soft">14 books this year</span></div>
+  <div class="lib-grid">
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c2"><b>Still Waters, Lagos</b><small>Chioma Okafor</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Still Waters, Lagos</b><span class="lib-au">Chioma Okafor</span><span class="lib-state">★ 5 · you rated</span></a>
+    <a class="lib-book" data-go="book"><span class="lib-cover"><span class="cv c7"><b>Psalms for the Danfo</b><small>Emeka Obi</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Psalms for the Danfo</b><span class="lib-au">Emeka Obi</span><span class="lib-state">★ 4 · you rated</span></a>
+    <a class="lib-book" data-go="write-review"><span class="lib-cover"><span class="cv c5"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span></span><b>Ruth of Ibadan</b><span class="lib-au">Tolu Adebayo</span><span class="lib-state">Rate this book</span></a>
+  </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab on" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-library-offline" data-flow="5" data-sb="org" data-name="Library: offline" data-note="Same as v25: Offline downloads shelf.|New: says how long downloads last and how much space they use.|Empty state (no downloads) explains the 7-day rule and offers two ways forward." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Library</h1><div class="lib-toggle" data-single><button class="ib on" data-go="library" aria-label="Grid view"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib" data-go="library-list" aria-label="List view"><svg class="ico s" aria-hidden="true"><use href="#i-rows"/></svg></button></div></div>
+    <div class="hero__body"><div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search your library</a><button class="search-filter" data-go="library-filter" aria-label="Filter library"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div></div>
+  </div>
+  <div class="chips lib-shelves"><a class="chip" data-go="library">Reading 3</a><a class="chip" data-go="library-saved">Saved 5</a><a class="chip" data-go="library-finished">Finished 14</a><a class="chip on" data-go="library-offline">Offline 1</a></div>
+  <div class="section__head"><h2 class="section__title">Offline downloads</h2><span class="t-sm t-soft">1 book · 4 MB</span></div>
+  <div class="lib-grid">
+    <a class="lib-book" data-go="reader"><span class="lib-cover"><span class="cv c1"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">34%</span><span class="lib-prog"><i style="width:34%"></i></span></span><b>Harmattan Letters</b><span class="lib-au">Ifeoma Nwachukwu</span><span class="lib-state">Ready offline · 6 days left</span></a>
+  </div>
+  <div class="callout callout--info inset-x lib-link"><span>Downloads last 7 days and refresh when you're back online with an active plan.</span></div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab on" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen sheet" id="s-library-filter" data-base="library" data-flow="5" data-name="Filter library" data-note="Same as v25: Filter library with Reading, Saved, Finished and Offline downloads.|New: counts beside each shelf, and a sort order." hidden>
+  <a class="backdrop" data-go="library" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="ph"><h2>Filter library</h2><button class="ib" data-go="library" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="pb">
+      <div class="option-list" data-single>
+        <button class="option option--compact is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">Reading</span></span><span class="option__trail t-muted">3</span></button>
+        <button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Saved</span></span><span class="option__trail t-muted">5</span></button>
+        <button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Finished</span></span><span class="option__trail t-muted">14</span></button>
+        <button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Offline downloads</span></span><span class="option__trail t-muted">1</span></button>
+      </div>
+      <div class="v8"><span class="t-label">Sort by</span><div class="seg" data-single><button class="on">Last opened</button><button>Title</button><button>Progress</button></div></div>
+      <a class="btn btn-p block" data-go="library">Show 3 books</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FLOW 6 · COMMUNITY ===================== -->
+<section class="screen" id="s-community" data-flow="6" data-sb="org" data-name="Community: all" data-note="Same as v25: one inbox for official channels, clubs, author communities, read-alongs and private messages, with All, Unread and Groups filters, and buttons for Reading rooms and Discover.|New: orange band; live clubs show a Live tag; authors carry an Author badge.|New: a Reading rooms shortcut and a Discover card, so the inbox is never a dead end." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Community</h1><button class="ib" data-go="rooms" aria-label="Reading rooms"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg></button><button class="ib" data-go="discover" aria-label="Discover communities"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button></div>
+    <div class="hero__tabs"><button class="on">All <span class="count">5</span></button><a data-go="dms">Unread <span class="count">4</span></a><a data-go="community-groups">Groups</a></div>
+  </div>
+  <div class="group group--flush pt8"><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Grace Readers</span><span class="pill night">Live</span></span><span class="cell__sub ell">Chioma: The night vigil chapter 😭 who else cried?</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">now</span><span class="count">8</span></span></span></a><a class="cell cell--tap" data-go="dm"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma Nwachukwu</span><span class="badge-auth">Author</span></span><span class="cell__sub ell">Ifeoma: Thank you Ngozi! Chapter 12 will answer that 😊</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">45m</span><span class="count">1</span></span></span></a><a class="cell cell--tap" data-go="author-community"><span class="cell__lead"><span class="av sq m">IR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma's Readers</span></span><span class="cell__sub ell">Ifeoma: A small treat: I will answer three questions on Friday</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">1h</span><span class="count">3</span></span></span></a><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq o">AO</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Arpedia Official</span></span><span class="cell__sub ell">Arpedia Team: Reading challenge: finish one book this month to enter the free-year draw</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">3h</span><span class="count">2</span></span></span></a><a class="cell cell--tap" data-go="room"><span class="cell__lead"><span class="av sq b">HL</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Harmattan Letters Read-Along</span></span><span class="cell__sub ell">Hauwa: Friday we move to chapter 9. Catch up!</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">5h</span></span></span></a><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq k">AS</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Arpedia Support</span></span><span class="cell__sub ell">Arpedia Team: Hello Ngozi, welcome to Arpedia. Ask us anything here.</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">4d</span></span></span></a></div>
+  <div class="rt">
+    <h2 class="section__title">Read together</h2>
+    <a class="rt-card rt-card--rooms" data-go="rooms">
+      <span class="rt-body">
+        <b class="rt-title">Reading rooms</b>
+        <span class="rt-sub">One book, read chapter by chapter with friends</span>
+        <span class="rt-people"><span class="rt-avs"><span class="av sm m">CO</span><span class="av sm o">IN</span><span class="av sm k">MD</span></span><span>5 friends reading now</span></span>
+      </span>
+      <span class="rt-covers" aria-hidden="true"><span class="cv c3"><b>The Alignment</b></span><span class="cv c1"><b>Harmattan Letters</b></span></span>
+    </a>
+    <a class="rt-card" data-go="discover">
+      <b class="rt-title">Discover communities</b>
+      <span class="rt-sub">Find readers who love what you love</span>
+      <span class="rt-tags"><span>Church</span><span>Campus</span><span>Lagos</span><span>Author circles</span><span>Read-alongs</span></span>
+    </a>
+  </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab on" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-dms" data-flow="6" data-sb="org" data-name="Community: unread" data-note="Same as v25: the Unread filter.|New: Mark all read sits right where you need it." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Community</h1><button class="ib" data-go="rooms" aria-label="Reading rooms"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg></button><button class="ib" data-go="discover" aria-label="Discover communities"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button></div>
+    <div class="hero__tabs"><a data-go="community">All <span class="count">5</span></a><button class="on">Unread <span class="count">4</span></button><a data-go="community-groups">Groups</a></div>
+  </div>
+  <div class="h8 inset pt16"><span class="t-sm t-soft fill">4 conversations with new messages</span><button class="section__link">Mark all read</button></div>
+  <div class="group group--flush pt8"><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Grace Readers</span><span class="pill night">Live</span></span><span class="cell__sub ell">Chioma: The night vigil chapter 😭 who else cried?</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">now</span><span class="count">8</span></span></span></a><a class="cell cell--tap" data-go="dm"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma Nwachukwu</span><span class="badge-auth">Author</span></span><span class="cell__sub ell">Ifeoma: Thank you Ngozi! Chapter 12 will answer that 😊</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">45m</span><span class="count">1</span></span></span></a><a class="cell cell--tap" data-go="author-community"><span class="cell__lead"><span class="av sq m">IR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma's Readers</span></span><span class="cell__sub ell">Ifeoma: A small treat: I will answer three questions on Friday</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">1h</span><span class="count">3</span></span></span></a><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq o">AO</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Arpedia Official</span></span><span class="cell__sub ell">Arpedia Team: Reading challenge: finish one book this month to enter the free-year draw</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">3h</span><span class="count">2</span></span></span></a></div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab on" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-community-groups" data-flow="6" data-sb="org" data-name="Community: groups" data-note="Same as v25: the Groups filter hides one-to-one messages.|New: each group says what kind it is and how many members it has." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Community</h1><button class="ib" data-go="rooms" aria-label="Reading rooms"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg></button><button class="ib" data-go="discover" aria-label="Discover communities"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button></div>
+    <div class="hero__tabs"><a data-go="community">All <span class="count">5</span></a><a data-go="dms">Unread <span class="count">4</span></a><button class="on">Groups</button></div>
+  </div>
+  <div class="group group--flush pt8">
+    <a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Grace Readers</span><span class="pill night">Live</span></span><span class="cell__sub ell">Club · 1,240 members · reading Harmattan Letters</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">now</span><span class="count">8</span></span></span></a>
+    <a class="cell cell--tap" data-go="author-community"><span class="cell__lead"><span class="av sq m">IR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma's Readers</span></span><span class="cell__sub ell">Author community · 860 members</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">1h</span><span class="count">3</span></span></span></a>
+    <a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq o">AO</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Arpedia Official</span></span><span class="cell__sub ell">Official · 12.4k members · announcements</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">3h</span><span class="count">2</span></span></span></a>
+    <a class="cell cell--tap" data-go="room"><span class="cell__lead"><span class="av sq b">HL</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Harmattan Letters Read-Along</span></span><span class="cell__sub ell">Read-along · 64 members</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">5h</span></span></span></a>
+  </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab on" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>
+</section>
+
+<section class="screen" id="s-discover" data-flow="6" data-sb="org" data-name="Discover communities" data-note="Same as v25: Search communities, then every community with its type, privacy, description and a Join or Joined button.|New: orange band, type filters, and member counts so joining is an informed choice." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="community" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Discover communities</h1><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search communities</a></div>
+  </div>
+  <div class="body body-end">
+    <div class="chips pt16" data-single><button class="chip on">All</button><button class="chip">Groups</button><button class="chip">Authors</button><button class="chip">Read-alongs</button><button class="chip">Official</button></div>
+    <div class="group group--flush pt8">
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq o">AO</span></span><span class="cell__body"><span class="cell__title">Arpedia Official</span><span class="com-type">Official · public · 12.4k members</span><span class="cell__sub t-clamp2">Announcements, new releases and reading challenges.</span></span><span class="cell__trail"><span class="btn btn-g sm"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Joined</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="cell__title">Grace Readers</span><span class="com-type">Group · public · 1,240 members · live now</span><span class="cell__sub t-clamp2">Christian fiction book club. This week: Harmattan Letters ch. 7–9.</span></span><span class="cell__trail"><span class="btn btn-g sm"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Joined</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq m">IR</span></span><span class="cell__body"><span class="cell__title">Ifeoma's Readers</span><span class="com-type">Author · public · 860 members</span><span class="cell__sub t-clamp2">The official community for readers of Ifeoma Nwachukwu.</span></span><span class="cell__trail"><span class="btn btn-g sm"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Joined</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq b">HL</span></span><span class="cell__body"><span class="cell__title">Harmattan Letters Read-Along</span><span class="com-type">Read-along · public · 64 members</span><span class="cell__sub t-clamp2">Week-by-week discussion. Please mark spoilers.</span></span><span class="cell__trail"><span class="btn btn-g sm"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Joined</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq k">FB</span></span><span class="cell__body"><span class="cell__title">Faith &amp; Books</span><span class="com-type">Group · public · 2.1k members</span><span class="cell__sub t-clamp2">Christian and faith-based reading, devotionals and testimonies.</span></span><span class="cell__trail"><button class="btn btn-p sm">Join</button></span></a>
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq t">SR</span></span><span class="cell__body"><span class="cell__title">Short Reads Lounge</span><span class="com-type">Group · public · 540 members</span><span class="cell__sub t-clamp2">Quick stories for quick commutes. Share the ones you finished on the danfo.</span></span><span class="cell__trail"><button class="btn btn-p sm">Join</button></span></a>
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq g">UN</span></span><span class="cell__body"><span class="cell__title">UNN Christian Fellowship Books</span><span class="com-type">Group · public · 386 members</span><span class="cell__sub t-clamp2">Campus reading group. Next pick vote closes Friday.</span></span><span class="cell__trail"><button class="btn btn-p sm">Join</button></span></a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-channel" data-flow="6" data-sb="org" data-name="Club chat" data-note="Same as v25: club name and members in the header, date markers, messages with the sender's name, and a message box.|Fixed: members can post (v25 showed 'You cannot post here' with no reason). Read-only channels say who can post.|New: pinned weekly reading; shared highlights arrive as quote cards; long-press a message for actions." hidden>
+  <div class="com-head"><button class="ib" data-go="community" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="com-who"><span class="av sq n">GR</span><div class="fill"><b>Grace Readers</b><small>14 reading now · 1,240 members</small></div></div><button class="ib" aria-label="Club info"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg></button></div>
+  <a class="com-pin" data-go="reader"><span class="t-brand"><svg class="ico s" aria-hidden="true"><use href="#i-pin"/></svg></span><span class="fill v2"><b class="t-sm">This week: Harmattan Letters ch. 7–9</b><span class="t-xs t-muted">Vigil call Friday 8 pm</span></span><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chev"/></svg></a>
+  <div class="body"><div class="chat">
+    <span class="day">Today</span>
+    <a class="msg" data-go="msg-actions"><span class="av sm o">CO</span><div class="bub"><span class="who">Chioma Okafor</span>The night vigil chapter 😭 who else cried?<span class="tm">19:02</span><div class="reac">😭 6 · 🙏 3</div></div></a>
+    <div class="msg"><span class="av sm m">IN</span><div class="bub"><span class="who">Ifeoma Nwachukwu <span class="badge-auth">Author</span></span>I cried writing it. My mother's vigil songs are in there.<span class="tm">19:05</span></div></div>
+    <div class="msg me"><div class="bub"><div class="quote-bub">“Grace did not ask her to be ready. It only asked her to come.”<span class="quote__src">Harmattan Letters · Ch. 7</span></div>This one is for everyone waiting on God 🙏🏾<span class="tm">19:11 · Seen</span></div></div>
+  </div></div>
+  <div class="composer"><button class="ib" aria-label="Share a highlight"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button><div class="field"><input id="ch-in" placeholder="Message Grace Readers" aria-label="Message"></div><button class="send" aria-label="Send"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg></button></div>
+</section>
+
+<section class="screen sheet" id="s-msg-actions" data-base="channel" data-flow="6" data-name="Message actions" data-note="Same as v25: six quick reactions, then Reply, Share, Pin and Report or block.|Fixed: Delete only shows on your own messages (v25 offered it on everyone's).|New: Copy text." hidden>
+  <a class="backdrop" data-go="channel" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="pb pt8">
+      <div class="com-reacts" aria-label="React"><button aria-label="Thumbs up">👍</button><button aria-label="Love">❤️</button><button aria-label="Laugh">😂</button><button aria-label="Wow">😮</button><button aria-label="Sad">😢</button><button aria-label="Fire">🔥</button></div>
+      <div class="option-list option-list--flush">
+        <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Reply</span></span></a>
+        <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Share</span></span></a>
+        <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Pin</span><span class="option__sub">Club admins only</span></span></a>
+        <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Copy text</span></span></a>
+        <a class="option option--compact" data-go="report"><span class="option__body"><span class="option__title com-danger">Report or block</span><span class="option__sub">Chioma Okafor</span></span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen sheet" id="s-report" data-base="channel" data-flow="6" data-name="Report or block" data-note="Same as v25: Why are you reporting this? with the same eight reasons, optional details, Cancel and Send report.|Fixed: the buttons no longer fall off the bottom of the sheet.|New: block in the same step, and it says what happens next." hidden>
+  <a class="backdrop" data-go="channel" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="ph"><h2>Why are you reporting this?</h2><button class="ib" data-go="channel" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="pb">
+      <p class="t-sm t-soft">Moderators review reports within 24 hours. Chioma won't know who reported.</p>
+      <div class="option-list option-list--flush" data-single><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Spam or scam</span></span></button><button class="option option--compact is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">Harassment or bullying</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Hate speech</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Sexual content</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Violence or threats</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Self-harm</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Copyright infringement</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Something else</span></span></button></div>
+      <div class="field"><input id="rp-d" placeholder="Add details (optional)" aria-label="Details"></div>
+      <div class="h12"><div class="fill v4"><span class="t-title">Also block Chioma</span><span class="t-xs t-muted">Hide her messages everywhere. She isn't told.</span></div><button class="toggle" aria-label="Also block" aria-pressed="false"></button></div>
+      <div class="com-sheet-foot"><a class="btn btn-g" data-go="channel">Cancel</a><a class="btn btn-p" data-go="channel">Send report</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-blocked" data-flow="6" data-sb="org" data-name="Blocked people" data-note="New: the screen v25 promised but never had. Unblock is one tap with an undo toast." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Blocked people</h1><p class="hero__sub">Blocked people can't message you and their posts are hidden. They aren't told.</p></div>
+  </div>
+  <div class="body body-end">
+    <div class="group group--flush pt8">
+      <div class="cell"><span class="cell__lead"><span class="av b">TK</span></span><span class="cell__body"><span class="cell__title">Tunde K.</span><span class="cell__sub">Blocked 2 Nov · from Grace Readers</span></span><button class="btn btn-g sm">Unblock</button></div>
+      <div class="cell"><span class="cell__lead"><span class="av k">JM</span></span><span class="cell__body"><span class="cell__title">Jide M.</span><span class="cell__sub">Blocked 14 Oct · from messages</span></span><button class="btn btn-g sm">Unblock</button></div>
+    </div>
+  </div>
+  <div class="toast"><svg class="ico s" aria-hidden="true"><use href="#i-check"/></svg>Sola B. unblocked<button class="link">Undo</button></div>
+</section>
+
+<!-- ===================== FLOW 7 · READING ROOMS ===================== -->
+<section class="screen" id="s-rooms" data-flow="7" data-sb="org" data-name="Reading rooms" data-note="Same as v25: the Read together promise, Create room and Join with code, then Your rooms with book, members and how many finished.|New: the promise sits on the orange sunflower band; each room shows your progress ring.|Fixed: last active reads 'Active today' instead of a raw date like 11/12/2026." hidden>
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="community" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill t-strong">Reading rooms</span></div>
+    <div class="hero__body"><h1 class="hero__title">A book club that lives beside the page.</h1><p class="hero__sub">See everyone's progress, chat without losing your place, and unlock annotations when you finish.</p>
+      <div class="com-rooms-cta"><a class="btn btn-n md" data-go="create-room"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>Create room</a><a class="btn btn-g md" data-go="join-code">Join with code</a></div></div>
+  </div>
+  <div class="section">
+    <div class="section__head"><h2 class="section__title">Your rooms</h2><span class="t-sm t-soft">3</span></div>
+    <div class="group group--flush">
+      <a class="cell cell--tap" data-go="room"><span class="cell__lead"><span class="cv c1 x48"><b>Harmattan</b></span></span><span class="cell__body v2"><span class="cell__title">Harmattan Letters Read-Along</span><span class="cell__sub">Harmattan Letters</span><span class="cell__sub">6 members · 3 finished</span><span class="t-xs t-brand t-strong">Active today</span></span><span class="ring" style="--p:34"><b class="t-xs t-num">34%</b></span></a>
+      <a class="cell cell--tap" data-go="room"><span class="cell__lead"><span class="cv c3 x48"><b>Alignment</b></span></span><span class="cell__body v2"><span class="cell__title">Sunday Grace Circle</span><span class="cell__sub">The Alignment</span><span class="cell__sub">8 members · 1 finished</span><span class="t-xs t-brand t-strong">Active yesterday</span></span><span class="ring" style="--p:72"><b class="t-xs t-num">72%</b></span></a>
+      <a class="cell cell--tap" data-go="room"><span class="cell__lead"><span class="cv c4 x48"><b>Seven Bridges</b></span></span><span class="cell__body v2"><span class="cell__title">Jos Book Night</span><span class="cell__sub">Seven Bridges to Jos</span><span class="cell__sub">5 members · starts Monday</span><span class="t-xs t-brand t-strong">Starts Monday</span></span><span class="ring" style="--p:0"><b class="t-xs t-num">0%</b></span></a>
+    </div>
+  </div>
+  </div>
+</section>
+
+<section class="screen" id="s-create-room" data-flow="7" data-sb="org" data-name="Create a room" data-note="Same as v25: Room name, Choose the book, Create room.|Fixed: each book appears once (v25 listed The Alignment twice), with covers instead of name buttons.|New: pace and who can join; Create room is ready once a name and book are set." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="rooms" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Create a reading room</h1><p class="hero__sub">Pick a book from your library. You'll get a code to invite friends.</p></div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="input"><label for="cr-n">Room name</label><div class="field"><input id="cr-n" value="Office Ladies Book Club"></div></div>
+      <div class="v8"><span class="t-label">Choose the book</span><div class="com-pick" data-single><button class="is-selected"><span class="cv c1"><b>Harmattan Letters</b></span>Harmattan Letters</button><button class=""><span class="cv c3"><b>The Alignment</b></span>The Alignment</button><button class=""><span class="cv c2"><b>Still Waters, Lagos</b></span>Still Waters, Lagos</button><button class=""><span class="cv c7"><b>Psalms for the Danfo</b></span>Psalms for the Danfo</button></div></div>
+      <div class="v8"><span class="t-label">Pace</span><div class="seg" data-single><button>Free</button><button class="on">3 ch. a week</button><button>1 ch. a day</button></div><span class="hint">Finishes around 28 December.</span></div>
+      <div class="v8"><span class="t-label">Who can join</span><div class="seg" data-single><button class="on">Invite code</button><button>Anyone</button></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="room">Create room</a></div>
+</section>
+
+<section class="screen" id="s-join-code" data-flow="7" data-sb="org" data-name="Join with code" data-note="Same as v25: 8-character invite code and Join room.|New: one box per character, paste supported, and the button says what's missing." hidden>
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="rooms" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Join a reading room</h1><p class="hero__sub">Enter the 8-character invite code from the person who invited you.</p></div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="code-boxes" aria-label="Room code">
+        <span class="code-box">G</span><span class="code-box">R</span><span class="code-box">A</span><span class="code-box">C</span><span class="code-box">E</span><span class="code-box">2</span><span class="code-box">4</span><span class="code-box is-active">|</span>
+      </div>
+      <div class="h8"><button class="btn btn-s md"><svg class="ico s" aria-hidden="true"><use href="#i-copy"/></svg>Paste code</button></div>
+    </div>
+  </div>
+  <div class="foot"><span class="btn dis block">Join room · 1 more character</span></div>
+</section>
+
+<section class="screen" id="s-room" data-flow="7" data-sb="org" data-name="Room" data-note="New: everyone's progress sits on the orange header so you see the room at a glance.|Chat hides spoilers past your position.|Room annotations unlock when you finish, and the lock says so." hidden>
+  <div class="com-head com-head--room"><button class="ib" data-go="rooms" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="com-who"><span class="cv c3 x40"><b>Alignment</b></span><div class="fill"><b>Sunday Grace Circle</b><small>The Alignment · code GRACE24A</small></div></div><button class="ib" aria-label="Invite"><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></button>
+    <div class="com-members">
+      <div class="member"><span class="ring" style="--p:72"><span class="av g">NE</span></span>You · 72%</div>
+      <div class="member"><span class="ring" style="--p:81"><span class="av t">KO</span></span>Kemi · 81%</div>
+      <div class="member"><span class="ring" style="--p:55"><span class="av r">EA</span></span>Emeka · 55%</div>
+      <div class="member"><span class="ring" style="--p:100"><span class="av k">BL</span></span>Bisi · done</div>
+      <div class="member"><span class="ring" style="--p:30"><span class="av o">ZU</span></span>Zainab · 30%</div>
+    </div>
+  </div>
+  <div class="tabs" data-single><button class="on">Chat</button><button>Annotations <svg class="ico xs" aria-hidden="true"><use href="#i-lock"/></svg></button><button>Members 8</button></div>
+  <div class="body"><div class="chat">
+    <span class="day">Sunday</span>
+    <div class="msg"><span class="av sm t">KO</span><div class="bub"><span class="who">Kemi</span><div class="quote-bub">Chapter 14 · “He had prayed for her by name.”</div>How did he know her name?? 😳<span class="tm">16:40</span></div></div>
+    <div class="msg"><span class="av sm k">BL</span><div class="bub"><span class="who">Bisi</span><span class="pill grey">Spoiler from ch. 22 · tap to show</span><span class="tm">16:52</span></div></div>
+    <div class="msg me"><div class="bub">I'm on 13, don't spoil me Bisi!<span class="tm">17:01</span></div></div>
+  </div></div>
+  <div class="composer"><div class="field"><input id="rm-in" placeholder="Message the room" aria-label="Message"></div><button class="send" aria-label="Send"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg></button></div>
+</section>
+
+<!-- ===================== FLOW 8 · AUTHORS ===================== -->
+<section class="screen" id="s-author" data-flow="8" data-sb="org" data-name="Author profile" data-note="Same as v25: photo, name, books and posts count with location, bio, Following and Message, the author's community card, and Posts, Books and About tabs.|New: orange band; Message shows its 5-credit cost; Tip sits beside it.|Fixed: post times read '2 days ago' (v25 showed '2h ago ago')." hidden>
+  <div class="body body-end">
+    <div class="hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" aria-label="Share"><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></button></div>
+      <div class="hero-person"><span class="av xl m ring-night">IN</span><div class="v4 fill"><span class="h8"><span class="pill night">Arpedia author</span></span><h1 class="t-h1">Ifeoma Nwachukwu</h1><span class="au-meta">3 books · 12 posts · Enugu, Nigeria</span></div></div>
+      <div class="hero__body pt16"><p class="hero__sub">Christian fiction from Enugu. Writing letters, prayers and second chances. Former banker. Tea drinker.</p></div>
+    </div>
+    <div class="au-actions">
+      <button class="btn btn-n md"><svg class="ico s" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
+      <a class="btn btn-s md" data-go="dm-confirm"><svg class="ico s" aria-hidden="true"><use href="#i-chat"/></svg>Message · 5 cr</a>
+      <a class="btn btn-s md" data-go="tip" aria-label="Tip the author"><svg class="ico s" aria-hidden="true"><use href="#i-coin"/></svg></a>
+    </div>
+    <div class="card au-card"><a class="cell cell--tap" data-go="author-community"><span class="cell__body"><span class="cell__title">Ifeoma's Readers</span><span class="cell__sub">Joined · public community · 860 members</span></span><span class="btn btn-p sm">Open</span></a></div>
+    <div class="stats pt16">
+      <div class="stat"><span class="stat__value">3.4k</span><span class="stat__label">followers</span></div>
+      <div class="stat"><span class="stat__value">5.8k</span><span class="stat__label">readers</span></div>
+      <div class="stat"><span class="stat__value">4.7★</span><span class="stat__label">avg rating</span></div>
+    </div>
+    <div class="tabs section" data-single><button class="on">Posts 12</button><button>Books 3</button><button>About</button></div>
+    <a class="post au-post" data-go="post">
+      <span class="t-xs t-muted h6"><svg class="ico xs" aria-hidden="true"><use href="#i-clock"/></svg>2 days ago</span>
+      <span class="t-h3">Why I wrote the letters first</span>
+      <span class="t-sm t-soft t-clamp2">Before there was a story there were twelve letters in a notebook my late uncle gave me. I want to tell you about the third one…</span>
+      <span class="post__meta"><span><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>214</span><span><svg class="ico xs" aria-hidden="true"><use href="#i-chat"/></svg>38</span></span>
+    </a>
+    <a class="post au-post" data-go="post">
+      <span class="t-xs t-muted h6"><svg class="ico xs" aria-hidden="true"><use href="#i-clock"/></svg>1 week ago</span>
+      <span class="t-h3">Chapter 12 is with my editor</span>
+      <span class="t-sm t-soft t-clamp2">Thank you for every message about the gate man. I read every one. Chapter 12 answers more than you think.</span>
+      <span class="post__meta"><span><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>482</span><span><svg class="ico xs" aria-hidden="true"><use href="#i-chat"/></svg>61</span></span>
+    </a>
+  </div>
+</section>
+
+<section class="screen" id="s-post" data-flow="8" data-sb="org" data-name="Discussion" data-note="Same as v25: the author's post with likes and comment count, a comment box, and Comments with a total.|Fixed: times read '1 h ago' (v25 showed '1h ago ago').|New: report or block sits in each comment's menu instead of a red Report button on every comment; the author's replies carry a badge." hidden>
+  <div class="com-head"><button class="ib" data-go="author" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="com-who"><span class="av m">IN</span><div class="fill"><b>Discussion</b><small>Ifeoma Nwachukwu · 2 days ago</small></div></div><button class="ib" aria-label="Share"><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></button></div>
+  <div class="body body-end">
+    <div class="inset v12 pt16 pb16">
+      <h2 class="t-h2">Why I wrote the letters first</h2>
+      <p class="t-reading">Before there was a story there were twelve letters in a notebook my late uncle gave me. I wrote one every harmattan for twelve years. When I finally wrote the novel, the letters were already there, waiting for someone to find them in a biscuit tin.</p>
+      <div class="au-like"><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-heart"/></svg>214 likes</button><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-chat"/></svg>38 comments</button></div>
+    </div>
+    <div class="au-box"><textarea id="po-in" placeholder="Write a thoughtful comment…" aria-label="Comment"></textarea><button class="send" aria-label="Post comment"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg></button></div>
+    <div class="section__head pt24"><h3 class="section__title">Comments</h3><span class="t-sm t-brand t-strong">38 total</span></div>
+    <div class="au-comment"><span class="av sm o">CO</span><div class="au-comment__body"><div class="h8"><span class="t-title">Chioma Okafor</span><span class="t-xs t-muted">1 day ago</span><a class="ib push" data-go="report" aria-label="Report or block"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></a></div><p>Please publish the other nine letters as a short book! I'd unlock it today.</p><span class="t-xs t-muted">Reply</span></div></div>
+    <div class="au-comment"><span class="av sm m">IN</span><div class="au-comment__body"><div class="h8"><span class="t-title">Ifeoma</span> <span class="badge-auth">Author</span><span class="t-xs t-muted">1 day ago</span><a class="ib push" data-go="report" aria-label="Report or block"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></a></div><p>Working on it, Chioma 🙂</p><span class="t-xs t-muted">Reply</span></div></div>
+    <div class="au-comment"><span class="av sm t">TL</span><div class="au-comment__body"><div class="h8"><span class="t-title">Tobi Ladipo</span><span class="t-xs t-muted">20 h ago</span><a class="ib push" data-go="report" aria-label="Report or block"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></a></div><p>The line about the biscuit tin. Wow.</p><span class="t-xs t-muted">Reply</span></div></div>
+    <div class="au-comment"><span class="av sm k">HD</span><div class="au-comment__body"><div class="h8"><span class="t-title">Hauwa Danjuma</span><span class="t-xs t-muted">5 h ago</span><a class="ib push" data-go="report" aria-label="Report or block"><svg class="ico s" aria-hidden="true"><use href="#i-more"/></svg></a></div><p>Greetings from Kano. You got the harmattan dust exactly right.</p><span class="t-xs t-muted">Reply</span></div></div>
+  </div>
+</section>
+
+<section class="screen" id="s-author-community" data-flow="8" data-sb="org" data-name="Author community" data-note="Same as v25: Ifeoma's Readers, Public community hosted by this author, View profile, and Message the community.|Fixed: the author's pinned post and recent messages show, not only an empty state.|New: orange header with member count; messages here are free." hidden>
+  <div class="com-head"><button class="ib" data-go="community" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="com-who"><span class="av sq m">IR</span><div class="fill"><b>Ifeoma's Readers</b><small>Public community · 860 members</small></div></div><a class="ib" data-go="author" aria-label="View profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg></a></div>
+  <div class="body"><div class="com-intro"><span class="av m">IN</span><b>Ifeoma Nwachukwu</b><span class="t-xs t-muted">Public community · hosted by this author</span><a class="btn btn-g sm" data-go="author">View profile</a>
+    <div class="callout callout--quiet"><span class="t-xs">Public community chat for readers following this author. Messages here are free.</span></div></div>
+    <div class="chat">
+    <span class="day">Today</span>
+    <div class="msg"><span class="av sm m">IN</span><div class="bub"><span class="who">Ifeoma Nwachukwu <span class="badge-auth">Author</span></span>A small treat: I will answer three questions on Friday. Drop them here 👇🏾<span class="tm">10:02</span><div class="reac">❤️ 41 · 🙏 12</div></div></div>
+    <div class="msg"><span class="av sm r">EA</span><div class="bub"><span class="who">Emeka A.</span>Will there be a sequel for the twins?<span class="tm">10:15</span></div></div>
+  </div></div>
+  <div class="composer"><div class="field"><input id="ac-in" placeholder="Message the community…" aria-label="Message"></div><button class="send" aria-label="Send"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg></button></div>
+</section>
+
+<section class="screen sheet" id="s-dm-confirm" data-base="author" data-flow="8" data-name="Message an author" data-note="Same as v25 rule: messages to an author cost 5 credits each and are private.|New: cost explained once, before the first message, with your balance." hidden>
+  <a class="backdrop" data-go="author" aria-label="Close"></a>
+  <div class="panel"><div class="grab"></div>
+    <div class="ph"><h2>Message Ifeoma</h2><button class="ib" data-go="author" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="pb">
+      <p class="t-sm t-soft">Messages to this author cost 5 credits each. They're private: only Ifeoma sees them. Her replies are free.</p>
+      <div class="kv"><div class="kv__row"><span class="kv__k">Your balance</span><span class="kv__v">840 credits</span></div><div class="kv__row"><span class="kv__k">Per message</span><span class="kv__v">5 credits</span></div></div>
+      <a class="btn btn-p block" data-go="dm">Start private chat</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-dm" data-flow="8" data-sb="org" data-name="Private message" data-note="Same as v25: author header with Private · Author, a View profile card, the 5-credit notice, and Write a private message.|New: orange header; each sent message shows its cost; report or block from the menu (missing in v25)." hidden>
+  <div class="com-head"><button class="ib" data-go="community" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="com-who"><span class="av m">IN</span><div class="fill"><b>Ifeoma Nwachukwu</b><small>Private · Author · usually replies within a day</small></div></div><a class="ib" data-go="report" aria-label="Report or block"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></a></div>
+  <div class="body"><div class="com-intro"><span class="av m">IN</span><b>Ifeoma Nwachukwu</b><span class="t-xs t-muted">Private chat · Author</span><a class="btn btn-g sm" data-go="author">View profile</a>
+    <div class="callout callout--quiet"><span class="t-xs">Messages to this author cost 5 credits each. Private, only the author sees them.</span></div></div>
+    <div class="chat">
+    <span class="day">Today</span>
+    <div class="msg me"><div class="bub">Hi Ifeoma! Is the man who fixes the gate the same one from the third letter? I can't sleep 😅<span class="tm">09:14 · 5 credits</span></div></div>
+    <div class="msg"><span class="av sm m">IN</span><div class="bub">Thank you Ngozi! Chapter 12 will answer that 😊 Keep reading.<span class="tm">11:20</span></div></div>
+  </div></div>
+  <div class="composer"><div class="field"><input id="dm-in" placeholder="Write a private message…" aria-label="Message"></div><button class="send" aria-label="Send for 5 credits"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg></button></div>
+</section>

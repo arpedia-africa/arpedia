@@ -1,0 +1,256 @@
+
+<style>
+/* Feedback drawer: page chrome, theme-aware */
+.fb-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--org);color:var(--night);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.fb-btn{gap:6px}
+.fb-cta{align-self:flex-start;gap:8px}
+.fb{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:200;background:var(--pg-card);color:var(--pg-fg);border-left:1px solid var(--pg-line);box-shadow:-20px 0 50px -20px rgba(0,0,0,.35);display:flex;flex-direction:column;transform:translateX(102%);visibility:hidden;transition:transform .24s var(--ease),visibility 0s linear .24s;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.fb.open{transform:none;visibility:visible;transition:transform .24s var(--ease)}
+.fb-scrim{position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.35);border:0;opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
+.fb-scrim.open{opacity:1;pointer-events:auto}
+.fb-h{display:flex;align-items:center;gap:8px;padding:14px 12px 10px 20px;border-bottom:1px solid var(--pg-line)}
+.fb-h h2{flex:1;font-family:var(--f-d);font-weight:800;font-size:22px;letter-spacing:-0.01em}
+.fb-x{width:44px;height:44px;border-radius:12px;border:0;background:transparent;color:var(--pg-fg);display:grid;place-items:center;cursor:pointer}
+.fb-x:hover{background:var(--pg-chip)}
+.fb-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 20px 0;background:var(--pg-chip);border-radius:12px;padding:4px}
+.fb-tabs button{border:0;background:transparent;border-radius:9px;min-height:38px;font-weight:600;font-size:13.5px;color:var(--pg-muted);cursor:pointer}
+.fb-tabs button[aria-selected="true"]{background:var(--pg-card);color:var(--pg-fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.fb-b{flex:1;overflow:auto;padding:16px 20px 24px;display:flex;flex-direction:column;gap:14px}
+.fb-where{font-size:12.5px;color:var(--pg-muted)}
+.fb-where b{display:block;font-size:16px;color:var(--pg-fg)}
+.fb-ta{width:100%;min-height:110px;resize:vertical;border-radius:12px;border:1.5px solid var(--pg-line);background:var(--pg-bg);color:var(--pg-fg);font:inherit;font-size:14.5px;line-height:1.5;padding:12px}
+.fb-ta:focus{outline:none;border-color:var(--org)}
+.fb-row{display:flex;gap:8px;flex-wrap:wrap}
+.fb-btn-p,.fb-btn-s{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;border:0;font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.fb-btn-p{background:var(--org);color:var(--night)}
+.fb-btn-s{background:var(--pg-chip);color:var(--pg-fg)}
+.fb-btn-p[disabled],.fb-btn-s[disabled]{opacity:.5;cursor:not-allowed}
+.fb-hint{font-size:12.5px;color:var(--pg-muted)}
+.fb-msg{font-size:13px;border-radius:10px;padding:10px 12px;background:var(--pg-hi);color:var(--pg-hi-fg)}
+.fb-msg:empty{display:none}
+.fb-list{display:flex;flex-direction:column;gap:10px}
+.fb-item{border:1px solid var(--pg-line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--pg-card)}
+.fb-item p{white-space:pre-wrap;font-size:14px;overflow-wrap:anywhere}
+.fb-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--pg-muted)}
+.fb-st{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px}
+.fb-st.pending{background:var(--pg-chip);color:var(--pg-fg)}
+.fb-st.sent{background:#DBEAFE;color:#1E3A8A}
+.fb-st.done{background:#DCFCE7;color:#14532D}
+.fb-note{font-size:13px;background:var(--pg-chip);border-radius:10px;padding:8px 10px}
+.fb-acts{display:flex;gap:6px;flex-wrap:wrap}
+.fb-acts button{min-height:36px;padding:0 12px;border-radius:10px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--pg-chip);color:var(--pg-fg)}
+.fb-acts button.go{background:var(--org);color:var(--night)}
+.fb-acts button.rm{background:transparent;color:var(--pg-muted)}
+.fb-acts button.rm.confirm{background:#FEE2E2;color:#991B1B}
+.fb-grp{font-size:12px;font-weight:700;color:var(--pg-muted);padding-top:6px}
+.fb-grp a{color:inherit}
+.fb-empty{font-size:13.5px;color:var(--pg-muted);text-align:center;padding:18px 8px}
+.fb-sendall{position:sticky;top:-16px;margin:-16px -20px 0;padding:14px 20px;background:var(--pg-card);border-bottom:1px solid var(--pg-line);display:flex;flex-direction:column;gap:8px;z-index:1}
+@media (max-width:760px){
+  .fb-lbl{display:none}
+  .fb{top:auto;left:0;width:100%;height:88%;border-left:0;border-top:1px solid var(--pg-line);border-radius:20px 20px 0 0;transform:translateY(102%);padding-left:env(safe-area-inset-left,0px)}
+  .fb.open{transform:none}
+}
+</style>
+
+<button class="fb-scrim" id="fbScrim" aria-label="Close feedback" tabindex="-1"></button>
+<aside class="fb" id="fb" aria-label="Feedback" aria-hidden="true">
+  <div class="fb-h"><h2>Feedback</h2><button class="fb-x" id="fbClose" aria-label="Close feedback"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+  <div class="fb-tabs" role="tablist"><button role="tab" id="fbTabScreen" aria-selected="true">This screen</button><button role="tab" id="fbTabAll" aria-selected="false">All feedback</button></div>
+  <div class="fb-b" id="fbScreenPane">
+    <div class="fb-where" id="fbWhere"></div>
+    <label for="fbText" class="fb-hint" style="font-weight:600;color:var(--pg-fg);font-size:13.5px">What should change or be added?</label>
+    <textarea class="fb-ta" id="fbText" maxlength="3000" placeholder="e.g. Make the Top 10 numbers bigger and add a 'New this week' badge"></textarea>
+    <div class="fb-row"><button class="fb-btn-p" id="fbSendNow"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg>Send to Claude</button><button class="fb-btn-s" id="fbSave">Save for later</button></div>
+    <p class="fb-hint">Send to Claude: I make this change now. Save for later: it waits here until you press Send all.</p>
+    <div class="fb-msg" id="fbMsg" role="status"></div>
+    <div class="fb-list" id="fbHere"></div>
+  </div>
+  <div class="fb-b" id="fbAllPane" hidden>
+    <div class="fb-sendall"><button class="fb-btn-p" id="fbSendAll"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg>Send all unsent</button><span class="fb-hint" id="fbAllHint"></span></div>
+    <div class="fb-msg" id="fbMsg2" role="status"></div>
+    <div class="fb-list" id="fbAll"></div>
+  </div>
+</aside>
+
+<script>
+(function(){
+  var fb=document.getElementById('fb'), scrim=document.getElementById('fbScrim');
+  var ta=document.getElementById('fbText'), msg=document.getElementById('fbMsg'), msg2=document.getElementById('fbMsg2');
+  var btnNow=document.getElementById('fbSendNow'), btnSave=document.getElementById('fbSave'), btnAll=document.getElementById('fbSendAll');
+  var cur={id:'login',name:'Log in',flow:'1',flowName:'Sign-in and onboarding'};
+  var items=[], db=null, comments=null, me=null, canSend='checking', loadNote='', busy=false, armed={}, inited=false;
+
+  function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function when(ms){try{return new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+  function el(id){return id==='design-system'?document.getElementById('ds'):document.getElementById('s-'+id)}
+  function bytes(s){try{return new TextEncoder().encode(s).length}catch(e){return s.length*3}}
+  var REASON={writers_only:'Only editors of this prototype can send to Claude. Your notes are still saved here.',no_session:'Claude isn’t connected to this prototype right now. Save your notes, then send them later or ask Claude in chat to "implement the saved prototype feedback".',off:'Sending to Claude isn’t available in this view. Save your notes and ask Claude in chat to "implement the saved prototype feedback".',none:'Commenting isn’t available in this view. Notes can’t be sent from here.'};
+
+  function setMsg(t,both){msg.textContent=t||''; if(both!==false) msg2.textContent=t||'';}
+
+  function open(tab){
+    fb.classList.add('open'); scrim.classList.add('open'); fb.setAttribute('aria-hidden','false');
+    setTab(tab||'screen'); checkSend();
+    if(tab!=='all') setTimeout(function(){try{ta.focus()}catch(e){}},60);
+  }
+  function close(){fb.classList.remove('open'); scrim.classList.remove('open'); fb.setAttribute('aria-hidden','true')}
+  function setTab(t){
+    var all=t==='all';
+    document.getElementById('fbTabScreen').setAttribute('aria-selected',all?'false':'true');
+    document.getElementById('fbTabAll').setAttribute('aria-selected',all?'true':'false');
+    document.getElementById('fbScreenPane').hidden=all; document.getElementById('fbAllPane').hidden=!all;
+  }
+
+  function itemHtml(it,showWhere){
+    var st=it.status||'pending', lab={pending:'Not sent',sent:'Sent to Claude',done:'Done'}[st]||st;
+    var acts='';
+    if(st==='pending') acts='<div class="fb-acts"><button class="go" data-fb-send="'+esc(it.id)+'">Send</button><button class="rm" data-fb-rm="'+esc(it.id)+'">Remove</button></div>';
+    if(st==='done') acts='<div class="fb-acts"><button data-fb-reopen="'+esc(it.id)+'">Not right? Reopen</button></div>';
+    return '<div class="fb-item"><div class="fb-meta"><span class="fb-st '+esc(st)+'">'+esc(lab)+'</span>'+(showWhere?'<a href="#'+esc(it.screen)+'" style="color:inherit;font-weight:600">'+esc(it.screenName)+'</a> · ':'')+esc(when(it.createdAt))+'</div><p>'+esc(it.text)+'</p>'+(it.claudeNote?'<div class="fb-note"><b>Claude:</b> '+esc(it.claudeNote)+'</div>':'')+acts+'</div>';
+  }
+
+  function render(){
+    var here=items.filter(function(i){return i.screen===cur.id});
+    var openHere=here.filter(function(i){return i.status!=='done'}).length;
+    var unsent=items.filter(function(i){return i.status==='pending'});
+    document.getElementById('fbWhere').innerHTML='<b>'+esc(cur.name)+'</b>'+esc(cur.flowName||'');
+    document.getElementById('fbHere').innerHTML=loadNote?'<p class="fb-empty">'+esc(loadNote)+'</p>':(here.length?here.slice().reverse().map(function(i){return itemHtml(i,false)}).join(''):'<p class="fb-empty">No notes on this screen yet.</p>');
+    var groups={}, order=[];
+    items.forEach(function(i){ if(!groups[i.screen]){groups[i.screen]=[];order.push(i.screen)} groups[i.screen].push(i) });
+    document.getElementById('fbAll').innerHTML=loadNote?'<p class="fb-empty">'+esc(loadNote)+'</p>':(order.length?order.map(function(s){return '<div class="fb-grp"><a href="#'+esc(s)+'">'+esc(groups[s][0].screenName)+'</a></div>'+groups[s].map(function(i){return itemHtml(i,false)}).join('')}).join(''):'<p class="fb-empty">No feedback yet. Open any screen and press Comment.</p>');
+    btnAll.disabled=busy||!unsent.length||canSend!=='available';
+    btnAll.innerHTML='<svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg>'+(unsent.length?'Send all unsent ('+unsent.length+')':'Nothing waiting to send');
+    var sent=items.filter(function(i){return i.status==='sent'}).length, done=items.filter(function(i){return i.status==='done'}).length;
+    document.getElementById('fbAllHint').textContent=unsent.length+' not sent · '+sent+' with Claude · '+done+' done';
+    btnNow.disabled=busy||canSend!=='available'; btnSave.disabled=busy||!db;
+    var c=document.getElementById('fbCount'); c.hidden=!openHere; c.textContent=openHere;
+    var a=document.getElementById('fbAllCount'); a.hidden=!unsent.length; a.textContent=unsent.length;
+    [].forEach.call(document.querySelectorAll('[data-fb-here]'),function(n){n.hidden=!openHere; n.textContent=openHere});
+  }
+
+  async function checkSend(){
+    if(!inited){ render(); return }
+    if(!comments){canSend='none'; showReason(); render(); return}
+    try{canSend=await comments.canSendToClaude()}catch(e){canSend='off'}
+    showReason(); render();
+  }
+  function showReason(){
+    if(canSend==='available'||canSend==='checking') { if(/Claude isn|Only editors|isn’t available/.test(msg.textContent)) setMsg(''); return }
+    setMsg(REASON[canSend]||REASON.off);
+  }
+
+  function fmtOne(screen,name,flowName,text,docId){
+    return 'Arpedia prototype feedback\nScreen: '+name+' (#'+screen+')'+(flowName?' · '+flowName:'')+'\n\n'+text+'\n\n[feedback/'+docId+']';
+  }
+  function fmtAll(list){
+    var head='Arpedia prototype feedback: implement all '+list.length+' unsent notes below. Full list in db collection "feedback" (status "sent").\n\n';
+    var out=head, n=0;
+    for(var k=0;k<list.length;k++){
+      var i=list[k], line=(k+1)+'. '+i.screenName+' (#'+i.screen+'): '+i.text.replace(/\s+/g,' ')+' [feedback/'+i.id+']\n';
+      if(bytes(out+line)>3800){ out+='…and '+(list.length-n)+' more in the db.'; break }
+      out+=line; n++;
+    }
+    return out;
+  }
+
+  function failText(e){
+    var c=e&&e.code;
+    if(c==='consent_required') return 'Not sent: comments from this page need your OK first. Press Send again and allow it.';
+    if(c==='forbidden') return 'Commenting from this page is off for you here. Your note is saved.';
+    if(c==='claude_unavailable') return 'Claude can’t receive this right now, so nothing was sent. Save it for later.';
+    if(c==='rate_limited') return 'Sending too fast. Wait a moment and press Send again.';
+    if(c==='invalid') return 'That note couldn’t be sent. Shorten it and try again.';
+    return 'Not sent ('+(c||'error')+'). Try again in a moment.';
+  }
+
+  async function sendNow(){
+    var text=ta.value.trim(); if(!text||busy) return;
+    busy=true; render(); setMsg('Sending…');
+    var ref=db?db.collection('feedback').doc():null, docId=ref?ref.id:('local-'+Date.now());
+    try{
+      var anchor=await comments.anchorFor(el(cur.id)||document.getElementById('dev'));
+      var r=await comments.sendToClaude({anchor:anchor,text:fmtOne(cur.id,cur.name,cur.flowName,text,docId)});
+      if(ref) await ref.set({screen:cur.id,screenName:cur.name,flow:cur.flow||'',text:text,status:'sent',createdAt:Date.now(),sentAt:Date.now(),threadId:r.threadId,by:me});
+      ta.value=''; setMsg('Sent. Claude is making the change and will mark it Done here.');
+    }catch(e){ setMsg(failText(e)); if(e&&(e.code==='claude_unavailable'||e.code==='forbidden')) checkSend(); }
+    busy=false; render();
+  }
+
+  async function save(){
+    var text=ta.value.trim(); if(!text||busy||!db) return;
+    busy=true; render();
+    try{ await db.collection('feedback').doc().set({screen:cur.id,screenName:cur.name,flow:cur.flow||'',text:text,status:'pending',createdAt:Date.now(),by:me}); ta.value=''; setMsg('Saved. Press Send on the note, or Send all when you’re done reviewing.') }
+    catch(e){ setMsg(e&&e.code==='invalid_argument'?'You can view this prototype but not save notes on it.':'Couldn’t save ('+((e&&e.code)||'error')+'). Try again.') }
+    busy=false; render();
+  }
+
+  async function sendOne(id){
+    var it=items.filter(function(i){return i.id===id})[0]; if(!it||busy) return;
+    if(canSend!=='available'){ showReason(); return }
+    busy=true; render(); setMsg('Sending…');
+    try{
+      var target=(it.screen===cur.id&&el(it.screen))||document.getElementById('dev');
+      if(target.hidden) target=document.querySelector('.stage');
+      var anchor=await comments.anchorFor(target);
+      var r=await comments.sendToClaude({anchor:anchor,text:fmtOne(it.screen,it.screenName,'',it.text,it.id)});
+      await db.doc('feedback/'+id).update({status:'sent',sentAt:Date.now(),threadId:r.threadId});
+      setMsg('Sent. Claude will mark it Done when it’s in.');
+    }catch(e){ setMsg(failText(e)) }
+    busy=false; render();
+  }
+
+  async function sendAll(){
+    var list=items.filter(function(i){return i.status==='pending'}); if(!list.length||busy) return;
+    if(canSend!=='available'){ showReason(); return }
+    busy=true; render(); setMsg('Sending '+list.length+' notes…');
+    try{
+      var anchor=await comments.anchorFor(document.querySelector('.stage'));
+      var r=await comments.sendToClaude({anchor:anchor,text:fmtAll(list)});
+      for(var k=0;k<list.length;k++){ try{ await db.doc('feedback/'+list[k].id).update({status:'sent',sentAt:Date.now(),threadId:r.threadId}) }catch(e){} }
+      setMsg('Sent all '+list.length+'. Claude is working through them and will mark each Done.');
+    }catch(e){ setMsg(failText(e)) }
+    busy=false; render();
+  }
+
+  async function remove(id,btn){
+    if(!armed[id]){ armed[id]=true; btn.textContent='Confirm remove'; btn.classList.add('confirm'); setTimeout(function(){armed[id]=false; render()},4000); return }
+    armed[id]=false;
+    try{ await db.doc('feedback/'+id).delete() }catch(e){ setMsg('Couldn’t remove it. Try again.') }
+  }
+  async function reopen(id){ try{ await db.doc('feedback/'+id).update({status:'pending'}) }catch(e){ setMsg('Couldn’t reopen it.') } }
+
+  document.addEventListener('click',function(e){
+    var o=e.target.closest('[data-fb-open]'); if(o){ e.preventDefault(); open(o.getAttribute('data-fb-open')); return }
+    var s=e.target.closest('[data-fb-send]'); if(s){ sendOne(s.getAttribute('data-fb-send')); return }
+    var rm=e.target.closest('[data-fb-rm]'); if(rm){ remove(rm.getAttribute('data-fb-rm'),rm); return }
+    var ro=e.target.closest('[data-fb-reopen]'); if(ro){ reopen(ro.getAttribute('data-fb-reopen')); return }
+    var link=e.target.closest('.fb a[href^="#"]'); if(link && window.innerWidth<=760){ close() }
+  });
+  document.getElementById('fbClose').addEventListener('click',close);
+  scrim.addEventListener('click',close);
+  document.getElementById('fbTabScreen').addEventListener('click',function(){setTab('screen')});
+  document.getElementById('fbTabAll').addEventListener('click',function(){setTab('all')});
+  btnNow.addEventListener('click',sendNow); btnSave.addEventListener('click',save); btnAll.addEventListener('click',sendAll);
+  ta.addEventListener('keydown',function(e){ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); sendNow() } e.stopPropagation() });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&fb.classList.contains('open')) close() });
+  window.addEventListener('protoscreen',function(e){ cur=e.detail; render() });
+
+  render();
+  (async function init(){
+    if(!(window.claude&&window.claude.use)){ loadNote='Feedback works when this prototype is opened on claude.ai.'; canSend='none'; render(); return }
+    var got=await Promise.all([claude.use('db'),claude.use('comments'),claude.use('user')]);
+    db=got[0]; comments=got[1]; inited=true;
+    try{ me=got[2]?await got[2].id():null }catch(e){ me=null }
+    if(db){
+      loadNote='Loading notes…'; render();
+      var t=setTimeout(function(){ loadNote='Saved notes can’t be reached yet. New notes will still save.'; render() },10000);
+      db.collection('feedback').orderBy('createdAt').onSnapshot(function(s){
+        if(!s.metadata.fromCache){ clearTimeout(t) }
+        loadNote=''; items=s.docs.map(function(d){var x=d.data()||{}; x.id=d.id; return x}); render();
+      },function(err){ clearTimeout(t); loadNote='Saved notes are unavailable here ('+err.code+').'; render() });
+    } else { loadNote='Notes can’t be saved in this view. You can still send a note straight to Claude.'; render() }
+    checkSend();
+  })();
+})();
+</script>

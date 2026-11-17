@@ -1,0 +1,92 @@
+<style>
+/* ================= Motion system =================
+   One vocabulary, soft and quick. Content is always visible by default; motion only enhances arrival.
+   Tokens: durations and easings. Patterns: arrive, rise, glide, press, select, fill, pop, drift.     */
+:root{
+  --m-fast:120ms;      /* press, colour */
+  --m-base:200ms;      /* state change: tabs, chips, toggles, focus */
+  --m-slow:320ms;      /* arrival: screens, sheets */
+  --m-fill:700ms;      /* progress fills, meters, rings */
+  --m-ease:cubic-bezier(.22,1,.36,1);      /* ease-out-quint: everything that arrives or responds */
+  --m-ease-io:cubic-bezier(.65,0,.35,1);   /* in-out: things that move across the screen */
+  --m-rise:8px;        /* travel for arrivals */
+  --m-stagger:45ms;    /* gap between list items */
+}
+
+@keyframes m-rise{from{opacity:0;transform:translateY(var(--m-rise))}to{opacity:1;transform:none}}
+@keyframes m-fade{from{opacity:0}to{opacity:1}}
+@keyframes m-sheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes m-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes m-pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes m-drift{to{transform:rotate(360deg)}}
+@keyframes m-shimmer{from{background-position:-200% 0}to{background-position:200% 0}}
+@keyframes m-celebrate{from{opacity:0;transform:scale(.6) rotate(-40deg)}to{opacity:.55;transform:none}}
+
+/* 1. Arrive: when a screen opens, its content rises in, one group after another. The hero band stays put. */
+.screen.enter .body > :not(.hero):not(.tabbar),
+.screen.enter > .body.onb-sheet,
+.screen.enter .hero__body > *{animation:m-rise var(--m-slow) var(--m-ease) backwards}
+.screen.enter .hero__body > *:nth-child(2){animation-delay:40ms}
+.screen.enter .hero__body > *:nth-child(3){animation-delay:80ms}
+.screen.enter .body > :nth-child(2){animation-delay:calc(var(--m-stagger)*1)}
+.screen.enter .body > :nth-child(3){animation-delay:calc(var(--m-stagger)*2)}
+.screen.enter .body > :nth-child(4){animation-delay:calc(var(--m-stagger)*3)}
+.screen.enter .body > :nth-child(5){animation-delay:calc(var(--m-stagger)*4)}
+.screen.enter .body > :nth-child(n+6){animation-delay:calc(var(--m-stagger)*5)}
+/* rails and lists inside a section ripple in */
+.screen.enter .rail > :nth-child(-n+5),
+.screen.enter .group > :nth-child(-n+8),
+.screen.enter .sr-trend > *, .screen.enter .sr-sugg > *, .screen.enter .sr-genres > *{animation:m-rise var(--m-slow) var(--m-ease) backwards}
+.screen.enter .rail > :nth-child(2),.screen.enter .group > :nth-child(2),.screen.enter .sr-trend > :nth-child(2),.screen.enter .sr-sugg > :nth-child(2),.screen.enter .sr-genres > :nth-child(2){animation-delay:60ms}
+.screen.enter .rail > :nth-child(3),.screen.enter .group > :nth-child(3),.screen.enter .sr-trend > :nth-child(3),.screen.enter .sr-sugg > :nth-child(3),.screen.enter .sr-genres > :nth-child(3){animation-delay:100ms}
+.screen.enter .rail > :nth-child(4),.screen.enter .group > :nth-child(4),.screen.enter .sr-trend > :nth-child(4),.screen.enter .sr-sugg > :nth-child(4),.screen.enter .sr-genres > :nth-child(4){animation-delay:140ms}
+.screen.enter .rail > :nth-child(5),.screen.enter .group > :nth-child(n+5),.screen.enter .sr-trend > :nth-child(n+5),.screen.enter .sr-sugg > :nth-child(n+5),.screen.enter .sr-genres > :nth-child(n+5){animation-delay:180ms}
+
+/* 2. Glide: sheets slide up from the bottom edge, backdrop fades. */
+.screen.sheet.enter .panel{animation:m-sheet var(--m-slow) var(--m-ease)}
+.screen.sheet.enter .backdrop{animation:m-fade var(--m-base) var(--m-ease)}
+
+/* 3. Press: anything tappable sinks slightly, then springs back (no bounce). */
+.btn,.chip,.ib,.cell--tap,.option,.amount,.bk,.rank,.genre,.sr-genre,.sr-person,.sr-row,.sr-top,.tab,.search,.search-filter,.toggle,.onb-chip,.pill[data-go]{transition:transform var(--m-fast) var(--m-ease),background-color var(--m-base) var(--m-ease),color var(--m-base) var(--m-ease),box-shadow var(--m-base) var(--m-ease)}
+.btn:active,.chip:active,.option:active,.amount:active,.search-filter:active,.onb-chip:active,.pill[data-go]:active{transform:scale(.97)}
+.ib:active{transform:scale(.9)}
+.cell--tap:active,.sr-row:active,.sr-top:active{transform:scale(.99)}
+.bk:active,.rank:active,.genre:active,.sr-genre:active,.sr-person:active{transform:scale(.96)}
+.tab:active{transform:scale(.94)}
+.bk .cv,.rank .cv{transition:transform var(--m-base) var(--m-ease),box-shadow var(--m-base) var(--m-ease)}
+@media (hover:hover){.bk:hover .cv,.rank:hover .cv{transform:translateY(-3px);box-shadow:0 14px 22px -10px rgba(0,0,0,.5)}}
+
+/* 4. Select: state changes slide rather than snap. */
+.tab.on::before{animation:m-fill var(--m-base) var(--m-ease)}
+.tabs button::after,.hero__tabs .on::after{transform-origin:center}
+.tabs button.on::after{animation:m-fill var(--m-base) var(--m-ease)}
+.toggle::after{transition:transform var(--m-base) var(--m-ease)}
+.option,.amount,.onb-chip,.chip{transition-property:transform,background-color,color,box-shadow}
+.option.is-selected,.amount.is-selected,.chip.on,.chip.sel,.onb-chip.sel{animation:m-pop-soft var(--m-base) var(--m-ease)}
+@keyframes m-pop-soft{0%{transform:scale(.98)}100%{transform:none}}
+
+/* 5. Fill: progress grows from the start when it appears. */
+.screen.enter .bar i,.screen.enter .onb-progress i,.screen.enter .meter i{transform-origin:left center;animation:m-fill var(--m-fill) var(--m-ease) 120ms backwards}
+@property --p{syntax:"<number>";inherits:true;initial-value:40}
+.screen.enter .ring{animation:m-ring var(--m-fill) var(--m-ease) 120ms backwards}
+@keyframes m-ring{from{--p:0}}
+
+/* 6. Pop: small celebrations on hearts, follows and saves. */
+.bk-follow[aria-pressed="true"],.ib[aria-pressed="true"]{animation:m-pop var(--m-slow) var(--m-ease)}
+.toggle.on::after{animation:none}
+
+/* 7. Drift: the sunflower petals on orange bands turn very slowly, like a sun. */
+.hero::after,.band::after,.bk-sheethead::after,.sr-genre::after{animation:m-drift 140s linear infinite}
+.sr-genre:nth-child(even)::after{animation-direction:reverse;animation-duration:180s}
+
+/* 8. Focus: fields ease into their orange border (see .field). Loading: shimmer placeholder. */
+.skel{border-radius:8px;background:linear-gradient(90deg,var(--surface) 0%,#ECEEF1 40%,var(--surface) 80%);background-size:200% 100%;animation:m-shimmer 1.4s var(--m-ease-io) infinite}
+
+/* Reduced motion: keep fades for orientation, drop travel, scale and spin. */
+@media (prefers-reduced-motion:reduce){
+  :root{--m-rise:0px}
+  .hero::after,.band::after,.bk-sheethead::after,.sr-genre::after,.skel{animation:none!important}
+  .screen.sheet.enter .panel{animation:m-fade var(--m-base) linear}
+  .btn:active,.chip:active,.ib:active,.cell--tap:active,.bk:active,.rank:active,.tab:active,.option:active{transform:none}
+}
+</style>

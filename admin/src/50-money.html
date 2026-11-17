@@ -1,0 +1,1007 @@
+<style>
+/* ================= Money and author earnings (mn-) ================= */
+.mn-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+@media (max-width:860px){.mn-two{grid-template-columns:minmax(0,1fr)}}
+.mn-in{width:112px;height:32px;font-size:13.5px;padding:0 10px}
+.mn-id{font-family:var(--f-m);font-size:12px;color:var(--ink-2);word-break:break-all}
+.mn-tot td{font-weight:800;background:var(--canvas)}
+.mn-sub td{color:var(--ink-2)}
+.mn-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.mn-flow .stp{flex-direction:column;gap:6px;padding:4px 0;border-top:3px solid var(--surface)}
+.mn-flow .stp.ok{border-top-color:var(--night)}
+.mn-flow .stp.on{border-top-color:var(--org)}
+@media (max-width:760px){.mn-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mn-preview{border-radius:14px;background:var(--canvas);box-shadow:inset 0 0 0 1px var(--line);padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.mn-preview .row b{font-family:var(--f-d);font-weight:800;font-size:18px}
+.mn-codebox{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:10px;background:var(--white);box-shadow:inset 0 0 0 1px #D1D5DB;font-family:var(--f-m);font-size:14px}
+.mn-codebox span:last-child{margin-left:auto;font-family:var(--f-ui);font-weight:700;color:var(--ok);font-size:13px}
+.mn-tr td.mn-wrap{white-space:normal;min-width:180px}
+.mn-fold-h{font-size:13.5px;font-weight:700}
+.mn-an{align-items:center}
+.mn-an .li__body{cursor:pointer}
+.mn-rec{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:12px;background:var(--canvas);box-shadow:inset 0 0 0 1px var(--line)}
+.mn-rec b{font-family:var(--f-d);font-weight:800;font-size:17px}
+.mn-rec span{color:var(--ink-2);font-size:13.5px}
+</style>
+
+<!-- ===================== 07 Money: Revenue ===================== -->
+<section class="screen" id="s-revenue" data-area="7" data-nav="revenue" data-name="Revenue" data-note="Same as v25: revenue totals.|New (v4 credits): the four key numbers are the credit economy: credits sold, credits spent, unspent credits (owed to readers) and expired credits. Net revenue, store fees, author earnings and what Arpedia keeps sit in the breakdown beside the chart.|Rule: author earnings = credits spent on their books, tips and messages × ₦1.60. There is no pool and no reading-time split.|Rule: unspent credits are deferred revenue. Revenue is earned when a credit is spent or expires.|New: net revenue for the last 14 days is here now (Home no longer shows it). By month, by platform, subscriber health and MRR are folded under More details.|Data: store payouts arrive about monthly, web payments settle from Flutterwave in 1 to 2 days. Figures are sales as they happen, not cash received. Author earnings follow credits spent, so a late store payout never delays authors.|Data: October store fees include VAT the stores withhold, so its effective fee was above 15%." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Revenue</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="royalties">Author earnings</a><a class="ib" data-go="exports" aria-label="Export revenue"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <div class="seg" data-single><button class="is-selected">This month</button><button>Last month</button><button>Quarter</button><button>Year</button></div>
+      <span class="muted" style="font-size:13px">1 to 12 November · net revenue ₦2,162,996 · <span class="ok-t"><b>+11.4%</b></span> on 1 to 12 October</span>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Credits sold</span><span class="kpi__v">852,200</span><span class="kpi__d">Plans 672,200 · top-ups 180,000</span></div>
+      <div class="kpi"><span class="kpi__l">Credits spent</span><span class="kpi__v">742,600</span><span class="kpi__d">₦1,188,160 to authors at ₦1.60</span></div>
+      <div class="kpi"><span class="kpi__l">Unspent credits</span><span class="kpi__v">6,420,000</span><span class="kpi__d">Owed to readers · about ₦15.7M deferred</span></div>
+      <div class="kpi"><span class="kpi__l">Expired credits</span><span class="kpi__v">212,400</span><span class="kpi__d">October, over the rollover cap</span></div>
+    </div>
+
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Net revenue, last 14 days</h2><span class="sub">30 Oct to 12 Nov</span></div>
+          <div class="panel__body">
+            <div class="chart">
+              <div class="cols">
+                <div class="col"><i class="t" style="--v:12%"></i><i style="--v:48%"></i></div>
+                <div class="col"><i class="t" style="--v:13%"></i><i style="--v:52%"></i></div>
+                <div class="col"><i class="t" style="--v:15%"></i><i style="--v:60%"></i></div>
+                <div class="col"><i class="t" style="--v:14%"></i><i style="--v:56%"></i></div>
+                <div class="col"><i class="t" style="--v:12%"></i><i style="--v:50%"></i></div>
+                <div class="col"><i class="t" style="--v:11%"></i><i style="--v:44%"></i></div>
+                <div class="col"><i class="t" style="--v:10%"></i><i style="--v:40%"></i></div>
+                <div class="col"><i class="t" style="--v:14%"></i><i style="--v:58%"></i></div>
+                <div class="col"><i class="t" style="--v:16%"></i><i style="--v:64%"></i></div>
+                <div class="col"><i class="t" style="--v:15%"></i><i style="--v:62%"></i></div>
+                <div class="col"><i class="t" style="--v:13%"></i><i style="--v:54%"></i></div>
+                <div class="col"><i class="t" style="--v:14%"></i><i style="--v:57%"></i></div>
+                <div class="col"><i class="t" style="--v:12%"></i><i style="--v:49%"></i></div>
+                <div class="col now"><i class="t" style="--v:6%"></i><i style="--v:24%"></i></div>
+              </div>
+              <div class="axis"><span>30</span><span>31</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span></div>
+              <div class="legend"><span><i></i>Subscriptions</span><span><i class="t"></i>Top-ups</span><span>Average ₦180,250 a day in November</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>By product</h2></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Product</th><th class="r">Units</th><th class="r">Gross</th><th class="r">Fees</th><th class="r">Net</th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span><b>Monthly</b><small>In-app · 300 credits</small></span></div></td><td class="n">770</td><td class="n">₦693,000</td><td class="n">₦103,950</td><td class="n">₦589,050</td></tr>
+              <tr><td><div class="who"><span><b>Monthly</b><small>Web · 300 credits</small></span></div></td><td class="n">180</td><td class="n">₦144,000</td><td class="n">₦2,016</td><td class="n">₦141,984</td></tr>
+              <tr><td><div class="who"><span><b>Quarterly</b><small>In-app · 800 credits</small></span></div></td><td class="n">215</td><td class="n">₦516,000</td><td class="n">₦77,400</td><td class="n">₦438,600</td></tr>
+              <tr><td><div class="who"><span><b>Quarterly</b><small>Web · 800 credits</small></span></div></td><td class="n">74</td><td class="n">₦155,400</td><td class="n">₦2,176</td><td class="n">₦153,224</td></tr>
+              <tr><td><div class="who"><span><b>Yearly</b><small>In-app · 3,000 credits</small></span></div></td><td class="n">38</td><td class="n">₦319,200</td><td class="n">₦47,880</td><td class="n">₦271,320</td></tr>
+              <tr><td><div class="who"><span><b>Yearly</b><small>Web · 3,000 credits</small></span></div></td><td class="n">14</td><td class="n">₦105,000</td><td class="n">₦1,470</td><td class="n">₦103,530</td></tr>
+              <tr><td><div class="who"><span><b>Top-ups</b><small>In-app · 200, 500, 1,000 credits</small></span></div></td><td class="n">576</td><td class="n">₦432,000</td><td class="n">₦64,800</td><td class="n">₦367,200</td></tr>
+              <tr><td><div class="who"><span><b>Top-ups</b><small>Web · 200, 500, 1,000 credits</small></span></div></td><td class="n">130</td><td class="n">₦108,000</td><td class="n">₦1,512</td><td class="n">₦106,488</td></tr>
+              <tr class="mn-sub"><td>Total before refunds</td><td class="n">1,997</td><td class="n">₦2,472,600</td><td class="n">₦301,204</td><td class="n">₦2,171,396</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Breakdown</h2><span class="sub">1 to 12 Nov</span></div>
+          <div class="panel__body">
+            <div class="kv-row"><span>Gross sales</span><b>₦2,472,600</b></div>
+            <div class="kv-row"><span>Store fees (12.2%)</span><b>−₦301,204</b></div>
+            <div class="kv-row"><span>Refunds (4)</span><b>−₦8,400</b></div>
+            <div class="kv-row total"><span>Net revenue</span><b>₦2,162,996</b></div>
+            <div class="kv-row"><span>Author earnings (742,600 credits × ₦1.60)</span><b>₦1,188,160</b></div>
+            <div class="kv-row"><span>Arpedia after author earnings</span><b>₦974,836</b></div>
+            <div class="kv-row"><span>Subscribers (Monthly 2,904 · Quarterly 1,371 · Yearly 537)</span><b>4,812</b></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>More details <small>by month, by platform, subscribers</small></summary>
+          <div class="fold__b">
+            <span class="mn-fold-h">Net revenue by month</span>
+            <div class="tw"><table class="tbl">
+              <thead><tr><th>Month</th><th class="r">Net</th></tr></thead>
+              <tbody>
+                <tr><td>May</td><td class="n">₦3,240,000</td></tr>
+                <tr><td>June</td><td class="n">₦3,610,200</td></tr>
+                <tr><td>July</td><td class="n">₦3,986,500</td></tr>
+                <tr><td>August</td><td class="n">₦4,420,300</td></tr>
+                <tr><td>September</td><td class="n">₦4,860,157</td></tr>
+                <tr><td>October <span class="muted">subscriptions ₦4,499,000, top-ups ₦1,098,786</span></td><td class="n">₦5,597,786</td></tr>
+                <tr><td>November so far</td><td class="n">₦2,162,996</td></tr>
+              </tbody>
+            </table></div>
+            <span class="mn-fold-h">By platform</span>
+            <div class="tw"><table class="tbl">
+              <thead><tr><th>Platform</th><th class="r">Fee</th><th class="r">Gross</th><th class="r">Net</th></tr></thead>
+              <tbody>
+                <tr><td><b>Google Play</b> <span class="muted">70%</span></td><td class="n">15%</td><td class="n">₦1,858,600</td><td class="n">₦1,579,810</td></tr>
+                <tr><td><b>App Store</b> <span class="muted">9%</span></td><td class="n">15%</td><td class="n">₦235,600</td><td class="n">₦200,260</td></tr>
+                <tr><td><b>Web</b> <span class="muted">21% · Flutterwave</span></td><td class="n">1.4%</td><td class="n">₦544,800</td><td class="n">₦537,172</td></tr>
+              </tbody>
+            </table></div>
+            <span class="mn-fold-h">Subscriber health</span>
+            <div>
+              <div class="kv-row"><span>MRR, before fees</span><b>₦4,086,300</b></div>
+              <div class="kv-row"><span>ARPU per subscriber per month</span><b>₦849</b></div>
+              <div class="kv-row"><span>Churn, October (September 6.4%)</span><b>5.8%</b></div>
+              <div class="kv-row"><span>Voluntary cancellations</span><b>4.1%</b></div>
+              <div class="kv-row"><span>Billing failures not recovered</span><b>1.7%</b></div>
+            </div>
+            <span class="mn-fold-h">MRR by plan</span>
+            <div class="hbars">
+              <div class="hb"><span>Monthly · 2,904 · ₦900</span><span class="track"><i style="--v:100%"></i></span><b>₦2,613,600</b></div>
+              <div class="hb"><span>Quarterly · 1,371 · ₦800 a month</span><span class="track"><i style="--v:42%"></i></span><b>₦1,096,800</b></div>
+              <div class="hb"><span>Yearly · 537 · ₦700 a month</span><span class="track"><i style="--v:14.4%"></i></span><b>₦375,900</b></div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Subscriptions ===================== -->
+<section class="screen" id="s-subscriptions" data-area="7" data-nav="subscriptions" data-name="Subscriptions" data-note="Same as v25: subscriber list with plan and status.|New: four key numbers (active, grace period, billing retry, expired). Cancelled and refunded counts are in the quick filters; platform and plan are under Filters.|New: price and platform moved under the plan name and start date moved to the detail page, so the table has 6 columns. Only grace period and billing retry are marked in orange; Active, Cancelled, Expired and Refunded are plain text.|Rule: staff cannot cancel or refund store subscriptions; only Google or Apple can. Web subscriptions are managed from the reader's account and Flutterwave.|Data: status updates arrive from RevenueCat within seconds of a store event." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Subscriptions</h1></div>
+      <div class="band__acts"><a class="ib" data-go="exports" aria-label="Export subscriptions"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Active</span><span class="kpi__v">4,812</span><span class="kpi__d">Monthly 2,904 · Quarterly 1,371 · Yearly 537</span></div>
+      <div class="kpi"><span class="kpi__l">In grace period</span><span class="kpi__v">96</span><span class="kpi__d">Still have access</span></div>
+      <div class="kpi"><span class="kpi__l">Billing retry</span><span class="kpi__v">71</span><span class="kpi__d">Store is retrying the card</span></div>
+      <div class="kpi"><span class="kpi__l">Expired, last 30 days</span><span class="kpi__v">412</span><span class="kpi__d">Lost access</span></div>
+    </div>
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Reader name, email or store id" aria-label="Search subscriptions"></label>
+      <button class="fbtn" data-toast="Filter options are not part of this prototype"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+      <div class="row" data-single style="gap:6px">
+        <button class="fchip is-selected">All <span class="c">5,647</span></button>
+        <button class="fchip">Active <span class="c">4,812</span></button>
+        <button class="fchip">In grace period <span class="c">96</span></button>
+        <button class="fchip">Billing retry <span class="c">71</span></button>
+        <button class="fchip">Cancelled <span class="c">238</span></button>
+        <button class="fchip">Expired <span class="c">412</span></button>
+        <button class="fchip">Refunded <span class="c">18</span></button>
+      </div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Reader</th><th>Plan</th><th>Platform</th><th>Status</th><th>Renews or ends</th><th>Auto-renew</th></tr></thead>
+        <tbody>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm g">NE</span><span><b>Ngozi Eze</b><small>ngozi.eze@gmail.com</small></span></div></td><td><div class="who"><span><b>Quarterly</b><small>₦2,400</small></span></div></td><td>Google Play</td><td><span class="st-plain">Active</span></td><td class="nw">6 Dec 2026</td><td>On</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm m">CO</span><span><b>Chiamaka Obi</b><small>Lagos</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>₦900</small></span></div></td><td>App Store</td><td><span class="st-plain">Active</span></td><td class="nw">15 Nov 2026</td><td>On</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm b">TA</span><span><b>Tunji Adebisi</b><small>Ibadan</small></span></div></td><td><div class="who"><span><b>Yearly</b><small>₦8,400</small></span></div></td><td>Google Play</td><td><span class="st-plain">Active</span></td><td class="nw">20 Jan 2027</td><td>On</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm o">HM</span><span><b>Hauwa Musa</b><small>Kaduna</small></span></div></td><td><div class="who"><span><b>Quarterly</b><small>₦2,100</small></span></div></td><td>Web</td><td><span class="st-plain">Active</span></td><td class="nw">10 Feb 2027</td><td>On</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm t">KN</span><span><b>Kelechi Nwosu</b><small>Enugu</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>₦900</small></span></div></td><td>Google Play</td><td><span class="st st-warn">In grace period</span></td><td class="nw">Grace ends 14 Nov</td><td>On</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm r">IL</span><span><b>Ibrahim Lawal</b><small>Kano</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>₦900</small></span></div></td><td>App Store</td><td><span class="st st-warn">Billing retry</span></td><td class="nw">Due 5 Nov, retrying</td><td>On</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm k">NO</span><span><b>Ngozi Okonkwo</b><small>Abuja</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>₦900</small></span></div></td><td>Web</td><td><span class="st-plain">Cancelled</span></td><td class="nw">Ends 21 Nov 2026</td><td>Off</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm g">RB</span><span><b>Rashida Bello</b><small>Kaduna</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>₦900</small></span></div></td><td>Google Play</td><td><span class="st-plain">Cancelled</span></td><td class="nw">Ends 18 Nov 2026</td><td>Off</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm m">AS</span><span><b>Adebayo Salami</b><small>Ilorin</small></span></div></td><td><div class="who"><span><b>Quarterly</b><small>₦2,400</small></span></div></td><td>Google Play</td><td><span class="st-plain">Expired</span></td><td class="nw">Ended 2 Nov 2026</td><td>Off</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm b">CW</span><span><b>Chinwe Okeke</b><small>Onitsha</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>₦900</small></span></div></td><td>Google Play</td><td><span class="st-plain">Expired</span></td><td class="nw">Ended 28 Oct 2026</td><td>Off</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm o">SA</span><span><b>Segun Afolabi</b><small>Abeokuta</small></span></div></td><td><div class="who"><span><b>Quarterly</b><small>₦2,400</small></span></div></td><td>App Store</td><td><span class="st-plain">Refunded</span></td><td class="nw">Refunded 10 Nov</td><td>Off</td></tr>
+          <tr data-go="subscription"><td><div class="who"><span class="av sm t">FA</span><span><b>Funke Alabi</b><small>Lagos</small></span></div></td><td><div class="who"><span><b>Yearly</b><small>₦7,500</small></span></div></td><td>Web</td><td><span class="st-plain">Active</span></td><td class="nw">18 Oct 2027</td><td>On</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 12 of 5,647 subscriptions</span><div class="row"><button class="btn btn-g sm" data-toast="This is the first page">Previous</button><button class="btn btn-g sm" data-toast="Showing every row in this prototype">Next</button></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Subscription detail ===================== -->
+<section class="screen" id="s-subscription" data-area="7" data-nav="subscriptions" data-name="Subscription" data-note="New: store ids and purchase events in one place (folded under Technical details) so Support can answer 'why was I charged?' without opening three tools.|New: the explanation about refunds moved here: this is a Google Play subscription, so only Google can refund it and the reader cancels it in Google Play. If Google refunds it, Arpedia is told automatically and unused credits are clawed back.|Rule: staff can grant a promotional entitlement (extra days) in RevenueCat. It is logged in the audit log and the reader gets a push saying access was extended.|Data: billing timeline is the RevenueCat webhook log; credits come from the credit ledger." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="subscriptions">Subscriptions</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Ngozi Eze</span></div>
+    <div class="ph__row">
+      <div class="ph__title"><h1>Ngozi Eze, Quarterly</h1><div class="ph__meta">Active · Google Play · renews 6 Dec 2026 · ₦2,400 per quarter</div></div>
+      <div class="ph__acts"><a class="btn btn-g" data-toast="Opening this subscription in RevenueCat in a new tab"><svg class="ico s" aria-hidden="true"><use href="#i-ext"/></svg>Open in RevenueCat</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Receipt sent to ngozi.eze@gmail.com">Resend receipt</a><a data-toast="Ngozi gets 7 free days, now ending 13 Dec 2026. She was sent a push.">Extend by 7 days</a></div></div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Subscription</h2></div>
+          <div class="panel__body">
+            <dl class="kv">
+              <dt>Reader</dt><dd><a class="link" data-go="user">Ngozi Eze</a> · Lagos · joined 4 Mar 2026</dd>
+              <dt>Plan</dt><dd>Quarterly · 800 credits per period</dd>
+              <dt>Started</dt><dd>4 Mar 2026 · auto-renew on</dd>
+              <dt>Price paid</dt><dd>₦2,400 · Arpedia receives ₦2,040 after the 15% store fee</dd>
+              <dt>Credits</dt><dd>2,700 granted from this plan · <a class="link" data-go="user-credits">840 credits</a> in balance</dd>
+            </dl>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>Technical details <small>store ids, purchase events</small></summary>
+          <div class="fold__b">
+            <dl class="kv">
+              <dt>Product id</dt><dd><span class="mono">arpedia_quarterly_v2</span></dd>
+              <dt>Store account id</dt><dd><span class="mono">7c1e4b2a-91d3-4f6e-8a05-3b9d2e6c41f8</span></dd>
+              <dt>Original transaction</dt><dd><span class="mono">GPA.3391-7728-4415-20931</span></dd>
+              <dt>Entitlements</dt><dd><span class="tag org">reader</span> active until 6 Dec 2026</dd>
+              <dt>Credits by period</dt><dd>4 Mar to 3 Jun 900 · 4 Jun to 5 Sep 900 · 6 Sep to 5 Dec 900</dd>
+            </dl>
+            <span class="mn-fold-h">Store purchase events</span>
+            <div class="tl">
+              <div class="tl__i ok"><b>First purchase · 4 Mar 2026, 18:12 <span class="mono muted">INITIAL_PURCHASE</span></b><small>₦2,400 charged by Google Play · 800 credits granted</small></div>
+              <div class="tl__i ok"><b>Renewed · 4 Jun 2026, 03:40 <span class="mono muted">RENEWAL</span></b><small>₦2,400 · 800 credits granted</small></div>
+              <div class="tl__i err"><b>Card declined · 4 Sep 2026, 03:41 <span class="mono muted">BILLING_ISSUE</span></b><small>Card declined. Google Play started a grace period, reader kept access.</small></div>
+              <div class="tl__i ok"><b>Renewed · 6 Sep 2026, 11:05 <span class="mono muted">RENEWAL</span></b><small>Reader updated the card in Google Play · ₦2,400 · 800 credits granted</small></div>
+              <div class="tl__i org"><b>Next renewal · 6 Dec 2026</b><small>Scheduled by Google Play.</small></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Grant free days</h2></div>
+          <div class="panel__body">
+            <div class="radios h" data-single><span class="radio is-selected"><span><b>7 days</b></span></span><span class="radio"><span><b>14 days</b></span></span><span class="radio"><span><b>30 days</b></span></span></div>
+            <a class="btn btn-p block" data-toast="Ngozi gets 7 free days, now ending 13 Dec 2026. She was sent a push.">Extend by 7 days</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Transactions ===================== -->
+<section class="screen" id="s-transactions" data-area="7" data-nav="transactions" data-name="Transactions" data-note="New: every naira in, from plans and top-ups, across Google Play, App Store and web checkout.|New: reference moved under the reader, platform under the item, and platform and item filters live under Filters. Only Failed and Pending are marked; Succeeded and Refunded are plain text.|Rule: net is what Arpedia receives after the store or Flutterwave fee. Only web checkout payments can be refunded by staff.|Data: store purchases come from RevenueCat webhooks, web payments from Flutterwave webhooks." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Transactions</h1></div>
+      <div class="band__acts"><a class="ib" data-go="exports" aria-label="Export CSV"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Reader, reference or store id" aria-label="Search transactions"></label>
+      <button class="fbtn" data-toast="Filter options are not part of this prototype"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+      <span class="achip">Date: 1 to 12 Nov<button aria-label="Remove filter"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+      <div class="row" data-single style="gap:6px">
+        <button class="fchip is-selected">All <span class="c">1,997</span></button>
+        <button class="fchip">Succeeded <span class="c">1,962</span></button>
+        <button class="fchip">Pending <span class="c">9</span></button>
+        <button class="fchip">Refunded <span class="c">4</span></button>
+        <button class="fchip">Failed <span class="c">22</span></button>
+      </div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Date</th><th>Reader</th><th>Item</th><th class="r">Amount</th><th class="r">Net</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="transaction"><td class="nw">12 Nov, 10:12</td><td><div class="who"><span><b>Funke Alabi</b><small class="mn-id">ARP-WEB-20261112-9017</small></span></div></td><td><div class="who"><span><b>200 credits</b><small>Web top-up</small></span></div></td><td class="n">₦600</td><td class="n">₦592</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">12 Nov, 09:58</td><td><div class="who"><span><b>Tunji Adebisi</b><small class="mn-id">GPA.3394-2210-8817-33104</small></span></div></td><td><div class="who"><span><b>1,000 credits</b><small>Google Play top-up</small></span></div></td><td class="n">₦3,000</td><td class="n">₦2,550</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">12 Nov, 09:20</td><td><div class="who"><span><b>Ngozi Okonkwo</b><small class="mn-id">ARP-WEB-20261112-9003</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>Web</small></span></div></td><td class="n">₦900</td><td class="n">₦0</td><td><span class="st st-err">Failed</span></td></tr>
+          <tr data-go="transaction"><td class="nw">12 Nov, 08:47</td><td><div class="who"><span><b>Ibrahim Lawal</b><small class="mn-id">2000000781942266</small></span></div></td><td><div class="who"><span><b>200 credits</b><small>App Store top-up</small></span></div></td><td class="n">₦600</td><td class="n">₦510</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">11 Nov, 21:03</td><td><div class="who"><span><b>Chiamaka Obi</b><small class="mn-id">2000000781507713</small></span></div></td><td><div class="who"><span><b>500 credits</b><small>App Store top-up</small></span></div></td><td class="n">₦1,500</td><td class="n">₦1,275</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">11 Nov, 15:31</td><td><div class="who"><span><b>Rashida Bello</b><small class="mn-id">ARP-WEB-20261111-8932</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>Web</small></span></div></td><td class="n">₦900</td><td class="n">₦0</td><td><span class="st st-warn">Pending</span></td></tr>
+          <tr data-go="transaction"><td class="nw">10 Nov, 14:22</td><td><div class="who"><span><b>Hauwa Musa</b><small class="mn-id">ARP-WEB-20261110-8841</small></span></div></td><td><div class="who"><span><b>Quarterly</b><small>Web</small></span></div></td><td class="n">₦2,100</td><td class="n">₦2,070.60</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">10 Nov, 11:06</td><td><div class="who"><span><b>Kelechi Nwosu</b><small class="mn-id">ARP-WEB-20261110-8798</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>Web</small></span></div></td><td class="n">₦900</td><td class="n">₦887.40</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">10 Nov, 11:05</td><td><div class="who"><span><b>Kelechi Nwosu</b><small class="mn-id">ARP-WEB-20261110-8797</small></span></div></td><td><div class="who"><span><b>Monthly</b><small>Web</small></span></div></td><td class="n">₦900</td><td class="n">₦887.40</td><td><span class="st-plain">Succeeded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">9 Nov, 16:44</td><td><div class="who"><span><b>Segun Afolabi</b><small class="mn-id">2000000779118245</small></span></div></td><td><div class="who"><span><b>Quarterly</b><small>App Store</small></span></div></td><td class="n">₦2,400</td><td class="n">₦0</td><td><span class="st-plain">Refunded</span></td></tr>
+          <tr data-go="transaction"><td class="nw">8 Nov, 19:10</td><td><div class="who"><span><b>Ngozi Eze</b><small class="mn-id">GPA.3392-9004-1127-60218</small></span></div></td><td><div class="who"><span><b>200 credits</b><small>Google Play top-up</small></span></div></td><td class="n">₦600</td><td class="n">₦510</td><td><span class="st-plain">Succeeded</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 11 of 1,997 transactions</span><div class="row"><button class="btn btn-g sm" data-toast="This is the first page">Previous</button><button class="btn btn-g sm" data-toast="Showing every row in this prototype">Next</button></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Transaction drawer ===================== -->
+<section class="screen overlay" id="s-transaction" data-area="7" data-base="transactions" data-name="Transaction" data-note="New: payment notices are folded under Technical details; Finance can open them to see that credits were granted even when the first delivery failed.|New: the credit grant note moved here: 800 credits were granted once, at 14:23. The second webhook delivery was not double-counted (see the ledger).|Rule: only web checkout payments can be refunded here. Refund goes to the Refund screen where the credits clawback is shown first.|Data: Flutterwave transaction, webhook log and credit ledger." hidden>
+  <a class="backdrop" data-go="transactions" aria-label="Close"></a>
+  <div class="drawer" role="dialog" aria-label="Transaction ARP-WEB-20261110-8841">
+    <div class="modal__h"><div class="grow"><h2>₦2,100 Quarterly</h2><p>Succeeded · Hauwa Musa · web checkout · 10 Nov 2026, 14:22</p></div><a class="ib" data-go="transactions" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <dl class="kv">
+        <dt>Reader</dt><dd><a class="link" data-go="user">Hauwa Musa</a> · Kaduna</dd>
+        <dt>Item</dt><dd>Quarterly plan · web price</dd>
+        <dt>Payment method</dt><dd>Visa card •••• 5521</dd>
+        <dt>Amount</dt><dd>₦2,100.00</dd>
+        <dt>Flutterwave fee (1.4%)</dt><dd>₦29.40</dd>
+        <dt>Net to Arpedia</dt><dd><b>₦2,070.60</b></dd>
+        <dt>Credits</dt><dd>900 granted · <a class="link" data-go="user-credits">ledger</a></dd>
+      </dl>
+      <details class="fold">
+        <summary>Technical details <small>reference, payment notices</small></summary>
+        <div class="fold__b">
+          <dl class="kv"><dt>Flutterwave tx ref</dt><dd><span class="mono">ARP-WEB-20261110-8841</span></dd></dl>
+          <span class="mn-fold-h">Payment notices from Flutterwave</span>
+          <div class="tl">
+            <div class="tl__i err"><b>First notice · 10 Nov, 14:22:08</b><small>Our server did not reply in time</small></div>
+            <div class="tl__i ok"><b>Second notice · 10 Nov, 14:23:10</b><small>Received · subscription started, credits granted</small></div>
+          </div>
+        </div>
+      </details>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-toast="Receipt sent to hauwa.musa@gmail.com">Resend receipt</a><a class="btn btn-d" data-go="refund">Refund…</a></div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Refunds ===================== -->
+<section class="screen" id="s-refunds" data-area="7" data-nav="refunds" data-name="Refunds" data-note="New: refund requests with credits used since purchase and a recommendation, so Finance decides in one look. Only Waiting is marked; Refunded and Declined are plain text.|New: store refunds are automatic, so they are not listed here. When Google Play or App Store refunds a purchase, RevenueCat tells Arpedia, the subscription ends and unused credits are clawed back. 4 store refunds so far in November (₦8,400 in total with this month's web refunds).|Rule: web checkout only. Google Play and App Store refunds are decided by the stores.|Rule: recommended full refund when the request is within 7 days and under 25% of the period's credits are used.|Data: refund requests come from the reader's account page and Support." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Refund requests</h1></div>
+      <div class="band__acts"><a class="ib" data-go="exports" aria-label="Export refunds"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <div class="row" data-single style="gap:6px">
+        <button class="fchip is-selected">Waiting <span class="c">3</span></button>
+        <button class="fchip">Refunded <span class="c">14</span></button>
+        <button class="fchip">Declined <span class="c">5</span></button>
+      </div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Requester</th><th class="r">Amount</th><th>Reason</th><th class="r">Credits used</th><th>Recommendation</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="refund"><td><div class="who"><span class="av sm o">HM</span><span><b>Hauwa Musa</b><small>Quarterly, web · requested 11 Nov</small></span></div></td><td class="n">₦2,100</td><td class="mn-wrap">Subscribed by mistake, wanted monthly</td><td class="n">180 of 900</td><td>Refund in full</td><td><span class="st st-warn">Waiting</span></td></tr>
+          <tr data-go="refund"><td><div class="who"><span class="av sm t">KN</span><span><b>Kelechi Nwosu</b><small>Monthly, web · requested 11 Nov</small></span></div></td><td class="n">₦900</td><td class="mn-wrap">Charged twice on 10 Nov, 11:05 and 11:06</td><td class="n">0 of 300</td><td>Refund the duplicate</td><td><span class="st st-warn">Waiting</span></td></tr>
+          <tr data-go="refund"><td><div class="who"><span class="av sm t">FA</span><span><b>Funke Alabi</b><small>Yearly, web · requested 9 Nov</small></span></div></td><td class="n">₦7,500</td><td class="mn-wrap">Not reading enough to justify a year</td><td class="n">1,240 of 3,600</td><td>Partial or decline</td><td><span class="st st-warn">Waiting</span></td></tr>
+          <tr data-go="refund"><td><div class="who"><span class="av sm k">NO</span><span><b>Ngozi Okonkwo</b><small>Monthly, web · requested 2 Nov</small></span></div></td><td class="n">₦900</td><td class="mn-wrap">Card charged after I cancelled</td><td class="n">0 of 300</td><td>Refund</td><td>Refunded 3 Nov</td></tr>
+          <tr data-go="refund"><td><div class="who"><span class="av sm m">AS</span><span><b>Adebayo Salami</b><small>Quarterly, web · requested 31 Oct</small></span></div></td><td class="n">₦2,100</td><td class="mn-wrap">Changed my mind after a month</td><td class="n">640 of 900</td><td>Decline</td><td>Declined 1 Nov</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Refund modal ===================== -->
+<section class="screen overlay" id="s-refund" data-area="7" data-base="refunds" data-name="Refund" data-note="New: the modal opens on the recommended outcome (full refund, unused credits clawed back). Partial refund, reason and email are under More options. Decline sends Hauwa an email.|Rule: refund returns money through Flutterwave to the original card, usually in 3 to 5 working days.|Rule: credits from the purchase are clawed back; unlocked books that were paid with those credits lose access.|Rule: a refund takes back the credits still unspent; credits already spent stay paid to authors (November net revenue falls by ₦2,070.60). The reader and Finance both get an email.|New: the royalty effect callout was removed; it is explained here." hidden>
+  <a class="backdrop" data-go="refunds" aria-label="Close"></a>
+  <div class="modal wide" role="dialog" aria-label="Refund ₦2,100 to Hauwa Musa">
+    <div class="modal__h"><div class="grow"><h2>Refund ₦2,100 to Hauwa Musa</h2><p>Quarterly plan · web checkout · bought 10 Nov, 2 days ago</p></div><a class="ib" data-go="refunds" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="form">
+        <div class="mn-rec"><b>Recommended: refund in full</b><span>Hauwa asked 2 days after buying, and used 160 of 800 credits (20%). Subscribed by mistake, wanted monthly.</span></div>
+        <div class="panel__body" style="padding:0">
+          <div class="kv-row"><span>Refund to her Visa card</span><b>₦2,100</b></div>
+          <div class="kv-row"><span>Credits granted · already spent (2 books lose access)</span><b>900 · 180</b></div>
+          <div class="kv-row total"><span>Credits removed from her balance</span><b>720</b></div>
+        </div>
+        <details class="fold">
+          <summary>More options <small>partial refund, reason, email</small></summary>
+          <div class="fold__b form">
+            <div class="f"><span class="lbl">Refund type</span><div class="seg" data-single><button class="is-selected">Full</button><button>Partial</button></div></div>
+            <div class="fgrid">
+              <div class="f"><label for="rf-a">Amount to refund</label><div class="inp"><span class="pre">₦</span><input id="rf-a" value="2,100"></div><span class="hint">Flutterwave's ₦29.40 fee is not returned to Arpedia.</span></div>
+              <div class="f"><label for="rf-r">Reason</label><div class="inp sel"><span>Subscribed by mistake</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            </div>
+            <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Email Hauwa that her refund is on the way</label>
+          </div>
+        </details>
+      </div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="refunds">Cancel</a><a class="btn btn-g" data-go="refunds" data-toast="Refund declined. Hauwa was emailed with the reason.">Decline</a><a class="btn btn-p" data-go="refunds" data-toast="₦2,100 refunded to Hauwa. 720 credits removed. She was emailed.">Refund ₦2,100</a></div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Credits ===================== -->
+<section class="screen" id="s-credits" data-area="7" data-nav="credits" data-name="Credits" data-note="New: the credit economy in one page: what was issued, what was spent, and what readers still hold (owed to readers, deferred revenue).|New: four key numbers. How credits were issued (plans 672,200: 950 monthly at 300, 289 quarterly at 800, 52 yearly at 3,000; top-ups 180,000 from 706 top-ups; staff grants 4,350), staff grants and what readers hold are folded under More details.|Rule: staff credit grants over 500 need a second approver (Finance or Super admin). Unused plan credits roll over one period while subscribed, capped at one plan’s worth, then expire. Top-up credits never expire while the account is open. Top-ups are for subscribers only, at ₦3 a credit.|New: anomalies list (gift loops, many transfers in a short time) so Finance can spot farming before the monthly earnings run. Only Likely farming is marked. Freeze gifting is one tap with Undo; open the row for the full ledger.|Data: credit ledger in Supabase, 1 to 12 November. Messages are 5 credits each. Authors earn ₦1.60 for every credit spent on their books, tips and messages; chapter charges returned within the 10-minute undo are not paid." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Credits</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="user-credits">Find a reader's ledger</a><a class="ib" data-go="exports" aria-label="Export ledger"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Credits issued</span><span class="kpi__v">856,550</span><span class="kpi__d">1 to 12 November · incl. 4,350 staff grants</span></div>
+      <div class="kpi"><span class="kpi__l">Credits spent</span><span class="kpi__v">742,600</span><span class="kpi__d">₦1,188,160 to authors at ₦1.60</span></div>
+      <div class="kpi"><span class="kpi__l">Unspent balance</span><span class="kpi__v">6,420,000</span><span class="kpi__d">Owed to readers · ₦19,260,000 at ₦3</span></div>
+      <div class="kpi"><span class="kpi__l">Expiring this month</span><span class="kpi__v">188,300</span><span class="kpi__d">Over the rollover cap · ₦564,900</span></div>
+    </div>
+
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Where credits were spent</h2><span class="sub">742,600 credits</span></div>
+          <div class="panel__body">
+            <div class="hbars">
+              <div class="hb"><span>Books, paid upfront</span><span class="track"><i style="--v:56%"></i></span><b>412,300 · 56%</b></div>
+              <div class="hb"><span>Books, pay as you read</span><span class="track"><i style="--v:32%"></i></span><b>236,900 · 32%</b></div>
+              <div class="hb"><span>Messages to authors</span><span class="track"><i style="--v:7%"></i></span><b>52,100 · 7%</b></div>
+              <div class="hb"><span>Gifts</span><span class="track"><i style="--v:4%"></i></span><b>26,800 · 4%</b></div>
+              <div class="hb"><span>Tips</span><span class="track"><i style="--v:2%"></i></span><b>14,500 · 2%</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Most unlocked books</h2><span class="sub">This month</span></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Book</th><th class="r">Price</th><th class="r">Readers</th><th class="r">Credits</th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span class="cv c1 x32"></span><span><b>Harmattan Letters</b><small>Ifeoma Nwachukwu · 250 pages</small></span></div></td><td class="n">125</td><td class="n">412</td><td class="n">49,180</td></tr>
+              <tr><td><div class="who"><span class="cv c3 x32"></span><span><b>The Alignment</b><small>Adaeze Rosemary Possible · 304 pages</small></span></div></td><td class="n">152</td><td class="n">301</td><td class="n">41,960</td></tr>
+              <tr><td><div class="who"><span class="cv c2 x32"></span><span><b>Still Waters, Lagos</b><small>Chioma Okafor · 220 pages</small></span></div></td><td class="n">110</td><td class="n">236</td><td class="n">24,720</td></tr>
+              <tr><td><div class="who"><span class="cv c4 x32"></span><span><b>Seven Bridges to Jos</b><small>Musa Danladi · 280 pages</small></span></div></td><td class="n">140</td><td class="n">164</td><td class="n">21,060</td></tr>
+              <tr><td><div class="who"><span class="cv c6 x32"></span><span><b>A House Called Grace</b><small>Kemi Ogunleye · 195 pages</small></span></div></td><td class="n">98</td><td class="n">198</td><td class="n">18,410</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Anomalies to check</h2><span class="sub">3 open</span></div>
+          <div class="list">
+            <div class="li mn-an"><span class="li__body" data-go="user-credits"><b>@lagosdeals sent 14 gifts in 1 hour</b><small>2,100 credits to 3 new accounts · today 08:12 to 09:10</small></span><span class="li__trail"><span class="st st-err">Likely farming</span><a class="btn btn-g sm" data-toast="Gifting frozen for @lagosdeals. They can still read and spend credits." data-undo="credits">Freeze gifting</a></span></div>
+            <a class="li" data-go="user-credits"><span class="li__body"><b>Funke Alabi bought 3 packs in 10 minutes</b><small>3 different cards · 9 Nov</small></span><span class="li__trail"><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+            <div class="li mn-an"><span class="li__body" data-go="user-credits"><b>Two accounts gifting each other in a loop</b><small>11 transfers of 50 credits back and forth · 10 Nov</small></span><span class="li__trail"><a class="btn btn-g sm" data-toast="Gifting frozen for both accounts. They can still read and spend credits." data-undo="credits">Freeze gifting</a></span></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>More details <small>issued, staff grants, balances</small></summary>
+          <div class="fold__b">
+            <div>
+              <div class="kv-row"><span>Issued by plans (950 monthly · 289 quarterly · 52 yearly)</span><b>672,200</b></div>
+              <div class="kv-row"><span>Issued by top-ups (706 top-ups)</span><b>180,000</b></div>
+              <div class="kv-row"><span>Staff grants (6, all approved)</span><b>4,350</b></div>
+              <div class="kv-row"><span>Issued minus spent, this month</span><b>+113,950</b></div>
+              <div class="kv-row"><span>Credits in all balances</span><b>6,420,000</b></div>
+            </div>
+            <span class="mn-fold-h">Staff grants (over 500 needs a second approver)</span>
+            <div class="tw"><table class="tbl">
+              <thead><tr><th>Date</th><th>Reader</th><th class="r">Credits</th><th>Reason</th><th>By</th><th>Approved</th></tr></thead>
+              <tbody>
+                <tr><td class="nw">11 Nov</td><td><b>Funke Alabi</b></td><td class="n">+1,400</td><td class="mn-wrap">Unlock reversed after book takedown</td><td>Zainab Yusuf</td><td>Chinedu Eze</td></tr>
+                <tr><td class="nw">10 Nov</td><td><b>Tunji Adebisi</b></td><td class="n">+1,200</td><td class="mn-wrap">Lost access during 6 Nov outage</td><td>Femi Lawson</td><td>Amaka Okafor</td></tr>
+                <tr><td class="nw">9 Nov</td><td><b>Chiamaka Obi</b></td><td class="n">+800</td><td class="mn-wrap">Compensation for a duplicate charge</td><td>Bisi Adeyemi</td><td>Chinedu Eze</td></tr>
+                <tr><td class="nw">6 Nov</td><td><b>Kelechi Nwosu</b></td><td class="n">+500</td><td class="mn-wrap">Welcome gift after failed unlock</td><td>Bisi Adeyemi</td><td class="muted">Not needed</td></tr>
+                <tr><td class="nw">4 Nov</td><td><b>Ngozi Okonkwo</b></td><td class="n">+300</td><td class="mn-wrap">Goodwill after a slow reply from support</td><td>Bisi Adeyemi</td><td class="muted">Not needed</td></tr>
+                <tr><td class="nw">2 Nov</td><td><b>Ibrahim Lawal</b></td><td class="n">+150</td><td class="mn-wrap">Reading room prize</td><td>Femi Lawson</td><td class="muted">Not needed</td></tr>
+                <tr class="mn-tot"><td colspan="2">Total this month</td><td class="n">+4,350</td><td colspan="3"></td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Pricing ===================== -->
+<section class="screen" id="s-pricing" data-area="7" data-nav="pricing" data-name="Plans and pricing" data-note="Same as v25: plans and credit products with prices.|New (v4 credits): plans step down per month: Monthly ₦900, Quarterly ₦800 a month, Yearly ₦700 a month. Every plan gives about 2 standard books a month in credits.|Rule: 1 credit = ₦3. Monthly 300 credits, Quarterly 800, Yearly 3,000 (includes 200 bonus). Top-ups are for subscribers only, at ₦3 a credit, so a plan is always the better deal.|Rule: book prices are not set here. Every book costs ½ credit per standard page (250 words), rounded up. The rules live in Settings, Pricing rules.|Rule: unused plan credits roll over one period while subscribed, capped at one plan’s worth. Readers can pause for 1 to 3 months instead of cancelling.|Rule: changing a price needs the 2-step code and Super admin or Finance. Existing subscribers keep their old price until their next renewal." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Plans and pricing</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="pricing-rules">Pricing rules</a><a class="btn btn-g" data-go="promos">Promo codes</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="note warn"><div class="grow">In-app prices are set in Google Play Console and App Store Connect, not here. Web prices change immediately.</div></div>
+    <div class="panel panel--flush">
+      <div class="panel__head"><h2>Plans</h2><span class="sub">Credits refill on the renewal date</span></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Plan</th><th class="r">In-app price</th><th class="r">Web price</th><th class="r">Credits</th><th class="r">About</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr><td><div class="who"><span><b>Monthly</b><small class="mn-id">arpedia_monthly_v3</small></span></div></td><td class="n">₦900</td><td class="n">₦800</td><td class="n">300</td><td class="n">2 books</td><td class="acts"><a class="btn btn-g sm" data-go="plan-edit">Edit</a></td></tr>
+          <tr><td><div class="who"><span><b>Quarterly</b> <span class="tag org">Popular</span><small class="mn-id">arpedia_quarterly_v3 · ₦800 a month</small></span></div></td><td class="n">₦2,400</td><td class="n">₦2,100</td><td class="n">800</td><td class="n">6 books</td><td class="acts"><a class="btn btn-g sm" data-go="plan-edit">Edit</a></td></tr>
+          <tr><td><div class="who"><span><b>Yearly</b> <span class="tag">Best value</span><small class="mn-id">arpedia_yearly_v3 · ₦700 a month</small></span></div></td><td class="n">₦8,400</td><td class="n">₦7,500</td><td class="n">3,000</td><td class="n">24 books</td><td class="acts"><a class="btn btn-g sm" data-go="plan-edit">Edit</a></td></tr>
+        </tbody>
+      </table></div>
+      <div class="panel__foot">Yearly includes 200 bonus credits. “About” assumes a 250-page book at 125 credits.</div>
+    </div>
+
+    <div class="mn-two">
+      <div class="panel panel--flush">
+        <div class="panel__head"><h2>Top-ups</h2><span class="sub">Subscribers only</span></div>
+        <div class="tw"><table class="tbl">
+          <thead><tr><th>Top-up</th><th class="r">Price</th><th class="r">Per credit</th></tr></thead>
+          <tbody>
+            <tr><td><div class="who"><span><b>200 credits</b><small class="mn-id">arpedia_topup_200</small></span></div></td><td class="n"><div class="inp mn-in"><span class="pre">₦</span><input value="600" aria-label="200 credits price"></div></td><td class="n">₦3.00</td></tr>
+            <tr><td><div class="who"><span><b>500 credits</b><small class="mn-id">arpedia_topup_500</small></span></div></td><td class="n"><div class="inp mn-in"><span class="pre">₦</span><input value="1,500" aria-label="500 credits price"></div></td><td class="n">₦3.00</td></tr>
+            <tr><td><div class="who"><span><b>1,000 credits</b><small class="mn-id">arpedia_topup_1000</small></span></div></td><td class="n"><div class="inp mn-in"><span class="pre">₦</span><input value="3,000" aria-label="1,000 credits price"></div></td><td class="n">₦3.00</td></tr>
+          </tbody>
+        </table></div>
+        <div class="panel__foot"><span class="grow">Top-up credits never expire while the account is open.</span><a class="btn btn-g sm" data-toast="Top-up prices saved. Web prices change now; set the in-app prices in the stores." data-undo="pricing">Save prices</a></div>
+      </div>
+      <div class="panel panel--flush">
+        <div class="panel__head"><h2>Book prices</h2><span class="sub">½ credit per standard page · ₦1.50 a page</span></div>
+        <div class="tw"><table class="tbl">
+          <thead><tr><th>Book length</th><th class="r">Credits</th><th class="r">Reader pays</th><th class="r">Author earns</th></tr></thead>
+          <tbody>
+            <tr><td>150 pages · 37,500 words</td><td class="n">75</td><td class="n">₦225</td><td class="n">₦120</td></tr>
+            <tr><td>250 pages · 62,500 words</td><td class="n">125</td><td class="n">₦375</td><td class="n">₦200</td></tr>
+            <tr><td>350 pages · 87,500 words</td><td class="n">175</td><td class="n">₦525</td><td class="n">₦280</td></tr>
+            <tr><td>600 pages · 150,000 words</td><td class="n">300</td><td class="n">₦900</td><td class="n">₦480</td></tr>
+          </tbody>
+        </table></div>
+        <div class="panel__foot"><span class="grow">Upfront or pay as you read: same total.</span><a class="btn btn-g sm" data-go="pricing-rules">Edit pricing rules</a></div>
+      </div>
+    </div>
+
+    <details class="fold">
+      <summary>More details <small>other prices, store offers, price history</small></summary>
+      <div class="fold__b">
+        <dl class="kv">
+          <dt>Store offer setup</dt><dd>default · $rc_monthly, $rc_three_month, $rc_annual, topup_200, topup_500, topup_1000</dd>
+          <dt>Message an author</dt><dd>5 credits. Author replies are free.</dd>
+          <dt>Free preview</dt><dd>First 10% of every book</dd>
+          <dt>Tip presets</dt><dd>10, 25, 50, 100 credits. The author earns ₦1.60 per credit.</dd>
+          <dt>Gifts</dt><dd>Whole credits, minimum 10. Gifted credits cannot be gifted on again within 24 hours.</dd>
+          <dt>Rollover</dt><dd>Unused plan credits carry over one period while subscribed, up to one plan’s worth</dd>
+          <dt>Pause</dt><dd>1 to 3 months instead of cancelling. Credits and rollover are kept while paused.</dd>
+          <dt>Rounding</dt><dd>Prices in whole naira, book prices rounded up to a whole credit, ₦3 per credit.</dd>
+        </dl>
+        <span class="mn-fold-h">Price change history</span>
+        <div class="tl">
+          <div class="tl__i org"><b>Monthly ₦900 for 300 credits, Yearly ₦8,400 for 3,000 credits</b><small>From 1 Dec 2026 · per-month ladder ₦900, ₦800, ₦700 · existing subscribers keep their price until renewal</small></div>
+          <div class="tl__i ok"><b>Credit value set to ₦3; book prices set by pages</b><small>16 Nov 2026 · ½ credit per standard page · Amaka Okafor, code verified</small></div>
+          <div class="tl__i ok"><b>Quarterly in-app ₦2,200 to ₦2,400</b><small>1 Sep 2026 · new store product · Chinedu Eze, code verified</small></div>
+        </div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Plan edit modal ===================== -->
+<section class="screen overlay" id="s-plan-edit" data-area="7" data-base="pricing" data-name="Edit plan" data-note="Rule: price changes need Super admin or Finance and a fresh 2-step code.|Rule: web price changes here; the in-app store price must be changed in the stores separately.|Rule: with the toggle on, existing subscribers keep today's price until their next renewal. New buyers see the new price from the effective date." hidden>
+  <a class="backdrop" data-go="pricing" aria-label="Close"></a>
+  <div class="modal wide" role="dialog" aria-label="Edit Quarterly plan">
+    <div class="modal__h"><div class="grow"><h2>Edit Quarterly plan</h2></div><a class="ib" data-go="pricing" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="form">
+        <div class="fgrid">
+          <div class="f"><label for="pe-n">Display name</label><div class="inp"><input id="pe-n" value="Quarterly"></div></div>
+          <div class="f"><label for="pe-b">Badge</label><div class="inp"><input id="pe-b" value="Popular"></div></div>
+          <div class="f"><label for="pe-p">Web price</label><div class="inp"><span class="pre">₦</span><input id="pe-p" value="2,100"></div><span class="hint">Today ₦2,100. Readers pay Flutterwave's 1.4%.</span></div>
+          <div class="f"><label for="pe-c">Credits per period</label><div class="inp"><input id="pe-c" value="800"><span class="suf">credits</span></div><span class="hint">₦3.00 a credit in the app. Nets ₦2.55 after Google, ₦0.95 above the author rate.</span></div>
+          <div class="f"><label for="pe-d">Effective date</label><div class="inp"><input id="pe-d" value="1 Dec 2026"><svg class="ico s faint" aria-hidden="true"><use href="#i-cal"/></svg></div></div>
+          <div class="f"><span class="lbl">In-app price (set in the stores)</span><div class="inp ro">₦2,400 · arpedia_quarterly_v2</div></div>
+        </div>
+        <div class="setrow" style="padding:0"><span class="setrow__b"><b>Existing subscribers keep the old price until renewal</b><small>1,371 Quarterly subscribers</small></span><span class="switch on" role="switch" aria-checked="true" aria-label="Keep old price until renewal"></span></div>
+        <div class="f"><span class="lbl">2-step code</span><div class="otp"><span class="f">4</span><span>1</span><span>8</span><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="pricing">Cancel</a><a class="btn btn-p" data-go="pricing" data-toast="Quarterly plan saved. 1,371 subscribers keep their price until they renew.">Save plan</a></div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: Promo codes ===================== -->
+<section class="screen" id="s-promos" data-area="7" data-nav="promos" data-name="Promo codes" data-note="New: three kinds of code: bonus credits, web plan discount, free trial days. 5 active, 1 scheduled, 1,284 redemptions this year.|New: type and creator sit under the code, so the table has 5 columns. Status is plain text (Active, Starts 1 Dec, Used up, Expired).|Rule: codes only work on web checkout and in the app's redeem box. Store discounts are set in Google Play and App Store, not here.|Data: uses are counted when a payment succeeds, not when the code is typed." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Promo codes</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="promo-new"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>New promo code</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <div class="row" data-single style="gap:6px">
+        <button class="fchip is-selected">All <span class="c">9</span></button>
+        <button class="fchip">Active <span class="c">5</span></button>
+        <button class="fchip">Scheduled <span class="c">1</span></button>
+        <button class="fchip">Expired <span class="c">3</span></button>
+      </div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Code</th><th>Value</th><th class="r">Uses / limit</th><th>Expires</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><div class="who"><span><b class="mono">WELCOME200</b><small>Bonus credits · Amaka Okafor</small></span></div></td><td>200 credits</td><td class="n">412 / 2,000</td><td class="nw">31 Dec 2026</td><td><span class="st-plain">Active</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">HARMATTAN20</b><small>Web plan discount · Chinedu Eze</small></span></div></td><td>20% off first Quarterly</td><td class="n">96 / 500</td><td class="nw">28 Feb 2027</td><td><span class="st-plain">Active</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">FREEWEEK</b><small>Free trial days · Amaka Okafor</small></span></div></td><td>7 days</td><td class="n">731 / 5,000</td><td class="nw">30 Nov 2026</td><td><span class="st-plain">Active</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">CHURCH10</b><small>Web plan discount · Chinedu Eze</small></span></div></td><td>10% off any plan</td><td class="n">38 / 300</td><td class="nw">31 Jan 2027</td><td><span class="st-plain">Active</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">BOOKCLUB50</b><small>Bonus credits · Femi Lawson</small></span></div></td><td>50 credits</td><td class="n">7 / 250</td><td class="nw">20 Dec 2026</td><td><span class="st-plain">Active</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">DECEMBER100</b><small>Bonus credits · Chinedu Eze</small></span></div></td><td>100 credits</td><td class="n">0 / 3,000</td><td class="nw">31 Dec 2026</td><td><span class="st-plain">Starts 1 Dec</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">INDEPENDENCE64</b><small>Web plan discount · Amaka Okafor</small></span></div></td><td>15% off Yearly</td><td class="n">1,000 / 1,000</td><td class="nw">1 Oct 2026</td><td><span class="st-plain">Used up</span></td></tr>
+          <tr><td><div class="who"><span><b class="mono">RAMADAN7</b><small>Free trial days · Chinedu Eze</small></span></div></td><td>7 days</td><td class="n">0 / 1,000</td><td class="nw">Expired 30 Apr</td><td><span class="st-plain">Expired</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 Money: New promo code ===================== -->
+<section class="screen" id="s-promo-new" data-area="7" data-nav="promos" data-name="New promo code" data-note="Rule: codes apply to web checkout and the in-app redeem box only. Google Play and App Store discounts are created in the stores, so readers who subscribe in the app cannot use plan discounts.|Rule: codes are case-insensitive and cannot be edited after the first use; pause and create a new one instead. Nothing goes live until you press Create.|New: the form shows only code, what it gives, total uses and end date. Who can use it, start date and campaign tag are under More options with sensible defaults.|New: a preview shows exactly how the code looks to a reader at checkout. Bonus credits spent on books earn authors ₦1.60 a credit like any other credit." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="promos">Promo codes</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>New code</span></div>
+    <div class="ph__row">
+      <div class="ph__title"><h1>New promo code</h1></div>
+      <div class="ph__acts"><a class="btn btn-g" data-go="promos">Cancel</a><a class="btn btn-p" data-go="promos" data-toast="DECEMBER100 created. It goes live on 1 Dec 2026 for new readers.">Create promo code</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>What it gives</h2></div>
+          <div class="panel__body form">
+            <div class="f"><label for="pn-c">Code</label><div class="inp"><input id="pn-c" class="mono" value="DECEMBER100"></div><span class="hint">Letters and numbers, 4 to 16 characters. Easy to say aloud.</span></div>
+            <div class="f"><span class="lbl">What readers get</span>
+              <div class="radios" data-single>
+                <span class="radio is-selected"><span><b>Bonus credits</b><small>Extra credits when they redeem or pay</small></span></span>
+                <span class="radio"><span><b>Web plan discount</b><small>Percent off a plan at web checkout</small></span></span>
+                <span class="radio"><span><b>Free trial days</b><small>Reading days added before the first charge</small></span></span>
+              </div>
+            </div>
+            <div class="fgrid">
+              <div class="f"><label for="pn-v">Amount</label><div class="inp"><input id="pn-v" value="100"><span class="suf">credits</span></div></div>
+              <div class="f"><label for="pn-l">Total uses</label><div class="inp"><input id="pn-l" value="3,000"></div></div>
+              <div class="f"><label for="pn-e">Ends</label><div class="inp"><input id="pn-e" value="31 Dec 2026"><svg class="ico s faint" aria-hidden="true"><use href="#i-cal"/></svg></div></div>
+            </div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>More options <small>who can use it, start date, campaign tag</small></summary>
+          <div class="fold__b form">
+            <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>New readers only (never had a subscription)</label>
+            <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span>Web checkout only</label>
+            <div class="fgrid">
+              <div class="f"><label for="pn-s">Starts</label><div class="inp"><input id="pn-s" value="1 Dec 2026"><svg class="ico s faint" aria-hidden="true"><use href="#i-cal"/></svg></div></div>
+              <div class="f"><label for="pn-p">Uses per reader</label><div class="inp"><input id="pn-p" value="1"></div></div>
+              <div class="f"><label for="pn-t">Campaign tag <span class="opt">optional</span></label><div class="inp"><input id="pn-t" value="december-2026"></div></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Reader preview</h2><span class="sub">At web checkout</span></div>
+          <div class="panel__body">
+            <div class="mn-preview">
+              <div class="row between"><span>Quarterly</span><b>₦2,100</b></div>
+              <div class="mn-codebox"><span>DECEMBER100</span><span>Applied</span></div>
+              <div class="muted">+100 bonus credits added after payment</div>
+              <div class="row between" style="border-top:1px solid var(--line);padding-top:10px"><span>Total today</span><b>₦2,100</b></div>
+              <div class="muted">If all 3,000 uses are redeemed: 300,000 credits, worth ₦900,000 at ₦3. Authors earn up to ₦480,000 as they are spent.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Cycles ===================== -->
+<section class="screen" id="s-royalties" data-area="8" data-nav="royalties" data-name="Author earnings" data-note="Same as v25: monthly author payment report.|New (v4 credits): no pool and no reading hours. Each month an author earns ₦1.60 for every credit readers spent on their books, tips and messages. One row per month; the month ready to release is the one card on top.|Rule: chapters returned within the 10-minute undo, or returned by Support, are not paid. Refunds take back unspent credits only, so spent credits stay paid.|Rule: 30-day hold, ₦1,000 minimum payout, paid on the 15th. Releasing needs two people (one prepares, another approves) and a 2-step code." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Author earnings</h1></div>
+      <div class="band__acts"><a class="ib" data-go="royalty-settings" aria-label="Earnings settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="urgent">
+      <div class="urgent__b"><span class="urgent__k">Ready to release</span><h2>October: ₦3,937,776 for 58 authors</h2><p>2,461,110 credits spent × ₦1.60. The 30-day hold ends Saturday 15 November. 2 bank accounts still need verifying.</p></div>
+      <a class="btn btn-n" data-go="royalty-cycle">Review October</a>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Month</th><th>Status</th><th class="r">Credits spent</th><th class="r">Author earnings</th><th class="r">Authors</th><th>Payout</th></tr></thead>
+        <tbody>
+          <tr data-go="royalty-cycle"><td><b>November 2026</b></td><td><span class="st-plain">Open, adding up</span></td><td class="n">1,020,400 so far</td><td class="n">₦1,632,640 so far</td><td class="n">61</td><td class="muted">Planned 15 Jan 2027</td></tr>
+          <tr data-go="royalty-cycle"><td><b>October 2026</b></td><td><span class="st st-org">Ready to release</span></td><td class="n">2,463,730</td><td class="n">₦3,941,968</td><td class="n">58 (+6 carried)</td><td>Hold ends 15 Nov</td></tr>
+          <tr data-go="royalty-cycle"><td><b>September 2026</b></td><td><span class="st st-warn">Paid, 2 failed</span></td><td class="n">2,126,320</td><td class="n">₦3,402,112</td><td class="n">54</td><td>Paid 15 Oct · <a class="link" data-go="payouts">2 to retry</a></td></tr>
+          <tr data-go="royalty-cycle"><td><b>August 2026</b></td><td><span class="st-plain">Paid</span></td><td class="n">1,933,880</td><td class="n">₦3,094,208</td><td class="n">51</td><td>Paid 15 Sep</td></tr>
+          <tr data-go="royalty-cycle"><td><b>July 2026</b></td><td><span class="st-plain">Paid</span></td><td class="n">1,744,100</td><td class="n">₦2,790,560</td><td class="n">47</td><td>Paid 15 Aug</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Cycle detail ===================== -->
+<section class="screen" id="s-royalty-cycle" data-area="8" data-nav="royalties" data-name="October 2026 earnings" data-note="Rule (v4 credits): author earnings = credits spent on the author's books, tips and messages × ₦1.60. Nothing is split or shared, so an author can check their own figure in Author Studio.|Rule: chapter charges returned within the 10-minute undo, staff returns and refunded unspent credits are excluded before the month closes (folded under More details). Amounts under ₦1,000 carry over to next month.|Rule: authors without a verified bank account are held, not skipped; they are paid when verified.|New: the author table shows book credits, tip and message credits, total and earnings, so every naira traces back to credits in the ledger.|Data: credits from the credit ledger; net revenue from the store and Flutterwave reports. Arpedia keeps what is left after author earnings." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="royalties">Author earnings</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>October 2026</span></div>
+    <div class="ph__row">
+      <div class="ph__title"><h1>October 2026</h1><div class="ph__meta">Ready to release · closed 1 Nov · hold ends Sat 15 Nov</div></div>
+      <div class="ph__acts"><a class="btn btn-p" data-go="royalty-release">Review and release</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="October rechecked against the credit ledger. The figures did not change.">Recheck against ledger</a><a data-toast="October author earnings exported as CSV">Export CSV</a></div></div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="sline"><span class="dot warn"></span><span><b>Prepared by Chinedu · waiting for a Super admin to approve.</b> Two people must agree before money moves. You are a Super admin, so you can approve.</span></div>
+    <div class="panel"><div class="panel__body" style="padding-top:16px">
+      <div class="mn-flow">
+        <div class="stp ok"><i>1</i><span><b>Adding up</b><small>1 to 31 Oct</small></span></div>
+        <div class="stp ok"><i>2</i><span><b>Closed</b><small>1 Nov</small></span></div>
+        <div class="stp ok"><i>3</i><span><b>Prepared</b><small>Chinedu Eze, 11 Nov</small></span></div>
+        <div class="stp on"><i>4</i><span><b>Approved and released</b><small>Waiting for a Super admin</small></span></div>
+        <div class="stp"><i>5</i><span><b>Paid</b><small>After Flutterwave confirms</small></span></div>
+      </div>
+    </div></div>
+
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Earnings by author</h2><span class="sub">64 authors · 58 payable, 6 carried over</span></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Author</th><th class="r">Book credits</th><th class="r">Tips and messages</th><th class="r">Credits</th><th class="r">Earnings</th><th>Bank</th></tr></thead>
+            <tbody>
+              <tr><td><b>Ifeoma Nwachukwu</b></td><td class="n">310,400</td><td class="n">1,100</td><td class="n">311,500</td><td class="n"><b>₦498,400</b></td><td>Verified</td></tr>
+              <tr><td><b>Adaeze Rosemary Possible</b></td><td class="n">163,060</td><td class="n">440</td><td class="n">163,500</td><td class="n"><b>₦261,600</b></td><td>Verified</td></tr>
+              <tr><td><b>Chioma Okafor</b></td><td class="n">140,200</td><td class="n">660</td><td class="n">140,860</td><td class="n"><b>₦225,376</b></td><td>Verified</td></tr>
+              <tr><td><b>Musa Danladi</b></td><td class="n">112,470</td><td class="n">0</td><td class="n">112,470</td><td class="n"><b>₦179,952</b></td><td>Verified</td></tr>
+              <tr><td><b>Kemi Ogunleye</b></td><td class="n">100,580</td><td class="n">0</td><td class="n">100,580</td><td class="n"><b>₦160,928</b></td><td>Verified</td></tr>
+              <tr><td><b>Emeka Obi</b></td><td class="n">72,140</td><td class="n">440</td><td class="n">72,580</td><td class="n"><b>₦116,128</b></td><td>Verified</td></tr>
+              <tr><td><b>Halima Bello</b></td><td class="n">66,290</td><td class="n">0</td><td class="n">66,290</td><td class="n"><b>₦106,064</b></td><td>Verified</td></tr>
+              <tr><td><b>Funmi Adeyemi</b></td><td class="n">55,370</td><td class="n">0</td><td class="n">55,370</td><td class="n"><b>₦88,592</b></td><td>Verified</td></tr>
+              <tr><td><b>48 other authors</b></td><td class="n">1,402,600</td><td class="n">3,900</td><td class="n">1,406,500</td><td class="n"><b>₦2,250,400</b></td><td>Verified</td></tr>
+              <tr data-go="bank-account"><td><b>Tolu Adebayo</b></td><td class="n">19,560</td><td class="n">0</td><td class="n">19,560</td><td class="n"><b>₦31,296</b></td><td><span class="st st-warn">Held, needs review</span></td></tr>
+              <tr data-go="bank-accounts"><td><b>Yinka Balogun</b></td><td class="n">11,900</td><td class="n">0</td><td class="n">11,900</td><td class="n"><b>₦19,040</b></td><td><span class="st st-warn">Held, not verified</span></td></tr>
+              <tr class="mn-sub"><td>6 authors under ₦1,000</td><td class="n">2,620</td><td class="n">0</td><td class="n">2,620</td><td class="n">₦4,192 to Nov</td><td>Verified</td></tr>
+              <tr class="mn-tot"><td>Total</td><td class="n">2,457,190</td><td class="n">6,540</td><td class="n">2,463,730</td><td class="n">₦3,941,968</td><td></td></tr>
+            </tbody>
+          </table></div>
+          <div class="panel__foot">Payable now: 2,461,110 credits × ₦1.60 = ₦3,937,776 for 58 authors. The 6 carried-over amounts (₦4,192) are added to November.</div>
+        </div>
+      </div>
+
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Calculation</h2></div>
+          <div class="panel__body">
+            <div class="kv-row"><span>Credits spent on books</span><b>2,457,190</b></div>
+            <div class="kv-row"><span>Credits spent on tips and messages</span><b>6,540</b></div>
+            <div class="kv-row"><span>Author rate</span><b>₦1.60 a credit</b></div>
+            <div class="kv-row total"><span>Author earnings</span><b>₦3,941,968</b></div>
+            <div class="kv-row"><span>Net revenue (after store fees and refunds)</span><b>₦5,597,786</b></div>
+            <div class="kv-row"><span>Arpedia after author earnings</span><b>₦1,655,818</b></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Checks before release</h2></div>
+          <div class="panel__body">
+            <div class="row"><span class="st-plain">Passed</span><span>Credits match the credit ledger for October</span></div>
+            <div class="row"><span class="st-plain">Passed</span><span>Hold of 30 days ends 15 Nov</span></div>
+            <div class="row"><span class="st-plain">Passed</span><span>Flutterwave balance ₦4,120,000 covers ₦3,887,440</span></div>
+            <div class="row"><span class="st st-warn">2 held</span><span>Bank accounts verified: 56 of 58. <a class="link" data-go="bank-accounts">Verify the other 2</a></span></div>
+            <div class="row"><span class="st st-warn">Open</span><span>September: 2 transfers still failed. <a class="link" data-go="payouts">Open payouts</a></span></div>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>More details <small>what was not paid</small></summary>
+          <div class="fold__b">
+            <div>
+              <div class="kv-row"><span>Chapter charges undone by readers (10-minute undo)</span><b>1,840 credits</b></div>
+              <div class="kv-row"><span>Chapters returned by Support</span><b>212 credits</b></div>
+              <div class="kv-row"><span>Unspent credits taken back by refunds</span><b>3,150 credits</b></div>
+              <div class="kv-row"><span>Gift loops frozen (2 accounts)</span><b>900 credits</b></div>
+              <div class="kv-row total"><span>Not paid</span><b>6,102 credits</b></div>
+            </div>
+            <span class="muted" style="font-size:13px">Authors can’t buy their own books, so self-reads never earn.</span>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Release modal ===================== -->
+<section class="screen overlay" id="s-royalty-release" data-area="8" data-base="royalty-cycle" data-name="Release payouts" data-note="Rule: two-person rule. The person who prepared the release cannot approve it.|Rule: 2 authors with unverified bank accounts are held, not skipped. They are paid in a later transfer once verified.|New: the Flutterwave balance line is plain text; the held-authors warning stays because it needs action.|After release: Flutterwave transfers start, authors get a push and email, and the month moves to Paid when all transfers settle." hidden>
+  <a class="backdrop" data-go="royalty-cycle" aria-label="Close"></a>
+  <div class="modal wide danger" role="dialog" aria-label="Release October payouts">
+    <div class="modal__h"><div class="grow"><h2>Release ₦3,887,440 to 56 authors</h2><p>October 2026 author earnings, sent by Flutterwave bank transfer. This cannot be undone.</p></div><a class="ib" data-go="royalty-cycle" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="kv-row"><span>Payable to 58 authors (2,461,110 credits × ₦1.60)</span><b>₦3,937,776</b></div>
+      <div class="kv-row"><span>Held for 2 unverified bank accounts</span><b>−₦50,336</b></div>
+      <div class="kv-row total"><span>Sent now to 56 authors</span><b>₦3,887,440</b></div>
+      <div class="kv-row"><span>Flutterwave balance ₦4,120,000, left after release</span><b>₦232,560</b></div>
+      <div class="note warn"><div class="grow"><b>Held: <a class="link" data-go="bank-account">Tolu Adebayo ₦31,296</a> and <a class="link" data-go="bank-accounts">Yinka Balogun ₦19,040</a></b>Paid when their bank accounts are verified. Amounts under ₦1,000 for 6 other authors carry over to November.</div></div>
+      <div class="mn-two">
+        <div class="stack s8">
+          <b style="font-size:13.5px">Two-person approval</b>
+          <div class="who"><span class="av sm k">CE</span><span><b>Chinedu Eze</b><small>Prepared · 11 Nov, 16:20</small></span></div>
+          <div class="who"><span class="av sm g">AO</span><span><b>Amaka Okafor (you)</b><small>Approving now</small></span></div>
+        </div>
+        <div class="f"><span class="lbl">2-step code</span><div class="otp"><span class="f">7</span><span>3</span><span>0</span><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="royalty-cycle">Cancel</a><a class="btn btn-p" data-go="payouts" data-toast="Release sent to Flutterwave. 56 authors will be paid today.">Release ₦3,887,440</a></div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Settings ===================== -->
+<section class="screen" id="s-royalty-settings" data-area="8" data-nav="royalties" data-name="Earnings settings" data-note="Rule: changes apply to the open month only (from November 2026); closed and paid months never change.|Rule (v4 credits): the author rate (₦1.60 a credit) is set in Settings, Pricing rules, next to the plan check that keeps it below what every plan nets. It is shown here read-only.|Rule: only Super admin can save. Finance can view these settings but not change them. Every change is logged with who and when." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="royalties">Author earnings</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Settings</span></div>
+    <div class="ph__row">
+      <div class="ph__title"><h1>Earnings settings</h1></div>
+      <div class="ph__acts"><a class="btn btn-g" data-go="royalties">Cancel</a><a class="btn btn-p" data-go="royalties" data-toast="Settings saved. They apply from the November earnings." data-undo="royalty-settings">Save settings</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="stack s20">
+      <div class="panel">
+        <div class="panel__head"><h2>Payouts</h2></div>
+        <div class="panel__body form">
+          <div class="fgrid">
+            <div class="f"><span class="lbl">Author rate</span><div class="inp ro">₦1.60 per credit spent</div><span class="hint">Books, tips and messages. <a class="link" data-go="pricing-rules">Change in Pricing rules</a></span></div>
+            <div class="f"><label for="rs-h">Hold period</label><div class="inp"><input id="rs-h" value="30"><span class="suf">days</span></div><span class="hint">Time to catch refunds and chargebacks.</span></div>
+            <div class="f"><label for="rs-m">Minimum payout</label><div class="inp"><span class="pre">₦</span><input id="rs-m" value="1,000"></div><span class="hint">Below this, the amount carries to next month.</span></div>
+            <div class="f"><label for="rs-d">Payout day</label><div class="inp"><input id="rs-d" value="15th of the month"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><h2>What is not paid</h2></div>
+        <div class="panel__body form">
+          <div class="setrow" style="padding:0"><span class="setrow__b"><b>Chapter charges undone within 10 minutes</b><small>1,840 credits in October</small></span><span class="switch on" role="switch" aria-checked="true" aria-label="Exclude undone chapters"></span></div>
+          <div class="setrow" style="padding:0"><span class="setrow__b"><b>Unspent credits taken back by refunds</b><small>3,150 credits in October. Spent credits stay paid.</small></span><span class="switch on" role="switch" aria-checked="true" aria-label="Exclude refunded credits"></span></div>
+          <div class="setrow" style="padding:0"><span class="setrow__b"><b>Gift-loop detection</b><small>Freezes credits passed back and forth between accounts. 2 accounts in October (900 credits).</small></span><span class="switch on" role="switch" aria-checked="true" aria-label="Gift-loop detection"></span></div>
+        </div>
+      </div>
+      <details class="fold">
+        <summary>More details <small>change log</small></summary>
+        <div class="fold__b">
+          <div class="tl">
+            <div class="tl__i org"><b>Earnings moved to ₦1.60 per credit spent</b><small>16 Nov 2026 · Amaka Okafor · replaces the reading-hours split</small></div>
+            <div class="tl__i"><b>Hold changed 45 to 30 days</b><small>1 Jun 2026 · Amaka Okafor</small></div>
+            <div class="tl__i"><b>Minimum payout set to ₦1,000</b><small>3 Mar 2026 · Amaka Okafor</small></div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Payouts ===================== -->
+<section class="screen" id="s-payouts" data-area="8" data-nav="payouts" data-name="Payouts" data-note="New: every Flutterwave transfer to an author, with the bank and reference under the author name and the failure reason under the status.|New: four key numbers (paid, failed, pending, Flutterwave balance). Reversed is a quick filter (1, August, resent). Only Failed and Pending are marked; Successful and Reversed are plain text.|Rule: a failed transfer is retried only after the account is fixed or re-verified; blind retries are blocked.|Data: transfer status from Flutterwave webhooks. Failed September transfers still owe the authors ₦70,540 (October needs ₦3,887,440 from the ₦4,120,000 balance)." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Payouts</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="royalty-cycle">October earnings</a><a class="ib" data-go="exports" aria-label="Export payouts"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Paid on 15 Oct</span><span class="kpi__v">₦3,331,570</span><span class="kpi__d">52 successful transfers</span></div>
+      <div class="kpi"><span class="kpi__l">Failed</span><span class="kpi__v">₦70,540</span><span class="kpi__d">2 transfers · September</span></div>
+      <div class="kpi"><span class="kpi__l">Pending</span><span class="kpi__v">1</span><span class="kpi__d">₦38,200 resent 11 Nov</span></div>
+      <div class="kpi"><span class="kpi__l">Flutterwave balance</span><span class="kpi__v">₦4,120,000</span><span class="kpi__d">October needs ₦3,887,440</span></div>
+    </div>
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Author or reference" aria-label="Search payouts"></label>
+      <button class="fbtn" data-toast="Filter options are not part of this prototype"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+      <div class="row" data-single style="gap:6px">
+        <button class="fchip is-selected">All</button><button class="fchip">Successful</button><button class="fchip">Pending <span class="c">1</span></button><button class="fchip">Failed <span class="c">2</span></button><button class="fchip">Reversed <span class="c">1</span></button>
+      </div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Author</th><th>Month</th><th class="r">Amount</th><th>Status</th><th>Date</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr data-go="payout-retry"><td><div class="who"><span><b>Tolu Adebayo</b><small>GTBank ••••1187 · <span class="mn-id">FLW-TRF-20261015-0431</span></small></span></div></td><td>Sep 2026</td><td class="n">₦48,900</td><td><span class="st st-err">Failed</span><br><small class="muted">Account name doesn't match</small></td><td class="nw">15 Oct</td><td class="acts"><a class="btn btn-s sm" data-go="payout-retry">Retry</a></td></tr>
+          <tr data-go="payout-retry"><td><div class="who"><span><b>Obinna Ekwueme</b><small>Zenith ••••3318 · <span class="mn-id">FLW-TRF-20261015-0447</span></small></span></div></td><td>Sep 2026</td><td class="n">₦21,640</td><td><span class="st st-err">Failed</span><br><small class="muted">Account name doesn't match</small></td><td class="nw">15 Oct</td><td class="acts"><a class="btn btn-s sm" data-go="payout-retry">Retry</a></td></tr>
+          <tr><td><div class="who"><span><b>Funmi Adeyemi</b><small>First Bank ••••6150 · <span class="mn-id">FLW-TRF-20261111-0102</span></small></span></div></td><td>Aug 2026</td><td class="n">₦38,200</td><td><span class="st st-warn">Pending</span></td><td class="nw">11 Nov</td><td class="acts"></td></tr>
+          <tr><td><div class="who"><span><b>Ifeoma Nwachukwu</b><small>GTBank ••••4471 · <span class="mn-id">FLW-TRF-20261015-0401</span></small></span></div></td><td>Sep 2026</td><td class="n">₦263,180</td><td><span class="st-plain">Successful</span></td><td class="nw">15 Oct</td><td class="acts"></td></tr>
+          <tr><td><div class="who"><span><b>Adaeze Rosemary Possible</b><small>UBA ••••8802 · <span class="mn-id">FLW-TRF-20261015-0402</span></small></span></div></td><td>Sep 2026</td><td class="n">₦219,640</td><td><span class="st-plain">Successful</span></td><td class="nw">15 Oct</td><td class="acts"></td></tr>
+          <tr><td><div class="who"><span><b>Chioma Okafor</b><small>First Bank ••••7731 · <span class="mn-id">FLW-TRF-20261015-0403</span></small></span></div></td><td>Sep 2026</td><td class="n">₦188,300</td><td><span class="st-plain">Successful</span></td><td class="nw">15 Oct</td><td class="acts"></td></tr>
+          <tr><td><div class="who"><span><b>Musa Danladi</b><small>Access ••••2275 · <span class="mn-id">FLW-TRF-20261015-0404</span></small></span></div></td><td>Sep 2026</td><td class="n">₦151,720</td><td><span class="st-plain">Successful</span></td><td class="nw">15 Oct</td><td class="acts"></td></tr>
+          <tr><td><div class="who"><span><b>Kemi Ogunleye</b><small>GTBank ••••5906 · <span class="mn-id">FLW-TRF-20261015-0405</span></small></span></div></td><td>Sep 2026</td><td class="n">₦133,480</td><td><span class="st-plain">Successful</span></td><td class="nw">15 Oct</td><td class="acts"></td></tr>
+          <tr><td><div class="who"><span><b>Funmi Adeyemi</b><small>First Bank ••••6150 · <span class="mn-id">FLW-TRF-20260915-0388</span></small></span></div></td><td>Aug 2026</td><td class="n">₦38,200</td><td><span class="st-plain">Reversed</span><br><small class="muted">Bank returned the transfer</small></td><td class="nw">18 Sep</td><td class="acts"></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 9 of 56 transfers since July</span><div class="row"><button class="btn btn-g sm" data-toast="This is the first page">Previous</button><button class="btn btn-g sm" data-toast="Showing every row in this prototype">Next</button></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Payout retry modal ===================== -->
+<section class="screen overlay" id="s-payout-retry" data-area="8" data-base="payouts" data-name="Retry payout" data-note="Rule: staff cannot retry blindly; pick the account to use. Using a new account needs it verified first.|Rule: after a bank account change, payouts to it are paused for 48 hours (fraud protection).|New: why it failed is one line in the details instead of a red callout.|After confirming: a new Flutterwave transfer is created and Tolu is told by push and email." hidden>
+  <a class="backdrop" data-go="payouts" aria-label="Close"></a>
+  <div class="modal" role="dialog" aria-label="Retry payout to Tolu Adebayo">
+    <div class="modal__h"><div class="grow"><h2>Retry ₦48,900 to Tolu Adebayo</h2><p>September 2026 earnings · FLW-TRF-20261015-0431</p></div><a class="ib" data-go="payouts" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <dl class="kv">
+        <dt>Why it failed</dt><dd>The bank returned a different name for the account.</dd>
+        <dt>Account on file</dt><dd>GTBank ••••1187</dd>
+        <dt>Name from the bank</dt><dd>TOYIN MARY ADEBAYO</dd>
+        <dt>Author's legal name</dt><dd>Tolu Adebayo</dd>
+        <dt>New account submitted</dt><dd>Access Bank ••••9023, 10 Nov · <a class="link" data-go="bank-account">needs review</a></dd>
+      </dl>
+      <div class="radios" data-single>
+        <span class="radio"><span><b>Retry the same account</b><small>Only if Tolu says the GTBank account was fixed.</small></span></span>
+        <span class="radio is-selected"><span><b>Use the new Access Bank account once verified</b><small>Sends as soon as verification passes. Paused until 12 Nov, 15:48.</small></span></span>
+      </div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="payouts">Cancel</a><a class="btn btn-p" data-go="payouts" data-toast="Retry queued for ₦48,900. Tolu was told by push and email.">Queue the retry</a></div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Bank accounts ===================== -->
+<section class="screen" id="s-bank-accounts" data-area="8" data-nav="bank-accounts" data-name="Bank accounts" data-note="New: verification queue for author payout accounts; 5 need review before the 15 November payout. Flutterwave resolves the account name; staff compare it to the legal name on the application.|New: bank and account number sit under the author, and the legal name under the bank record name, so the table has 5 columns. Only Needs review is marked; Verified and Rejected are plain text.|Rule: unverified accounts are held at payout time, not skipped. Changing a bank account pauses payouts to it for 48 hours.|Data: name match is a fuzzy score; under 90% needs a person." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Bank accounts</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="royalty-cycle">October earnings</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <div class="row" data-single style="gap:6px">
+        <button class="fchip is-selected">Needs review <span class="c">5</span></button><button class="fchip">Verified <span class="c">124</span></button><button class="fchip">Rejected <span class="c">3</span></button>
+      </div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Author</th><th>Name on bank record</th><th class="r">Match</th><th>Submitted</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Tolu Adebayo</b><small>Access Bank ••••9023</small></span></div></td><td><div class="who"><span>ADEBAYO TOLULOPE S.<small>Legal name: Tolu Adebayo</small></span></div></td><td class="n">82%</td><td class="nw">10 Nov</td><td><span class="st st-warn">Needs review</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Yinka Balogun</b><small>Moniepoint ••••5540</small></span></div></td><td><div class="who"><span>BALOGUN OLAYINKA<small>Legal name: Yinka Balogun</small></span></div></td><td class="n">78%</td><td class="nw">8 Nov</td><td><span class="st st-warn">Needs review</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Obinna Ekwueme</b><small>Zenith ••••3318</small></span></div></td><td><div class="who"><span>EKWUEME O. CHIDI<small>Legal name: Obinna Ekwueme</small></span></div></td><td class="n">74%</td><td class="nw">6 Nov</td><td><span class="st st-warn">Needs review</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Sola Akinwale</b><small>Wema ••••2096</small></span></div></td><td><div class="who"><span>AKINWALE SOLA<small>Legal name: Solape Akinwale</small></span></div></td><td class="n">86%</td><td class="nw">5 Nov</td><td><span class="st st-warn">Needs review</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Rita Okon</b><small>Fidelity ••••7714</small></span></div></td><td><div class="who"><span>OKON RITA E.<small>Legal name: Rita Okon</small></span></div></td><td class="n">89%</td><td class="nw">4 Nov</td><td><span class="st st-warn">Needs review</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Ifeoma Nwachukwu</b><small>GTBank ••••4471</small></span></div></td><td><div class="who"><span>NWACHUKWU IFEOMA C.<small>Legal name: Ifeoma Nwachukwu</small></span></div></td><td class="n">97%</td><td class="nw">2 Mar</td><td><span class="st-plain">Verified</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Emeka Obi</b><small>Stanbic ••••6628</small></span></div></td><td><div class="who"><span>OBI EMEKA<small>Legal name: Emeka Obi</small></span></div></td><td class="n">100%</td><td class="nw">19 Feb</td><td><span class="st-plain">Verified</span></td></tr>
+          <tr data-go="bank-account"><td><div class="who"><span><b>Peter Eze</b><small>Opay ••••0912</small></span></div></td><td><div class="who"><span>MARY JOHN<small>Legal name: Peter Eze</small></span></div></td><td class="n">12%</td><td class="nw">1 Oct</td><td><span class="st-plain">Rejected</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 08 Royalties: Bank account review ===================== -->
+<section class="screen" id="s-bank-account" data-area="8" data-nav="bank-accounts" data-name="Bank account review" data-note="Rule: staff compare the name Flutterwave returns to the legal name on the application. Below 90% a person decides.|Rule: changing a bank account pauses payouts to it for 48 hours (fraud protection), even after you verify. The author is told by email to the address on file. The October release on 15 Nov is not affected.|New: Verify, Ask for document and Reject sit in the bar at the bottom (Account 1 of 5); submitted details and the name check are one panel and the change history is folded under More details.|After Verify: held payouts and any queued retry are released." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="bank-accounts">Bank accounts</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Tolu Adebayo</span></div>
+    <div class="ph__row">
+      <div class="ph__title"><h1>Tolu Adebayo <span class="st st-warn">Needs review</span></h1><div class="ph__meta">New Access Bank account submitted 10 Nov, 15:48 · payouts paused until 12 Nov, 15:48</div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Submitted details</h2></div>
+          <div class="panel__body">
+            <dl class="kv">
+              <dt>Author</dt><dd><a class="link" data-go="author">Tolu Adebayo</a> · Ruth of Ibadan</dd>
+              <dt>Account</dt><dd>Access Bank · Savings · <span class="mono">••••9023</span> <a class="link" data-toast="Full account number shown to you only. This view is logged.">Show full number</a></dd>
+              <dt>Name from the bank</dt><dd><b>ADEBAYO TOLULOPE S.</b></dd>
+              <dt>Legal name on application</dt><dd><b>Tolu Adebayo</b></dd>
+              <dt>Match</dt><dd><b>82%</b> fuzzy match, below 90%</dd>
+              <dt>Held payout</dt><dd>October ₦31,292 · September ₦48,900 failed</dd>
+            </dl>
+            <div class="meter"><i class="warn" style="--v:82%"></i></div>
+            <p class="hint">Likely the same person: Tolu is short for Tolulope, and the surname matches. The application ID would settle it.</p>
+          </div>
+        </div>
+        <details class="fold">
+          <summary>More details <small>change history</small></summary>
+          <div class="fold__b">
+            <dl class="kv">
+              <dt>Submitted</dt><dd>10 Nov 2026, 15:48 from the author app</dd>
+              <dt>Previous account</dt><dd>GTBank ••••1187 (replaced)</dd>
+            </dl>
+            <div class="tl">
+              <div class="tl__i org"><b>New account submitted</b><small>10 Nov, 15:48 · Access Bank ••••9023 · payouts to it paused 48 hours</small></div>
+              <div class="tl__i err"><b>September payout failed</b><small>15 Oct · GTBank ••••1187 · bank name did not match</small></div>
+              <div class="tl__i ok"><b>First account verified</b><small>14 Aug 2026 · GTBank ••••1187 · by Chinedu Eze</small></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>ID document</h2></div>
+          <div class="panel__body">
+            <div class="file"><span><b>National ID (NIN slip)</b><small>Uploaded 14 Aug · name: Adebayo Tolulope Samson</small></span><a class="btn btn-g sm" style="margin-left:auto" data-toast="Opening the National ID in a new tab">Open</a></div>
+            <div class="f"><label for="ba-r">Reason if rejecting</label><div class="inp sel"><span>Account name does not match</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="decide"><div class="decide__q">Account <b>1 of 5</b> · <a class="link" data-go="bank-accounts">Back to queue</a></div><span class="grow"></span><a class="btn btn-g" data-go="bank-accounts" data-toast="Tolu was asked for a document. Her account stays on hold.">Ask for document</a><a class="btn btn-d" data-go="bank-accounts" data-toast="Account rejected: name does not match. Tolu was emailed to submit another.">Reject</a><a class="btn btn-p" data-go="bank-accounts" data-toast="Tolu's account verified. Held ₦31,292 will go out in the next run.">Verify</a><a class="btn btn-q sm" data-go="bank-account" data-toast="Skipped. Yinka Balogun's account is next.">Skip <span class="kbd">J</span></a></div>
+</section>

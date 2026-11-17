@@ -1,0 +1,41 @@
+<style>
+/* Motion system (same tokens as the app, quieter: staff use this all day) */
+:root{--m-fast:120ms;--m-base:200ms;--m-slow:280ms;--m-fill:600ms;--m-ease:cubic-bezier(.22,1,.36,1);--m-ease-io:cubic-bezier(.65,0,.35,1);--m-rise:6px}
+@keyframes m-rise{from{opacity:0;transform:translateY(var(--m-rise))}to{opacity:1;transform:none}}
+@keyframes m-fade{from{opacity:0}to{opacity:1}}
+@keyframes m-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes m-up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes m-drift{to{transform:rotate(360deg)}}
+@keyframes m-menu{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes m-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+/* arrive: page content rises in; headers and sidebar stay still */
+.screen.enter > .page > *,.screen.enter .home > *{animation:m-rise var(--m-slow) var(--m-ease) backwards}
+.screen.enter > .page > :nth-child(2),.screen.enter .home > :nth-child(2){animation-delay:40ms}
+.screen.enter > .page > :nth-child(3),.screen.enter .home > :nth-child(3){animation-delay:80ms}
+.screen.enter > .page > :nth-child(n+4),.screen.enter .home > :nth-child(n+4){animation-delay:120ms}
+.screen.enter .tasks > .task{animation:m-rise var(--m-slow) var(--m-ease) backwards}
+.screen.enter .tasks > .task:nth-child(2){animation-delay:100ms}.screen.enter .tasks > .task:nth-child(3){animation-delay:140ms}.screen.enter .tasks > .task:nth-child(4){animation-delay:180ms}.screen.enter .tasks > .task:nth-child(n+5){animation-delay:220ms}
+.screen.enter .decide{animation:m-up var(--m-slow) var(--m-ease) 80ms backwards}
+.screen.overlay.enter .backdrop{animation:m-fade var(--m-base) var(--m-ease)}
+/* fill: meters, bars, chart columns grow when they appear */
+.screen.enter .meter i,.screen.enter .hb .track i,.screen.enter .fn .bar{transform-origin:left center;animation:m-fill var(--m-fill) var(--m-ease) 120ms backwards}
+.screen.enter .col i{transform-origin:bottom center;animation:m-grow var(--m-fill) var(--m-ease) 120ms backwards}
+/* press and state */
+.btn,.ib,.fchip,.fbtn,.seg button,.seg a,.side__item,.side__sub a,.task,.q,.li,.chap,.radio,.cb,.tbl tbody tr td{transition:transform var(--m-fast) var(--m-ease),background-color var(--m-base) var(--m-ease),color var(--m-base) var(--m-ease),box-shadow var(--m-base) var(--m-ease)}
+.btn:active,.fchip:active,.fbtn:active{transform:scale(.97)}
+.ib:active{transform:scale(.92)}
+.task:active,.q:active,.li[data-go]:active{transform:scale(.995)}
+.menu:not([hidden]){animation:m-menu 160ms var(--m-ease);transform-origin:top right}
+.side__sec.open .side__sub{animation:m-rise var(--m-base) var(--m-ease)}
+.tabs [aria-selected="true"]{transition:border-color var(--m-base) var(--m-ease),color var(--m-base) var(--m-ease)}
+details.fold[open] > .fold__b,details.more[open] > .tasks{animation:m-rise var(--m-base) var(--m-ease)}
+.switch::after{transition:transform var(--m-base) var(--m-ease)}
+/* drift: home and sign-in petals turn slowly */
+.band--home::after,.auth__art::after,.side::before{animation:m-drift 160s linear infinite}
+@media (prefers-reduced-motion:reduce){
+  :root{--m-rise:0px}
+  .band--home::after,.auth__art::after,.side::before{animation:none}
+  .btn:active,.ib:active,.fchip:active,.fbtn:active,.task:active{transform:none}
+  .screen.enter .decide{animation:m-fade var(--m-base) linear}
+}
+</style>

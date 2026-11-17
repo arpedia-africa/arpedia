@@ -1,0 +1,1308 @@
+
+<style>
+/* ===== System screens (areas 9, 10, 11) ===== */
+.sy-cnt{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;text-align:right}
+.sy-chips{display:flex;gap:6px;flex-wrap:wrap}
+.sy-chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:7px;background:var(--surface);font-family:var(--f-m);font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;border:0}
+.sy-chip:hover{background:var(--org-tint);color:var(--org-ink)}
+.sy-aud{display:flex;flex-direction:column;gap:8px}
+.sy-seg-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-size:13.5px}
+.sy-seg-row.is-selected{box-shadow:inset 0 0 0 2px var(--org);background:var(--org-tint-2)}
+.sy-seg-row b{font-weight:600}
+.sy-seg-row small{display:block;color:var(--ink-3);font-size:12.5px}
+.sy-seg-row .n{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.sy-reach{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sy-reach b{font-family:var(--f-d);font-weight:800;font-size:30px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+.sy-lockdate{text-align:center;font-size:13px;margin-top:-16px;margin-bottom:18px;opacity:.85}
+.sy-lockhint{text-align:center;font-size:11.5px;opacity:.7;margin-top:auto}
+.sy-prevcol{display:flex;flex-direction:column;align-items:center;gap:12px;position:sticky;top:16px}
+.sy-home{background:#FFF8EE;flex:1;padding:34px 14px 14px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.sy-home h4{font-family:var(--f-d);font-weight:800;font-size:19px}
+.sy-bcard{background:var(--org);color:var(--on-org);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.sy-bcard::after{content:"";position:absolute;right:-50px;top:-60px;width:150px;height:150px;border-radius:50%;background:var(--petal-ring);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%);opacity:.55}
+.sy-bcard > *{position:relative;z-index:1}
+.sy-bcard b{font-family:var(--f-d);font-weight:800;font-size:18px;line-height:1.1}
+.sy-bcard p{font-size:12.5px;color:rgba(74,38,0,.85)}
+.sy-bcard .x{position:absolute;right:10px;top:8px;z-index:2;font-size:15px;font-weight:700}
+.sy-bbtn{align-self:flex-start;background:var(--night);color:#fff;border-radius:10px;padding:7px 14px;font-weight:700;font-size:12.5px}
+.sy-rowbook{display:flex;gap:10px;align-items:center;font-size:12.5px}
+.sy-rowbook b{display:block;font-size:13px}
+.sy-mail{background:#EFE8DC;border-radius:14px;padding:18px;display:flex;justify-content:center}
+.sy-mail__c{width:100%;max-width:480px;background:#fff;border-radius:12px;overflow:hidden;font-size:14px;color:#1D1A16}
+.sy-mail__h{background:var(--org);color:var(--on-org);padding:20px 24px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden}
+.sy-mail__h::after{content:"";position:absolute;right:-40px;top:-60px;width:150px;height:150px;border-radius:50%;background:var(--petal-ring);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%);opacity:.55}
+.sy-mail__h > *{position:relative;z-index:1}
+.sy-mail__b{padding:24px;display:flex;flex-direction:column;gap:12px;line-height:1.6}
+.sy-mail__b h3{font-family:var(--f-d);font-weight:800;font-size:22px;letter-spacing:-0.01em}
+.sy-mail__amt{font-family:var(--f-d);font-weight:800;font-size:32px;letter-spacing:-0.02em}
+.sy-mail__f{padding:14px 24px;background:#FAF6EF;color:#6B7280;font-size:12px;line-height:1.5}
+.sy-mail__btn{align-self:flex-start;background:var(--night);color:#fff;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px}
+.sy-inbox{background:var(--white);border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);padding:10px 14px;font-size:13px;display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.sy-inbox b{font-size:13.5px}
+.sy-body{min-height:260px;font-size:14px;line-height:1.6;white-space:pre-line}
+.sy-heat td.h{text-align:center;font-variant-numeric:tabular-nums;font-weight:600;font-size:12.5px;padding:8px 6px}
+.sy-heat td.h.blank{color:var(--ink-3);font-weight:400}
+.sy-hrs .cols{height:150px;gap:3px}
+.sy-hrs .axis{gap:3px;font-size:10.5px}
+.sy-dau .cols{gap:4px}
+.sy-dist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.sy-dist div{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.sy-dist .tr{height:90px;background:var(--surface);border-radius:8px;display:flex;align-items:flex-end;overflow:hidden}
+.sy-dist .tr i{display:block;width:100%;height:var(--v);background:var(--org)}
+.sy-dist span{font-size:12px;color:var(--ink-3);text-align:center}
+.sy-dist b{font-size:13px;text-align:center;font-variant-numeric:tabular-nums}
+.sy-svc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.sy-svc{grid-template-columns:minmax(0,1fr)}}
+.sy-svc .panel__head h2{font-size:16px}
+.sy-key{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sy-url{font-family:var(--f-m);font-size:12px;background:var(--surface);border-radius:6px;padding:2px 6px;word-break:break-all}
+.sy-ver{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+@media (max-width:760px){.sy-ver,.sy-dist{grid-template-columns:minmax(0,1fr)}}
+.sy-flag .meter{min-width:90px}
+.sy-ba{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sy-ba > div{background:var(--surface);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.sy-ba h3{font-size:13px;font-weight:700;color:var(--ink-2)}
+.sy-ba .kv{font-family:var(--f-m);font-size:12.5px}
+.sy-ba .kv dt{font-family:var(--f-ui);font-size:12.5px}
+.sy-grp td{background:var(--surface);font-weight:700;font-size:12.5px;color:var(--ink-2);padding:7px 14px}
+.sy-flag small.warn-t{display:block}
+.sy-menul{left:0;right:auto}
+.radio .sy-n{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;align-self:center}
+.sy-rev{margin-top:2px}
+</style>
+
+<!-- ===================== 09 Engage ===================== -->
+<section class="screen" id="s-campaigns" data-area="9" data-nav="campaigns" data-name="Push notifications" data-note="New: simplified to four key numbers, one Filters button and a six-column list; the automatic notifications moved into a fold under the list.|Data: 412 unlocks came from pushes this month (counted within 24 hours of a push).|Same as v25: send a push to all readers or a segment, see sent and opened.|New: audience builder with a live reach number, scheduling in WAT, quiet hours, and conversions (unlocks, joins) next to opens.|New: automatic notifications (author approved, new chapter, credits low, renewal failed) each have an on/off switch and a link to edit the wording.|Rule: marketing pushes are capped at 2 per reader per week. Account and money messages are never capped.|Data: delivered and opened come from Firebase Cloud Messaging receipts; conversions are unlocks or room joins within 24 hours of the push.|New: pause and duplicate sit in each row's ⋯ menu and confirm with a message and Undo; the status moved under the date." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Push notifications</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="campaign-new"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>New notification</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Sent in November</span><span class="kpi__v">12</span><span class="kpi__d">2 scheduled · 1 draft</span></div>
+      <div class="kpi"><span class="kpi__l">Delivered</span><span class="kpi__v">99.0%</span><span class="kpi__d"><span class="up">+0.3%</span> vs October</span></div>
+      <div class="kpi"><span class="kpi__l">Opened</span><span class="kpi__v">26.8%</span><span class="kpi__d">Best: reading room reminders, 31%</span></div>
+      <div class="kpi"><span class="kpi__l">Turned push off</span><span class="kpi__v">8.4%</span><span class="kpi__d">3,212 readers</span></div>
+    </div>
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Search by title" aria-label="Search campaigns"></label>
+      <div class="mwrap"><button class="fbtn" data-menu aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button><div class="menu sy-menul" hidden><a data-toast="Showing all notifications">All notifications</a><a data-toast="Showing sent notifications">Sent</a><a data-toast="Showing scheduled notifications">Scheduled</a><a data-toast="Showing drafts">Drafts</a></div></div>
+      <span class="grow"></span>
+      <div class="mwrap"><button class="dd" data-menu aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-sort"/></svg>Newest first</button><div class="menu" hidden><a data-toast="Sorted newest first">Newest first</a><a data-toast="Sorted oldest first">Oldest first</a><a data-toast="Sorted by most opened">Most opened</a></div></div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Notification</th><th>When</th><th class="r">Delivered</th><th class="r">Opened</th><th class="r">Conversions</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr data-go="campaign-new"><td><b>Harmattan Letters is now in Trending</b><small class="faint" style="display:block">All readers · 38,240 · Opens the book page</small></td><td class="nw">Tue 10 Nov, 18:00<small class="faint" style="display:block">Sent</small></td><td class="n">98.9%</td><td class="n">24.1%</td><td class="n">212 unlocks</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Copied as a new draft">Duplicate</a><a data-toast="Copied as a new draft for readers who did not open it">Send again to readers who did not open it</a></div></div></td></tr>
+          <tr data-go="campaign-new"><td><b>Reading room tonight: Ruth of Ibadan, chapter 9</b><small class="faint" style="display:block">Chose Christian &amp; Faith · 9,870 · Opens the reading room</small></td><td class="nw">Wed 11 Nov, 19:00<small class="faint" style="display:block">Sent</small></td><td class="n">99.1%</td><td class="n">31.4%</td><td class="n">64 joined</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Copied as a new draft">Duplicate</a><a data-toast="Copied as a new draft for readers who did not open it">Send again to readers who did not open it</a></div></div></td></tr>
+          <tr data-go="campaign-new"><td><b>Yearly is ₦7,500 on the web this week</b><small class="faint" style="display:block">Lapsed 30 days · 3,112 · Opens the plans screen</small></td><td class="nw">Fri 13 Nov, 10:00<small class="faint" style="display:block">Scheduled</small></td><td class="n muted">Not sent</td><td class="n muted">Not sent</td><td class="n muted">None yet</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Paused. It will not go out until you resume it." data-undo="campaigns">Pause</a><a data-toast="Copied as a new draft">Duplicate</a><hr><a class="danger" data-toast="Cancelled. No readers will get it." data-undo="campaigns">Cancel push</a></div></div></td></tr>
+          <tr data-go="campaign-new"><td><b>Sunday reading: five devotionals for the week</b><small class="faint" style="display:block">Subscribers · 4,812 · Opens Discover, Devotionals</small></td><td class="nw">Sun 15 Nov, 07:30<small class="faint" style="display:block">Scheduled</small></td><td class="n muted">Not sent</td><td class="n muted">Not sent</td><td class="n muted">None yet</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Paused. It will not go out until you resume it." data-undo="campaigns">Pause</a><a data-toast="Copied as a new draft">Duplicate</a><hr><a class="danger" data-toast="Cancelled. No readers will get it." data-undo="campaigns">Cancel push</a></div></div></td></tr>
+          <tr data-go="campaign-new"><td><b>November new arrivals</b><small class="faint" style="display:block">All readers · 38,240 · Opens Discover, New arrivals</small></td><td class="nw muted">Not scheduled<small class="faint" style="display:block">Draft</small></td><td class="n muted">Not sent</td><td class="n muted">Not sent</td><td class="n muted">None yet</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Copied as a new draft">Duplicate</a><hr><a class="danger" data-toast="Draft deleted" data-undo="campaigns">Delete draft</a></div></div></td></tr>
+          <tr data-go="campaign-new"><td><b>New chapters are waiting for you</b><small class="faint" style="display:block">Lapsed 30 days · 3,090 · Opens Library</small></td><td class="nw">Wed 4 Nov, 17:30<small class="faint" style="display:block">Sent</small></td><td class="n">97.8%</td><td class="n">14.2%</td><td class="n">88 returned</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Copied as a new draft">Duplicate</a><a data-toast="Copied as a new draft for readers who did not open it">Send again to readers who did not open it</a></div></div></td></tr>
+          <tr data-go="campaign-new"><td><b>Author spotlight: Chioma Okafor</b><small class="faint" style="display:block">All readers · 37,990 · Opens the author page</small></td><td class="nw">Mon 2 Nov, 12:00<small class="faint" style="display:block">Sent</small></td><td class="n">98.7%</td><td class="n">21.6%</td><td class="n">140 follows</td><td class="acts"><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Copied as a new draft">Duplicate</a><a data-toast="Copied as a new draft for readers who did not open it">Send again to readers who did not open it</a></div></div></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>7 notifications this month</span><span>All times are WAT</span></div>
+    </div>
+
+    <details class="fold"><summary>Automatic notifications <small>7 sent by the system, 6 on</small></summary><div class="fold__b">
+      <div class="list">
+        <div class="setrow"><span class="setrow__b"><b>Author application approved</b><small>To the applicant · "Welcome, Blessing. Your author profile is live." · sent 14 times in 30 days</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch on" role="switch" aria-checked="true" aria-label="Author application approved"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Book approved and published</b><small>To the author · opens the book page · sent 21 times in 30 days</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch on" role="switch" aria-checked="true" aria-label="Book approved"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Changes requested on a book</b><small>To the author · includes the first line of the staff note · sent 9 times</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch on" role="switch" aria-checked="true" aria-label="Changes requested"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>New chapter or update from an author you follow</b><small>To followers · batched to 1 per author per day · sent 3,402 times</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch on" role="switch" aria-checked="true" aria-label="New chapter"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Reading room starting in 15 minutes</b><small>To readers who joined the room · sent 612 times</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch on" role="switch" aria-checked="true" aria-label="Reading room starting"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Credits running low (under 30)</b><small>To subscribers · once per period · sent 288 times · opens Credits</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch" role="switch" aria-checked="false" aria-label="Credits low"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Renewal failed</b><small>To the subscriber · day 1, day 3 and day 5 of grace · sent 96 times · cannot be capped</small></span><a class="link" data-go="campaign-new" style="font-size:13px">Edit wording</a><button class="switch on" role="switch" aria-checked="true" aria-label="Renewal failed"></button></div>
+      </div>
+      <span class="hint">Credits low is off while the team decides whether it feels pushy. Turned off by Femi Lawson on 11 Nov.</span>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen" id="s-campaign-new" data-area="9" data-nav="campaigns" data-name="Compose push" data-note="New: the page reads top to bottom as What, Who, When, Review, with a live lock-screen preview beside it.|New: A/B test, frequency cap and quiet hours override are folded under More options; most pushes never need them.|Rule: phones cut the title near 65 characters and the message near 178; the counters warn first. Opens can be a book, author, reading room or app screen (Home, Library, Credits, Plans).|Rule: schedule push asks you to confirm only when more than 1,000 readers will get it (12,408 here), with the message, audience and time on one screen.|Rule: quiet hours (no sends 22:00 to 07:00 WAT) are enforced; a schedule inside quiet hours moves to 07:00.|Rule: marketing pushes are capped at 2 per week per reader; readers already at the cap are left out of the reach number.|After sending: delivered and opened fill in on the Push notifications list within minutes." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="campaigns">Push notifications</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>New notification</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Compose push</h1><div class="ph__meta"><span>Draft, saved 2 minutes ago</span><span>Reaches 12,408 readers</span></div></div>
+      <div class="ph__acts"><a class="btn btn-g" data-toast="Draft saved">Save draft</a><a class="ib" data-toast="Test push sent to your Pixel 8. It shows as it will on readers' phones." aria-label="Send test to my device"><svg class="ico" aria-hidden="true"><use href="#i-phone"/></svg></a><a class="btn btn-p" data-go="campaign-confirm"><svg class="ico s" aria-hidden="true"><use href="#i-cal"/></svg>Schedule push</a></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>1. What to say</h2></div>
+          <div class="panel__body"><div class="form">
+            <div class="f"><label>Title</label><div class="inp"><input value="Harmattan Letters is waiting for you" aria-label="Title"></div><div class="sy-cnt">35 of 65 characters</div></div>
+            <div class="f"><label>Message</label><textarea class="inp ta" aria-label="Message">Ifeoma Nwachukwu's new chapter dropped today. Read the free preview and see why 18,000 readers can't put it down.</textarea><div class="sy-cnt">113 of 178 characters</div></div>
+            <div class="fgrid">
+              <div class="f"><label>Tapping it opens</label><div class="inp sel"><span>Book</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+              <div class="f"><label>Which book</label><div class="inp sel"><span class="row" style="gap:8px"><span class="cv c1" style="width:16px;height:24px;padding:0"></span>Harmattan Letters</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>2. Who gets it</h2></div>
+          <div class="panel__body">
+            <div class="radios" data-single>
+              <div class="radio"><span><b>All readers</b><small>Everyone with push turned on</small></span><span class="sy-n">34,992</span></div>
+              <div class="radio"><span><b>Subscribers</b><small>Active Monthly, Quarterly or Yearly plan</small></span><span class="sy-n">4,490</span></div>
+              <div class="radio"><span><b>Lapsed 30 days</b><small>No app open in the last 30 days</small></span><span class="sy-n">3,112</span></div>
+              <div class="radio is-selected"><span><b>Christian &amp; Faith readers</b><small>Picked this genre, or read two or more books in it</small></span><span class="sy-n">12,408</span></div>
+              <div class="radio"><span><b>Authors</b><small>Approved authors only</small></span><span class="sy-n">131</span></div>
+            </div>
+            <div class="sy-reach"><b>12,408</b><span class="muted">readers will get this. 1,284 more are left out because they already got 2 marketing pushes this week.</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>3. When</h2></div>
+          <div class="panel__body">
+            <div class="radios h" data-single>
+              <div class="radio"><span><b>Send now</b><small>Goes out in about 2 minutes</small></span></div>
+              <div class="radio is-selected"><span><b>Schedule</b><small>Pick a date and time in WAT</small></span></div>
+            </div>
+            <div class="fgrid">
+              <div class="f"><label>Date</label><div class="inp"><input value="Fri 13 Nov 2026" aria-label="Date"></div></div>
+              <div class="f"><label>Time (WAT)</label><div class="inp"><input value="10:00" aria-label="Time"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>4. Review</h2></div>
+          <div class="panel__body sy-rev">
+            <div class="kv-row"><span>Message</span><b>Harmattan Letters is waiting for you</b></div>
+            <div class="kv-row"><span>Goes to</span><b>12,408 Christian &amp; Faith readers</b></div>
+            <div class="kv-row"><span>Sends</span><b>Fri 13 Nov, 10:00 WAT</b></div>
+            <details class="fold"><summary>More options <small>A/B test, frequency cap, quiet hours</small></summary><div class="fold__b">
+              <div class="setrow" style="padding:0;border:0"><span class="setrow__b"><b>A/B test the title</b><small>A second title goes to 20% first, the winner goes to everyone else after 2 hours</small></span><button class="switch" role="switch" aria-checked="false" aria-label="A/B test"></button></div>
+              <div class="setrow" style="padding:0;border:0"><span class="setrow__b"><b>Skip readers who got 2 marketing pushes this week</b><small>1,284 readers are left out. Account and money messages are never capped.</small></span><button class="switch on" role="switch" aria-checked="true" aria-label="Frequency cap"></button></div>
+              <div class="setrow" style="padding:0;border:0"><span class="setrow__b"><b>Respect quiet hours</b><small>No sends 22:00 to 07:00 WAT. Turn off only for something urgent.</small></span><button class="switch on" role="switch" aria-checked="true" aria-label="Quiet hours"></button></div>
+            </div></details>
+          </div>
+        </div>
+      </div>
+
+      <div class="sy-prevcol">
+        <div class="phone"><div class="phone__s lock">
+          <div class="lock__time">9:41</div>
+          <div class="sy-lockdate">Thursday 12 November</div>
+          <div class="push"><span class="app" style="background:none"><svg width="34" height="34" aria-hidden="true"><use href="#i-appicon"/></svg></span><span><b>Harmattan Letters is waiting for you</b>Ifeoma Nwachukwu's new chapter dropped today. Read the free preview and see why 18,000 readers can't put it down.<small style="display:block;margin-top:2px">Arpedia · now</small></span></div>
+          <div class="sy-lockhint">Preview of an Android lock screen</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen overlay" id="s-campaign-confirm" data-area="9" data-base="campaign-new" data-name="Confirm push" data-note="Rule: a push to more than 1,000 readers asks for one last look at the message, audience and time. Smaller pushes schedule straight away.|Rule: a scheduled push can be paused or cancelled from the Push notifications list until it goes out.|After confirming: 12,408 readers get the push at 10:00 WAT on Friday; delivered and opened fill in afterwards." hidden>
+  <a class="backdrop" data-go="campaign-new" aria-label="Close"></a>
+  <div class="modal" role="dialog" aria-label="Confirm push">
+    <div class="modal__h"><div class="grow"><h2>Send this push to 12,408 readers?</h2><p>Check it once. Readers cannot take back a push after it is delivered.</p></div><a class="ib" data-go="campaign-new" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="sy-inbox"><b>Harmattan Letters is waiting for you</b><span class="muted">Ifeoma Nwachukwu's new chapter dropped today. Read the free preview and see why 18,000 readers can't put it down.</span></div>
+      <div class="kv-row"><span>Goes to</span><b>12,408 Christian &amp; Faith readers</b></div>
+      <div class="kv-row"><span>Sends</span><b>Fri 13 Nov, 10:00 WAT</b></div>
+      <div class="kv-row"><span>Tapping it opens</span><b>Harmattan Letters</b></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="campaign-new">Back to edit</a><a class="btn btn-p" data-go="campaigns" data-toast="Push scheduled for Fri 13 Nov, 10:00. 12,408 readers will get it." data-undo="campaign-new">Schedule push</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-banners" data-area="9" data-nav="banners" data-name="In-app announcements" data-note="New: placement and audience moved into the second line of each row so the table has six columns; status is plain text.|Rule: Home top allows 2 announcements at once, Modal on launch allows 1 per reader per day.|Same as v25: a banner on the reader home screen.|New: placements (Home top, Credits page, Modal on launch), audience, start and end dates, priority and tap counts.|Rule: only one modal per reader per day; the highest priority banner shows first and others wait.|Rule: a banner whose end date passes switches itself off.|New: rows open the same What, Who, When form; saving or publishing shows a message saying who sees it and when." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>In-app announcements</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="banner-edit"><svg class="ico s" aria-hidden="true"><use href="#i-plus"/></svg>New announcement</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar" data-single>
+      <button class="fchip is-selected">Live <span class="c">3</span></button><button class="fchip">Scheduled <span class="c">2</span></button><button class="fchip">Ended <span class="c">9</span></button><button class="fchip">Draft <span class="c">1</span></button>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Announcement</th><th>Dates</th><th class="r">Priority</th><th class="r">Shown</th><th class="r">Taps</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr data-go="banner-edit"><td><b>Harmattan Letters, now in Trending</b><small class="faint" style="display:block">Home top · All readers · Button: Read the preview</small></td><td class="nw">10 Nov to 17 Nov</td><td class="n">1</td><td class="n">18,402</td><td class="n">2,214 <small class="faint">(12.0%)</small></td><td><span class="st-plain">Live</span></td></tr>
+          <tr data-go="banner-edit"><td><b>Buy 600 credits, get a free chapter pass</b><small class="faint" style="display:block">Credits page · Subscribers · Button: See top-ups</small></td><td class="nw">1 Nov to 30 Nov</td><td class="n">2</td><td class="n">6,120</td><td class="n">488 <small class="faint">(8.0%)</small></td><td><span class="st-plain">Live</span></td></tr>
+          <tr data-go="banner-edit"><td><b>Update to 26.1 for offline downloads</b><small class="faint" style="display:block">Modal on launch · App below 26.0 · Button: Update now · can be dismissed</small></td><td class="nw">9 Nov to 30 Nov</td><td class="n">3</td><td class="n">1,904</td><td class="n">611 <small class="faint">(32.1%)</small></td><td><span class="st-plain">Live</span></td></tr>
+          <tr data-go="banner-edit"><td><b>Join the Ruth of Ibadan reading room</b><small class="faint" style="display:block">Home top · Chose Christian &amp; Faith · Button: Join room</small></td><td class="nw">14 Nov to 15 Nov</td><td class="n">1</td><td class="n muted">0</td><td class="n muted">0</td><td><span class="st-plain">Scheduled</span></td></tr>
+          <tr data-go="banner-edit"><td><b>December: give a reader a month</b><small class="faint" style="display:block">Modal on launch · Subscribers · Button: Send a gift</small></td><td class="nw">1 Dec to 24 Dec</td><td class="n">2</td><td class="n muted">0</td><td class="n muted">0</td><td><span class="st-plain">Scheduled</span></td></tr>
+          <tr data-go="banner-edit"><td><b>Meet our November authors</b><small class="faint" style="display:block">Home top · All readers · Button: See authors</small></td><td class="nw muted">No dates</td><td class="n">1</td><td class="n muted">0</td><td class="n muted">0</td><td><span class="st-plain">Draft</span></td></tr>
+          <tr data-go="banner-edit"><td><b>Independence Day reading list</b><small class="faint" style="display:block">Home top · All readers · Button: Read the list</small></td><td class="nw">28 Sep to 3 Oct</td><td class="n">1</td><td class="n">21,880</td><td class="n">3,120 <small class="faint">(14.3%)</small></td><td><span class="st-plain">Ended</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>15 announcements</span><span>Home top allows 2 at once, Modal on launch allows 1 per reader per day</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-banner-edit" data-area="9" data-nav="banners" data-name="Edit announcement" data-note="New: End now is an icon button next to Save changes; the page keeps just content, audience and the phone preview.|New: editor on the left, live phone preview on the right (a Home screen with the orange card).|Rule: headline max 48 characters, body max 120, so the card never grows past three lines.|Rule: a link can open a book, author, room, app screen or a web page on arpedia.africa only.|After saving: live banners update on readers' phones the next time they open the app (within about 15 minutes).|New: reads What, Who, When; priority and the dismiss button sit under More options." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="banners">In-app announcements</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Harmattan Letters, now in Trending</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Harmattan Letters, now in Trending</h1><div class="ph__meta"><span>Live · shown 18,402 times</span><span>2,214 taps (12.0%)</span><span>Last edited by Tunde Bakare, 10 Nov</span></div></div>
+      <div class="ph__acts"><a class="ib" data-go="banners" data-toast="Announcement ended. Readers stop seeing it within about 15 minutes." data-undo="banner-edit" aria-label="End now"><svg class="ico" aria-hidden="true"><use href="#i-stop"/></svg></a><a class="btn btn-g" data-go="banners">Cancel</a><a class="btn btn-p" data-go="banners" data-toast="Saved. Live phones show the new card within about 15 minutes.">Save changes</a></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>1. What it says</h2></div>
+          <div class="panel__body"><div class="form">
+            <div class="f"><span class="lbl">Placement</span>
+              <div class="radios" data-single>
+                <div class="radio is-selected"><span><b>Home top</b><small>Orange card above Continue reading. Up to 2 at once.</small></span></div>
+                <div class="radio"><span><b>Credits page</b><small>A note above the top-ups. Good for offers.</small></span></div>
+                <div class="radio"><span><b>Modal on launch</b><small>Full-screen card when the app opens. Once per reader per day.</small></span></div>
+              </div></div>
+            <div class="f"><label>Headline</label><div class="inp"><input value="Harmattan Letters is in Trending" aria-label="Headline"></div><div class="sy-cnt">32 of 48 characters</div></div>
+            <div class="f"><label>Body</label><textarea class="inp ta" aria-label="Body" style="min-height:72px">A story of faith, family and letters from home. Read the first 10% free.</textarea><div class="sy-cnt">72 of 120 characters</div></div>
+            <div class="fgrid">
+              <div class="f"><label>Button label</label><div class="inp"><input value="Read the preview" aria-label="Button label"></div></div>
+              <div class="f"><label>Button opens</label><div class="inp sel"><span>Book: Harmattan Letters</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+            </div>
+            <div class="f"><span class="lbl">Image <span class="opt">optional</span></span>
+              <div class="file"><span class="cv c1 x32"></span><span class="grow"><b>harmattan-banner.jpg</b><small>1200 x 600 · 148 KB · shows on the right of the card</small></span><a class="btn btn-g sm" data-toast="Image replaced">Replace</a><a class="btn btn-q sm" data-toast="Image removed" data-undo="banner-edit">Remove</a></div></div>
+          </div></div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>2. Who sees it</h2></div>
+          <div class="panel__body">
+            <div class="radios" data-single>
+              <div class="radio is-selected"><span><b>All readers</b><small>Everyone who opens the app</small></span></div>
+              <div class="radio"><span><b>Subscribers</b><small>Active Monthly, Quarterly or Yearly plan</small></span></div>
+              <div class="radio"><span><b>Chose Christian &amp; Faith</b><small>Readers who picked this genre in interests</small></span></div>
+              <div class="radio"><span><b>App below 26.0</b><small>Readers who should update first</small></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>3. When</h2></div>
+          <div class="panel__body"><div class="form">
+            <div class="fgrid">
+              <div class="f"><label>Starts</label><div class="inp"><input value="Tue 10 Nov 2026, 18:00" aria-label="Start"></div></div>
+              <div class="f"><label>Ends</label><div class="inp"><input value="Tue 17 Nov 2026, 23:59" aria-label="End"></div></div>
+            </div>
+            <details class="fold"><summary>More options <small>priority, dismiss button</small></summary><div class="fold__b">
+              <div class="f"><label>Priority</label><div class="inp sel"><span>1 (shows first)</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+              <div class="setrow" style="padding:0;border:0"><span class="setrow__b"><b>Readers can dismiss it</b><small>Shows a close button. A dismissed card does not come back for that reader.</small></span><button class="switch on" role="switch" aria-checked="true" aria-label="Dismissible"></button></div>
+            </div></details>
+          </div></div>
+        </div>
+      </div>
+      <div class="sy-prevcol">
+        <div class="phone"><div class="phone__s">
+          <div class="sy-home">
+            <h4>Good morning, Ngozi</h4>
+            <div class="sy-bcard"><span class="x">x</span><b>Harmattan Letters is in Trending</b><p>A story of faith, family and letters from home. Read the first 10% free.</p><span class="sy-bbtn">Read the preview</span></div>
+            <div class="sy-rowbook"><span class="cv c3 x32"></span><span><b>Continue reading</b>The Alignment · chapter 7 · 42%</span></div>
+            <div class="sy-rowbook"><span class="cv c2 x32"></span><span><b>New this week</b>Still Waters, Lagos</span></div>
+          </div>
+        </div></div>
+        <span class="hint" style="text-align:center">Preview of the Home screen</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-emails" data-area="9" data-nav="emails" data-name="Emails" data-note="New: domain health is folded and reads Passing or Healthy as plain text; the header only has the test email action.|Data: 18,244 emails were sent in the last 30 days from hello@arpedia.africa. Replies to the reply-to address land in Support as new tickets.|Same as v25: wording of the emails the system sends.|New: every email in one table with its trigger, last editor, volume and open rate. Open a row to edit the subject and body.|Rule: emails with money or security content (receipt, renewal failed, verify) cannot be switched off, only reworded.|Data: sent and open rates come from Resend for the last 30 days." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Emails</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-toast="Test email sent to amaka@arpedia.africa">Send a test email</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="panel panel--flush">
+        <div class="panel__head"><h2>Transactional templates</h2></div>
+        <div class="tw"><table class="tbl">
+          <thead><tr><th>Template</th><th>Sent when</th><th>Last edited</th><th class="r">Sent, 30 days</th><th class="r">Open rate</th></tr></thead>
+          <tbody>
+            <tr data-go="email-template"><td><b>Welcome</b></td><td class="muted">A reader finishes sign-up</td><td class="nw">20 Oct · Amaka Okafor</td><td class="n">2,104</td><td class="n">64.2%</td></tr>
+            <tr data-go="email-template"><td><b>Verify email</b></td><td class="muted">Sign-up with email, or email change</td><td class="nw">2 Sep · Femi Lawson</td><td class="n">2,388</td><td class="n">88.9%</td></tr>
+            <tr data-go="email-template"><td><b>Receipt</b></td><td class="muted">Web checkout payment succeeds</td><td class="nw">14 Oct · Chinedu Eze</td><td class="n">961</td><td class="n">71.4%</td></tr>
+            <tr data-go="email-template"><td><b>Subscription renewal failed</b></td><td class="muted">Card declined, day 1 and day 5</td><td class="nw">28 Oct · Bisi Adeyemi</td><td class="n">96</td><td class="n">69.8%</td></tr>
+            <tr data-go="email-template"><td><b>Application approved</b></td><td class="muted">Staff approve an author application</td><td class="nw">11 Aug · Amaka Okafor</td><td class="n">14</td><td class="n">92.9%</td></tr>
+            <tr data-go="email-template"><td><b>Application needs more info</b></td><td class="muted">Staff ask the applicant for changes</td><td class="nw">11 Aug · Amaka Okafor</td><td class="n">9</td><td class="n">88.9%</td></tr>
+            <tr data-go="email-template"><td><b>Book approved</b></td><td class="muted">Book published or scheduled</td><td class="nw">3 Nov · Tunde Bakare</td><td class="n">21</td><td class="n">95.2%</td></tr>
+            <tr data-go="email-template"><td><b>Changes requested</b></td><td class="muted">Staff send a book back with a note</td><td class="nw">3 Nov · Tunde Bakare</td><td class="n">9</td><td class="n">100%</td></tr>
+            <tr data-go="email-template"><td><b>Payout sent</b></td><td class="muted">Flutterwave confirms a transfer</td><td class="nw">15 Oct · Chinedu Eze</td><td class="n">54</td><td class="n">87.0%</td></tr>
+            <tr data-go="email-template"><td><b>Payout failed</b></td><td class="muted">Flutterwave rejects a transfer</td><td class="nw">16 Oct · Chinedu Eze</td><td class="n">2</td><td class="n">100%</td></tr>
+            <tr data-go="email-template"><td><b>Data export ready</b></td><td class="muted">A privacy export is built (link works 7 days)</td><td class="nw">1 Oct · Amaka Okafor</td><td class="n">3</td><td class="n">100%</td></tr>
+            <tr data-go="email-template"><td><b>Account deleted</b></td><td class="muted">A deletion finishes after the 14-day wait</td><td class="nw">1 Oct · Amaka Okafor</td><td class="n">5</td><td class="n">80.0%</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Sender settings</h2></div>
+          <div class="panel__body"><div class="form">
+            <div class="f"><label>From</label><div class="inp"><input value="Arpedia &lt;hello@arpedia.africa&gt;" aria-label="From"></div></div>
+            <div class="f"><label>Reply-to</label><div class="inp"><input value="support@arpedia.africa" aria-label="Reply-to"></div></div>
+            <div class="f"><label>Footer address</label><div class="inp"><input value="Arpedia, Yaba, Lagos, Nigeria" aria-label="Footer"></div></div>
+            <a class="btn btn-g" data-toast="Sender settings saved. The next email uses them.">Save sender settings</a>
+          </div></div>
+        </div>
+        <details class="fold"><summary>Domain health <small>SPF, bounces, complaints</small></summary><div class="fold__b">
+          <div class="list">
+            <div class="li"><span class="li__body"><b>SPF and DKIM</b><small>arpedia.africa verified in Resend</small></span><span class="st-plain">Passing</span></div>
+            <div class="li"><span class="li__body"><b>Bounce rate</b><small>0.8% in 30 days</small></span><span class="st-plain">Healthy</span></div>
+            <div class="li"><span class="li__body"><b>Spam complaints</b><small>2 in 30 days</small></span><span class="st-plain">Healthy</span></div>
+          </div>
+          <a class="link" data-go="integrations" style="font-size:13px">Integrations</a>
+        </div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-email-template" data-area="9" data-nav="emails" data-name="Edit email" data-note="New: version history is folded; Cancel is an icon button. Test emails go to the signed-in staff address (amaka@arpedia.africa).|Data: the preview uses sample data (Ifeoma Nwachukwu, October 2026 cycle). Click a variable chip to insert it at the cursor.|New: edit subject, preheader and body on the left, see the real branded email on the right as you type.|Rule: variables in double braces are filled by the system. A template that uses an unknown variable cannot be saved.|Rule: payout and security emails keep the staff member's name in version history; Finance reviews payout wording.|After saving: the next email sent uses the new version. Past emails are unchanged." hidden>
+  <div class="ph">
+    <div class="crumbs"><a data-go="emails">Emails</a><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg><span>Payout sent</span></div>
+    <div class="ph__row"><div class="ph__title"><h1>Payout sent</h1><div class="ph__meta"><span>In use · sent when Flutterwave confirms a transfer</span><span>54 sent in 30 days · 87.0% opened</span><span>Version 4, edited 15 Oct by Chinedu Eze</span></div></div>
+      <div class="ph__acts"><a class="ib" data-go="emails" aria-label="Cancel"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a><a class="btn btn-g" data-toast="Test email sent to amaka@arpedia.africa"><svg class="ico s" aria-hidden="true"><use href="#i-send"/></svg>Send test to me</a><a class="btn btn-p" data-go="emails" data-toast="Saved as version 5. The next Payout sent email uses it.">Save as version 5</a></div></div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Wording</h2></div>
+          <div class="panel__body"><div class="form">
+            <div class="f"><label>Subject</label><div class="inp"><input value="Your {{month}} earnings are on the way, {{author_first_name}}" aria-label="Subject"></div><div class="sy-cnt">56 characters · aim for under 60</div></div>
+            <div class="f"><label>Preheader <span class="opt">the grey text beside the subject in an inbox</span></label><div class="inp"><input value="{{amount}} sent to {{bank_masked}}. It can take up to 24 hours to show." aria-label="Preheader"></div></div>
+            <div class="f"><span class="lbl">Body</span>
+              <div class="sy-chips" aria-label="Insert a variable">
+                <button class="sy-chip" data-toast="{{author_first_name}} added to the body">{{author_first_name}}</button><button class="sy-chip" data-toast="{{amount}} added to the body">{{amount}}</button><button class="sy-chip" data-toast="{{cycle}} added to the body">{{cycle}}</button><button class="sy-chip" data-toast="{{bank_masked}} added to the body">{{bank_masked}}</button><button class="sy-chip" data-toast="{{payout_date}} added to the body">{{payout_date}}</button><button class="sy-chip" data-toast="{{reference}} added to the body">{{reference}}</button>
+              </div>
+              <div class="inp ta sy-body" aria-label="Body">Hi {{author_first_name}},
+
+Good news. Your Arpedia earnings for {{month}} have been sent.
+
+Amount: {{amount}}
+Paid to: {{bank_masked}}
+Reference: {{reference}}
+
+Most banks show it within a few hours, but it can take up to 24 hours. If you don't see it by tomorrow evening, reply to this email and we'll trace it with Flutterwave.
+
+Thank you for writing for Arpedia.
+
+The Arpedia team</div>
+              </div>
+          </div></div>
+        </div>
+        <details class="fold"><summary>Version history <small>4 versions</small></summary><div class="fold__b"><div class="tl">
+            <div class="tl__i org"><b>Version 4 (in use)</b><small>15 Oct · Chinedu Eze · Added the reference number and the 24-hour note</small></div>
+            <div class="tl__i"><b>Version 3</b><small>2 Sep · Chinedu Eze · Shorter subject line</small></div>
+            <div class="tl__i"><b>Version 2</b><small>19 Jun · Amaka Okafor · Added the bank in masked form</small></div>
+            <div class="tl__i"><b>Version 1</b><small>14 Apr · Amaka Okafor · First version</small></div>
+          </div><a class="link" data-toast="Version 3 is back as a draft. Save to use it." data-undo="email-template" style="font-size:13px">Restore version 3</a></div></details>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="panel__head"><h2>Preview</h2><div class="seg" data-single><button class="is-selected">Desktop</button><button>Phone</button></div></div>
+          <div class="panel__body">
+            <div class="sy-inbox"><b>Your October earnings are on the way, Ifeoma</b><span class="muted">₦184,300 sent to GTBank ••••4471. It can take up to 24 hours to show.</span><small class="faint">Arpedia &lt;hello@arpedia.africa&gt; · 15 Nov, 10:02</small></div>
+            <div class="sy-mail"><div class="sy-mail__c">
+              <div class="sy-mail__h"><svg width="34" height="34" aria-hidden="true"><use href="#i-sun"/></svg><span class="wmk wmk--night" role="img" aria-label="arpedia" style="height:26px"></span></div>
+              <div class="sy-mail__b">
+                <h3>Your money is on the way</h3>
+                <p>Hi Ifeoma,</p>
+                <p>Good news. Your Arpedia earnings for October 2026 have been sent.</p>
+                <div class="sy-mail__amt">₦184,300</div>
+                <p style="font-size:13px;color:#4B5563">Paid to GTBank ••••4471<br>Reference <span class="mono">ARP-RY-2610-0042</span></p>
+                <p>Most banks show it within a few hours, but it can take up to 24 hours. If you don't see it by tomorrow evening, reply to this email and we'll trace it with Flutterwave.</p>
+                <span class="sy-mail__btn">View my earnings</span>
+                <p>Thank you for writing for Arpedia.<br>The Arpedia team</p>
+              </div>
+              <div class="sy-mail__f">Arpedia, Yaba, Lagos, Nigeria. You get this email because you are an Arpedia author. Questions? Reply to this email.</div>
+            </div></div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10 Insights ===================== -->
+<section class="screen" id="s-analytics" data-area="10" data-nav="analytics" data-name="Analytics" data-note="New: four key numbers (DAU/MAU and average session sit inside the cards); Most read today moved here from Home; genre share and preview to unlock are folded.|Data: Most read today counts readers with a session of 30 seconds or more since midnight WAT.|Rule: shorter books convert better and books over 400 pages lose the most readers at the price screen. Pay as you read lifts long books; test a longer preview in Pricing rules.|Same as v25: daily readers, top books, genre share.|New: stickiness (DAU/MAU), reading hours, average session and books finished, with the change against the previous period.|New: preview to unlock conversion by book length, because the free preview (first 10%) is the main way readers decide to spend credits.|Data: counted from reading sessions in Supabase, refreshed hourly. A session needs at least 30 seconds on a page to count.|New: the period buttons and the Export icon work on all three Analytics tabs; Export builds a file and alerts you when it is ready." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Analytics</h1></div>
+      <div class="band__acts"><div class="seg" data-single><button>7 days</button><button class="is-selected">30 days</button><button>90 days</button><button>This year</button></div><a class="ib" data-toast="Export started for the last 30 days. We will alert you when the file is ready." aria-label="Export"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="true" class="is-selected">Overview</a>
+    <a role="tab" aria-selected="false" data-go="analytics-growth">Growth</a>
+    <a role="tab" aria-selected="false" data-go="analytics-reading">Reading</a>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Daily readers (DAU)</span><span class="kpi__v">6,904</span><span class="kpi__d"><span class="up">+5.4%</span> vs last Thursday</span></div>
+      <div class="kpi"><span class="kpi__l">Monthly readers (MAU)</span><span class="kpi__v">21,900</span><span class="kpi__d"><span class="up">+2.8%</span> · DAU/MAU 31.5%</span></div>
+      <div class="kpi"><span class="kpi__l">Reading hours</span><span class="kpi__v">61,340</span><span class="kpi__d"><span class="up">+7.9%</span> · 24 min per session</span></div>
+      <div class="kpi"><span class="kpi__l">Books finished</span><span class="kpi__v">3,812</span><span class="kpi__d"><span class="up">+4.2%</span> 17% of books started</span></div>
+    </div>
+
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Daily readers, last 30 days</h2><div class="seg" data-single><button class="is-selected">Readers</button><button>Hours</button><button>Sessions</button></div></div>
+          <div class="panel__body">
+            <div class="chart sy-dau">
+              <div class="cols">
+                <div class="col"><i style="--v:58%"></i></div><div class="col"><i style="--v:60%"></i></div><div class="col"><i style="--v:63%"></i></div><div class="col"><i style="--v:61%"></i></div><div class="col"><i style="--v:55%"></i></div><div class="col"><i style="--v:52%"></i></div><div class="col"><i style="--v:62%"></i></div>
+                <div class="col"><i style="--v:66%"></i></div><div class="col"><i style="--v:68%"></i></div><div class="col"><i style="--v:70%"></i></div><div class="col"><i style="--v:67%"></i></div><div class="col"><i style="--v:59%"></i></div><div class="col"><i style="--v:57%"></i></div><div class="col"><i style="--v:69%"></i></div>
+                <div class="col"><i style="--v:73%"></i></div><div class="col"><i style="--v:75%"></i></div><div class="col"><i style="--v:78%"></i></div><div class="col"><i style="--v:76%"></i></div><div class="col"><i style="--v:68%"></i></div><div class="col"><i style="--v:64%"></i></div><div class="col"><i style="--v:77%"></i></div>
+                <div class="col"><i style="--v:82%"></i></div><div class="col"><i style="--v:100%"></i></div><div class="col"><i style="--v:94%"></i></div><div class="col"><i style="--v:90%"></i></div><div class="col"><i style="--v:80%"></i></div><div class="col"><i style="--v:74%"></i></div><div class="col"><i style="--v:88%"></i></div>
+                <div class="col"><i style="--v:92%"></i></div><div class="col now"><i style="--v:96%"></i></div>
+              </div>
+              <div class="axis"><span>14 Oct</span><span></span><span></span><span></span><span></span><span></span><span></span><span>21</span><span></span><span></span><span></span><span></span><span></span><span></span><span>28</span><span></span><span></span><span></span><span></span><span></span><span></span><span>4 Nov</span><span></span><span></span><span></span><span></span><span></span><span></span><span>Today</span></div>
+              <div class="legend"><span><i></i>Readers per day</span><span><i class="n"></i>Today: 6,904</span><span>Peak: Mon 2 Nov, 7,190 (salary week, new Harmattan Letters chapter)</span><span>Weekends run about 15% lower</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Top books by reading time</h2></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Book</th><th class="r">Readers</th><th class="r">Reading time</th><th class="r">Unlocks</th><th class="r">Finished</th><th class="r">Rating</th></tr></thead>
+            <tbody>
+              <tr data-go="book-stats"><td><div class="who"><span class="cv c1 x32"></span><span><b>Harmattan Letters</b><small>Ifeoma Nwachukwu · Christian &amp; Faith</small></span></div></td><td class="n">9,840</td><td class="n">7,120 h</td><td class="n">1,204</td><td class="n">31%</td><td class="n">4.7</td></tr>
+              <tr data-go="book-stats"><td><div class="who"><span class="cv c3 x32"></span><span><b>The Alignment</b><small>Adaeze Rosemary Possible · Non-fiction</small></span></div></td><td class="n">7,102</td><td class="n">6,480 h</td><td class="n">902</td><td class="n">22%</td><td class="n">4.8</td></tr>
+              <tr data-go="book-stats"><td><div class="who"><span class="cv c2 x32"></span><span><b>Still Waters, Lagos</b><small>Chioma Okafor · Fiction</small></span></div></td><td class="n">5,611</td><td class="n">4,310 h</td><td class="n">688</td><td class="n">27%</td><td class="n">4.5</td></tr>
+              <tr data-go="book-stats"><td><div class="who"><span class="cv c6 x32"></span><span><b>A House Called Grace</b><small>Kemi Ogunleye · Clean romance</small></span></div></td><td class="n">4,380</td><td class="n">3,590 h</td><td class="n">511</td><td class="n">29%</td><td class="n">4.6</td></tr>
+              <tr data-go="book-stats"><td><div class="who"><span class="cv c4 x32"></span><span><b>Seven Bridges to Jos</b><small>Musa Danladi · African stories</small></span></div></td><td class="n">3,204</td><td class="n">2,740 h</td><td class="n">402</td><td class="n">24%</td><td class="n">4.4</td></tr>
+              <tr data-go="book-stats"><td><div class="who"><span class="cv c5 x32"></span><span><b>Ruth of Ibadan</b><small>Tolu Adebayo · Christian &amp; Faith</small></span></div></td><td class="n">2,950</td><td class="n">2,310 h</td><td class="n">377</td><td class="n">26%</td><td class="n">4.6</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Most read today</h2><span class="sub">Readers so far</span></div>
+          <div class="hbars" style="padding:4px 18px 16px">
+            <div class="hb"><span>Harmattan Letters</span><span class="track"><i style="--v:100%"></i></span><b>1,204</b></div>
+            <div class="hb"><span>The Alignment</span><span class="track"><i style="--v:82%"></i></span><b>986</b></div>
+            <div class="hb"><span>Still Waters, Lagos</span><span class="track"><i style="--v:62%"></i></span><b>744</b></div>
+            <div class="hb"><span>A House Called Grace</span><span class="track"><i style="--v:51%"></i></span><b>610</b></div>
+            <div class="hb"><span>Seven Bridges to Jos</span><span class="track"><i style="--v:33%"></i></span><b>402</b></div>
+          </div>
+        </div>
+        <details class="fold"><summary>Genre share and preview to unlock <small>last 30 days</small></summary><div class="fold__b">
+          <b>Genre share of reading time</b>
+          <div class="hbars">
+            <div class="hb"><span>Christian &amp; Faith</span><span class="track"><i style="--v:100%"></i></span><b>28%</b></div>
+            <div class="hb"><span>African stories</span><span class="track"><i style="--v:71%"></i></span><b>20%</b></div>
+            <div class="hb"><span>Clean romance</span><span class="track"><i style="--v:61%"></i></span><b>17%</b></div>
+            <div class="hb"><span>Fiction</span><span class="track"><i style="--v:39%"></i></span><b>11%</b></div>
+            <div class="hb"><span>Non-fiction</span><span class="track"><i style="--v:29%"></i></span><b>8%</b></div>
+            <div class="hb"><span>Devotionals</span><span class="track"><i style="--v:21%"></i></span><b>6%</b></div>
+            <div class="hb"><span>Thriller</span><span class="track"><i style="--v:14%"></i></span><b>4%</b></div>
+            <div class="hb"><span>Poetry, short stories, YA</span><span class="track"><i class="n" style="--v:21%"></i></span><b>6%</b></div>
+          </div>
+          <b>Preview to unlock: 18.4% unlocked a book after the free 10% (+1.2 pts)</b>
+          <div class="hbars">
+            <div class="hb"><span>Under 150 pages</span><span class="track"><i style="--v:92%"></i></span><b>23.0%</b></div>
+            <div class="hb"><span>150 to 300 pages</span><span class="track"><i style="--v:76%"></i></span><b>19.1%</b></div>
+            <div class="hb"><span>300 to 450 pages</span><span class="track"><i style="--v:58%"></i></span><b>14.6%</b></div>
+            <div class="hb"><span>Over 450 pages</span><span class="track"><i style="--v:40%"></i></span><b>10.1%</b></div>
+          </div>
+        </div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-analytics-growth" data-area="10" data-nav="analytics" data-name="Analytics: Growth" data-note="New: four key numbers (monthly churn stays); churn by plan and trial/promo conversions are folded below the retention table.|Data: church group referrals have the best day 30 retention (38%), Instagram the lowest (19%). Cohorts under 30 days old are not complete; darker cells mean more readers came back.|New: onboarding funnel from install to subscribed, so staff see where new readers drop.|New: retention cohorts (D1, D7, D30) by sign-up week, and churn by plan.|Data: installs come from Google Play and App Store; signups and subscriptions from Supabase and RevenueCat.|Rule: sources use the link or referral code the reader came with; Unknown is anyone without one." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Analytics</h1></div>
+      <div class="band__acts"><div class="seg" data-single><button>7 days</button><button class="is-selected">30 days</button><button>90 days</button><button>This year</button></div><a class="ib" data-toast="Export started for the last 30 days. We will alert you when the file is ready." aria-label="Export"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="analytics">Overview</a>
+    <a role="tab" aria-selected="true" class="is-selected">Growth</a>
+    <a role="tab" aria-selected="false" data-go="analytics-reading">Reading</a>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Installs</span><span class="kpi__v">6,420</span><span class="kpi__d"><span class="up">+9.1%</span> in 30 days</span></div>
+      <div class="kpi"><span class="kpi__l">New subscribers</span><span class="kpi__v">628</span><span class="kpi__d">9.8% of installs</span></div>
+      <div class="kpi"><span class="kpi__l">Day 30 retention</span><span class="kpi__v">29%</span><span class="kpi__d"><span class="up">+2 pts</span> vs September cohort</span></div>
+      <div class="kpi"><span class="kpi__l">Monthly churn</span><span class="kpi__v">6.2%</span><span class="kpi__d"><span class="up">-0.4 pts</span> subscribers who left</span></div>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <div class="panel__head"><h2>Onboarding funnel</h2></div>
+        <div class="panel__body"><div class="funnel">
+          <div class="fn"><span>Installed the app</span><span><i class="bar" style="--v:100%;display:block"></i></span><b>6,420</b><small>100%</small></div>
+          <div class="fn"><span>Signed up</span><span><i class="bar" style="--v:64%;display:block"></i></span><b>4,118</b><small>64%</small></div>
+          <div class="fn"><span>Picked interests</span><span><i class="bar" style="--v:57%;display:block"></i></span><b>3,660</b><small>89% of last</small></div>
+          <div class="fn"><span>Chose a role</span><span><i class="bar" style="--v:55%;display:block"></i></span><b>3,520</b><small>96%</small></div>
+          <div class="fn"><span>Finished profile</span><span><i class="bar" style="--v:46%;display:block"></i></span><b>2,950</b><small>84%</small></div>
+          <div class="fn"><span>Saw the plans</span><span><i class="bar" style="--v:34%;display:block"></i></span><b>2,184</b><small>74%</small></div>
+          <div class="fn"><span>Subscribed</span><span><i class="bar" style="--v:9.8%;display:block;background:var(--night)"></i></span><b>628</b><small>29%</small></div>
+        </div>
+        <div class="note warn"><span class="grow"><b>Biggest drop: install to sign-up (36% leave)</b>Most leave on the one-time code screen. Email sign-in is now offered after 30 seconds.</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><h2>Signups by source</h2></div>
+        <div class="panel__body"><div class="hbars">
+          <div class="hb"><span>Play Store search</span><span class="track"><i style="--v:100%"></i></span><b>1,482</b></div>
+          <div class="hb"><span>Shared book links</span><span class="track"><i style="--v:62%"></i></span><b>918</b></div>
+          <div class="hb"><span>Church group referrals</span><span class="track"><i style="--v:46%"></i></span><b>684</b></div>
+          <div class="hb"><span>Instagram</span><span class="track"><i style="--v:33%"></i></span><b>488</b></div>
+          <div class="hb"><span>Author referral codes</span><span class="track"><i style="--v:22%"></i></span><b>331</b></div>
+          <div class="hb"><span>Unknown</span><span class="track"><i class="n" style="--v:14%"></i></span><b>215</b></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel panel--flush">
+      <div class="panel__head"><h2>Retention by sign-up week</h2></div>
+      <div class="tw"><table class="tbl sy-heat">
+        <thead><tr><th>Sign-up week</th><th class="r">Readers</th><th class="c">Day 1</th><th class="c">Day 7</th><th class="c">Day 30</th></tr></thead>
+        <tbody>
+          <tr><td class="nw">Mon 5 Oct</td><td class="n">902</td><td class="h" style="background:rgba(245,147,31,.62)">58%</td><td class="h" style="background:rgba(245,147,31,.42)">39%</td><td class="h" style="background:rgba(245,147,31,.30)">27%</td></tr>
+          <tr><td class="nw">Mon 12 Oct</td><td class="n">968</td><td class="h" style="background:rgba(245,147,31,.64)">60%</td><td class="h" style="background:rgba(245,147,31,.43)">40%</td><td class="h" style="background:rgba(245,147,31,.31)">28%</td></tr>
+          <tr><td class="nw">Mon 19 Oct</td><td class="n">1,020</td><td class="h" style="background:rgba(245,147,31,.68)">63%</td><td class="h" style="background:rgba(245,147,31,.46)">43%</td><td class="h" style="background:rgba(245,147,31,.34)">31%</td></tr>
+          <tr><td class="nw">Mon 26 Oct</td><td class="n">1,104</td><td class="h" style="background:rgba(245,147,31,.70)">65%</td><td class="h" style="background:rgba(245,147,31,.48)">44%</td><td class="h" style="background:rgba(245,147,31,.32)">29%</td></tr>
+          <tr><td class="nw">Mon 2 Nov</td><td class="n">1,126</td><td class="h" style="background:rgba(245,147,31,.72)">67%</td><td class="h" style="background:rgba(245,147,31,.50)">46%</td><td class="h blank">Day 30 on 2 Dec</td></tr>
+          <tr><td class="nw">Mon 9 Nov</td><td class="n">612 so far</td><td class="h" style="background:rgba(245,147,31,.66)">61%</td><td class="h blank">Day 7 on 16 Nov</td><td class="h blank">Not yet</td></tr>
+        </tbody>
+      </table></div>
+      
+    </div>
+
+    <details class="fold"><summary>Churn and promo conversions <small>by plan, trials and codes</small></summary><div class="fold__b">
+      <b>Churn by plan, did not renew in the last 30 days</b>
+      <div class="tw"><table class="tbl">
+          <thead><tr><th>Plan</th><th class="r">Subscribers</th><th class="r">Left</th><th class="r">Churn</th><th>Main reason</th></tr></thead>
+          <tbody>
+            <tr><td><b>Monthly</b></td><td class="n">2,904</td><td class="n">221</td><td class="n">7.6%</td><td class="muted">Payment declined</td></tr>
+            <tr><td><b>Quarterly</b></td><td class="n">1,371</td><td class="n">64</td><td class="n">4.7%</td><td class="muted">Chose not to renew</td></tr>
+            <tr><td><b>Yearly</b></td><td class="n">537</td><td class="n">13</td><td class="n">2.4%</td><td class="muted">Refunded in 14 days</td></tr>
+          </tbody>
+        </table></div>
+      <b>Trials and promo conversions</b>
+      <div class="tw"><table class="tbl">
+          <thead><tr><th>Offer</th><th class="r">Started</th><th class="r">Paid after</th><th class="r">Converted</th></tr></thead>
+          <tbody>
+            <tr><td><b>7-day free trial</b> <small class="faint">Google Play</small></td><td class="n">1,204</td><td class="n">482</td><td class="n">40.0%</td></tr>
+            <tr><td><b>HARMATTAN26</b> <small class="faint">25% off first quarter</small></td><td class="n">318</td><td class="n">201</td><td class="n">63.2%</td></tr>
+            <tr><td><b>CHURCH10</b> <small class="faint">10% off yearly</small></td><td class="n">96</td><td class="n">71</td><td class="n">74.0%</td></tr>
+            <tr><td><b>Gift month</b> <small class="faint">Redeemed by a new reader</small></td><td class="n">142</td><td class="n">38</td><td class="n">26.8%</td></tr>
+          </tbody>
+        </table></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen" id="s-analytics-reading" data-area="10" data-nav="analytics" data-name="Analytics: Reading" data-note="New: four key numbers; per-book highlights, most discussed paragraphs and reading room attendance are folded under the charts.|Data: push notifications at 19:00 land just before the evening peak. Quiet hours (22:00 to 07:00) stop sends, not reading. Authors see the same paragraph counts on their book stats.|New: when and how readers read: hours of day, how far they get, pages per session, offline share.|New: most discussed paragraphs, so staff and authors can see what readers react to.|Data: reading sessions and discussion counts from Supabase. Offline sessions sync when the phone reconnects." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Analytics</h1></div>
+      <div class="band__acts"><div class="seg" data-single><button>7 days</button><button class="is-selected">30 days</button><button>90 days</button><button>This year</button></div><a class="ib" data-toast="Export started for the last 30 days. We will alert you when the file is ready." aria-label="Export"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="analytics">Overview</a>
+    <a role="tab" aria-selected="false" data-go="analytics-growth">Growth</a>
+    <a role="tab" aria-selected="true" class="is-selected">Reading</a>
+  </div>
+  <div class="page">
+    <div class="kpis">
+      <div class="kpi"><span class="kpi__l">Average pages per session</span><span class="kpi__v">17</span><span class="kpi__d"><span class="up">+1</span> vs previous period</span></div>
+      <div class="kpi"><span class="kpi__l">Offline reading share</span><span class="kpi__v">22%</span><span class="kpi__d">of reading hours · Android 26%</span></div>
+      <div class="kpi"><span class="kpi__l">Highlights made</span><span class="kpi__v">48,210</span><span class="kpi__d">12.6 per finished book</span></div>
+      <div class="kpi"><span class="kpi__l">Paragraph discussions</span><span class="kpi__v">9,604</span><span class="kpi__d">1,820 readers took part</span></div>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <div class="panel__head"><h2>Reading hours by hour of day</h2><span class="sub">WAT, 30 day average</span></div>
+        <div class="panel__body"><div class="chart sy-hrs">
+          <div class="cols">
+            <div class="col"><i class="t" style="--v:22%"></i></div><div class="col"><i class="t" style="--v:12%"></i></div><div class="col"><i class="t" style="--v:7%"></i></div><div class="col"><i class="t" style="--v:5%"></i></div><div class="col"><i class="t" style="--v:6%"></i></div><div class="col"><i style="--v:18%"></i></div>
+            <div class="col"><i style="--v:34%"></i></div><div class="col"><i style="--v:46%"></i></div><div class="col"><i style="--v:38%"></i></div><div class="col"><i style="--v:30%"></i></div><div class="col"><i style="--v:28%"></i></div><div class="col"><i style="--v:31%"></i></div>
+            <div class="col"><i style="--v:44%"></i></div><div class="col"><i style="--v:41%"></i></div><div class="col"><i style="--v:33%"></i></div><div class="col"><i style="--v:32%"></i></div><div class="col"><i style="--v:38%"></i></div><div class="col"><i style="--v:49%"></i></div>
+            <div class="col"><i style="--v:63%"></i></div><div class="col"><i style="--v:82%"></i></div><div class="col"><i class="n" style="--v:100%"></i></div><div class="col"><i class="n" style="--v:94%"></i></div><div class="col"><i style="--v:68%"></i></div><div class="col"><i style="--v:41%"></i></div>
+          </div>
+          <div class="axis"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span></div>
+          <div class="legend"><span><i class="n"></i>Peak: 20:00 to 21:59, 31% of all reading</span><span><i></i>Morning commute at 07:00</span><span><i class="t"></i>Late night</span></div>
+        </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><h2>How far readers get</h2><span class="sub">Of readers who unlocked a book</span></div>
+        <div class="panel__body">
+          <div class="sy-dist">
+            <div><span class="tr"><i style="--v:38%"></i></span><b>38%</b><span>Under 25%</span></div>
+            <div><span class="tr"><i style="--v:21%"></i></span><b>21%</b><span>25 to 50%</span></div>
+            <div><span class="tr"><i style="--v:14%"></i></span><b>14%</b><span>50 to 75%</span></div>
+            <div><span class="tr"><i style="--v:10%"></i></span><b>10%</b><span>75 to 99%</span></div>
+            <div><span class="tr"><i style="--v:17%;background:var(--night)"></i></span><b>17%</b><span>Finished</span></div>
+          </div>
+          <div class="kv-row"><span>Average completion, under 150 pages</span><b>34%</b></div>
+          <div class="kv-row"><span>Average completion, 150 to 300 pages</span><b>19%</b></div>
+          <div class="kv-row"><span>Average completion, over 300 pages</span><b>11%</b></div>
+        </div>
+      </div>
+    </div>
+
+    <details class="fold"><summary>Highlights, discussions and reading rooms <small>by book, top paragraphs, attendance</small></summary><div class="fold__b">
+      <b>Highlights and discussions per book</b>
+      <div class="tw"><table class="tbl">
+          <thead><tr><th>Book</th><th class="r">Highlights</th><th class="r">Discussions</th><th class="r">Replies</th><th class="r">Offline</th></tr></thead>
+          <tbody>
+            <tr><td><div class="who"><span class="cv c1 x32"></span><span><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></span></div></td><td class="n">11,204</td><td class="n">2,310</td><td class="n">4,880</td><td class="n">24%</td></tr>
+            <tr><td><div class="who"><span class="cv c3 x32"></span><span><b>The Alignment</b><small>Adaeze Rosemary Possible</small></span></div></td><td class="n">9,870</td><td class="n">1,904</td><td class="n">3,120</td><td class="n">19%</td></tr>
+            <tr><td><div class="who"><span class="cv c5 x32"></span><span><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></span></div></td><td class="n">6,120</td><td class="n">1,488</td><td class="n">2,902</td><td class="n">27%</td></tr>
+            <tr><td><div class="who"><span class="cv c2 x32"></span><span><b>Still Waters, Lagos</b><small>Chioma Okafor</small></span></div></td><td class="n">5,402</td><td class="n">980</td><td class="n">1,610</td><td class="n">21%</td></tr>
+            <tr><td><div class="who"><span class="cv c7 x32"></span><span><b>Psalms for the Danfo</b><small>Emeka Obi</small></span></div></td><td class="n">4,880</td><td class="n">702</td><td class="n">1,044</td><td class="n">30%</td></tr>
+          </tbody>
+        </table></div>
+      <b>Most discussed paragraphs</b>
+      <div class="quote">"Mama folded the letter twice, the way she folded everything she could not afford to lose, and pressed it into my palm. <mark>Read it when you are brave enough.</mark>"<div class="hint" style="margin-top:6px;font-family:var(--f-ui)"><b>Harmattan Letters</b>, chapter 6 · 412 comments · 1,180 highlights</div></div>
+          <div class="quote">"He did not pray for the money. <mark>He prayed to still be the kind of man who would give it away.</mark>"<div class="hint" style="margin-top:6px;font-family:var(--f-ui)"><b>Ruth of Ibadan</b>, chapter 9 · 296 comments · 902 highlights</div></div>
+          <div class="quote">"<mark>Alignment is not a feeling you wait for.</mark> It is a decision you keep making on mornings like this one."<div class="hint" style="margin-top:6px;font-family:var(--f-ui)"><b>The Alignment</b>, chapter 2 · 241 comments · 1,404 highlights</div></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between"><b>Reading rooms attendance (74% stayed to the end)</b><a class="link" data-go="rooms" style="font-size:13px">All reading rooms</a></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Room</th><th>Held</th><th class="r">Joined</th><th class="r">Stayed to the end</th><th class="r">Messages</th><th class="r">Unlocks after</th></tr></thead>
+        <tbody>
+          <tr><td><b>Ruth of Ibadan, chapter 9</b></td><td class="nw">Wed 11 Nov, 19:00</td><td class="n">482</td><td class="n">74%</td><td class="n">1,204</td><td class="n">64</td></tr>
+          <tr><td><b>Harmattan Letters, live with Ifeoma Nwachukwu</b></td><td class="nw">Sat 7 Nov, 18:00</td><td class="n">1,210</td><td class="n">81%</td><td class="n">3,880</td><td class="n">212</td></tr>
+          <tr><td><b>Friday psalms and poetry</b></td><td class="nw">Fri 6 Nov, 20:00</td><td class="n">318</td><td class="n">69%</td><td class="n">702</td><td class="n">18</td></tr>
+          <tr><td><b>Still Waters, Lagos book club</b></td><td class="nw">Wed 4 Nov, 19:30</td><td class="n">204</td><td class="n">66%</td><td class="n">511</td><td class="n">22</td></tr>
+        </tbody>
+      </table></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen" id="s-exports" data-area="10" data-nav="exports" data-name="Exports and reports" data-note="New: header is plain; scheduled reports are folded under recent exports; export status is plain text.|Data: estimated 38,240 rows for the readers export; staff get a bell alert when a file is ready. Data can be Readers, Subscriptions, Transactions, Author earnings, Books or Reports. Personal-detail files are protected by the NDPA 2023 and deleted after 7 days.|Same as v25: download a CSV of readers or books.|New: every export is built in the background, listed here for 7 days, and logged in the audit log with who asked for it.|Rule: exports with emails or phone numbers (readers, subscriptions) need Super admin and are logged. Finance can export transactions and author earnings without personal contact details.|New: scheduled reports email a link, never the file itself.|New: the new export form is just what and dates; columns and personal details sit under More options." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Exports and reports</h1></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="stack s20">
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Recent exports</h2></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Export</th><th>Created by</th><th>Created</th><th class="r">Rows</th><th>Status</th><th class="acts"></th></tr></thead>
+            <tbody>
+              <tr><td><b>Author earnings, October 2026</b><small class="faint" style="display:block">earnings-2026-10.csv · no contact details</small></td><td><div class="who"><span class="av xs k">CE</span><span><small>Chinedu Eze</small></span></div></td><td class="nw">Today, 8:44</td><td class="n">64</td><td><span class="st-plain">Ready</span></td><td class="acts"><a class="btn btn-s sm" data-toast="Downloading earnings-2026-10.csv"><svg class="ico xs" aria-hidden="true"><use href="#i-down"/></svg>Download</a></td></tr>
+              <tr><td><b>Readers, signed up in October</b><small class="faint" style="display:block">readers-2026-10.csv · includes emails</small></td><td><div class="who"><span class="av xs g">AO</span><span><small>Amaka Okafor</small></span></div></td><td class="nw">Today, 9:02</td><td class="n muted">Counting</td><td><span class="st-plain">Building</span></td><td class="acts"><span class="muted" style="font-size:12.5px">About 2 min</span></td></tr>
+              <tr><td><b>Transactions, 1 to 11 November</b><small class="faint" style="display:block">transactions-2026-11.csv</small></td><td><div class="who"><span class="av xs k">CE</span><span><small>Chinedu Eze</small></span></div></td><td class="nw">Wed 11 Nov, 16:20</td><td class="n">3,418</td><td><span class="st-plain">Ready</span></td><td class="acts"><a class="btn btn-s sm" data-toast="Downloading transactions-2026-11.csv"><svg class="ico xs" aria-hidden="true"><use href="#i-down"/></svg>Download</a></td></tr>
+              <tr><td><b>Books, all live</b><small class="faint" style="display:block">books-2026-11.csv</small></td><td><div class="who"><span class="av xs b">TB</span><span><small>Tunde Bakare</small></span></div></td><td class="nw">Tue 10 Nov, 11:05</td><td class="n">412</td><td><span class="st-plain">Ready</span></td><td class="acts"><a class="btn btn-s sm" data-toast="Downloading books-2026-11.csv"><svg class="ico xs" aria-hidden="true"><use href="#i-down"/></svg>Download</a></td></tr>
+              <tr><td><b>Subscriptions, active</b><small class="faint" style="display:block">subscriptions-2026-11.csv · includes emails</small></td><td><div class="who"><span class="av xs g">AO</span><span><small>Amaka Okafor</small></span></div></td><td class="nw">Mon 2 Nov, 10:30</td><td class="n">4,790</td><td><span class="st-plain">Expired</span></td><td class="acts"><a class="btn btn-q sm" data-toast="Building again. You will get a bell alert when the file is ready.">Build again</a></td></tr>
+              <tr><td><b>Reports, October</b><small class="faint" style="display:block">reports-2026-10.csv</small></td><td><div class="who"><span class="av xs m">ZY</span><span><small>Zainab Yusuf</small></span></div></td><td class="nw">Fri 30 Oct, 17:48</td><td class="n">206</td><td><span class="st-plain">Expired</span></td><td class="acts"><a class="btn btn-q sm" data-toast="Building again. You will get a bell alert when the file is ready.">Build again</a></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <details class="fold"><summary>Scheduled reports <small>4 schedules, 3 on</small></summary><div class="fold__b">
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Report</th><th>Sent to</th><th>When</th><th>Last sent</th><th>On</th></tr></thead>
+            <tbody>
+              <tr><td><b>Monthly earnings statement</b><small class="faint" style="display:block">Earnings by author, PDF and CSV link</small></td><td>Finance (Chinedu Eze)</td><td class="nw">1st of the month, 8:00</td><td class="nw">1 Nov</td><td><button class="switch on" role="switch" aria-checked="true" aria-label="Monthly earnings statement"></button></td></tr>
+              <tr><td><b>Weekly KPI email</b><small class="faint" style="display:block">Readers, subscribers, revenue, reports</small></td><td>All staff, 8 people</td><td class="nw">Mondays, 7:30</td><td class="nw">Mon 9 Nov</td><td><button class="switch on" role="switch" aria-checked="true" aria-label="Weekly KPI email"></button></td></tr>
+              <tr><td><b>Weekly safety summary</b><small class="faint" style="display:block">Reports by reason, response times</small></td><td>Zainab Yusuf, Amaka Okafor</td><td class="nw">Fridays, 16:00</td><td class="nw">Fri 6 Nov</td><td><button class="switch on" role="switch" aria-checked="true" aria-label="Weekly safety summary"></button></td></tr>
+              <tr><td><b>Quarterly data-request log</b><small class="faint" style="display:block">NDPA requests and response times</small></td><td>Amaka Okafor</td><td class="nw">First Monday of the quarter</td><td class="nw">5 Oct</td><td><button class="switch" role="switch" aria-checked="false" aria-label="Quarterly data-request log"></button></td></tr>
+            </tbody>
+          </table></div>
+          <a class="link" data-toast="New schedule added. It starts next month." style="font-size:13px">Add a schedule</a>
+        </div></details>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>New export</h2></div>
+        <div class="panel__body"><div class="form">
+          <div class="f"><label>What to export</label><div class="inp sel"><span>Readers</span><svg class="ico" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+          <div class="f"><span class="lbl">Dates</span><div class="seg" data-single style="align-self:flex-start"><button>Last 7 days</button><button class="is-selected">Last 30 days</button><button>Custom</button></div></div>
+          <details class="fold"><summary>More options <small>columns, personal details</small></summary><div class="fold__b">
+            <div class="stack s8">
+              <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span><span>Reader id, joined date, plan, state</span></label>
+              <label class="checkrow"><span class="cb on" role="checkbox" aria-checked="true"></span><span>Credits balance and last active</span></label>
+              <label class="checkrow"><span class="cb" role="checkbox" aria-checked="false"></span><span>Email address (personal detail)</span></label>
+              <label class="checkrow"><span class="cb" role="checkbox" aria-checked="false"></span><span>Phone number (personal detail)</span></label>
+            </div>
+            <div class="note warn"><span class="grow"><b>Personal details need a reason</b>Only Super admins can export emails or phone numbers. It is logged with your name and reason.</span></div>
+            <div class="f"><label>Reason <span class="opt">only for personal details</span></label><div class="inp"><input value="" placeholder="For example: welcome-back email list" aria-label="Reason"></div></div>
+          </div></details>
+          <a class="btn btn-p block" data-toast="Export started: Readers, last 30 days. About 2 minutes, then you get a bell alert.">Create export</a>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 11 Settings ===================== -->
+<section class="screen" id="s-team" data-area="11" data-nav="team" data-name="Team and roles" data-note="New: one Filters button; roles, two-step On and Active read as plain text. Only Not set up stays a pill, because it needs action.|Rule: someone left the team? Open their row and choose Disable account. They are signed out everywhere within 1 minute, their history stays in the audit log with their name, and the account can be switched on again. Never delete a staff account.|Same as v25: list of staff and their roles.|New: two-step status, last active and a pending invite in one table. Disable an account here the day someone leaves.|Rule: only Super admins invite, change roles or disable staff. Every change is written to the audit log.|Rule: there must always be at least 2 active Super admins.|New: each row has a ⋯ menu with Change role, Reset two-step and Disable account; Disable confirms with a message and Undo." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Team and roles</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="team-invite"><svg class="ico s" aria-hidden="true"><use href="#i-uplus"/></svg>Invite staff</a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="true" class="is-selected">Staff <span class="c">9</span></a>
+    <a role="tab" aria-selected="false" data-go="roles">Roles and permissions</a>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Name or email" aria-label="Search staff"></label>
+      <div class="mwrap"><button class="fbtn" data-menu aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button><div class="menu sy-menul" hidden><a data-toast="Showing all 9 people">Everyone</a><a data-toast="Showing admins">Super admins and Operations</a><a data-toast="Showing publishers and moderators">Publishers and Moderators</a><a data-toast="Showing 1 person who has not set up two-step">Not set up yet</a></div></div>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Name</th><th>Role</th><th>Two-step</th><th>Last active</th><th>Status</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr data-go="roles"><td><div class="who"><span class="av sm g">AO</span><span><b>Amaka Okafor <small style="display:inline">(you)</small></b><small>amaka@arpedia.africa</small></span></div></td><td>Super admin</td><td><span class="st-plain">On</span></td><td class="nw">Now</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Amaka Okafor"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-go="account">Change my details</a><a data-toast="Two-step reset. You set it up again at your next sign-in.">Reset my two-step</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm o">FL</span><span><b>Femi Lawson</b><small>femi@arpedia.africa</small></span></div></td><td>Operations admin</td><td><span class="st-plain">On</span></td><td class="nw">Today, 9:30</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Femi Lawson"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Femi Lawson. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Femi Lawson. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Femi Lawson disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm b">TB</span><span><b>Tunde Bakare</b><small>tunde@arpedia.africa</small></span></div></td><td>Publisher</td><td><span class="st-plain">On</span></td><td class="nw">Today, 9:12</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Tunde Bakare"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Tunde Bakare. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Tunde Bakare. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Tunde Bakare disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm t">IO</span><span><b>Ifeanyi Obi</b><small>ifeanyi@arpedia.africa</small></span></div></td><td>Publisher</td><td><span class="st-plain">On</span></td><td class="nw">Today, 8:20</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Ifeanyi Obi"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Ifeanyi Obi. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Ifeanyi Obi. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Ifeanyi Obi disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm m">ZY</span><span><b>Zainab Yusuf</b><small>zainab@arpedia.africa</small></span></div></td><td>Moderator</td><td><span class="st-plain">On</span></td><td class="nw">Today, 8:57</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Zainab Yusuf"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Zainab Yusuf. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Zainab Yusuf. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Zainab Yusuf disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm k">CE</span><span><b>Chinedu Eze</b><small>chinedu@arpedia.africa</small></span></div></td><td>Finance</td><td><span class="st-plain">On</span></td><td class="nw">Today, 8:44</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Chinedu Eze"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Chinedu Eze. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Chinedu Eze. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Chinedu Eze disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm r">BA</span><span><b>Bisi Adeyemi</b><small>bisi@arpedia.africa</small></span></div></td><td>Support</td><td><span class="st-plain">On</span></td><td class="nw">Yesterday, 17:20</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Bisi Adeyemi"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Bisi Adeyemi. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Bisi Adeyemi. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Bisi Adeyemi disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="roles"><td><div class="who"><span class="av sm n">KD</span><span><b>Kemi Danjuma</b><small>kemi@arpedia.africa</small></span></div></td><td>Analyst</td><td><span class="st-plain">On</span></td><td class="nw">Tue 10 Nov</td><td><span class="st-plain">Active</span></td><td class="acts"><div class="mwrap"><button class="ib sm" data-menu aria-expanded="false" aria-label="More actions for Kemi Danjuma"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-toast="Role changed for Kemi Danjuma. They get an email and the audit log records it.">Change role</a><a data-toast="Two-step reset for Kemi Danjuma. They set it up again at next sign-in.">Reset two-step</a><hr><a class="danger" data-toast="Kemi Danjuma disabled. Signed out everywhere within 1 minute." data-undo="team">Disable account</a></div></div></td></tr>
+          <tr data-go="team-invite"><td><div class="who"><span class="av sm" style="background:#C7CBD1;color:var(--ink-2)">?</span><span><b>Adaora Nnadi</b><small>adaora@arpedia.africa · invited by Amaka, expires Sat 14 Nov 14:20</small></span></div></td><td>Support</td><td><span class="st st-warn">Not set up</span></td><td class="nw muted">Never</td><td><span class="st-plain">Invited</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Invite sent again to adaora@arpedia.africa. It expires in 72 hours.">Resend</a></td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>9 people</span><span>0 disabled</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen overlay" id="s-team-invite" data-area="11" data-base="team" data-name="Invite staff" data-note="New: shorter form; the only warning left is the one about what the new person will see.|Rule: invites only go to @arpedia.africa addresses. The link works once and expires in 72 hours.|Rule: the invited person sets a password and a two-step code on first sign-in; they cannot do anything until both are done.|After sending: the invite shows in Team and roles as Invited, and the audit log records who invited whom with which role." hidden>
+  <a class="backdrop" data-go="team" aria-label="Close"></a>
+  <div class="modal wide" role="dialog" aria-label="Invite staff">
+    <div class="modal__h"><div class="grow"><h2>Invite staff</h2><p>They get an email with a link to create their password and set up two-step.</p></div><a class="ib" data-go="team" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="fgrid">
+        <div class="f"><label>Work email</label><div class="inp"><input value="adaora@arpedia.africa" aria-label="Work email"></div></div>
+        <div class="f"><label>Full name</label><div class="inp"><input value="Adaora Nnadi" aria-label="Full name"></div></div>
+      </div>
+      <div class="f"><span class="lbl">Role</span>
+        <div class="radios" data-single>
+          <div class="radio"><span><b>Super admin</b><small>Everything, including team, prices, payouts and exporting personal details. Keep this to the owners.</small></span></div>
+          <div class="radio"><span><b>Operations admin</b><small>Readers, books, Discover, push and announcements. No money release or team changes.</small></span></div>
+          <div class="radio"><span><b>Publisher</b><small>Formats and reviews books, curates Discover. Cannot see readers' personal details.</small></span></div>
+          <div class="radio"><span><b>Moderator</b><small>Reports, community, safety rules, first review of copyright claims.</small></span></div>
+          <div class="radio"><span><b>Finance</b><small>Revenue, refunds, author earnings and payouts. Releases need a Super admin as second person.</small></span></div>
+          <div class="radio is-selected"><span><b>Support</b><small>Support inbox, help articles, reader lookup, small credit grants up to 500.</small></span></div>
+          <div class="radio"><span><b>Analyst</b><small>Read-only analytics and exports without personal details.</small></span></div>
+        </div>
+      </div>
+      <div class="kv-row"><span>Invite link expires after</span><b>72 hours</b></div>
+      <div class="note warn"><span class="grow"><b>Adaora will see 12 open support tickets and reader names</b>Make sure this is the right role. You can change it later in Team and roles.</span></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="team">Cancel</a><a class="btn btn-p" data-go="team" data-toast="Invite sent to adaora@arpedia.africa. It expires in 72 hours.">Send invite</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-roles" data-area="11" data-nav="team" data-name="Roles and permissions" data-note="New: the matrix shows the 12 permissions that matter most; 5 more sit under Show more. Who has which role is folded.|Rule: nobody approves their own request. Even a Super admin cannot be both people; the second person gets a bell alert and a code prompt.|Same as v25: v25 only had admin and editor. Now 7 roles with explicit permissions.|Rule: links to pages a role cannot use are hidden from the sidebar; pasted links show the 'No permission' page.|Rule: two-person rules (payout release, price change, grants over 500) cannot be turned off.|Data: this matrix is read-only in the prototype; changes need a code release so that permissions are reviewed." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Team and roles</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="team-invite"><svg class="ico s" aria-hidden="true"><use href="#i-uplus"/></svg>Invite staff</a></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <a role="tab" aria-selected="false" data-go="team">Staff <span class="c">9</span></a>
+    <a role="tab" aria-selected="true" class="is-selected">Roles and permissions</a>
+  </div>
+  <div class="page">
+    <div class="split">
+      <div class="panel panel--flush">
+        <div class="tw"><table class="tbl mx">
+          <thead><tr><th>Permission</th><th>Super admin</th><th>Operations admin</th><th>Publisher</th><th>Moderator</th><th>Finance</th><th>Support</th><th>Analyst</th></tr></thead>
+          <tbody>
+            <tr><td><b>View readers</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="part">No contact</span></td><td><span class="yes">✓</span></td><td><span class="part">Totals</span></td></tr>
+            <tr><td><b>Grant credits</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="part">Up to 500</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Suspend or ban</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Approve books</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Curate Discover</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Moderate reports</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="part">Escalate</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>View money</b></td><td><span class="yes">✓</span></td><td><span class="part">Summary</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="part">Reader payments</span></td><td><span class="part">Totals</span></td></tr>
+            <tr><td><b>Refund</b></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="part">Request</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Change prices</b></td><td><span class="yes">✓*</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="part">Propose</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Release payouts</b></td><td><span class="yes">✓*</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="part">Calculate</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Manage team</b></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Export personal details</b></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+          </tbody>
+        </table></div>
+        <div class="pager"><span>✓ allowed · – not allowed · orange = limited, see the label</span><span>* needs a second person</span></div>
+        <details class="more"><summary>Show 5 more permissions</summary><div class="tw"><table class="tbl mx">
+          <thead><tr><th>Permission</th><th>Super admin</th><th>Operations admin</th><th>Publisher</th><th>Moderator</th><th>Finance</th><th>Support</th><th>Analyst</th></tr></thead>
+          <tbody>
+            <tr><td><b>Edit readers</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="part">Name, email</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Format books</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Decide copyright claims</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="part">First review</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>Send push</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td></tr>
+            <tr><td><b>View audit log</b></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="part">Money only</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td></tr>
+          </tbody>
+        </table></div></details>
+      </div>
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Two-person rules</h2></div>
+          <div class="panel__body">
+            <div>
+              <div class="kv-row"><span>Release payouts</span><b>Finance calculates, a Super admin releases</b></div>
+              <div class="kv-row"><span>Change a price</span><b>Finance proposes, a Super admin confirms</b></div>
+              <div class="kv-row"><span>Grant over 500 credits</span><b>A second Super admin or Operations admin approves</b></div>
+              <div class="kv-row"><span>Export personal details</span><b>Super admin, with a reason</b></div>
+            </div>
+          </div>
+        </div>
+        <details class="fold"><summary>Who has which role <small>only 1 Super admin, add a second</small></summary><div class="fold__b">
+          <div class="list">
+            <div class="li"><span class="li__body"><b>Super admin</b><small>Amaka Okafor</small></span><span class="li__trail">1</span></div>
+            <div class="li"><span class="li__body"><b>Operations admin</b><small>Femi Lawson</small></span><span class="li__trail">1</span></div>
+            <div class="li"><span class="li__body"><b>Publisher</b><small>Tunde Bakare, Ifeanyi Obi</small></span><span class="li__trail">2</span></div>
+            <div class="li"><span class="li__body"><b>Moderator</b><small>Zainab Yusuf</small></span><span class="li__trail">1</span></div>
+            <div class="li"><span class="li__body"><b>Finance</b><small>Chinedu Eze</small></span><span class="li__trail">1</span></div>
+            <div class="li"><span class="li__body"><b>Support</b><small>Bisi Adeyemi, Adaora Nnadi (invited)</small></span><span class="li__trail">2</span></div>
+            <div class="li"><span class="li__body"><b>Analyst</b><small>Kemi Danjuma</small></span><span class="li__trail">1</span></div>
+          </div>
+          <span class="warn-t"><b>Only 1 Super admin.</b> Add a second so that two-person rules can still run when Amaka is away.</span>
+        </div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="s-audit" data-area="11" data-nav="audit" data-name="Audit log" data-note="New: filters collapse into one Filters button with the date range as a chip; the permanent-log banner became a rule.|Rule: this log is permanent. Entries are written by the server, cannot be edited or deleted, and are kept for 7 years. Staff who leave stay in the log by name. 1,284 entries in the last 30 days.|Same as v25: list of staff actions.|New: filter by staff, area, action and date; every row opens the full entry with before and after values.|Rule: the log cannot be edited or deleted by anyone, including Super admins. It is kept for 7 years.|Rule: viewing personal details and exports are logged too, not only changes." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Audit log</h1></div>
+      <div class="band__acts"><a class="ib" data-toast="Export of the last 7 days started. This export is also written to the log." aria-label="Export log"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="toolbar">
+      <label class="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Search action or object" aria-label="Search audit log"></label>
+      <div class="mwrap"><button class="fbtn" data-menu aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button><div class="menu sy-menul" hidden><a data-toast="Choose a staff member to filter by">Staff member</a><a data-toast="Choose an area to filter by">Area</a><a data-toast="Choose an action to filter by">Action type</a><a data-toast="Choose dates to filter by">Date range</a></div></div>
+      <span class="achip">Last 7 days<button aria-label="Remove filter" data-toast="Date filter removed. Showing the last 30 days."><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>When</th><th>Staff</th><th>Action</th><th>Object</th><th>Details</th><th>IP and place</th></tr></thead>
+        <tbody>
+          <tr data-go="audit-entry"><td class="nw">Today 8:40</td><td><div class="who"><span class="av xs k">CE</span><span><small>Chinedu Eze</small></span></div></td><td><b>Closed author earnings</b></td><td><a class="link" data-go="royalty-cycle">October 2026</a></td><td class="muted">₦3,937,776 to 58 authors</td><td class="nw mono">105.112.34.18 · Lagos</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Today 9:12</td><td><div class="who"><span class="av xs b">TB</span><span><small>Tunde Bakare</small></span></div></td><td><b>Approved book</b></td><td><a class="link" data-go="book">Seven Bridges to Jos</a></td><td class="muted">Revision 2, published now</td><td class="nw mono">197.210.52.7 · Lagos</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Today 8:57</td><td><div class="who"><span class="av xs m">ZY</span><span><small>Zainab Yusuf</small></span></div></td><td><b>Removed message</b></td><td><a class="link" data-go="report">Lagos Christian Readers</a></td><td class="muted">Reason: harassment</td><td class="nw mono">102.89.40.113 · Abuja</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Today 9:02</td><td><div class="who"><span class="av xs g">AO</span><span><small>Amaka Okafor</small></span></div></td><td><b>Started export</b></td><td><a class="link" data-go="exports">Readers, October</a></td><td class="muted">Includes emails · reason recorded</td><td class="nw mono">105.112.34.20 · Lagos</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Yesterday 17:20</td><td><div class="who"><span class="av xs r">BA</span><span><small>Bisi Adeyemi</small></span></div></td><td><b>Granted credits</b></td><td><a class="link" data-go="user">Funke Alabi</a></td><td class="muted">90 credits · unlock failed during an outage</td><td class="nw mono">197.210.52.9 · Lagos</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Yesterday 15:02</td><td><div class="who"><span class="av xs m">ZY</span><span><small>Zainab Yusuf</small></span></div></td><td><b>Suspended reader</b></td><td><a class="link" data-go="user">@lagosdeals</a></td><td class="muted">30 days · spam in 6 channels</td><td class="nw mono">102.89.40.113 · Abuja</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Wed 11 Nov 16:20</td><td><div class="who"><span class="av xs k">CE</span><span><small>Chinedu Eze</small></span></div></td><td><b>Started export</b></td><td><a class="link" data-go="exports">Transactions, November</a></td><td class="muted">3,418 rows · no contact details</td><td class="nw mono">105.112.34.18 · Lagos</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Wed 11 Nov 14:05</td><td><div class="who"><span class="av xs o">FL</span><span><small>Femi Lawson</small></span></div></td><td><b>Switched off a notification</b></td><td><a class="link" data-go="campaigns">Credits running low</a></td><td class="muted">On to Off</td><td class="nw mono">197.210.85.41 · Port Harcourt</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Tue 10 Nov 18:00</td><td><div class="who"><span class="av xs b">TB</span><span><small>Tunde Bakare</small></span></div></td><td><b>Published announcement</b></td><td><a class="link" data-go="banners">Harmattan Letters, now in Trending</a></td><td class="muted">Home top, all readers</td><td class="nw mono">197.210.52.7 · Lagos</td></tr>
+          <tr data-go="audit-entry"><td class="nw">Mon 9 Nov 10:15</td><td><div class="who"><span class="av xs g">AO</span><span><small>Amaka Okafor</small></span></div></td><td><b>Invited staff</b></td><td><a class="link" data-go="team">Adaora Nnadi</a></td><td class="muted">Role: Support · expires in 72 hours</td><td class="nw mono">105.112.34.20 · Lagos</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pager"><span>Showing 10 of 312 in the last 7 days</span><span class="row"><a class="btn btn-g sm" data-toast="You are on the newest entries">Newer</a><a class="btn btn-g sm" data-toast="Showing the next 10 older entries">Older</a></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen overlay" id="s-audit-entry" data-area="11" data-base="audit" data-name="Audit entry" data-note="New: request id, IP, device and two-step are folded under More details.|Rule: permanent record. This entry cannot be edited or deleted and is kept until 12 November 2033.|New: full detail for one action: who, from where, which device, what changed (before and after) and the request id support can quote to engineering.|Rule: personal data in entries is masked unless the viewer has the right to see it." hidden>
+  <a class="backdrop" data-go="audit" aria-label="Close"></a>
+  <div class="drawer" role="dialog" aria-label="Audit entry">
+    <div class="modal__h"><div class="grow"><h2>Chinedu Eze closed October author earnings</h2><p>Today, Thursday 12 November 2026, 8:40:12 WAT</p></div><a class="ib" data-go="audit" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="sy-ba">
+        <div><h3>Before</h3><dl class="kv tight"><dt>status</dt><dd>open</dd><dt>earnings</dt><dd>null</dd><dt>authors_paid</dt><dd>null</dd><dt>carried_over</dt><dd>null</dd><dt>credits</dt><dd>null</dd></dl></div>
+        <div><h3>After</h3><dl class="kv tight"><dt>status</dt><dd>ready_to_release</dd><dt>earnings</dt><dd>3937776</dd><dt>authors_paid</dt><dd>58</dd><dt>carried_over</dt><dd>6</dd><dt>credits</dt><dd>2461110</dd></dl></div>
+      </div>
+      <dl class="kv">
+        <dt>Staff</dt><dd>Chinedu Eze · Finance · chinedu@arpedia.africa</dd>
+        <dt>Action</dt><dd>author_earnings.close_month</dd>
+        <dt>Object</dt><dd><a class="link" data-go="royalty-cycle">October 2026 author earnings</a></dd>
+        <dt>Linked entries</dt><dd>Hold ends Sat 15 Nov. Release needs a Super admin (not yet requested).</dd>
+      </dl>
+      <details class="fold"><summary>More details <small>request id, device, two-step</small></summary><div class="fold__b"><dl class="kv">
+        <dt>Request id</dt><dd class="mono">req_01JC8M4Q7ZV3K2N9XWE5T6HPAD</dd>
+        <dt>IP address</dt><dd class="mono">105.112.34.18 · Lagos, Nigeria</dd>
+        <dt>Device</dt><dd>Chrome 130 on Windows 11</dd>
+        <dt>Two-step</dt><dd>Verified at 8:31 this session</dd>
+      </dl></div></details>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="royalty-cycle">Open October earnings</a><a class="btn btn-n" data-go="audit">Close</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-config" data-area="11" data-nav="config" data-name="App configuration" data-note="New: feature flags are one compact table grouped by Community, Money and App; each risky switch keeps one short warning line. Over-the-air updates (with rollback and version share) and Remote copy are folded.|Rule: the app reads wording from Remote copy at start-up, so staff can change it without a release. Rollback takes about 10 minutes and asks for a two-step code.|New: control the app without a release: minimum version, over-the-air updates, maintenance mode, feature flags and paywall copy.|Rule: changes to force update, maintenance mode and flags are Super admin only and are logged.|Rule: roll back sends the previous bundle to all phones within about 10 minutes; phones pick it up the next time the app opens.|Data: version shares come from app opens in the last 7 days.|New: force update and maintenance mode never flip silently; maintenance mode asks for your two-step code, other flags have a Turn off button that confirms with a message and Undo." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>App configuration</h1></div>
+      <div class="band__acts"><span class="st-plain">Production</span></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="g2 grid">
+      <div class="panel">
+        <div class="panel__head"><h2>App versions</h2></div>
+        <div class="panel__body">
+          <div class="sy-ver">
+            <div class="f"><label>Minimum Android version</label><div class="inp"><input value="25.4" aria-label="Minimum Android"></div><span class="hint">4% below this</span></div>
+            <div class="f"><label>Minimum iOS version</label><div class="inp"><input value="1.0" aria-label="Minimum iOS"></div></div>
+            <div class="f"><label>Latest Android</label><div class="inp ro"><input value="26.1" readonly aria-label="Latest Android"></div></div>
+            <div class="f"><label>Latest iOS</label><div class="inp ro"><input value="1.4" readonly aria-label="Latest iOS"></div></div>
+          </div>
+          <div class="setrow" style="padding:0;border:0"><span class="setrow__b"><b>Force update</b><small>Readers below the minimum cannot read until they update.</small></span><a class="btn btn-g" data-toast="Force update is on. About 1,420 readers must update before they can read. Tell Support." data-undo="config">Turn on force update</a></div>
+          <div class="note warn"><span class="grow"><b>Force update locks out about 1,420 readers</b>Android below 25.4 (4%). Tell Support first.</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><h2>Maintenance mode</h2><span class="st-plain">Off</span></div>
+        <div class="panel__body">
+          <div class="setrow" style="padding:0;border:0"><span class="setrow__b"><b>Show maintenance screen</b><small>Readers see the message below. The staff console keeps working.</small></span><a class="btn btn-d" data-go="config-confirm">Turn on maintenance mode</a></div>
+          <div class="f"><label>Message to readers</label><textarea class="inp ta" aria-label="Maintenance message" style="min-height:72px">Arpedia is getting a quick tune-up. We'll be back in about 30 minutes. Your books and credits are safe.</textarea></div>
+          <div class="note err"><span class="grow"><b>Stops all reading, including offline sync</b>Database work only. Downloaded books stay readable.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel panel--flush">
+      <div class="panel__head"><h2>Feature flags</h2><span class="sub">Production · 100% means everyone</span></div>
+      <div class="tw"><table class="tbl sy-flag">
+        <thead><tr><th>Feature</th><th>Rollout</th><th>Last changed</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="sy-grp"><td colspan="4">Community</td></tr>
+          <tr><td><b>Reading rooms</b></td><td><div class="row" style="gap:8px"><div class="meter grow"><i class="ok" style="--v:100%"></i></div><b class="num">100%</b></div></td><td class="nw">Femi Lawson · 2 Oct</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Reading rooms is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr><td><b>Messages to authors</b><small class="faint" style="display:block">5 credits per message</small></td><td><div class="row" style="gap:8px"><div class="meter grow"><i class="ok" style="--v:100%"></i></div><b class="num">100%</b></div></td><td class="nw">Amaka Okafor · 18 Sep</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Messages to authors is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr><td><b>Paragraph discussions</b></td><td><div class="row" style="gap:8px"><div class="meter grow"><i class="ok" style="--v:100%"></i></div><b class="num">100%</b></div></td><td class="nw">Amaka Okafor · 14 Aug</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Paragraph discussions is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr class="sy-grp"><td colspan="4">Money</td></tr>
+          <tr><td><b>Gifts</b><small class="warn-t">Off leaves unspent credits, nothing is refunded</small></td><td><div class="row" style="gap:8px"><div class="meter grow"><i style="--v:50%"></i></div><b class="num">50%</b></div></td><td class="nw">Femi Lawson · 6 Nov</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Gifts is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr><td><b>Tips</b><small class="warn-t">Off leaves unspent credits, nothing is refunded</small></td><td><div class="row" style="gap:8px"><div class="meter grow"><i class="ok" style="--v:100%"></i></div><b class="num">100%</b></div></td><td class="nw">Amaka Okafor · 21 Aug</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Tips is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr><td><b>Web checkout</b><small class="warn-t">Off hides the pay button for 20% of web renewals</small></td><td><div class="row" style="gap:8px"><div class="meter grow"><i class="ok" style="--v:100%"></i></div><b class="num">100%</b></div></td><td class="nw">Chinedu Eze · 30 Sep</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Web checkout is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr class="sy-grp"><td colspan="4">App</td></tr>
+          <tr><td><b>Offline downloads</b><small class="faint" style="display:block">Needs app 26.1 or newer</small></td><td><div class="row" style="gap:8px"><div class="meter grow"><i style="--v:80%"></i></div><b class="num">80%</b></div></td><td class="nw">Femi Lawson · 9 Nov</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="Offline downloads is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+          <tr><td><b>New reader onboarding v2</b><small class="faint" style="display:block">Shorter flow, email sign-in offered after 30 s</small></td><td><div class="row" style="gap:8px"><div class="meter grow"><i style="--v:20%"></i></div><b class="num">20%</b></div></td><td class="nw">Femi Lawson · 10 Nov</td><td><span class="row" style="gap:10px"><span class="st-plain">On</span><a class="btn btn-q sm" data-toast="New reader onboarding v2 is off for everyone. It is in the audit log." data-undo="config">Turn off</a></span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <details class="fold"><summary>Over-the-air updates <small>production · working · reached 88% of phones</small></summary><div class="fold__b">
+      <dl class="kv">
+              <dt>Channel</dt><dd>production</dd>
+              <dt>Server</dt><dd class="mono">updates.arpedia.africa</dd>
+              <dt>Current bundle</dt><dd class="mono">b7f3c2a9-41d8-4e0a-9c11-5d2e8a60f4b3</dd>
+              <dt>Published</dt><dd>Mon 9 Nov, 14:12 by Femi Lawson</dd>
+              <dt>Reached</dt><dd>88% of phones in 3 days</dd>
+              <dt>Previous bundle</dt><dd class="mono">e19a0d5c-7b62-43f1-a8c4-02bd96e7731f</dd>
+            </dl>
+      <div class="row"><a class="btn btn-d" data-toast="Rolled back to bundle e19a0d5c. Phones switch within about 10 minutes, the next time the app opens." data-undo="config">Roll back to previous bundle</a><span class="hint">About 10 minutes, asks for your two-step code.</span></div>
+      <b>Version share, Android, last 7 days</b>
+      <div class="hbars">
+            <div class="hb"><span>26.1</span><span class="track"><i style="--v:52%"></i></span><b>52%</b></div>
+            <div class="hb"><span>26.0</span><span class="track"><i style="--v:39%"></i></span><b>39%</b></div>
+            <div class="hb"><span>25.4 to 25.9</span><span class="track"><i class="n" style="--v:5%"></i></span><b>5%</b></div>
+            <div class="hb"><span>Below 25.4</span><span class="track"><i style="--v:4%;background:var(--err)"></i></span><b>4%</b></div>
+          </div>
+    </div></details>
+
+    <details class="fold"><summary>Remote copy <small>5 keys the app loads at start-up</small></summary><div class="fold__b">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Key</th><th>Current text</th><th>Last edited</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr><td class="mono">paywall.title</td><td>Read every book, one simple plan</td><td class="nw">Tunde Bakare · 28 Oct</td><td class="acts"><a class="btn btn-g sm" data-toast="paywall.title saved. The app picks up the new wording the next time it starts.">Edit</a></td></tr>
+          <tr><td class="mono">paywall.subtitle</td><td>Pay in naira. Cancel any time in Google Play or the App Store.</td><td class="nw">Tunde Bakare · 28 Oct</td><td class="acts"><a class="btn btn-g sm" data-toast="paywall.subtitle saved. The app picks up the new wording the next time it starts.">Edit</a></td></tr>
+          <tr><td class="mono">paywall.yearly_badge</td><td>Best value · save ₦2,100</td><td class="nw">Amaka Okafor · 3 Nov</td><td class="acts"><a class="btn btn-g sm" data-toast="paywall.yearly_badge saved. The app picks up the new wording the next time it starts.">Edit</a></td></tr>
+          <tr><td class="mono">unlock.confirm</td><td>Unlock this book for {credits} credits? You keep it while your plan is active.</td><td class="nw">Femi Lawson · 14 Oct</td><td class="acts"><a class="btn btn-g sm" data-toast="unlock.confirm saved. The app picks up the new wording the next time it starts.">Edit</a></td></tr>
+          <tr><td class="mono">credits.empty</td><td>You're out of credits. Top up or wait for your next plan period.</td><td class="nw">Bisi Adeyemi · 2 Nov</td><td class="acts"><a class="btn btn-g sm" data-toast="credits.empty saved. The app picks up the new wording the next time it starts.">Edit</a></td></tr>
+        </tbody>
+      </table></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen overlay" id="s-config-confirm" data-area="11" data-base="config" data-name="Confirm maintenance mode" data-note="Rule: maintenance mode stops all reading for every reader, so it needs your two-step code and is logged with your name.|Rule: downloaded books stay readable offline. The staff console keeps working.|After confirming: readers see the message on their next screen change; turn it off from App configuration." hidden>
+  <a class="backdrop" data-go="config" aria-label="Close"></a>
+  <div class="modal danger" role="dialog" aria-label="Turn on maintenance mode">
+    <div class="modal__h"><div class="grow"><h2>Turn on maintenance mode?</h2><p>Every reader will see the message below and cannot read until you turn it off.</p></div><a class="ib" data-go="config" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="sy-inbox"><b>Message to readers</b><span class="muted">Arpedia is getting a quick tune-up. We'll be back in about 30 minutes. Your books and credits are safe.</span></div>
+      <div class="f"><label>Your two-step code</label><div class="inp"><input class="mono" value="" placeholder="6-digit code" inputmode="numeric" aria-label="Two-step code"></div><span class="hint">From your authenticator app. Downloaded books stay readable.</span></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="config">Cancel</a><a class="btn btn-d" data-go="config" data-toast="Maintenance mode is on. All readers see your message. Turn it off here when you are done." data-undo="config">Turn on maintenance mode</a></div>
+  </div>
+</section>
+
+<!-- ===================== 11 Settings: Pricing rules ===================== -->
+<section class="screen" id="s-pricing-rules" data-area="11" data-nav="pricing-rules" data-name="Pricing rules" data-note="New (v4 credits): one page holds every rule that turns a book into a price and a credit into author pay.|Rule: price = standard pages × ½ credit, rounded up. A standard page is 250 words; a full-page image counts as 1 page. Pages never depend on font size or screen.|Rule: pay as you read charges a chapter when the reader moves past its first page. The total never goes over the upfront price, re-reading is free, and the reader can undo a charge within 10 minutes.|Rule: changes apply at 00:00 WAT. Books already unlocked and chapters already paid keep their price; readers part-way through pay as you read keep the price they started with.|Rule: saving needs Super admin and a 2-step code, and is logged.|Data: the plan check uses in-app prices after Google Play's 15% fee. Plan prices themselves are in Money, Plans and pricing." hidden>
+  <div class="ph">
+    <div class="ph__row">
+      <div class="ph__title"><h1>Pricing rules</h1><div class="ph__meta"><span>1,284 live books</span><span>1 credit = ₦3</span><span>Last changed 16 Nov 2026 by Amaka Okafor</span></div></div>
+      <div class="ph__acts"><a class="btn btn-p" data-go="pricing-rules-confirm">Review and save</a><div class="mwrap"><button class="ib" data-menu aria-expanded="false" aria-label="More actions"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" hidden><a data-go="pricing">Plans and pricing</a><a data-toast="Pricing rules exported as JSON">Export rules</a></div></div></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="split split--wide">
+      <div class="stack s20">
+        <div class="panel">
+          <div class="panel__head"><h2>Book price</h2></div>
+          <div class="panel__body form">
+            <div class="fgrid">
+              <div class="f"><label for="pr-w">Words per standard page</label><div class="inp"><input id="pr-w" value="250"><span class="suf">words</span></div><span class="hint">Was 275. Fewer words a page means more pages and higher prices.</span></div>
+              <div class="f"><label for="pr-c">Credits per page</label><div class="inp"><input id="pr-c" value="0.5"><span class="suf">credits</span></div><span class="hint">₦1.50 a page at ₦3 a credit</span></div>
+              <div class="f"><label for="pr-i">A full-page image counts as</label><div class="inp"><input id="pr-i" value="1"><span class="suf">page</span></div></div>
+              <div class="f"><label for="pr-v">Credit value</label><div class="inp"><span class="pre">₦</span><input id="pr-v" value="3"></div><span class="hint">Top-ups sell at this price</span></div>
+            </div>
+            <div class="mn-rec"><b>62,400 words → 250 pages → 125 credits (₦375)</b><span>Harmattan Letters. The book total is rounded up to a whole credit; a 600-page book is 300 credits (₦900).</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Reading and paying</h2></div>
+          <div class="panel__body form">
+            <div class="fgrid">
+              <div class="f"><label for="pr-p">Free preview</label><div class="inp"><input id="pr-p" value="10"><span class="suf">% of the book</span></div></div>
+              <div class="f"><label for="pr-s">Split chapters longer than</label><div class="inp"><input id="pr-s" value="20"><span class="suf">pages</span></div><span class="hint">Books without chapters are split the same way</span></div>
+              <div class="f"><label for="pr-u">Reader can undo a chapter charge for</label><div class="inp"><input id="pr-u" value="10"><span class="suf">minutes</span></div></div>
+            </div>
+            <div class="setrow" style="padding:0"><span class="setrow__b"><b>Pay as you read</b><small>Readers can pay per chapter instead of upfront. Same total, re-reading free.</small></span><span class="switch on" role="switch" aria-checked="true" aria-label="Pay as you read" data-toast="Pay as you read turned off. Readers part-way through keep their unlocked chapters." data-undo="pricing-rules"></span></div>
+            <div class="setrow" style="padding:0"><span class="setrow__b"><b>Unlock the next chapter automatically</b><small>Default for new readers. They can turn it off in the reader.</small></span><span class="switch on" role="switch" aria-checked="true" aria-label="Auto-unlock next chapter"></span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Authors and plans</h2></div>
+          <div class="panel__body form">
+            <div class="fgrid">
+              <div class="f"><label for="pr-a">Author rate</label><div class="inp"><span class="pre">₦</span><input id="pr-a" value="1.60"><span class="suf">per credit spent</span></div><span class="hint">₦0.80 a page · ₦200 for a full read of a 250-page book</span></div>
+              <div class="f"><label for="pr-r">Rollover cap</label><div class="inp"><input id="pr-r" value="1"><span class="suf">plan’s worth</span></div><span class="hint">Unused plan credits carry one period while subscribed</span></div>
+              <div class="f"><label for="pr-z">Pause instead of cancel</label><div class="inp"><input id="pr-z" value="1 to 3"><span class="suf">months</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stack s20">
+        <div class="panel panel--flush">
+          <div class="panel__head"><h2>Plan check</h2><span class="sub">After Google Play’s 15%</span></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>Plan</th><th class="r">Nets a credit</th><th class="r">Margin</th></tr></thead>
+            <tbody>
+              <tr><td><b>Monthly</b><small class="muted" style="display:block">₦900 · 300 credits</small></td><td class="n">₦2.55</td><td class="n">₦0.95</td></tr>
+              <tr><td><b>Quarterly</b><small class="muted" style="display:block">₦2,400 · 800 credits</small></td><td class="n">₦2.55</td><td class="n">₦0.95</td></tr>
+              <tr><td><b>Yearly</b><small class="muted" style="display:block">₦8,400 · 3,000 credits · tightest</small></td><td class="n">₦2.38</td><td class="n">₦0.78</td></tr>
+              <tr><td><b>Top-ups</b><small class="muted" style="display:block">₦3 a credit</small></td><td class="n">₦2.55</td><td class="n">₦0.95</td></tr>
+            </tbody>
+          </table></div>
+          <div class="panel__foot">Margin is what each credit nets above the ₦1.60 author rate. Every plan must stay above zero. If VAT is withheld, Yearly nets ₦2.21, still ₦0.61 above.</div>
+        </div>
+        <details class="fold">
+          <summary>More details <small>change log</small></summary>
+          <div class="fold__b">
+            <div class="tl">
+              <div class="tl__i org"><b>Words per standard page 275 to 250</b><small>Draft · not saved</small></div>
+              <div class="tl__i ok"><b>Prices set by pages: ½ credit per page, ₦3 a credit</b><small>16 Nov 2026 · Amaka Okafor, code verified</small></div>
+              <div class="tl__i ok"><b>Pay as you read turned on, 10-minute undo</b><small>16 Nov 2026 · Amaka Okafor</small></div>
+              <div class="tl__i ok"><b>Author rate set to ₦1.60 a credit</b><small>16 Nov 2026 · Amaka Okafor and Chinedu Eze</small></div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 11 Settings: Pricing rules confirm ===================== -->
+<section class="screen overlay" id="s-pricing-rules-confirm" data-area="11" data-base="pricing-rules" data-name="Confirm pricing rules" data-note="Rule: shows exactly what changes before anything is saved: the rule that changed, how many book prices move, and the plan check.|Rule: needs a fresh 2-step code; logged with your name. Takes effect at 00:00 WAT so prices never change while someone is reading.|After saving: Undo is available until 00:00 WAT." hidden>
+  <a class="backdrop" data-go="pricing-rules" aria-label="Close"></a>
+  <div class="modal wide" role="dialog" aria-label="Save pricing rules">
+    <div class="modal__h"><div class="grow"><h2>Change the price of 1,284 books?</h2><p>Takes effect tonight at 00:00 WAT</p></div><a class="ib" data-go="pricing-rules" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></a></div>
+    <div class="modal__b">
+      <div class="kv-row"><span>Words per standard page</span><b>275 → 250</b></div>
+      <div class="kv-row"><span>Books whose price changes</span><b>1,284</b></div>
+      <div class="kv-row"><span>Average book price</span><b>112 → 123 credits</b></div>
+      <div class="kv-row"><span>Biggest change</span><b>The Long Rains, 290 → 319 credits</b></div>
+      <div class="kv-row"><span>Plan check</span><b>Every plan still above ₦1.60</b></div>
+      <span class="muted" style="font-size:13px">Books already unlocked and chapters already paid keep their price. Readers part-way through pay as you read keep the price they started with.</span>
+      <div class="f"><span class="lbl">2-step code</span><div class="otp"><span class="f">5</span><span>2</span><span>9</span><span></span><span></span><span></span></div></div>
+    </div>
+    <div class="modal__f"><a class="btn btn-g" data-go="pricing-rules">Cancel</a><a class="btn btn-p" data-go="pricing-rules" data-toast="Pricing rules saved. 1,284 book prices update at 00:00 WAT." data-undo="pricing-rules">Save rules</a></div>
+  </div>
+</section>
+
+<section class="screen" id="s-policies" data-area="11" data-nav="policies" data-name="Policies and legal pages" data-note="New: version and publish date share one column; the four-step publishing guide is folded under the draft.|Rule: publishing creates a new version, keeps the old one for the record, and needs your two-step code. If Accept again is on, readers see a full-screen notice on next open and must tap Accept. Readers see these pages in the app and at arpedia.africa/legal (7 pages).|Same as v25: Terms and Privacy text edited in the console.|New: versions, publish dates and a switch that makes readers (or authors) accept again after a change; acceptance rate shows who has not yet.|Rule: a published version can never be edited. To change a policy, edit the draft and publish a new version.|Rule: the Delete-account page is required by Google Play and must always be live." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Policies and legal pages</h1></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="panel panel--flush">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Page</th><th>Published</th><th>Accept again on change</th><th class="r">Accepted latest</th><th>Draft</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr><td><b>Terms of service</b><small class="faint" style="display:block">Readers</small></td><td class="nw">v5 · 1 Sep 2026</td><td><button class="switch on" role="switch" aria-checked="true" aria-label="Terms accept again"></button></td><td class="n">96.4%</td><td><span class="muted">No draft</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Draft of Terms of service started. Readers still see the published version.">Edit draft</a></td></tr>
+          <tr><td><b>Privacy policy</b><small class="faint" style="display:block">NDPA 2023 · readers and authors</small></td><td class="nw">v4 · 1 Sep 2026</td><td><button class="switch on" role="switch" aria-checked="true" aria-label="Privacy accept again"></button></td><td class="n">96.4%</td><td><span class="st st-warn">Draft saved 9 Nov</span></td><td class="acts"><a class="btn btn-s sm" data-toast="Draft opened. Readers still see v4 until you publish.">Review draft</a></td></tr>
+          <tr><td><b>Community guidelines</b></td><td class="nw">v3 · 14 Jul 2026</td><td><button class="switch" role="switch" aria-checked="false" aria-label="Guidelines accept again"></button></td><td class="n">88.1%</td><td><span class="muted">No draft</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Draft of Community guidelines started. Readers still see the published version.">Edit draft</a></td></tr>
+          <tr><td><b>Copyright policy</b><small class="faint" style="display:block">How claims and takedowns work</small></td><td class="nw">v2 · 2 Jun 2026</td><td><button class="switch" role="switch" aria-checked="false" aria-label="Copyright accept again"></button></td><td class="n muted">Not asked</td><td><span class="muted">No draft</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Draft of Copyright policy started. Readers still see the published version.">Edit draft</a></td></tr>
+          <tr><td><b>Author agreement</b><small class="faint" style="display:block">₦1.60 per credit spent · authors only</small></td><td class="nw">v3 · 1 Aug 2026</td><td><button class="switch on" role="switch" aria-checked="true" aria-label="Author agreement accept again"></button></td><td class="n">100% <small class="faint">of 131</small></td><td><span class="muted">No draft</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Draft of Author agreement started. Readers still see the published version.">Edit draft</a></td></tr>
+          <tr><td><b>Refund policy</b><small class="faint" style="display:block">Web checkout; store refunds follow Google and Apple</small></td><td class="nw">v2 · 30 Sep 2026</td><td><button class="switch" role="switch" aria-checked="false" aria-label="Refund accept again"></button></td><td class="n muted">Not asked</td><td><span class="muted">No draft</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Draft of Refund policy started. Readers still see the published version.">Edit draft</a></td></tr>
+          <tr><td><b>Delete-account page</b><small class="faint" style="display:block">Public link, required by Google Play</small></td><td class="nw">v2 · 12 May 2026</td><td><button class="switch" role="switch" aria-checked="false" aria-label="Delete account accept again"></button></td><td class="n muted">Not asked</td><td><span class="muted">No draft</span></td><td class="acts"><a class="btn btn-g sm" data-toast="Draft of Delete-account page started. Readers still see the published version.">Edit draft</a></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+        <div class="panel__head"><h2>Privacy policy v5 draft</h2><span class="st-plain">Draft</span></div>
+        <div class="panel__body">
+          <p class="muted" style="font-size:13.5px">Adds a section on how long we keep reading history (24 months) and how readers can request export or deletion in 30 days under the NDPA. Edited by Amaka Okafor on 9 Nov.</p>
+          <div class="kv-row"><span>Readers to be asked again</span><b>36,862</b></div>
+          <div class="kv-row"><span>Authors to be asked again</span><b>131</b></div>
+          <div class="row"><a class="btn btn-g" data-toast="Preview opened as readers will see it">Preview draft</a><a class="btn btn-p" data-toast="Privacy policy v5 published. 36,862 readers and 131 authors are asked to accept on their next open.">Publish new version</a></div>
+        </div>
+    </div>
+    <details class="fold"><summary>How publishing works <small>4 steps</small></summary><div class="fold__b">
+          <div class="stepper">
+            <div class="stp ok"><i>1</i><span><b>Edit the draft</b><small>Changes are saved as you type. Readers still see the published version.</small></span></div>
+            <div class="stp ok"><i>2</i><span><b>Write what changed</b><small>One or two plain sentences. This is the text readers see when asked to accept again.</small></span></div>
+            <div class="stp on"><i>3</i><span><b>Choose whether people must accept again</b><small>On: readers see a full-screen notice on next open and must tap Accept to keep reading.</small></span></div>
+            <div class="stp"><i>4</i><span><b>Publish with your two-step code</b><small>A new version is created and the old one is kept for the record.</small></span></div>
+          </div>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen" id="s-integrations" data-area="11" data-nav="integrations" data-name="Integrations health" data-note="New: one summary line, only the failing service (Flutterwave transfers) is open, and the nine healthy services are one compact table. Keys and webhook addresses are folded.|Data: the error rate is for the last 24 hours; supabase runs in eu-west-2 (London) and the Cloudflare R2 bucket is arpedia-books-prod.|New: one panel per outside service with status, last event, error rate, masked keys and the webhook address, so staff know where to look when something fails.|Rule: keys are never shown in full. Rotating a key asks for a two-step code and is logged; the old key stops working in 24 hours.|Data: health checks run every minute; the error rate is for the last 24 hours." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>Integrations</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-toast="Checked all 10 services just now. 9 working, Flutterwave transfers still need a look."><svg class="ico s" aria-hidden="true"><use href="#i-refresh"/></svg>Check all now</a></div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="sline"><span class="dot warn"></span><span><b>9 of 10 working</b> · Flutterwave transfers need a look. Health checks run every minute.</span></div>
+    <div class="panel panel--flush">
+      <div class="panel__head"><h2>Flutterwave transfers</h2><span class="st st-warn">Check</span></div>
+      <div class="panel__body">
+        <div class="note warn"><span class="grow"><b>2 failed in the September run</b>Account name mismatch on 2 authors. Fix the bank details in Payouts, then retry.<a class="link" data-go="payouts">Open Payouts</a></span></div>
+        <dl class="kv tight"><dt>Last event</dt><dd>15 Oct, 10:02, run finished</dd><dt>Error rate</dt><dd>3.7% · 2 of 54 transfers</dd></dl>
+      </div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>When</th><th>Author</th><th>Reference</th><th class="r">Amount</th><th>Reason from Flutterwave</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr data-go="payout-retry"><td class="nw">15 Oct, 10:02</td><td>Tolu Adebayo</td><td class="mono">FLW-TRF-20261015-0431</td><td class="n">₦48,900</td><td class="muted">Account name does not match</td><td class="acts"><a class="btn btn-s sm" data-go="payout-retry" data-toast="Retry queued with Flutterwave. We tell you if it fails again.">Retry</a></td></tr>
+          <tr data-go="payout-retry"><td class="nw">15 Oct, 10:02</td><td>Obinna Ekwueme</td><td class="mono">FLW-TRF-20261015-0447</td><td class="n">₦21,640</td><td class="muted">Account name does not match</td><td class="acts"><a class="btn btn-s sm" data-go="payout-retry" data-toast="Retry queued with Flutterwave. We tell you if it fails again.">Retry</a></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="panel panel--flush">
+      <div class="panel__head"><h2>Working</h2><span class="sub">9 services</span></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Service</th><th>Last event</th><th class="r">Error rate</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><b>Supabase</b><small class="faint" style="display:block">Database, sign-in and edge functions</small></td><td>12 seconds ago, reading session saved</td><td class="n">0.02%</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>RevenueCat</b><small class="faint" style="display:block">Store purchases and renewals, mirrored by webhook</small></td><td>40 seconds ago, renewal Quarterly</td><td class="n">0.4% · 3 retries recovered yesterday</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>Google Play</b><small class="faint" style="display:block">71% of subscribers. Products arpedia_monthly_v2, arpedia_quarterly_v2, arpedia_yearly_v2</small></td><td>2 minutes ago, notification received</td><td class="n">0%</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>App Store Connect</b><small class="faint" style="display:block">9% of subscribers</small></td><td>1 hour 12 minutes ago, renewal Monthly</td><td class="n">0%</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>Flutterwave checkout</b><small class="faint" style="display:block">Web checkout for 20% of subscribers</small></td><td>9 minutes ago, payment ₦2,100 Quarterly</td><td class="n">1.1% · mostly declined cards</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>Firebase Cloud Messaging</b><small class="faint" style="display:block">Push notifications</small></td><td>4 minutes ago, 1 push delivered</td><td class="n">0.8% · 99.2% delivered in 24 hours</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>Cloudflare R2</b><small class="faint" style="display:block">Book files: EPUB builds, covers, uploads</small></td><td>9:12 today, EPUB written for Seven Bridges to Jos</td><td class="n">0%</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>expo-updates (OTA)</b><small class="faint" style="display:block">Over-the-air app updates</small></td><td>Mon 9 Nov, 14:12, bundle published</td><td class="n">0.1% · 12 phones failed to download</td><td><span class="st-plain">Working</span></td></tr>
+          <tr><td><b>Resend (email)</b><small class="faint" style="display:block">Transactional email from hello@arpedia.africa</small></td><td>3 minutes ago, verify email delivered</td><td class="n">0.8% bounced</td><td><span class="st-plain">Working</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <details class="fold"><summary>Keys and webhooks <small>masked, 10 services</small></summary><div class="fold__b">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Service</th><th>Webhook or address</th><th>Key</th><th class="acts"></th></tr></thead>
+        <tbody>
+          <tr><td><b>Supabase</b></td><td><span class="mono">eu-west-2 (London)</span></td><td class="mono">sb_secret_••••••••9d2f</td><td class="acts"><a class="btn btn-g sm" data-toast="New Supabase key created. Femi Lawson must paste it into the edge function settings within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>RevenueCat</b></td><td><span class="sy-url">https://api.arpedia.africa/hooks/revenuecat</span></td><td class="mono">sk_••••••••k7Qa</td><td class="acts"><a class="btn btn-g sm" data-toast="New RevenueCat key created. Femi Lawson must paste it into the store purchase hook settings within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>Google Play</b></td><td><span class="faint">None</span></td><td class="mono">play-api@arpedia••••.iam</td><td class="acts"><a class="btn btn-g sm" data-toast="New Google Play key created. Femi Lawson must paste it into RevenueCat's Google Play credentials within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>App Store Connect</b></td><td><span class="faint">None</span></td><td class="mono">ASC-••••••3KM9</td><td class="acts"><a class="btn btn-g sm" data-toast="New App Store Connect key created. Femi Lawson must paste it into RevenueCat's App Store credentials within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>Flutterwave checkout</b></td><td><span class="sy-url">https://api.arpedia.africa/hooks/flutterwave-pay</span></td><td class="mono">FLWSECK-••••••••a3f1</td><td class="acts"><a class="btn btn-g sm" data-toast="New Flutterwave checkout key created. Chinedu Eze must paste it into the web checkout settings within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>Flutterwave transfers</b></td><td><span class="sy-url">https://api.arpedia.africa/hooks/flutterwave-transfer</span></td><td class="mono">FLWSECK-••••••••b82c</td><td class="acts"><a class="btn btn-g sm" data-toast="New Flutterwave transfers key created. Chinedu Eze must paste it into the payout settings within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>Firebase Cloud Messaging</b></td><td><span class="faint">None</span></td><td class="mono">fcm-••••••••x1Lp</td><td class="acts"><a class="btn btn-g sm" data-toast="New Firebase Cloud Messaging key created. Femi Lawson must paste it into the push settings in Supabase within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>Cloudflare R2</b></td><td><span class="mono">arpedia-books-prod</span></td><td class="mono">r2_••••••••5nBv</td><td class="acts"><a class="btn btn-g sm" data-toast="New Cloudflare R2 key created. Femi Lawson must paste it into the book upload service within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>expo-updates (OTA)</b></td><td><span class="sy-url">https://updates.arpedia.africa</span></td><td class="mono">code-signing-••••2e90</td><td class="acts"><a class="btn btn-g sm" data-toast="New expo-updates (OTA) key created. Femi Lawson must paste it into the app build settings within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+          <tr><td><b>Resend (email)</b></td><td><span class="faint">None</span></td><td class="mono">re_••••••••Zq4T</td><td class="acts"><a class="btn btn-g sm" data-toast="New Resend (email) key created. Femi Lawson must paste it into the email settings in Supabase within 24 hours, when the old key stops working.">Rotate</a></td></tr>
+        </tbody>
+      </table></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="screen" id="s-account" data-area="11" data-nav="account" data-name="My account" data-note="New: alert preferences are one line each (what each alert covers is below); change password is folded.|Rule: high-severity reports (threats, sexual content or anything touching a child) always arrive within minutes. Failed payouts fire when Flutterwave rejects a transfer, copyright claims on a new claim or a deadline within 2 days, late applications past the 5-day promise, and system health when a service in Integrations turns orange or red.|Same as v25: change password.|New: two-step management (authenticator, backup codes), active sessions with sign out, and which staff alerts reach you.|Rule: Super admins and Finance must keep two-step on; it cannot be turned off.|Rule: changing your password signs you out of all other sessions." hidden>
+  <div class="band">
+    <div class="band__row">
+      <div class="band__text"><h1>My account</h1></div>
+      <div class="band__acts"><a class="btn btn-n" data-go="signin" data-toast="You are signed out">Sign out</a></div>
+    </div>
+  </div>
+  <div class="page page--narrow">
+    <div class="panel">
+      <div class="panel__head"><h2>Profile</h2></div>
+      <div class="panel__body">
+        <div class="row" style="gap:14px"><span class="av lg g">AO</span><span class="stack s4"><b style="font-size:16px">Amaka Okafor</b><span class="muted">amaka@arpedia.africa</span></span><span class="grow"></span><span class="muted">Super admin · signed in since 8:31</span></div>
+        <div class="fgrid">
+          <div class="f"><label>Full name</label><div class="inp"><input value="Amaka Okafor" aria-label="Full name"></div></div>
+          <div class="f"><label>Work email</label><div class="inp ro"><input value="amaka@arpedia.africa" readonly aria-label="Work email"></div></div>
+          <div class="f"><label>Phone for urgent alerts <span class="opt">optional</span></label><div class="inp"><span class="pre">+234</span><input value="803 555 0142" aria-label="Phone"></div></div>
+          <div class="f"><label>Role</label><div class="inp ro"><input value="Super admin" readonly aria-label="Role"></div></div>
+        </div>
+        <div><a class="btn btn-g" data-toast="Profile saved">Save profile</a></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><h2>Two-step sign-in</h2><span class="st-plain">On</span></div>
+      <div class="list">
+        <div class="setrow"><span class="setrow__b"><b>Authenticator app</b><small>Set up on 4 Mar 2026 · Google Authenticator on Pixel 8</small></span><a class="btn btn-g sm" data-toast="Setup code sent to amaka@arpedia.africa. Scan it on your new phone.">Change phone</a></div>
+        <div class="setrow"><span class="setrow__b"><b>Backup codes</b><small>8 of 10 left, each works once</small></span><a class="btn btn-g sm" data-toast="10 new backup codes created. The old 8 stopped working.">Regenerate codes</a></div>
+      </div>
+      <div class="panel__foot"><span>Super admins and Finance cannot turn two-step off.</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><h2>Active sessions</h2></div>
+      <div class="list">
+        <div class="setrow"><span class="setrow__b"><b>Chrome on Windows 11 <span class="st-plain" style="margin-left:6px">This browser</span></b><small>Lagos, Nigeria · <span class="mono">105.112.34.20</span> · active now</small></span></div>
+        <div class="setrow"><span class="setrow__b"><b>Safari on iPhone</b><small>Lagos, Nigeria · <span class="mono">105.112.34.77</span> · last active yesterday 21:14</small></span><a class="btn btn-d sm" data-toast="Safari on iPhone signed out" data-undo="account">Sign out</a></div>
+      </div>
+      <div class="panel__foot"><a class="link" data-toast="Signed out of all other sessions">Sign out of all other sessions</a></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><h2>Alerts I get</h2><span class="sub">Bell, and email for urgent ones</span></div>
+      <div class="list">
+        <div class="setrow"><span class="setrow__b"><b>High-severity reports</b></span><button class="switch on" role="switch" aria-checked="true" aria-label="High-severity reports"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Failed payouts</b></span><button class="switch on" role="switch" aria-checked="true" aria-label="Failed payouts"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Copyright claims</b></span><button class="switch on" role="switch" aria-checked="true" aria-label="Claims"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>Applications waiting too long</b></span><button class="switch" role="switch" aria-checked="false" aria-label="Applications late"></button></div>
+        <div class="setrow"><span class="setrow__b"><b>System health</b></span><button class="switch on" role="switch" aria-checked="true" aria-label="System health"></button></div>
+      </div>
+    </div>
+
+    <details class="fold"><summary>Change password <small>signs you out of other sessions</small></summary><div class="fold__b">
+      <div class="form">
+        <div class="f"><label>Current password</label><div class="inp"><input type="password" value="password123" aria-label="Current password"></div></div>
+        <div class="fgrid">
+          <div class="f"><label>New password</label><div class="inp"><input type="password" value="" placeholder="At least 12 characters" aria-label="New password"></div></div>
+          <div class="f"><label>Repeat new password</label><div class="inp"><input type="password" value="" aria-label="Repeat password"></div></div>
+        </div>
+        <div><a class="btn btn-p" data-toast="Password updated. Other sessions were signed out.">Update password</a></div>
+      </div>
+    </div></details>
+  </div>
+</section>
