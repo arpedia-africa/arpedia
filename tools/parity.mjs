@@ -45,6 +45,12 @@ const chrome =
     '/usr/bin/chromium',
   ].find(existsSync);
 if (!chrome) throw new Error('Chrome not found; set CHROME=path');
+// The prototype files have no doctype; published (and in shot.mjs) they render in standards mode.
+const standards = (file) => {
+  const out = join(outDir, `_${file.split('/')[0]}.html`);
+  writeFileSync(out, `<!doctype html><meta charset=utf-8>${readFileSync(join(root, file), 'utf8')}`);
+  return pathToFileURL(out).href;
+};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Minimal Chrome DevTools session (no extra packages). */
@@ -148,7 +154,7 @@ function phone() {
 
 async function appReference(b, id, theme, dpr) {
   const frag = readFileSync(join(root, 'tools/parity', `${id}.html`), 'utf8');
-  await b.open(pathToFileURL(join(root, 'prototype/index.html')).href, { width: 375, height: 1400, dpr });
+  await b.open(standards('prototype/index.html'), { width: 375, height: 1400, dpr });
   const height = await b.eval(`(async()=>{
     for (const el of [...document.body.children]) if (el.tagName !== 'svg' && el.tagName !== 'SCRIPT') el.style.display = 'none';
     const st = document.createElement('style');
@@ -253,9 +259,9 @@ try {
     const W = 1440;
     const H = 900;
     const adminRef = async (id) => {
-      await b.open(pathToFileURL(join(root, 'admin/index.html')).href + `#${id}`, { width: W, height: H });
+      await b.open(standards('admin/index.html') + `#${id}`, { width: W, height: H });
       await b.eval(
-        `(async()=>{const st=document.createElement('style');st.textContent=':root{--pbar-h:0px}.pbar,.pidx,.pnotes,.fb-btn{display:none!important}';document.head.appendChild(st);location.hash=${JSON.stringify(id)};await new Promise(r=>setTimeout(r,400));await ${SETTLE};return true})()`,
+        `(async()=>{const st=document.createElement('style');st.textContent='[hidden]{display:none!important}:root{--pbar-h:0px}.pbar,.pidx,.pnotes,.fb-btn{display:none!important}';document.head.appendChild(st);location.hash=${JSON.stringify(id)};await new Promise(r=>setTimeout(r,400));await ${SETTLE};return true})()`,
       );
       return b.shot();
     };
