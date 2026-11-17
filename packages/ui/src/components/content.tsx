@@ -373,7 +373,6 @@ export function Pill({ label, tone = 'brand', icon }: { label: string; tone?: Pi
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        alignSelf: 'flex-start',
         gap: s(5),
         borderRadius: 999,
         paddingVertical: s(5),

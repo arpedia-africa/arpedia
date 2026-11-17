@@ -81,7 +81,9 @@ export function Btn({
           alignItems: 'center',
           justifyContent: 'center',
           gap: s(8),
-          ...(block ? { width: '100%' } : { alignSelf: 'flex-start' }),
+          // inline-flex: follows the parent's align-items (rows centre it); in a column, pass
+          // style={{ alignSelf: 'flex-start' }} so it keeps its own width
+          ...(block ? { width: '100%' } : null),
         },
         bw ? { borderWidth: s(bw), borderColor: 'border' in p ? p.border : undefined } : null,
         style,

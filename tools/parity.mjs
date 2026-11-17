@@ -7,7 +7,8 @@
 //   - reference: tools/parity/<id>.html (prototype elements, verbatim) rendered with the prototype's CSS
 //     inside a 375-wide .device at the phone's pixel density, then scaled to 375 px wide
 //   - build: the app's parity screen (arpedia://parity?page=<id>&theme=<theme>, kit builds only),
-//     captured with adb screencap below the status bar, scaled to 375 px wide
+//     captured with adb screencap below the status bar, scaled to 375 px wide, at text size 1.0
+//     (the device's own text size is restored afterwards)
 // Admin (Chrome headless, 1440×900, local console on --url, default http://127.0.0.1:3000):
 //   node tools/parity.mjs --admin signin overview
 //   - signin: whole page (fields filled with the prototype's values)
@@ -237,8 +238,17 @@ async function compare(name, refPng, buildPng, width, height, regions) {
 
 const results = [];
 const b = await browser();
+// The gate is at the default font size. If the device has a different text size (the owner's phone
+// is at 0.9), set 1.0 for the captures and always put the owner's value back.
+let fontScale = null;
 try {
   if (!admin) {
+    fontScale = adb('shell', 'settings', 'get', 'system', 'font_scale').toString().trim();
+    if (fontScale === 'null' || Number(fontScale) === 1) fontScale = null;
+    else {
+      adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0');
+      adb('shell', 'am', 'force-stop', 'com.arpedia.reader');
+    }
     const g = phone();
     if (Math.abs(g.dp - 375) > 1) console.warn(`warning: ${serial} is ${g.dp.toFixed(1)} dp wide, not 375`);
     for (const id of ids)
@@ -315,6 +325,7 @@ try {
     }
   }
 } finally {
+  if (fontScale) adb('shell', 'settings', 'put', 'system', 'font_scale', fontScale);
   b.close();
 }
 

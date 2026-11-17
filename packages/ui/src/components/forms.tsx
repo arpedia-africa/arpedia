@@ -108,7 +108,9 @@ export function Field({
             style={{
               flex: 1,
               minWidth: 0,
+              // `padding: 12px 0`; Android's TextInput adds its own side padding otherwise
               paddingVertical: s(12),
+              paddingHorizontal: 0,
               fontFamily: fontFamily('ui', 400),
               fontSize: fs,
               color: c.ink,
@@ -211,7 +213,9 @@ export function Chip({ label, onPress, state = 'off', icon }: ChipProps) {
         minHeight: s(36),
         // .chip.sel's ring is an inset box-shadow (no space): subtract it from the padding
         paddingHorizontal: s(look.border ? 14 - 1.5 : 14),
-        borderRadius: 999,
+        // prototype: the reader's `.sel{border-radius:2px}` comes after `.chip` in the CSS and
+        // wins, so a chosen chip is a 2px-radius box there. Replicated as-is.
+        borderRadius: state === 'sel' ? s(2) : 999,
         backgroundColor: look.bg,
         flexDirection: 'row',
         alignItems: 'center',
