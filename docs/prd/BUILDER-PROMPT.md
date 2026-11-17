@@ -22,9 +22,12 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - read or print secrets
 - If a step needs a secret that isn't available yet, use local or mocked services, note it under Notes, and continue.
 
-**Devices:** your PC may also have the owner's own phone connected over USB.
-- Always target the emulator explicitly: `adb -s emulator-5554 …`, or set `ANDROID_SERIAL=emulator-5554` for every adb, Maestro or gradle install command.
-- **Never install, uninstall or clear data on a physical device.** The owner's phone runs the live v25 app with the same package name.
+**Devices:** two are connected; always pass `-s <serial>` (or set `ANDROID_SERIAL`).
+- **`c1212d5c`: the owner's phone** (Redmi Note 13, Android 15, exactly **375 dp wide**). It is the **main test device**, and the visual-parity captures at 375 dp are taken here.
+  - The owner approved replacing v25 on it. If an install fails with a signature mismatch, run `adb -s c1212d5c uninstall com.arpedia.reader` once, then install.
+  - Never touch any other app on this phone.
+- **`emulator-5554`:** for the 320 and 360 dp checks (`adb -s emulator-5554 shell wm size` / `wm density` to set the width, and reset afterwards) and for anything that may crash or wipe data.
+- If the phone isn't connected, use the emulator only and note it in the PR.
 
 **Long commands:** this is a headless run. Background tasks die when the run ends, and nobody will notify you. Run builds, gradle, emulators and tests **in the foreground** with a long timeout (up to 10 minutes per command), and never end a run "waiting for a completion notice". If something truly takes longer, checkpoint, set Next step to "check result of <command>", and stop.
 
