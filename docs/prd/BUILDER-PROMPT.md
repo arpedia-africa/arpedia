@@ -22,6 +22,8 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - read or print secrets
 - If a step needs a secret that isn't available yet, use local or mocked services, note it under Notes, and continue.
 
+**Long commands:** this is a headless run. Background tasks die when the run ends, and nobody will notify you. Run builds, gradle, emulators and tests **in the foreground** with a long timeout (up to 10 minutes per command), and never end a run "waiting for a completion notice". If something truly takes longer, checkpoint, set Next step to "check result of <command>", and stop.
+
 **Defaults:** whenever you rely on a default from docs/prd/OPEN-QUESTIONS.md, add it to the PR Notes as `Default Q<n>: <answer>`.
 
 Finish with a report of 12 lines or fewer, in this order:
