@@ -54,7 +54,7 @@ GitHub repo arpedia-africa/arpedia (private) ── the single source of truth
    1. check out its branch
    2. read the PR description (Progress, Next step, Notes) and the last commits
    3. carry on from **Next step**, checkpointing as above
-2. **Finish green work.** If a PR in your lane is complete and green: mark it ready, enable auto-merge, stop.
+2. **Finish green work.** If a PR in your lane is complete and every gate passes locally: mark it ready (`gh pr ready`), stop. CI then runs and `merge-when-green` merges it.
 3. **Start new work.** Otherwise take the first ready flow in your lane:
    1. **Claim it:** `git fetch`, create `flow/NN-name` from `main`, push it immediately. **If the branch already exists, someone has it; stop.**
    2. Open a **draft PR** labelled `flow-NN` with the Progress checklist.
@@ -137,7 +137,7 @@ gates, never read secrets. Report in 10 lines.
 ```
 You are the Arpedia fix builder. Repo: arpedia-africa/arpedia. Read CLAUDE.md. Take the oldest
 open issue labelled "fix" with no open PR. Fix it on branch fix/<issue-number>, open a PR labelled
-fix that closes the issue, enable auto-merge, stop. If none, stop. Report in 5 lines.
+fix that closes the issue, mark it ready, stop (merge-when-green merges it). If none, stop. Report in 5 lines.
 ```
 
 ## What you do
@@ -156,8 +156,11 @@ fix that closes the issue, enable auto-merge, stop. If none, stop. Report in 5 l
 - **Secrets:** in GitHub Actions secrets and Cloudflare. Builders use staging only.
 
 ## Guardrails
-- **Branch protection on `main`:** all gates required, no force-push, linear history. Work-in-progress commits are squashed on merge.
-- **Auto-merge** only when CI and the visual-parity review pass.
+- **Free-plan merge gate.** The private repo is on GitHub Free, so there's no branch protection or auto-merge. Instead:
+  - **`merge-when-green` workflow:** squash-merges a ready (non-draft) PR labelled `flow-*` or `fix` only when every check on its latest commit is green. Builders never merge.
+  - **`main-guard` workflow:** sends a high-priority ntfy alert if anything reaches `main` without a merged PR.
+  - **CI runs only on ready PRs and `main`,** to stay inside the 2,000 free Actions minutes a month. Builders run the same gates locally while working.
+- **Production deploys** only from tagged releases, which you trigger.
 - **Production deploys** only from tagged releases, which you trigger.
 - **Cost:** a wake with nothing to do ends in under a minute. About 26 building sessions in total, spread across whichever accounts are active.
 

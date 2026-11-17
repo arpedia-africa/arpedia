@@ -8,6 +8,7 @@ param(
   [string]$Model = 'claude-opus-5-5',
   [int]$IdleMinutes = 15,          # wait when there is nothing to do
   [int]$BetweenRunsSeconds = 30,   # short pause between productive runs
+  [int]$CiWaitMinutes = 8,         # pause when a run is waiting on CI or pushed nothing
   [string]$WorkDir = "$env:USERPROFILE\projects\arpedia-builder",
   [string]$Repo = 'arpedia-africa/arpedia'
 )
@@ -35,12 +36,16 @@ while ($true) {
   git checkout -q main 2>$null; git pull -q --ff-only 2>$null
   $prompt = Get-Content -Raw "$WorkDir\docs\prd\BUILDER-PROMPT.md"
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-  Write-Host "`n=== Run $run · $stamp · $Model ===" -ForegroundColor Yellow
+  Write-Host "`n=== Run $run - $stamp - $Model ===" -ForegroundColor Yellow
 
-  $out = $prompt | claude -p --model $Model --permission-mode acceptEdits --allowedTools $allowed 2>&1 | Tee-Object -Variable lines
+  $before = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
+  $prompt | claude -p --model $Model --permission-mode acceptEdits --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
   $text = ($lines | Out-String)
+  $after = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
 
-  if ($text -match '(?i)usage limit|rate limit|limit reached|credit balance|quota') {
+  # only the CLI's own limit messages (a run report may legitimately talk about "rate limits" in code)
+  $tail = ($lines | Select-Object -Last 5 | Out-String)
+  if ($tail -match "(?i)(usage limit reached|you've hit your( usage)? limit|you have hit your( usage)? limit|claude ai usage limit|credit balance is too low)") {
     Write-Host "`nThis Claude account has hit its limit." -ForegroundColor Red
     Write-Host "Switch account with:  claude /login   then run this script again. Work continues from GitHub." -ForegroundColor Red
     break
@@ -48,6 +53,10 @@ while ($true) {
   if ($text -match 'NOTHING-TO-DO') {
     Write-Host "Nothing ready. Waiting $IdleMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($IdleMinutes * 60)
+  } elseif ($text -match 'WAITING-FOR-CI' -or $before -eq $after) {
+    # waiting on CI, or the run pushed nothing: don't spin, give CI time
+    Write-Host "Waiting on CI / no new push. Next run in $CiWaitMinutes minutes ..." -ForegroundColor DarkGray
+    Start-Sleep -Seconds ($CiWaitMinutes * 60)
   } else {
     Start-Sleep -Seconds $BetweenRunsSeconds
   }
