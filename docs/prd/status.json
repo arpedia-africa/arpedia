@@ -276,6 +276,16 @@
     }
   },
   "answeredQuestions": [],
-  "acceptDefaultsFor": [],
+  "acceptDefaultsFor": [
+    47,
+    48,
+    50,
+    52,
+    88,
+    89,
+    90,
+    91,
+    92
+  ],
   "stallHours": 3
 }
