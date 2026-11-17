@@ -22,4 +22,13 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - read or print secrets
 - If a step needs a secret that isn't available yet, use local or mocked services, note it under Notes, and continue.
 
-Finish with a report of 10 lines or fewer: flow, steps done, Next step, PR link, blockers.
+**Defaults:** whenever you rely on a default from docs/prd/OPEN-QUESTIONS.md, add it to the PR Notes as `Default Q<n>: <answer>`.
+
+Finish with a report of 12 lines or fewer, in this order:
+1. Flow and steps done
+2. Next step
+3. PR link
+4. **Defaults used this run:** `Q<n> <short answer>; …`, or "none"
+5. Blockers
+
+The report is sent to the owner's phone.
