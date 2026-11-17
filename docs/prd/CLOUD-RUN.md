@@ -96,6 +96,12 @@ powershell -ExecutionPolicy Bypass -File tools\build-loop.ps1
 - **Nothing to do:** it waits 15 minutes and checks again. Stop it any time with Ctrl+C.
 - **When the Claude account hits its limit:** the script stops and says so. Run `claude /login` with a teammate's account, start the script again, and it continues from the PR's Next step.
 - **Options:** `-Model claude-sonnet-5-5` for cheaper screen work, `-IdleMinutes 20`.
+- **Second builder (a teammate's PC, no phone).** Start it once flow 00 has merged. It needs Git, Node, gh logged in as a repo collaborator, and Claude Code logged in with that teammate's account:
+  ```powershell
+  gh repo clone arpedia-africa/arpedia; cd arpedia
+  powershell -ExecutionPolicy Bypass -File tools\build-loop.ps1 -NoPhone -Topic <ntfy topic>
+  ```
+  It builds any ready flow; a claimed branch keeps the two builders apart. When only on-device checks are left, it labels the PR `needs-phone`, and the phone builder on the owner's PC does those first. Don't run both builders on one PC with less than about 8 GB of free RAM.
 
 ## Switching accounts: two ways
 **A. Automatic.** Each account that should take part creates the **same routines** with `/schedule`:

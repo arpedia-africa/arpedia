@@ -2,6 +2,7 @@ You are the Arpedia builder. Repo: arpedia-africa/arpedia (you are in a clone of
 
 Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live state from GitHub with the gh CLI (branches flow/NN-*, PRs labelled flow-NN, last push time, CI status). Then do exactly ONE of these:
 
+0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (final release parity on `c1212d5c`, 320/360 checks), fix what fails, remove the label, then continue it as in 1.
 1. If a flow PR is unfinished, or has failing CI or review findings: check out its branch, read the PR's Progress / Next step / Notes and the last commits, and carry on from Next step. **First read the PR comments (`gh pr view <n> --comments`). Any comment starting with "Coordinator request" comes from the owner and has top priority.** Do its items before anything else, then reply with a comment "Done: <request title>" listing what you did. When you update the PR description, never drop sections you didn't write.
 2. If a flow PR is complete and you have run every gate locally and they all pass: mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
 3. Otherwise start the next ready flow, taking lanes in this order: L1-critical, then L2-product, then L3-money-ops. A flow is ready when it isn't started, all its deps are merged, and its questions are in answeredQuestions or acceptDefaultsFor.
@@ -28,6 +29,16 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - Never touch any other app on this phone.
 - **`emulator-5554`:** for the 320 and 360 dp checks (`adb -s emulator-5554 shell wm size` / `wm density` to set the width, and reset afterwards) and for anything that may crash or wipe data.
 - If the phone isn't connected, use the emulator only and note it in the PR.
+
+**Fast screen loop (use it for all app screen work):** never rebuild a release APK to try a visual fix.
+1. Once per run, install the dev build `com.arpedia.reader.dev` (debug, expo-dev-client) with `node tools/android-dev.mjs <serial>`. Skip this if it is already installed and no native dependency or app.json plugin changed.
+2. `adb -s <serial> reverse tcp:8081 tcp:8081`, then start Metro (`npx expo start --dev-client` in apps/mobile). Metro is the **only** process you may run in the background, and you must stop it before the run ends.
+3. Edit, and the phone reloads in seconds. Capture with `node tools/parity.mjs --dev <ids>` while you iterate.
+4. Only when the screens pass on the dev build: one release build (`tools/android-release.mjs`) and the final `node tools/parity.mjs <ids>`. That result is the gate.
+
+The dev build `com.arpedia.reader.dev` is ours: installing, clearing or uninstalling it on the phone is approved.
+
+**No test device** (the run starts with a "no test device" line): do every step except on-device checks. Build and typecheck the app, and run admin parity (it needs only Chrome). When only on-device steps are left, set Next step to "phone: final parity + 320/360", add the label `needs-phone` to the PR, and start the next ready flow in the same run. The phone builder finishes it.
 
 **Long commands:** this is a headless run. Background tasks die when the run ends, and nobody will notify you. Run builds, gradle, emulators and tests **in the foreground** with a long timeout (up to 10 minutes per command), and never end a run "waiting for a completion notice". If something truly takes longer, checkpoint, set Next step to "check result of <command>", and stop.
 
