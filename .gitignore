@@ -8,6 +8,13 @@ dist/
 build/
 .turbo/
 .wrangler/
+.dev.vars
+supabase/.temp/
+supabase/.branches/
+apps/mobile/android/
+apps/mobile/ios/
+*.tsbuildinfo
+next-env.d.ts
 .next/
 *.log
 ~$*

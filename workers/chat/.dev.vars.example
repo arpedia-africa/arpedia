@@ -1,0 +1,2 @@
+# Copy to .dev.vars for `wrangler dev`. Value comes from `pnpm exec supabase status` (local stack only).
+SUPABASE_JWT_SECRET=<JWT_SECRET from supabase status>
