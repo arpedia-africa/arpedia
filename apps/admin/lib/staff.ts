@@ -5,8 +5,12 @@ import { serverSupabase } from './supabase/server';
 export interface Staff {
   id: string;
   name: string;
+  email: string;
   role: StaffRole;
 }
+
+/** Google sign-in is limited to this workspace domain. */
+export const STAFF_DOMAIN = 'arpedia.africa';
 
 export const roleLabel: Record<StaffRole, string> = {
   super_admin: 'Super admin',
@@ -33,5 +37,5 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
     supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
   ]);
   if (!role?.active) return null;
-  return { id: user.id, name: profile?.full_name || user.email || 'Staff', role: role.role };
+  return { id: user.id, name: profile?.full_name || user.email || 'Staff', email: user.email ?? '', role: role.role };
 });

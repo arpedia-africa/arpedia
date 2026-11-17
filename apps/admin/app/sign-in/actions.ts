@@ -1,7 +1,8 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getStaff } from '@/lib/staff';
+import { getStaff, STAFF_DOMAIN } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
 
 export interface SignInState {
@@ -28,6 +29,21 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
     return { error: REFUSED, email };
   }
   redirect('/');
+}
+
+/** Continue with Google, limited to @arpedia.africa accounts (hd hint here, enforced in callback/route.ts). */
+export async function signInWithGoogle() {
+  const supabase = await serverSupabase();
+  const origin = (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3000';
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${origin}/sign-in/callback`,
+      queryParams: { hd: STAFF_DOMAIN, prompt: 'select_account' },
+    },
+  });
+  if (error || !data.url) redirect('/sign-in?error=google');
+  redirect(data.url);
 }
 
 export async function signOut() {

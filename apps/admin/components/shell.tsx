@@ -2,11 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
-import { Command } from 'cmdk';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { nav, locate } from '@/lib/nav';
 import { Icon } from './icon';
-import styles from './shell.module.css';
 
 const initials = (name: string) =>
   name
@@ -19,67 +17,78 @@ const initials = (name: string) =>
 export interface ShellProps {
   staff: { name: string; roleLabel: string };
   env: string;
-  signOut: () => Promise<void>;
   children: ReactNode;
 }
 
-/** Console shell (admin/src/02-shell.html): night sidebar with 10 sections, top bar, command palette. */
-export function Shell({ staff, env, signOut, children }: ShellProps) {
+/** Every console page, for the search overlay (s-cmdk). People, books and payments join as flows build them. */
+const pages = nav.flatMap(sec =>
+  sec.sub.length ? sec.sub.map(s => ({ label: s.label, section: sec.label, href: `/${s.key}` })) : [{ label: sec.label, section: sec.label, href: sec.href }],
+);
+
+/**
+ * Console shell: the same markup and class names as admin/src/02-shell.html, styled by the
+ * prototype's own CSS (app/prototype.css). Nav state follows the prototype script: the current
+ * page gets aria-current="page" and its section gets "open".
+ */
+export function Shell({ staff, env, children }: ShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { section: openSection, page } = locate(pathname);
   const [sideOpen, setSideOpen] = useState(false);
-  const [cmdk, setCmdk] = useState(false);
+  const [search, setSearch] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setCmdk(v => !v);
+        setSearch(v => !v);
       }
-      if (e.key === 'Escape') setSideOpen(false);
+      if (e.key === 'Escape') {
+        setSideOpen(false);
+        setSearch(false);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => setSideOpen(false), [pathname]);
+  useEffect(() => {
+    setSideOpen(false);
+    setSearch(false);
+  }, [pathname]);
 
   const envLabel = env === 'production' ? 'Production' : env === 'staging' ? 'Staging' : 'Local';
 
   return (
-    <div className={styles.console}>
-      <aside className={`${styles.side} ${sideOpen ? styles.sideOpen : ''}`} aria-label="Admin navigation">
-        <div className={styles.brand}>
+    <div className="console">
+      <aside className={sideOpen ? 'side open' : 'side'} aria-label="Admin navigation">
+        <div className="side__brand">
           <img src="/brand/mark.png" width={32} height={32} alt="" />
           <div>
-            <span className={styles.wordmark} role="img" aria-label="arpedia" />
-            <small>Admin console</small>
+            <span className="wmk wmk--light" role="img" aria-label="arpedia" style={{ height: 22 }} />
+            <small style={{ marginTop: 4 }}>Admin console</small>
           </div>
         </div>
-        <div className={styles.env}>
-          <span className={styles.dot} />
+        <div className="env">
+          <span className="dot" />
           <span>
             <b>{envLabel}</b> · admin.arpedia.africa
           </span>
         </div>
-        <nav className={styles.nav}>
+        <nav className="side__nav">
           {nav.map(sec => {
             const open = sec.key === openSection?.key;
-            const current = open && (sec.sub.length === 0 || !page);
             return (
-              <div key={sec.key} className={`${styles.sec} ${open ? styles.secOpen : ''}`}>
+              <div key={sec.key} className={open && sec.sub.length ? 'side__sec open' : 'side__sec'}>
                 <Link
                   href={sec.href}
-                  className={styles.item}
-                  aria-current={current ? 'page' : undefined}
-                  aria-expanded={sec.sub.length ? open : undefined}
+                  className="side__item"
+                  aria-current={open && sec.sub.length === 0 ? 'page' : undefined}
                 >
                   <Icon name={sec.icon} />
                   {sec.label}
                 </Link>
-                {sec.sub.length && open ? (
-                  <div className={styles.sub}>
+                {sec.sub.length ? (
+                  <div className="side__sub">
                     {sec.sub.map(s => (
                       <Link key={s.key} href={`/${s.key}`} aria-current={page?.key === s.key ? 'page' : undefined}>
                         {s.label}
@@ -91,74 +100,126 @@ export function Shell({ staff, env, signOut, children }: ShellProps) {
             );
           })}
         </nav>
-        <form action={signOut} className={styles.me}>
+        <Link className="side__me" href="/account" aria-current={pathname === '/account' ? 'page' : undefined}>
           <span className="av sm g">{initials(staff.name)}</span>
-          <span className={styles.meText}>
+          <span>
             <b>{staff.name}</b>
             <small>{staff.roleLabel}</small>
           </span>
-          <button type="submit" className={`ib ${styles.signOut}`} aria-label="Sign out">
-            <Icon name="out" size="s" />
-          </button>
-        </form>
+        </Link>
       </aside>
-      {sideOpen ? <div className={styles.scrim} onClick={() => setSideOpen(false)} aria-hidden="true" /> : null}
 
-      <div className={styles.workspace}>
-        <div className={styles.topbar}>
-          <button className={`ib ${styles.topmenu}`} aria-label="Open navigation" onClick={() => setSideOpen(true)}>
+      <div className="workspace">
+        <div className="topbar">
+          <button className="ib topmenu" aria-label="Open navigation" onClick={() => setSideOpen(v => !v)}>
             <Icon name="menu" />
           </button>
-          <button type="button" className={styles.gsearch} onClick={() => setCmdk(true)}>
+          <a
+            className="gsearch"
+            href="#search"
+            onClick={e => {
+              e.preventDefault();
+              setSearch(true);
+            }}
+          >
             <Icon name="search" size="s" />
             <span>Search readers, books, authors, payments</span>
             <kbd>Ctrl K</kbd>
-          </button>
-          <span className={styles.spacer} />
+          </a>
+          <span className="spacer" />
           {/* Opens the Books pipeline; the upload form itself arrives with flow 12. */}
           <Link href="/books" className="btn btn-g sm">
             <Icon name="plus" size="xs" />
             New book
           </Link>
-          <button type="button" className="ib" aria-label="Staff alerts">
+          {/* Staff alerts arrive with the flows that raise them (flow 16 sets who gets which). */}
+          <Link className="ib" href="/account" aria-label="Staff alerts">
             <Icon name="bell" />
-          </button>
-          <button type="button" className="ib" aria-label="Help">
+          </Link>
+          <Link className="ib" href="/help" aria-label="Help">
             <Icon name="help" />
-          </button>
+          </Link>
         </div>
-        <main className={styles.view}>{children}</main>
+        <main className="view">
+          {children}
+          {search ? <Search onClose={() => setSearch(false)} /> : null}
+        </main>
       </div>
-
-      <Command.Dialog
-        open={cmdk}
-        onOpenChange={setCmdk}
-        label="Search the console"
-        className={styles.cmdk}
-        overlayClassName={styles.cmdkOverlay}
-      >
-        <Command.Input placeholder="Search readers, books, authors, payments" className={styles.cmdkInput} />
-        <Command.List className={styles.cmdkList}>
-          <Command.Empty className={styles.cmdkEmpty}>Nothing matches that yet.</Command.Empty>
-          {nav.map(sec => (
-            <Command.Group key={sec.key} heading={sec.label} className={styles.cmdkGroup}>
-              {(sec.sub.length ? sec.sub.map(s => ({ ...s, href: `/${s.key}` })) : [{ key: sec.key, label: sec.label, href: sec.href }]).map(item => (
-                <Command.Item
-                  key={item.key}
-                  value={`${sec.label} ${item.label}`}
-                  onSelect={() => {
-                    setCmdk(false);
-                    router.push(item.href);
-                  }}
-                  className={styles.cmdkItem}
-                >
-                  {item.label}
-                </Command.Item>
-              ))}
-            </Command.Group>
-          ))}
-        </Command.List>
-      </Command.Dialog>
     </div>
+  );
+}
+
+/** s-cmdk: search overlay. For now it finds console pages; records join as later flows add them. */
+function Search({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [q, setQ] = useState('');
+  const [active, setActive] = useState(0);
+  const input = useRef<HTMLInputElement>(null);
+  const hits = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return t ? pages.filter(p => `${p.section} ${p.label}`.toLowerCase().includes(t)) : pages;
+  }, [q]);
+
+  useEffect(() => input.current?.focus(), []);
+  useEffect(() => setActive(0), [q]);
+
+  const go = (href: string) => {
+    onClose();
+    router.push(href);
+  };
+
+  return (
+    <section className="screen overlay enter">
+      <a
+        className="backdrop"
+        href="#close"
+        aria-label="Close search"
+        onClick={e => {
+          e.preventDefault();
+          onClose();
+        }}
+      />
+      <div className="cmdk" role="dialog" aria-label="Search">
+        <div className="cmdk__in">
+          <Icon name="search" />
+          <input
+            ref={input}
+            value={q}
+            aria-label="Search"
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'ArrowDown') setActive(i => Math.min(i + 1, hits.length - 1));
+              else if (e.key === 'ArrowUp') setActive(i => Math.max(i - 1, 0));
+              else if (e.key === 'Enter' && hits[active]) go(hits[active].href);
+              else return;
+              e.preventDefault();
+            }}
+          />
+          <span className="kbd">Esc</span>
+        </div>
+        <div className="cmdk__grp">Pages</div>
+        {hits.length ? (
+          hits.map((p, i) => (
+            <Link key={p.href} className={i === active ? 'li is-active' : 'li'} href={p.href} onClick={onClose}>
+              <span className="li__body">
+                <b>{p.label}</b>
+              </span>
+              <span className="li__trail">{p.section}</span>
+            </Link>
+          ))
+        ) : (
+          <div className="empty">
+            <b>Nothing matches that yet</b>
+            <span>Readers, books and payments become searchable as they arrive.</span>
+          </div>
+        )}
+        <div className="panel__foot">
+          <span>Up and down to move · Enter to open</span>
+          <span>
+            {hits.length} {hits.length === 1 ? 'result' : 'results'}
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }

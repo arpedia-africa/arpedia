@@ -1,0 +1,18 @@
+/* Console-only additions on top of prototype.css (generated, verbatim). Keep this file tiny:
+   anything visual belongs to the prototype. */
+
+/* The prototype's top strip (screen index, notes) is prototype chrome, not part of the console. */
+:root {
+  --pbar-h: 0px;
+}
+
+/* Loading placeholder (the prototype has no loading screens); prototype tokens only. */
+.skel {
+  border-radius: 8px;
+  background: var(--surface);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skel {
+    animation: m-fade 1.2s var(--ease) infinite alternate;
+  }
+}
