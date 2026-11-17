@@ -5,15 +5,15 @@
 // App (Android, owner's phone c1212d5c at 375 dp, or --serial):
 //   node tools/parity.mjs kit-a kit-b [--dev] [--themes sunflower,palm] [--serial <id>] [--max 2] [--ref chrome]
 //   - reference: tools/parity/<id>.html (prototype elements, verbatim) with the prototype's CSS inside
-//     a 375-wide .device. By default it is drawn on the same phone, in the dev build's WebView
+//     a 375-wide .device. By default it is drawn on the same phone, in the dev build's WebView (or the
+//     release kit build's when no dev build is installed)
 //     (arpedia://parity?…&ref=<port>, page served from this PC over adb reverse), so reference and
 //     build share Android's text rasteriser. --ref chrome draws it in desktop Chrome instead
 //     (DirectWrite glyphs; differs from Android by ~2-3% on text-heavy pages).
 //   - build: the app's parity screen (arpedia://parity?page=<id>&theme=<theme>, kit builds only) in the
 //     release app com.arpedia.reader (the gate), or with --dev in com.arpedia.reader.dev on Metro (fast loop)
 //   - both captured with adb screencap below the status bar, scaled to 375 px wide, at text size 1.0
-//     (the device's own text size is restored afterwards). Needs the dev build installed
-//     (node tools/android-dev.mjs) for the reference.
+//     (the device's own text size is restored afterwards).
 // Admin (Chrome headless, 1440×900, local console on --url, default http://127.0.0.1:3000):
 //   node tools/parity.mjs --admin signin overview
 //   - signin: whole page (fields filled with the prototype's values)
@@ -312,10 +312,17 @@ try {
     }
     const g = phone();
     if (Math.abs(g.dp - 375) > 1) console.warn(`warning: ${serial} is ${g.dp.toFixed(1)} dp wide, not 375`);
+    // Reference app: the dev build when installed, else the release kit build (kit builds may load
+    // http from 127.0.0.1 only, apps/mobile/plugins/kit-localhost.js).
+    const devInstalled = adb('shell', 'pm', 'list', 'packages', DEV_PACKAGE)
+      .toString()
+      .split(/\r?\n/)
+      .some((l) => l.trim() === `package:${DEV_PACKAGE}`);
+    const refPackage = dev || devInstalled ? DEV_PACKAGE : RELEASE_PACKAGE;
     for (const id of ids)
       for (const theme of themes) {
         const ref = server
-          ? await capture(DEV_PACKAGE, `\\&ref=${server.port}`, id, theme, 'ref', g)
+          ? await capture(refPackage, `\\&ref=${server.port}`, id, theme, 'ref', g)
           : await chromeReference(b, id, theme, g.dpr);
         const build = await capture(buildPackage, '', id, theme, 'build', g, ref.height);
         const buildH = (await sharp(build.png).metadata()).height;

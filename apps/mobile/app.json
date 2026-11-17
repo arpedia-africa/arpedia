@@ -28,6 +28,7 @@
       "expo-secure-store",
       "expo-dev-client",
       "./plugins/dev-variant",
+      "./plugins/kit-localhost",
       [
         "expo-splash-screen",
         {

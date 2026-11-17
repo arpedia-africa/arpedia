@@ -59,7 +59,7 @@ const ready = (page: string, theme: string, kind: 'build' | 'ref', top: number, 
 /**
  * The prototype reference, drawn on the same phone by Android's WebView so both sides of the pixel
  * gate use the same text rasteriser. parity.mjs serves the page on the PC (adb reverse tcp:<port>);
- * plain http to localhost only loads in debug builds (com.arpedia.reader.dev).
+ * plain http to localhost loads in debug builds and kit release builds (plugins/kit-localhost.js).
  */
 function Reference({ page, theme, port }: { page: string; theme: string; port: string }) {
   const { c } = useTheme();
