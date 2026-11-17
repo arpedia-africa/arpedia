@@ -9,7 +9,7 @@ export {
   type Colors,
   type ThemeProviderProps,
 } from './theme';
-export { fontFamily } from './fonts';
+export { displayFonts, fontFamily } from './fonts';
 export { Text, type TextProps } from './Text';
 export { Icon, type IconName, type IconProps, type IconSize } from './Icon';
 export { Press, type PressProps } from './Pressable';

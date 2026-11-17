@@ -46,7 +46,7 @@ export function Text({
   const f = family ?? t.family;
   const w = weight ?? t.weight;
   const textStyle: TextStyle = {
-    fontFamily: fontFamily(f, w, italic ?? t.italic),
+    fontFamily: fontFamily(f, w, italic ?? t.italic, size ?? t.size),
     fontSize: fs,
     lineHeight: Math.round(fs * t.lineHeight * 100) / 100,
     letterSpacing: t.letterSpacing ? fs * t.letterSpacing : 0,

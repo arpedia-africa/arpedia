@@ -121,7 +121,13 @@ function Gallery() {
                 onPress={() => toast({ message: 'Opening the reader' })}
               />
               <Btn label="Unlock all · 125 credits" variant="s" block />
-              <Btn label="Write a review" variant="g" icon="pen" size="sm" style={{ alignSelf: 'flex-start' }} />
+              <Btn
+                label="Write a review"
+                variant="g"
+                icon="pen"
+                size="sm"
+                style={{ alignSelf: 'flex-start' }}
+              />
               <Btn label="Pay the rest" variant="n" size="md" style={{ alignSelf: 'flex-start' }} />
               <Row inset={false}>
                 <Btn label="Disabled" disabled size="md" />

@@ -13,15 +13,11 @@ import {
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
 import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_800ExtraBold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import {
   Literata_400Regular,
   Literata_400Regular_Italic,
   Literata_600SemiBold,
 } from '@expo-google-fonts/literata';
-import { ThemeProvider, ToastProvider } from '@arpedia/ui';
+import { ThemeProvider, ToastProvider, displayFonts } from '@arpedia/ui';
 import { QueryProvider } from '@/lib/query';
 import { Telemetry, initSentry, wrapRoot } from '@/lib/telemetry';
 import { useUi } from '@/lib/ui-store';
@@ -36,8 +32,7 @@ function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     Inter_800ExtraBold,
-    BricolageGrotesque_600SemiBold,
-    BricolageGrotesque_800ExtraBold,
+    ...displayFonts,
     Literata_400Regular,
     Literata_400Regular_Italic,
     Literata_600SemiBold,
