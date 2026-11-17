@@ -9,6 +9,9 @@ Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live st
    - Claim it: push branch flow/NN-name from main, then open a draft PR labelled flow-NN with the Progress checklist from CLOUD-RUN.md.
    - Build it with the kickoff prompt in docs/prd/BUILD-PLAN.md. Screens must match the prototype exactly (tools/screen.mjs, tools/shot.mjs). Check them at 320, 360 and 375dp in all four themes.
 4. If nothing is ready, comment once on issue #1 "Build status" with what you are waiting for, then print the line NOTHING-TO-DO and stop.
+5. **If the only thing to do is wait** (a CI run on the flow branch is queued or in progress, and the Next step depends on its result): don't poll or sleep. Print the line WAITING-FOR-CI and stop. The runner will start you again later.
+
+Never spend a run only re-reading state. If you can do useful work while CI runs (another unchecked step that doesn't depend on that CI result), do it. Otherwise print WAITING-FOR-CI and stop at once.
 
 **Rules:**
 - Checkpoint after every step: commit, push, and update the PR description (Progress / Next step / Notes), so another Claude account can continue at any moment.
