@@ -130,7 +130,9 @@ export function Toggle({ value, onChange, label, disabled }: ToggleProps) {
   const track = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(t.value, [0, 1], [c.control, c.org]),
   }));
-  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: t.value * s(18) }] }));
+  // s() is a JS function: worklets can't call it on the UI thread, so pass the number in.
+  const travel = s(18);
+  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: t.value * travel }] }));
   return (
     <Pressable
       accessibilityRole="switch"

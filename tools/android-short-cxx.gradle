@@ -1,12 +1,13 @@
 // Windows only: CMake object paths under node_modules/<lib>/android/.cxx pass the 260-char limit
 // (ninja: "mkdir(CMakeFiles/reanimated.dir/...): No such file or directory"). Stage native builds
-// in a short folder, and let CMake hash object paths that would still be too long.
+// in a short folder, and let CMake hash object paths that would still be too long. The max must
+// leave room for <object dir>/<32-char hash>/<file>.o, or CMake keeps the long name (so not 200).
 // Passed with -I by tools/android-release.mjs; CI (Linux) doesn't use it.
 allprojects { p ->
   ['com.android.library', 'com.android.application'].each { id ->
     p.plugins.withId(id) {
       p.android.externalNativeBuild.cmake.buildStagingDirectory = new File("C:/cxx/${p.name}")
-      p.android.defaultConfig.externalNativeBuild.cmake.arguments('-DCMAKE_OBJECT_PATH_MAX=200')
+      p.android.defaultConfig.externalNativeBuild.cmake.arguments('-DCMAKE_OBJECT_PATH_MAX=250')
     }
   }
 }
