@@ -27,6 +27,7 @@
       "expo-font",
       "expo-secure-store",
       "expo-dev-client",
+      "./plugins/dev-variant",
       [
         "expo-splash-screen",
         {

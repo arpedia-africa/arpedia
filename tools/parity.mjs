@@ -3,12 +3,17 @@
 // --max percent (default 2) of pixels differ in any theme.
 //
 // App (Android, owner's phone c1212d5c at 375 dp, or --serial):
-//   node tools/parity.mjs kit-a kit-b [--themes sunflower,palm] [--serial <id>] [--max 2]
-//   - reference: tools/parity/<id>.html (prototype elements, verbatim) rendered with the prototype's CSS
-//     inside a 375-wide .device at the phone's pixel density, then scaled to 375 px wide
-//   - build: the app's parity screen (arpedia://parity?page=<id>&theme=<theme>, kit builds only),
-//     captured with adb screencap below the status bar, scaled to 375 px wide, at text size 1.0
-//     (the device's own text size is restored afterwards)
+//   node tools/parity.mjs kit-a kit-b [--dev] [--themes sunflower,palm] [--serial <id>] [--max 2] [--ref chrome]
+//   - reference: tools/parity/<id>.html (prototype elements, verbatim) with the prototype's CSS inside
+//     a 375-wide .device. By default it is drawn on the same phone, in the dev build's WebView
+//     (arpedia://parity?…&ref=<port>, page served from this PC over adb reverse), so reference and
+//     build share Android's text rasteriser. --ref chrome draws it in desktop Chrome instead
+//     (DirectWrite glyphs; differs from Android by ~2-3% on text-heavy pages).
+//   - build: the app's parity screen (arpedia://parity?page=<id>&theme=<theme>, kit builds only) in the
+//     release app com.arpedia.reader (the gate), or with --dev in com.arpedia.reader.dev on Metro (fast loop)
+//   - both captured with adb screencap below the status bar, scaled to 375 px wide, at text size 1.0
+//     (the device's own text size is restored afterwards). Needs the dev build installed
+//     (node tools/android-dev.mjs) for the reference.
 // Admin (Chrome headless, 1440×900, local console on --url, default http://127.0.0.1:3000):
 //   node tools/parity.mjs --admin signin overview
 //   - signin: whole page (fields filled with the prototype's values)
@@ -16,7 +21,8 @@
 // Output: .shots/parity/<id>-<theme>.png = reference | build | diff (red = differing pixels)
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { createServer } from 'node:http';
+import { join, dirname, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import pixelmatch from 'pixelmatch';
 import sharp from 'sharp';
@@ -28,6 +34,11 @@ const opt = (name, def) => {
   return i === -1 ? def : argv.splice(i, 2)[1];
 };
 const admin = argv.includes('--admin');
+const dev = argv.includes('--dev');
+const refOn = opt('ref', 'phone');
+const RELEASE_PACKAGE = 'com.arpedia.reader';
+const DEV_PACKAGE = 'com.arpedia.reader.dev';
+const buildPackage = dev ? DEV_PACKAGE : RELEASE_PACKAGE;
 const max = Number(opt('max', '2'));
 const themes = opt('themes', admin ? 'light' : 'sunflower,palm,plum,night').split(',');
 const serial = opt('serial', process.env.ANDROID_SERIAL || 'c1212d5c');
@@ -153,10 +164,10 @@ function phone() {
   return { widthPx: px[0], heightPx: px[1], dpr: dpi / 160, dp };
 }
 
-async function appReference(b, id, theme, dpr) {
+/** JS expression: hide the prototype, mount tools/parity/<id>.html in a 375-wide .device, settle, return its height. */
+function referenceScript(id, theme) {
   const frag = readFileSync(join(root, 'tools/parity', `${id}.html`), 'utf8');
-  await b.open(standards('prototype/index.html'), { width: 375, height: 1400, dpr });
-  const height = await b.eval(`(async()=>{
+  return `(async()=>{
     for (const el of [...document.body.children]) if (el.tagName !== 'svg' && el.tagName !== 'SCRIPT') el.style.display = 'none';
     const st = document.createElement('style');
     st.textContent = '.pk{display:flex;flex-direction:column;gap:12px;padding:16px}.pk-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.pk-dev .hero{margin-top:0;padding-top:0}';
@@ -169,12 +180,55 @@ async function appReference(b, id, theme, dpr) {
     document.body.appendChild(d);
     await ${SETTLE};
     return Math.ceil(d.getBoundingClientRect().height);
-  })()`);
+  })()`;
+}
+
+async function chromeReference(b, id, theme, dpr) {
+  await b.open(standards('prototype/index.html'), { width: 375, height: 1400, dpr });
+  const height = await b.eval(referenceScript(id, theme));
   const png = await b.shot({ x: 0, y: 0, width: 375, height });
   return { png, height };
 }
 
-async function appBuild(id, theme, g, height) {
+/**
+ * Serves the reference page to the dev build's WebView: GET /ref?page=&theme= is the prototype
+ * (standards mode, phone viewport) that mounts the parity fragment and posts "ready:<height>".
+ * Files under prototype/ are served for relative assets.
+ */
+async function referenceServer() {
+  const proto = readFileSync(join(root, 'prototype/index.html'), 'utf8');
+  const protoDir = resolve(root, 'prototype');
+  const server = createServer((req, res) => {
+    const url = new URL(req.url, 'http://x');
+    if (url.pathname === '/ref') {
+      const id = url.searchParams.get('page');
+      if (!existsSync(join(root, 'tools/parity', `${id}.html`))) return res.writeHead(404).end();
+      const script = `addEventListener('load',()=>${referenceScript(id, url.searchParams.get('theme'))}.then(h=>window.ReactNativeWebView.postMessage('ready:'+h)))`;
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(
+        `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><base href="/prototype/">${proto}<script>${script}</script>`,
+      );
+    }
+    const file = resolve(protoDir, '.' + decodeURIComponent(url.pathname.replace(/^\/prototype/, '')));
+    if (!file.startsWith(protoDir + sep) || !existsSync(file)) return res.writeHead(404).end();
+    res.writeHead(200).end(readFileSync(file));
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const port = server.address().port;
+  adb('reverse', `tcp:${port}`, `tcp:${port}`);
+  return {
+    port,
+    close() {
+      try {
+        adb('reverse', '--remove', `tcp:${port}`);
+      } catch {}
+      server.close();
+    },
+  };
+}
+
+/** Open a parity page in an app, wait for its PARITY_READY line, capture below the status bar. */
+async function capture(pkg, query, id, theme, kind, g, height) {
   adb('logcat', '-c');
   adb(
     'shell',
@@ -184,24 +238,30 @@ async function appBuild(id, theme, g, height) {
     '-a',
     'android.intent.action.VIEW',
     '-d',
-    `arpedia://parity?page=${id}\\&theme=${theme}`,
-    'com.arpedia.reader',
+    `arpedia://parity?page=${id}\\&theme=${theme}${query}`,
+    pkg,
   );
-  let top = null;
-  for (let i = 0; i < 40 && top === null; i++) {
+  let m = null;
+  for (let i = 0; i < 80 && !m; i++) {
     await sleep(250);
     const log = adb('logcat', '-d', '-s', 'ReactNativeJS:I').toString();
-    const m = [...log.matchAll(/PARITY_READY page=(\S+) theme=(\S+) top=(\d+)/g)]
-      .filter((x) => x[1] === id && x[2] === theme)
+    m = [...log.matchAll(/PARITY_READY page=(\S+) theme=(\S+) kind=(\S+) top=(\d+)(?: h=(\d+))?/g)]
+      .filter((x) => x[1] === id && x[2] === theme && x[3] === kind)
       .pop();
-    if (m) top = Number(m[3]);
   }
-  if (top === null)
-    throw new Error(`parity screen did not report ready (is a kit build installed on ${serial}?)`);
+  if (!m)
+    throw new Error(
+      `${pkg} parity ${kind} did not report ready (is a kit/dev build installed on ${serial}?)`,
+    );
+  const top = Number(m[4]);
+  height ??= Number(m[5]);
   await sleep(900); // arrive animations
   const raw = adb('exec-out', 'screencap', '-p');
   const h = Math.min(Math.round(height * g.dpr), g.heightPx - top);
-  return sharp(raw).extract({ left: 0, top, width: g.widthPx, height: h }).png().toBuffer();
+  return {
+    png: await sharp(raw).extract({ left: 0, top, width: g.widthPx, height: h }).png().toBuffer(),
+    height,
+  };
 }
 
 async function compare(name, refPng, buildPng, width, height, regions) {
@@ -237,7 +297,8 @@ async function compare(name, refPng, buildPng, width, height, regions) {
 }
 
 const results = [];
-const b = await browser();
+const b = admin || refOn === 'chrome' ? await browser() : null;
+const server = admin || refOn === 'chrome' ? null : await referenceServer();
 // The gate is at the default font size. If the device has a different text size (the owner's phone
 // is at 0.9), set 1.0 for the captures and always put the owner's value back.
 let fontScale = null;
@@ -247,22 +308,30 @@ try {
     if (fontScale === 'null' || Number(fontScale) === 1) fontScale = null;
     else {
       adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0');
-      adb('shell', 'am', 'force-stop', 'com.arpedia.reader');
+      for (const pkg of [RELEASE_PACKAGE, DEV_PACKAGE]) adb('shell', 'am', 'force-stop', pkg);
     }
     const g = phone();
     if (Math.abs(g.dp - 375) > 1) console.warn(`warning: ${serial} is ${g.dp.toFixed(1)} dp wide, not 375`);
     for (const id of ids)
       for (const theme of themes) {
-        const ref = await appReference(b, id, theme, g.dpr);
-        const build = await appBuild(id, theme, g, ref.height);
-        const buildH = (await sharp(build).metadata()).height;
-        const height = Math.min(ref.height, Math.floor(buildH / g.dpr));
-        const refCrop = await sharp(ref.png)
-          .extract({ left: 0, top: 0, width: Math.round(375 * g.dpr), height: Math.round(height * g.dpr) })
-          .toBuffer();
+        const ref = server
+          ? await capture(DEV_PACKAGE, `\\&ref=${server.port}`, id, theme, 'ref', g)
+          : await chromeReference(b, id, theme, g.dpr);
+        const build = await capture(buildPackage, '', id, theme, 'build', g, ref.height);
+        const buildH = (await sharp(build.png).metadata()).height;
+        const refH = (await sharp(ref.png).metadata()).height;
+        const px = Math.min(buildH, refH);
+        const crop = (png) =>
+          sharp(png).extract({ left: 0, top: 0, width: g.widthPx, height: px }).toBuffer();
         results.push({
           name: `${id}-${theme}`,
-          ...(await compare(`${id}-${theme}`, refCrop, build, 375, height)),
+          ...(await compare(
+            `${id}-${theme}`,
+            await crop(ref.png),
+            await crop(build.png),
+            375,
+            Math.floor(px / g.dpr),
+          )),
         });
       }
   } else {
@@ -326,7 +395,8 @@ try {
   }
 } finally {
   if (fontScale) adb('shell', 'settings', 'put', 'system', 'font_scale', fontScale);
-  b.close();
+  b?.close();
+  server?.close();
 }
 
 let failed = false;
