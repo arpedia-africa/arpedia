@@ -4,7 +4,7 @@
 // Same env as CI: EXPO_PUBLIC_KIT=1, NODE_ENV=production. On Windows it uses Android Studio's
 // bundled JBR when present (the RN build needs JDK 17+; the PATH java may be older).
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +26,10 @@ if (!args.has('--no-prebuild')) {
   run('npx', ['expo', 'prebuild', '--platform', 'android', '--no-install'], mobile);
 }
 const android = join(mobile, 'android');
+// The bundle task only watches apps/mobile, so edits in packages/* would ship a stale bundle.
+for (const dir of ['generated/assets/createBundleReleaseJsAndAssets', 'generated/assets/react/release']) {
+  rmSync(join(android, 'app/build', dir), { recursive: true, force: true });
+}
 const gradlew = join(android, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
 const gradleArgs = ['assembleRelease', '-PreactNativeArchitectures=x86_64'];
 if (process.platform === 'win32') gradleArgs.push('-I', `"${join(root, 'tools/android-short-cxx.gradle')}"`);
