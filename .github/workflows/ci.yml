@@ -93,6 +93,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # The hosted runner has ~14 GB free; the RN build plus the emulator image needs more.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/powershell /usr/local/share/chromium /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force > /dev/null || true
+          df -h /
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -114,6 +121,11 @@ jobs:
           EXPO_PUBLIC_KIT: '1'
           NODE_ENV: production
         run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+      - name: Drop build intermediates (keep the APK)
+        run: |
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/"
+          rm -rf apps/mobile/android/app/build apps/mobile/android/build
+          df -h /
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
@@ -132,7 +144,7 @@ jobs:
           profile: pixel_6
           disable-animations: false
           script: |
-            adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+            adb install -r "$RUNNER_TEMP/app-release.apk"
             mkdir -p .shots/emulator && cd .shots/emulator && node ../../tools/maestro-widths.mjs ../../apps/mobile/.maestro/00-kit.yaml
       - uses: actions/upload-artifact@v4
         if: always()
