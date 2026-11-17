@@ -75,16 +75,14 @@ Everything that has to exist before the build starts, in order. Follow it yourse
 ### 1.2 Turn on two-step sign-in
 1. Avatar (top right) → **Settings** → **Password and authentication** → **Enable two-factor authentication**.
 2. 🙋 Scan the QR with your authenticator and type the code.
-3. 🔑 Download the recovery codes and save them as a Secure Note `GitHub recovery codes`.
+3. 🔑 Download the recovery codes and save them in `backup-codes.txt`.
 
-### 1.3 Create the organisation
-1. Avatar → **Your organizations** → **New organization** → **Free**.
-2. Organization name **`arpedia`** (or `arpedia-africa` if taken). Contact email arpedia.africa@gmail.com. "Belongs to: My personal account".
-3. Optional: invite your personal account (**Chifurumnanya1**) as a **Member**. Org → People → Invite member.
+### 1.3 Repository: ✅ done
+The code lives on the **personal account `arpedia-africa`** (no organisation), in the private repo **`arpedia-africa/arpedia`**, created and pushed on 17 Nov 2026. Later, the iOS certificates repo `arpedia-africa/certificates` is created next to it. Optional: add collaborators via repo → Settings → Collaborators.
 
 ### 1.4 Install the Claude GitHub app (needed for the cloud build loop)
-1. Open **github.com/apps/claude** → **Install**.
-2. Choose the **`arpedia`** organisation → **All repositories** → **Install**.
+1. Open **github.com/apps/claude** → **Install** (or **Configure** if already installed).
+2. Choose the **`arpedia-africa`** account → **Only select repositories** → **`arpedia`** (add `certificates` later) → **Install**.
 3. 🙋 Approve with your 2-step code if asked.
 
 ### 1.5 Sign this computer's GitHub CLI in to the new account
@@ -206,7 +204,7 @@ The key alias and both passwords are filled in `secrets.env`. The v25 project is
 - **If an upload is ever rejected for the wrong key:** Play Console → app → **Setup → App integrity → Request upload key reset**. 🙋 Google approves it in about 2 days.
 
 ### 5.2 iOS signing (partner's Apple team)
-Done in Part 7b. fastlane **match** keeps iOS certificates in a private repo, `arpedia/certificates`, encrypted with a password:
+Done in Part 7b. fastlane **match** keeps iOS certificates in a private repo, `arpedia-africa/certificates`, encrypted with a password:
 - 🔑 save a **new** `MATCH_PASSWORD` (Chrome can suggest one). Don't reuse v25's.
 - Claude Code creates that repo when iOS starts.
 
@@ -297,7 +295,7 @@ Done in Part 7b. fastlane **match** keeps iOS certificates in a private repo, `a
 
      🔑 Save it as `APPLE_SIGNIN_SERVICE_ID`.
    - **In-App Purchase key, for RevenueCat:** Users and Access → Integrations → **In-App Purchase** → **+**. Upload it straight to RevenueCat (Part 8). Don't keep a copy.
-7. **Signing certificates:** fastlane `match` creates them in this team, stored in our private `arpedia/certificates` repo. If our role doesn't allow creating certificates, the account holder runs `fastlane match appstore` once with us.
+7. **Signing certificates:** fastlane `match` creates them in this team, stored in our private `arpedia-africa/certificates` repo. If our role doesn't allow creating certificates, the account holder runs `fastlane match appstore` once with us.
 8. **Sign in with Apple is required on iOS**, because the app offers Google sign-in (App Store rule 4.8). It's in flow 01 for iOS.
 9. **v25 iOS subscribers:** their old subscriptions keep running in the old app until they cancel. Through RevenueCat, they keep access in the new app until their old subscription ends, then subscribe in the new one. At launch (flow 17), whoever holds the old account emails them and stops new sales there.
 
@@ -380,7 +378,7 @@ In Claude Code, type:
 > Accounts ready.
 
 Then I:
-1. Initialise git, create the private repo **`arpedia/arpedia`** with the new account, and push the docs, prototypes and tools.
+1. Initialise git, create the private repo **`arpedia-africa/arpedia`** with the new account, and push the docs, prototypes and tools.
 2. Have you run the secrets sync (Part 15).
 3. Set up the cloud build schedules (Part 16).
 
@@ -388,8 +386,8 @@ Then I:
 🙋 You run this in a normal **PowerShell** window, not in the Claude chat. That way values go straight from the secrets file to GitHub and are never shown.
 ```powershell
 cd C:\Users\PC\projects\Arpedia_Rebuild
-node tools/sync-secrets.mjs --repo arpedia/arpedia --dry-run
-node tools/sync-secrets.mjs --repo arpedia/arpedia
+node tools/sync-secrets.mjs --repo arpedia-africa/arpedia --dry-run
+node tools/sync-secrets.mjs --repo arpedia-africa/arpedia
 ```
 - It reads `C:\Users\PC\arpedia-secrets\secrets.env` (or another path via `--file`).
 - The dry run lists what would be copied and which names are missing.
@@ -411,7 +409,7 @@ After Part 15, say **"start the cloud build"**. I then:
 
 ## Final checklist
 - [ ] 0 Secrets folder `C:\Users\PC\arpedia-secrets` with `secrets.env`, authenticator app, USD card, business documents, Gmail 2-step
-- [ ] 1 GitHub `arpedia-africa` + organisation `arpedia` + Claude app + `gh` signed in
+- [x] 1 GitHub `arpedia-africa`, private repo `arpedia-africa/arpedia` pushed, `gh` signed in (Claude app: check 1.4)
 - [ ] 2 Supabase staging (Free) and prod (Pro), London, keys saved
 - [ ] 3 Cloudflare Workers Paid, 4 R2 buckets, R2 token, deploy token, account id
 - [ ] 4 Vercel Pro team Arpedia, token, team id, GitHub connected
@@ -425,7 +423,7 @@ After Part 15, say **"start the cloud build"**. I then:
 - [ ] 11 PostHog key + host
 - [ ] 12 Resend domain + key, Supabase SMTP once verified
 - [ ] 13 DNS on Cloudflare (or records at the registrar)
-- [ ] 14 "Accounts ready" → repo pushed
+- [x] 14 Repo pushed
 - [ ] 15 Secrets synced to GitHub
 - [ ] 16 Cloud build started
 

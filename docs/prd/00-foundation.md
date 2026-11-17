@@ -57,7 +57,7 @@ Build the base every flow stands on, so later flows only add their own tables an
     - **Android:** gradle → Play internal track (`supply`), signed with the v25 upload key.
     - **iOS:** `match` + `gym` → TestFlight (`pilot`), once the Apple account is added.
     - **Android** keeps the v25 package **`com.arpedia.reader`**, so it ships as an update. **iOS** is a new app, **`africa.arpedia.reader`**, in the partner's Apple team.
-    - **Start from the v25 fastlane setup** in `C:\Users\PC\projects\Arpedia\mobile`: `fastlane/Fastfile` (iOS lanes `prebuild`, `beta`, `upload`, `release`), `android/fastlane/Fastfile` (lane `build`) and the `Gemfile`. Adapt them to `expo prebuild` and the new names. Signing env vars are `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_PASSWORD`, not v25's reuse of `MATCH_PASSWORD`. iOS uses `match` with the partner team (`APPLE_TEAM_ID`) and our `arpedia/certificates` repo.
+    - **Start from the v25 fastlane setup** in `C:\Users\PC\projects\Arpedia\mobile`: `fastlane/Fastfile` (iOS lanes `prebuild`, `beta`, `upload`, `release`), `android/fastlane/Fastfile` (lane `build`) and the `Gemfile`. Adapt them to `expo prebuild` and the new names. Signing env vars are `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_PASSWORD`, not v25's reuse of `MATCH_PASSWORD`. iOS uses `match` with the partner team (`APPLE_TEAM_ID`) and our `arpedia-africa/certificates` repo.
 11. **Providers:** ThemeProvider, TanStack Query (with persistence), Supabase client (session in secure storage), Sentry, PostHog (feature flags).
 12. Route groups ready for flows, and an offline banner.
 

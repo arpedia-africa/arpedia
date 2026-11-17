@@ -53,7 +53,7 @@ Every lane agent:
 - **Cost:** each wake that has nothing to do ends in under a minute. A building wake is one flow session. Expect about 26 building sessions in total plus small fix runs.
 
 ## Setup steps (coordinator, after accounts)
-1. Initialise git, commit, create the private repo `arpedia/arpedia` under the new arpedia-africa GitHub account's organisation, and push. *(needs your OK, after `gh` is signed in to that account)*
+1. Initialise git, commit, create the private repo `arpedia-africa/arpedia` under the new arpedia-africa GitHub account's organisation, and push. *(needs your OK, after `gh` is signed in to that account)*
 2. Add the GitHub Actions secrets from the vault (staging only).
 3. Lane L1 builds flow 00, including CI and branch protection. It can run as the first cloud routine run, or locally.
 4. Create the four routines with `/schedule`: L1, L2, L3 every 2 hours, fix every 4 hours. Create the "Build status" tracking issue.

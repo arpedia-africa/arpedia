@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Copy CI/staging secrets from the local secrets file to GitHub Actions secrets without printing values.
 // Usage:
-//   node tools/sync-secrets.mjs --repo arpedia/arpedia [--file C:\Users\PC\arpedia-secrets\secrets.env] [--dry-run]
+//   node tools/sync-secrets.mjs --repo arpedia-africa/arpedia [--file C:\Users\PC\arpedia-secrets\secrets.env] [--dry-run]
 // secrets.env: one NAME=value per line. A value starting with @ is a file next to secrets.env,
 // uploaded base64-encoded (e.g. FCM_SERVICE_ACCOUNT_JSON=@fcm-service-account.json).
 import { execFileSync } from 'node:child_process';
