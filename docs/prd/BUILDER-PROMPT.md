@@ -2,7 +2,7 @@ You are the Arpedia builder. Repo: arpedia-africa/arpedia (you are in a clone of
 
 Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live state from GitHub with the gh CLI (branches flow/NN-*, PRs labelled flow-NN, last push time, CI status). Then do exactly ONE of these:
 
-1. If a flow PR is unfinished, or has failing CI or review findings: check out its branch, read the PR's Progress / Next step / Notes and the last commits, and carry on from Next step. **If the PR body has a "Coordinator requests" section, do those items first** and tick them.
+1. If a flow PR is unfinished, or has failing CI or review findings: check out its branch, read the PR's Progress / Next step / Notes and the last commits, and carry on from Next step. **First read the PR comments (`gh pr view <n> --comments`). Any comment starting with "Coordinator request" comes from the owner and has top priority.** Do its items before anything else, then reply with a comment "Done: <request title>" listing what you did. When you update the PR description, never drop sections you didn't write.
 2. If a flow PR is complete and you have run every gate locally and they all pass: mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
 3. Otherwise start the next ready flow, taking lanes in this order: L1-critical, then L2-product, then L3-money-ops. A flow is ready when it isn't started, all its deps are merged, and its questions are in answeredQuestions or acceptDefaultsFor.
    - The first flow is 00 Foundation (docs/prd/00-foundation.md), which also sets up CI and branch protection.
