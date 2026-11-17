@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
+import { OnHero } from '../hero';
 import { Press } from '../Pressable';
 import { Text } from '../Text';
 import { useDrift } from '../motion';
@@ -119,47 +120,49 @@ export function Hero({ bar, barBack, title, xl, sub, low, children, style }: Her
   const { c, s } = useTheme();
   const size = s(260);
   return (
-    <View style={[{ backgroundColor: c.org, overflow: 'hidden' }, style]}>
-      <Petals
-        size={size}
-        style={low ? { left: s(-110), bottom: s(-130) } : { right: s(-110), top: s(-90) }}
-      />
-      {bar ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: s(2),
-            minHeight: s(52),
-            paddingLeft: s(barBack ? 6 : 16),
-            paddingRight: s(6),
-          }}
-        >
-          {bar}
-        </View>
-      ) : null}
-      {title || sub || children ? (
-        <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) }}>
-          {title ? (
-            <Text
-              variant="display"
-              size={xl ? 36 : 30}
-              color="onOrg"
-              style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}
-            >
-              {title}
-            </Text>
-          ) : null}
-          {sub ? (
-            // max-width: 32ch (Inter "0" ≈ 0.56em at 14.5px ≈ 259px)
-            <Text size={14.5} color="onOrg" style={{ lineHeight: s(14.5) * 1.45, maxWidth: s(259) }}>
-              {sub}
-            </Text>
-          ) : null}
-          {children}
-        </View>
-      ) : null}
-    </View>
+    <OnHero.Provider value>
+      <View style={[{ backgroundColor: c.org, overflow: 'hidden' }, style]}>
+        <Petals
+          size={size}
+          style={low ? { left: s(-110), bottom: s(-130) } : { right: s(-110), top: s(-90) }}
+        />
+        {bar ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: s(2),
+              minHeight: s(52),
+              paddingLeft: s(barBack ? 6 : 16),
+              paddingRight: s(6),
+            }}
+          >
+            {bar}
+          </View>
+        ) : null}
+        {title || sub || children ? (
+          <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) }}>
+            {title ? (
+              <Text
+                variant="display"
+                size={xl ? 36 : 30}
+                color="onOrg"
+                style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}
+              >
+                {title}
+              </Text>
+            ) : null}
+            {sub ? (
+              // max-width: 32ch (Inter "0" ≈ 0.56em at 14.5px ≈ 259px)
+              <Text size={14.5} color="onOrg" style={{ lineHeight: s(14.5) * 1.45, maxWidth: s(259) }}>
+                {sub}
+              </Text>
+            ) : null}
+            {children}
+          </View>
+        ) : null}
+      </View>
+    </OnHero.Provider>
   );
 }
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
+import { nightOnHero, useOnHero } from '../hero';
 import { Icon, type IconName, type IconSize } from '../Icon';
 import { Press } from '../Pressable';
 import { Text } from '../Text';
@@ -42,12 +43,13 @@ export function Btn({
   style,
   accessibilityHint,
 }: BtnProps) {
-  const { c, s } = useTheme();
+  const { c, s, name } = useTheme();
+  const onHero = useOnHero();
   const palette: Record<BtnVariant, { bg: string; fg: string; border?: string }> = {
     p: { bg: c.org, fg: c.onOrg },
     s: { bg: c.orgTint, fg: c.orgInk },
     // prototype hard-codes #fff on .btn-n
-    n: { bg: c.night, fg: '#FFFFFF' },
+    n: name === 'night' && onHero ? nightOnHero : { bg: c.night, fg: '#FFFFFF' },
     g: { bg: c.white, fg: c.ink, border: c.line },
     x: { bg: c.errT, fg: c.err },
   };

@@ -3,6 +3,7 @@ import { Image, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedProps, useAnimatedStyle } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
+import { nightOnHero, useOnHero } from '../hero';
 import { useFill } from '../motion';
 import { Text } from '../Text';
 import { useTheme } from '../theme';
@@ -358,10 +359,11 @@ export function AvatarStack({ people, size = 'sm' }: { people: AvatarProps[]; si
 export type PillTone = 'brand' | 'night' | 'ok' | 'warn' | 'err' | 'info' | 'grey';
 
 export function Pill({ label, tone = 'brand', icon }: { label: string; tone?: PillTone; icon?: ReactNode }) {
-  const { c, s } = useTheme();
+  const { c, s, name } = useTheme();
+  const onHero = useOnHero();
   const look = {
     brand: [c.orgTint, c.orgInk],
-    night: [c.night, c.nightOn],
+    night: name === 'night' && onHero ? [nightOnHero.bg, nightOnHero.fg] : [c.night, c.nightOn],
     ok: [c.okT, c.ok],
     warn: [c.warnT, c.warn],
     err: [c.errT, c.err],

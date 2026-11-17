@@ -2,14 +2,44 @@
   "max": 2,
   "results": [
     {
-      "name": "admin-signin",
-      "pct": 0.031018518518518518,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\admin-signin.png"
+      "name": "kit-a-sunflower",
+      "pct": 3.49067405355494,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-sunflower.png"
     },
     {
-      "name": "admin-overview",
-      "pct": 0.7345955483170467,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\admin-overview.png"
+      "name": "kit-a-palm",
+      "pct": 3.6742382271468146,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-palm.png"
+    },
+    {
+      "name": "kit-a-plum",
+      "pct": 3.768421052631579,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-plum.png"
+    },
+    {
+      "name": "kit-a-night",
+      "pct": 4.252631578947368,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-night.png"
+    },
+    {
+      "name": "kit-b-sunflower",
+      "pct": 4.22719614921781,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-sunflower.png"
+    },
+    {
+      "name": "kit-b-palm",
+      "pct": 4.400481347773766,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-palm.png"
+    },
+    {
+      "name": "kit-b-plum",
+      "pct": 4.424067388688328,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-plum.png"
+    },
+    {
+      "name": "kit-b-night",
+      "pct": 4.598315282791817,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-night.png"
     }
   ]
 }
