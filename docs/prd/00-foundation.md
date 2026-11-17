@@ -62,7 +62,7 @@ Build the base every flow stands on, so later flows only add their own tables an
 12. Route groups ready for flows, and an offline banner.
 
 ### `apps/admin`
-13. Next.js (App Router) on Vercel (team Arpedia, preview deploy per PR). shadcn/ui themed with Arpedia tokens, TanStack Table. Shell with the 10-section sidebar from the admin prototype, top bar and command palette.
+13. Next.js (App Router) on Vercel (team Arpedia, preview deploy per PR). **No component library.** The admin uses the admin prototype's own CSS verbatim (`admin/src/00-head.html`, `00b-components.html`, `00c-motion.html` → `apps/admin/app/prototype.css`). Components render the **same markup and class names** as the prototype screens (`node tools/screen.mjs --admin <id>`). TanStack Table only for data and sorting logic, rendered with the prototype's `.tbl` markup. Shell with the 10-section sidebar from the admin prototype, top bar and command palette.
 14. Staff sign-in using Supabase Auth. The staff role is checked server-side, and pages are blocked for non-staff. Two-step sign-in comes in flow 16.
 
 ### `supabase/`

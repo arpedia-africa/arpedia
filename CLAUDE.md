@@ -18,7 +18,10 @@ African subscription reading community: Android app (Expo), web admin console (N
   ```
 
 ## Rules that never bend
-- **Screens match the prototype exactly**:
+- **Screens are exact replicas of the prototype (owner's top requirement)**:
+  - **Admin (web):** reuse the admin prototype's CSS file verbatim and render the same HTML structure and class names. Never restyle or use a component library.
+  - **App (React Native):** every component mirrors a prototype element one to one (same name, sizes, colours, radii, spacing and type, from `--css`). Icons come only from the prototype sprite (`packages/ui/src/icons`). Never invent a component or icon.
+  - **Pixel gate:** `node tools/parity.mjs` compares each built screen with its prototype reference at 375 wide in 4 themes and **fails above 2% differing pixels**. A screen isn't done until it passes.
   - layout, spacing, sizes, radii, type, copy, colours, icons, motion and every state.
   - Port values 1:1 from `node tools/screen.mjs <id> --css` (CSS px = dp).
   - Before a screen is done, capture the reference with `node tools/shot.mjs --full <id>` (and `--theme palm|plum|night`), capture the built screen on the emulator at the same width (375dp, the prototype's phone width), compare them side by side and fix every difference.
