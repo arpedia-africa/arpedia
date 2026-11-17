@@ -1,0 +1,142 @@
+# Gates for every pull request (docs/prd/BUILD-PLAN.md#gates). Branch protection on main requires
+# the jobs "checks", "database" and "android" to pass.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Format
+        run: pnpm format:check
+      - name: Unit tests (Vitest)
+        run: pnpm test
+      - name: Admin build
+        run: pnpm --filter @arpedia/admin build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-placeholder
+
+  database:
+    name: database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start Supabase (migrations + seed)
+        run: pnpm exec supabase start -x studio,mailpit,imgproxy,vector,logflare,supavisor
+      - name: SQL tests (pgTAP)
+        run: pnpm db:test
+      - name: Generated types are current
+        run: |
+          pnpm -s exec supabase gen types typescript > /tmp/database.types.ts
+          diff -q /tmp/database.types.ts packages/core/src/database.types.ts \
+            || (echo "::error::Run pnpm gen:types and commit packages/core/src/database.types.ts" && exit 1)
+      - name: Local env files
+        run: pnpm dev:vars
+      - name: API Worker health (local, with a seeded JWT)
+        run: |
+          (cd workers/api && npx wrangler dev --port 8787 --local > /tmp/api.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/health && break; sleep 2; done
+          node tools/smoke-api.mjs
+      - name: Admin staff gate
+        run: |
+          pnpm --filter @arpedia/admin build
+          (cd apps/admin && npx next start --port 3000 > /tmp/admin.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3000/sign-in && break; sleep 2; done
+          node tools/smoke-admin.mjs
+      - name: Visual parity references (admin)
+        run: |
+          mkdir -p .shots/admin
+          node tools/shot.mjs --admin signin overview
+          node tools/shot-url.mjs http://127.0.0.1:3000/sign-in .shots/admin/built-signin.png
+          node tools/shot-url.mjs http://127.0.0.1:3000/ .shots/admin/built-overview.png 1440 900 --as amaka@arpedia.africa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-admin
+          path: .shots/admin/*.png
+          if-no-files-found: ignore
+
+  android:
+    name: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: pnpm install --frozen-lockfile
+      - name: Prebuild (CNG)
+        working-directory: apps/mobile
+        run: CI=1 npx expo prebuild --platform android --no-install
+      - name: Build release APK with the kit gallery
+        working-directory: apps/mobile/android
+        env:
+          EXPO_PUBLIC_KIT: '1'
+          NODE_ENV: production
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Maestro on an Android emulator (320, 360, 375dp)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: false
+          script: |
+            adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+            mkdir -p .shots/emulator && cd .shots/emulator && node ../../tools/maestro-widths.mjs ../../apps/mobile/.maestro/00-kit.yaml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-emulator
+          path: .shots/emulator/*.png
+          if-no-files-found: ignore

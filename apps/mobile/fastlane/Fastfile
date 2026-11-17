@@ -1,0 +1,81 @@
+# Arpedia app builds and store uploads. No EAS: native projects come from `expo prebuild` (CNG).
+# Run from apps/mobile:  bundle exec fastlane android internal   |   bundle exec fastlane ios beta
+#
+# Android signing (v25 upload key; never committed):
+#   ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   PLAY_JSON_KEY_PATH (Play service account)
+# iOS (partner team, once the Apple account is added):
+#   APPLE_TEAM_ID, MATCH_PASSWORD, MATCH_GIT_BASIC_AUTHORIZATION, APP_STORE_CONNECT_API_KEY_PATH
+
+default_platform(:android)
+
+def expo_prebuild(platform)
+  sh("cd .. && CI=1 npx expo prebuild --platform #{platform} --clean --no-install")
+  sh("cd ../ios && pod install") if platform == "ios"
+end
+
+platform :android do
+  desc "Signed release bundle (.aab) from a clean prebuild"
+  lane :build do
+    expo_prebuild("android")
+    keystore = File.expand_path(ENV.fetch("ANDROID_KEYSTORE_PATH"))
+    gradle(
+      project_dir: "android",
+      task: "bundle",
+      build_type: "Release",
+      properties: {
+        "android.injected.signing.store.file" => keystore,
+        "android.injected.signing.store.password" => ENV.fetch("ANDROID_KEYSTORE_PASSWORD"),
+        "android.injected.signing.key.alias" => ENV.fetch("ANDROID_KEY_ALIAS"),
+        "android.injected.signing.key.password" => ENV.fetch("ANDROID_KEY_PASSWORD"),
+      },
+    )
+  end
+
+  desc "Build and upload to the Play internal track"
+  lane :internal do
+    build
+    supply(
+      track: "internal",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: "completed",
+    )
+  end
+end
+
+platform :ios do
+  desc "Generate the native iOS project"
+  lane :prebuild do
+    expo_prebuild("ios")
+  end
+
+  desc "Signed build uploaded to TestFlight"
+  lane :beta do
+    expo_prebuild("ios")
+    setup_ci if is_ci
+    api_key = app_store_connect_api_key(key_filepath: ENV["APP_STORE_CONNECT_API_KEY_PATH"]) if ENV["APP_STORE_CONNECT_API_KEY_PATH"]
+    match(
+      type: "appstore",
+      app_identifier: "africa.arpedia.reader",
+      git_url: "https://github.com/arpedia-africa/certificates.git",
+      team_id: ENV.fetch("APPLE_TEAM_ID"),
+      readonly: is_ci,
+      api_key: api_key,
+    )
+    gym(workspace: "ios/Arpedia.xcworkspace", scheme: "Arpedia", export_method: "app-store", clean: true)
+    upload(api_key: api_key)
+  end
+
+  desc "Upload the last build to TestFlight"
+  lane :upload do |options|
+    pilot(api_key: options[:api_key], skip_waiting_for_build_processing: true)
+  end
+
+  desc "Submit the TestFlight build for App Store review (release is still manual)"
+  lane :release do
+    deliver(submit_for_review: true, automatic_release: false, force: true, skip_screenshots: true, skip_metadata: true)
+  end
+end

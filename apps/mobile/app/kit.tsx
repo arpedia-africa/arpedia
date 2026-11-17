@@ -42,6 +42,7 @@ import {
   useToast,
   type ThemeName,
 } from '@arpedia/ui';
+import { kitEnabled } from '@/lib/kit';
 import { useUi } from '@/lib/ui-store';
 
 const WIDTHS = [320, 360, 375] as const;
@@ -352,7 +353,7 @@ export default function Kit() {
   const setTheme = useUi((st) => st.setTheme);
   const [width, setWidth] = useState<number>(Math.min(375, Math.round(window.width)));
   const [reduce, setReduce] = useState<boolean | undefined>(undefined);
-  if (!__DEV__) return <Redirect href="/home" />;
+  if (!kitEnabled) return <Redirect href="/home" />;
 
   return (
     <SafeAreaView

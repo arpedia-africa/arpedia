@@ -1,0 +1,4 @@
+package_name("com.arpedia.reader")      # Android: same package as v25, so the new app ships as an update
+app_identifier("africa.arpedia.reader")  # iOS: new app in the partner's Apple team
+team_id(ENV["APPLE_TEAM_ID"]) if ENV["APPLE_TEAM_ID"]
+json_key_file(ENV["PLAY_JSON_KEY_PATH"]) if ENV["PLAY_JSON_KEY_PATH"]
