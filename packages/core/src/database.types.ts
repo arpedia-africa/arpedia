@@ -35,13 +35,7 @@ export type Database = {
                     "action"?: string,"actor_id"?: string | null,"actor_name"?: string | null,"actor_role"?: Database["public"]['Enums']["staff_role"] | null,"after"?: Json | null,"area"?: string,"at"?: string,"before"?: Json | null,"device"?: string | null,"id"?: never,"ip"?: unknown,"mfa_verified_at"?: string | null,"object_id"?: string | null,"object_label"?: string | null,"object_type"?: string | null,"reason"?: string | null,"request_id"?: string | null,"retain_until"?: string,"summary"?: string | null
                   }
                   Relationships: [
-                    {
-      foreignKeyName: "audit_log_actor_id_fkey"
-      columns: ["actor_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
+                    
                   ]
                 },"book_revisions": {
                   Row: {

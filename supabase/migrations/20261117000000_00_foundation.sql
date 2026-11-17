@@ -90,10 +90,12 @@ $$;
 
 -- ─── audit_log ──────────────────────────────────────────────────────────────
 -- Every staff action. Written only through write_audit(); nobody can update or delete.
+-- actor_id has no foreign key: rows outlive the actor's profile (actor_name keeps who it was),
+-- and an ON DELETE action would be an UPDATE that the no-update trigger rejects.
 create table public.audit_log (
   id bigint generated always as identity primary key,
   at timestamptz not null default now(),
-  actor_id uuid references public.profiles (id) on delete set null,
+  actor_id uuid,
   actor_name text,
   actor_role public.staff_role,
   area text not null,
