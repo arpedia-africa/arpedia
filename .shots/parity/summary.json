@@ -1,0 +1,15 @@
+{
+  "max": 2,
+  "results": [
+    {
+      "name": "admin-signin",
+      "pct": 0.031018518518518518,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\admin-signin.png"
+    },
+    {
+      "name": "admin-overview",
+      "pct": 0.7345955483170467,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\admin-overview.png"
+    }
+  ]
+}
