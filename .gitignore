@@ -13,6 +13,7 @@ supabase/.temp/
 supabase/.branches/
 apps/mobile/android/
 apps/mobile/ios/
+apps/mobile/.claude/
 *.tsbuildinfo
 next-env.d.ts
 .next/
