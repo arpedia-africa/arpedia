@@ -1,11 +1,15 @@
-# Gates for every pull request (docs/prd/BUILD-PLAN.md#gates). Branch protection on main requires
-# the jobs "checks", "database" and "android" to pass.
+# Gates for every ready pull request and main (docs/prd/BUILD-PLAN.md#gates). Draft PRs skip CI to
+# save Actions minutes; builders run the same gates locally. merge-when-green.yml merges a flow-*/fix
+# PR once "checks", "database" and "android" are all green.
 name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ['docs/**', '**/*.md']
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -17,6 +21,7 @@ permissions:
 jobs:
   checks:
     name: checks
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -43,6 +48,7 @@ jobs:
 
   database:
     name: database
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -90,6 +96,7 @@ jobs:
 
   android:
     name: android
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
