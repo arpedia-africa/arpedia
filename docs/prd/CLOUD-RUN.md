@@ -86,6 +86,17 @@ GitHub repo arpedia-africa/arpedia (private) ── the single source of truth
 - Used default for Q62 (finishers only can review)
 ```
 
+## Running it locally with the Claude CLI (current setup)
+One builder runs on this computer with a script, instead of cloud schedules. It follows the same rules and the same GitHub handoff.
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\build-loop.ps1
+```
+- **Clone:** it works in its own clone, `C:\Users\PC\projects\arpedia-builder`, so your working copy is never touched.
+- **Prompt:** each run uses [BUILDER-PROMPT.md](BUILDER-PROMPT.md). A run continues unfinished work or starts the next ready flow, checkpointing to GitHub.
+- **Nothing to do:** it waits 15 minutes and checks again. Stop it any time with Ctrl+C.
+- **When the Claude account hits its limit:** the script stops and says so. Run `claude /login` with a teammate's account, start the script again, and it continues from the PR's Next step.
+- **Options:** `-Model claude-sonnet-5-5` for cheaper screen work, `-IdleMinutes 20`.
+
 ## Switching accounts: two ways
 **A. Automatic.** Each account that should take part creates the **same routines** with `/schedule`:
 - the three lane prompts, every 2 hours (stagger them by an hour across accounts)
