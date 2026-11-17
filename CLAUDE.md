@@ -57,6 +57,8 @@ African subscription reading community: Android app (Expo), web admin console (N
 - TypeScript strict. Database types come from `supabase gen types` (never hand-written). TanStack Query for server data; Zustand only for small UI state.
 - If the prototype and the flow file disagree, the flow file wins.
 - Unanswered questions: use the default in `docs/prd/OPEN-QUESTIONS.md` and note it in your report.
+- **Checkpoint constantly.** After each step of a flow, commit, push, and update the PR description (Progress checklist, **Next step**, Notes). Another teammate's account may continue the work at any moment (`docs/prd/CLOUD-RUN.md`). Nothing may live only in a session.
+- To continue someone else's work: read the open `flow-NN` PR's Progress, Next step and Notes and the last commits, then carry on from Next step.
 - Keep reports short: what shipped, gate results, open items.
 
 ## Commands

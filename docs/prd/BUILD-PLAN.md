@@ -106,7 +106,9 @@ sections of the flows listed under "Depends on".
 Prototype screens: run `node tools/screen.mjs <ids from the flow's Screens table>`.
 Rules: stay inside your ownership paths (docs/prd/BUILD-PLAN.md#ownership);
 migration first, then Workers, then app and admin screens from the kits;
-only the tests BUILD.md allows. Run the gates. Do not merge.
+only the tests BUILD.md allows. Checkpoint after every step (commit + push +
+update the PR's Progress / Next step / Notes) so another account can continue
+if this one stops. Run the gates. Do not merge.
 Report in 15 lines or fewer: what shipped, gate results, anything left open.
 ```
 

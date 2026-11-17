@@ -1,5 +1,5 @@
 {
-  "_readme": "Static build queue. Live state comes from GitHub, not this file: a flow is CLAIMED when branch flow/NN-* or an open PR labelled flow-NN exists, and MERGED when its PR labelled flow-NN is merged into main. Builders never edit this file. The coordinator edits only owners, answeredQuestions and acceptDefaultsFor. A builder takes the first flow in its own lane that is unclaimed, whose deps are all merged, and whose questions are in answeredQuestions or acceptDefaultsFor.",
+  "_readme": "Static build queue. Live state comes from GitHub, not this file: a flow is IN PROGRESS when branch flow/NN-* or an open PR labelled flow-NN exists; STALLED when that PR has had no push for 3 hours (any builder on any account continues it); MERGED when its PR labelled flow-NN is merged. Builders never edit this file. Lanes only keep parallel work apart; any account may run any lane. The coordinator edits answeredQuestions and acceptDefaultsFor.",
   "maxParallel": 3,
   "lanes": {
     "L1-critical": {
@@ -11,8 +11,7 @@
         "04",
         "05",
         "17"
-      ],
-      "owner": "account-A"
+      ]
     },
     "L2-product": {
       "model": "sonnet",
@@ -24,8 +23,7 @@
         "07",
         "15",
         "16"
-      ],
-      "owner": "account-B"
+      ]
     },
     "L3-money-ops": {
       "model": "opus",
@@ -35,8 +33,7 @@
         "13",
         "08",
         "14"
-      ],
-      "owner": "account-C"
+      ]
     }
   },
   "flows": {
@@ -280,9 +277,5 @@
   },
   "answeredQuestions": [],
   "acceptDefaultsFor": [],
-  "accounts": {
-    "account-A": "(set: Claude account / GitHub user running L1, also runs the fix routine)",
-    "account-B": "(set: or same as A if fewer accounts)",
-    "account-C": "(set: or same as A if fewer accounts)"
-  }
+  "stallHours": 3
 }
