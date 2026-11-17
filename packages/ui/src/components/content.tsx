@@ -161,15 +161,24 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
               backgroundColor: 'rgba(255,255,255,0.18)',
             }}
           />
-          <Text
-            family="reading"
-            weight={600}
-            size={titleSize}
-            color={fg}
-            style={{ lineHeight: s(titleSize) * 1.15 }}
-          >
-            {title}
-          </Text>
+          {/* Word by word, like the browser: lines break at spaces only, and a word wider than
+              the cover is clipped (Android would otherwise split it, "Harm/attan"). */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: s(titleSize) * 0.25 }}>
+            {title.split(/\s+/).map((word, i) => (
+              <Text
+                key={i}
+                family="reading"
+                weight={600}
+                size={titleSize}
+                color={fg}
+                numberOfLines={1}
+                ellipsizeMode="clip"
+                style={{ lineHeight: s(titleSize) * 1.15 }}
+              >
+                {word}
+              </Text>
+            ))}
+          </View>
           {author && !tiny ? (
             <Text
               size={7.5}

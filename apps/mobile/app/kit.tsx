@@ -47,7 +47,16 @@ import { useUi } from '@/lib/ui-store';
 
 const WIDTHS = [320, 360, 375] as const;
 
-function Row({ children, wrap = true }: { children: React.ReactNode; wrap?: boolean }) {
+function Row({
+  children,
+  wrap = true,
+  inset = true,
+}: {
+  children: React.ReactNode;
+  wrap?: boolean;
+  /** false when the parent already pads the sides */
+  inset?: boolean;
+}) {
   const { s } = useTheme();
   return (
     <View
@@ -55,7 +64,7 @@ function Row({ children, wrap = true }: { children: React.ReactNode; wrap?: bool
         flexDirection: 'row',
         flexWrap: wrap ? 'wrap' : 'nowrap',
         gap: s(8),
-        paddingHorizontal: s(16),
+        paddingHorizontal: inset ? s(16) : 0,
         alignItems: 'center',
       }}
     >
@@ -114,7 +123,7 @@ function Gallery() {
               <Button label="Unlock all · 125 credits" variant="secondary" block />
               <Button label="Write a review" variant="ghost" icon="pen" size="sm" />
               <Button label="Pay the rest" variant="night" size="md" />
-              <Row wrap>
+              <Row inset={false}>
                 <Button label="Disabled" disabled size="md" />
                 <Button label="Saving" loading size="md" />
                 <Button label="Remove" variant="danger" size="sm" />
