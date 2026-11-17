@@ -54,7 +54,7 @@ Order: signup → interests → theme → role → profile-setup → plans-onboa
 
 **Complete your profile (`s-profile-setup`)**
 20. Fields: photo (Add photo), Full name (filled from sign-up or Google), Phone number (+234 prefix), Date of birth (DD / MM / YYYY), Country (default Nigeria). Helper lines: phone "For account recovery only. Never shown to others."; birthday "Helps us suggest age-appropriate books." The header says only the reader sees this and it is optional.
-21. Continue is enabled as soon as the name is present. Skip for now is always available. Validation only after leaving a field. Phone: 10 digits after +234, leading 0 removed. Date: a real date, reader at least 13 years old (default). Country from a list.
+21. Continue is enabled as soon as the name is present. Skip for now is always available. Validation only after leaving a field. Phone: 10 digits after +234, leading 0 removed. Date: a real date, reader at least 16 years old (owner decision, Q1). Country from a list.
 22. Add photo offers camera or gallery, square crop, resized on the phone to 512 × 512 WebP under 200 KB, uploaded through a signed upload URL. Failure leaves the initials avatar and shows "Photo didn't upload. Try again."
 23. Phone and birthday are private; only name and photo are shown to other readers.
 
@@ -99,7 +99,7 @@ Extends core `profiles`; adds the rest.
 |---|---|---|---|
 | Supabase Auth (email, Google) | credentials | session | Password min 6; email confirmation mail sent, not required; Google via ID token; auth rate limits as in rule 9 |
 | `handle_new_user` (trigger) | auth user | `profiles` row | Copies name and avatar from metadata; sets terms versions from the signup payload |
-| `save_onboarding_step(step, payload)` | step name, fields for that step | updated profile | Owner. Validates with zod-matching SQL checks (name length, phone shape, age at least 13, country code). Steps only move forward except `done` |
+| `save_onboarding_step(step, payload)` | step name, fields for that step | updated profile | Owner. Validates with zod-matching SQL checks (name length, phone shape, age at least 16, country code). Steps only move forward except `done` |
 | `set_user_genres(genre_ids[])` | ids | none | Owner. Replaces the set in one transaction; ids must be visible genres |
 | `get_onboarding_paywall()` | none | first name, picked genres, catalogue count, 3 covers, plans with store product ids | Owner. Plans from `plans` (flow 6) |
 | `register_device(device_key, model, os, app_version, push_token)` | as listed | `download_enabled` | Owner. Upsert; enables downloads only if fewer than 3 active enabled devices |

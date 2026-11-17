@@ -59,7 +59,7 @@ A reader can see their reading life at a glance, set a yearly goal, find every b
 
 **Edit profile (`s-edit-profile`)**
 24. Fields: Change photo, Full name (required, 1 to 80), Bio (optional, 160 characters, counter "30 / 160"), Phone number (+234 prefix, private), Date of birth (private), Country. Subtitle: "Only your name, photo and bio are public." Each private field has its own note.
-25. Validation only after leaving a field (same rules as flow 1: phone 10 digits, real date, reader at least 13, country from list). Save changes is enabled only when something changed and all fields are valid. Saving shows "Profile saved" and returns to Settings.
+25. Validation only after leaving a field (same rules as flow 1: phone 10 digits, real date, reader at least 16, country from list). Save changes is enabled only when something changed and all fields are valid. Saving shows "Profile saved" and returns to Settings.
 26. Photo behaves as in flow 1 (crop, 512 px WebP under 200 KB, signed upload). Remove photo is offered when one exists.
 27. Leaving with unsaved changes asks "Discard changes?".
 28. Changing the name updates it on existing posts and messages (names are read from `profiles`, not copied). Name changes are limited to 3 per 30 days (default).
@@ -163,7 +163,7 @@ Blocked people list (flow 12); reader settings screen (flow 4); Credits, plans, 
 3. Reader self-export of data: the prototype has no app screen. Default: reader emails support or uses Settings → Privacy request; staff export as in rule list. Decide whether to add a self-serve button.
 4. Authors with unpaid earnings cannot delete until the next payout (rule 37). Confirm.
 5. Notification defaults, especially offers off, are a consent default; confirm with legal.
-6. Minimum age 13 and max 3 name changes per 30 days are defaults.
+6. Minimum age 16 (decided, Q1); max 3 name changes per 30 days is a default.
 7. Search within My highlights: the third header icon has no label in the prototype; default is text search.
 8. Goal max 365 and yearly reset behaviour are defaults.
 9. Whether the 3-device limit counts only download-enabled devices (default) or all signed-in devices.

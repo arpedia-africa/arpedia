@@ -1,14 +1,14 @@
 # Open questions
 
-Every question raised while writing the flow files, each with the default we build on if you don't answer. Reply by number, for example "Q4: 8 characters, Q31: no". Anything unanswered ships with its default.
+Every question raised while writing the flow files, each with the default we build on if you don't answer. Reply by number, for example "Q4: 8 characters, Q31: no". Anything unanswered ships with its default. **Status 17 Nov 2026:** Q1 answered (16+); every other question uses its default.
 
 **★ = answer before its flow is built** (legal, money or hard to change later).
 
 ## Legal and privacy
 | # | Question | Default | Flow |
 |---|---|---|---|
-| 1 ★ | Minimum age. Nigeria's NDPA treats under-18s as children and may need parental consent | 13+, with under-18 limits below; get a legal answer before launch | 01 |
-| 2 ★ | Rules for readers aged 13–17 (direct messages, public rooms, marketing pushes) | No DMs with adults they don't follow, no public "Anyone" rooms, no marketing pushes | 06, 07, 15 |
+| 1 ✅ | Minimum age | **Answered: 16+ only.** 16–17 year olds still get the Q2 protections | 01 |
+| 2 ★ | Rules for readers aged 16–17 (direct messages, public rooms, marketing pushes) | No DMs with adults they don't follow, no public "Anyone" rooms, no marketing pushes | 06, 07, 15 |
 | 3 ★ | Account deletion timing (the app says "can't be undone", the admin offers a 30-day grace) | Deleted immediately, data erased within 7 days | 10 |
 | 4 | Self-serve data export for readers | Yes, from Settings, emailed as a file | 10 |
 | 5 ★ | Tax withholding on author payouts, TIN collection, who files | 0% for individuals, configurable rate for companies, collect TIN optionally | 13 |

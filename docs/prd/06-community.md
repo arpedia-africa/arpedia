@@ -177,7 +177,7 @@ Images, voice notes, video, polls or file sharing in chat. Message editing. Typi
 2. Reaction set: prototype messages show crying and praying hands but the picker has only six. Default: six only.
 3. "Seen" under a message (shown in the club chat prototype): default is DMs only.
 4. Is the Arpedia Support thread a two-way chat that becomes a support ticket, or read-only with a Contact support button? Default: read-only welcome with Contact support (flow 14).
-5. Minors policy (age 13 to 17): default in States section; confirm with legal.
+5. Minors policy (age 16 to 17; minimum age is 16): default in States section; confirm with legal.
 6. Retention of deleted-message text for reports (default 30 days).
 7. Is Live tag threshold (2 active members in 5 minutes) right?
 8. Report sheet copy says "within 24 hours"; staff promise is 24 hours for High and 3 days for others. Default: copy updated as in rule 28.

@@ -65,7 +65,7 @@ A reader can meet an author: see their profile, books and posts, follow them, jo
 - **Error:** profile load failure shows "Couldn't load this author" with Try again; comment send failure keeps the text.
 - **Offline:** profile, posts and the last opened threads are cached and readable. Follow, like, comment and send are disabled with "Connect to do this" (queued follows only; the rest need the server).
 - **Deleted or suspended author account:** profile shows "This author is no longer on Arpedia", books stay available, threads become read-only, no credits refunded.
-- **Minors:** readers aged 13 to 17 can follow, comment and message authors; authors see "Under 18" in the thread header and the safety rules (flow 14) auto-hide any message with sexual terms. Authors cannot export the contact details of a reader.
+- **Minors:** readers aged 16 to 17 can follow, comment and message authors; authors see "Under 18" in the thread header and the safety rules (flow 14) auto-hide any message with sexual terms. Authors cannot export the contact details of a reader.
 - **NSFW images:** author photos and post images are scanned on upload (flow 11); flagged images are rejected. Messages are text only.
 - **Spam:** repeated identical comments (3 in 5 minutes), phone numbers and links from new accounts are blocked by safety rules.
 - **Low credit trap:** the confirm screen shows the balance so the cost is known before the first spend; the message button never charges without a typed message.

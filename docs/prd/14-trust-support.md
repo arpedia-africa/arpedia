@@ -154,7 +154,7 @@ Machine-learning image moderation, live chat support, phone support, a public co
 2. Sheet copy says "within 24 hours"; promise is 24 hours High and 3 days others. Default: copy updated.
 3. Support grant limit conflict: ticket note says 200, grant dialog says 500. Default: 200 Support, 500 Operations, above needs approval.
 4. Who may contact police for threats (default: Super admin only) and the data retention for that.
-5. Minor-specific rules (age 13 to 17) and a lower reporter threshold for content involving minors.
+5. Minor-specific rules (age 16 to 17) and a lower reporter threshold for content involving minors.
 6. Reporter eligibility (24-hour-old account) and brigading flag are our default; confirm.
 7. Is there an in-app ticket form (the prototype only has an email link)?
 8. Which image moderation vendor (called from a Worker), if any, beyond word lists.
