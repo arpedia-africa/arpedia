@@ -99,8 +99,8 @@ export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse }: P
   );
 }
 
-/* ─── HeroBand ───────────────────────────────────────────────────────────── */
-export interface HeroBandProps {
+/* ─── Hero ───────────────────────────────────────────────────────────────── */
+export interface HeroProps {
   /** Top bar contents (wordmark, back button, icon buttons). */
   bar?: ReactNode;
   /** Back button variant of the bar: tighter left padding. */
@@ -115,7 +115,7 @@ export interface HeroBandProps {
 }
 
 /** Full-width main-colour band with drifting sunflower petals (`.hero`). */
-export function HeroBand({ bar, barBack, title, xl, sub, low, children, style }: HeroBandProps) {
+export function Hero({ bar, barBack, title, xl, sub, low, children, style }: HeroProps) {
   const { c, s } = useTheme();
   const size = s(260);
   return (
@@ -183,14 +183,15 @@ export function Section({ title, sub, link, onLink, children, style }: SectionPr
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
-            alignItems: 'flex-end',
+            alignItems: 'baseline',
             gap: s(12),
             paddingHorizontal: s(16),
             paddingBottom: s(12),
           }}
         >
           <View style={{ flex: 1, gap: s(2) }}>
-            <Text variant="h3" oneLine>
+            {/* .section__title inherits the device line-height 1.45 (not the h3 scale's 1.2) */}
+            <Text variant="h3" oneLine style={{ lineHeight: s(18) * 1.45 }}>
               {title}
             </Text>
             {sub ? (

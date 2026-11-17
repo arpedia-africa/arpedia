@@ -17,7 +17,7 @@ import { Press } from '../Pressable';
 import { Text } from '../Text';
 import { useTheme } from '../theme';
 import { motion, z } from '../tokens';
-import { Button } from './actions';
+import { Btn } from './actions';
 
 /* ─── Skeleton ───────────────────────────────────────────────────────────── */
 export interface SkeletonProps {
@@ -196,7 +196,14 @@ export function EmptyState({ title, body, action, art }: EmptyStateProps) {
       >
         {art}
       </View>
-      <Text variant="h3" size={19} center accessibilityRole="header">
+      {/* `.empty h3`: 19px/800 display, no letter-spacing, inherited line-height 1.45 */}
+      <Text
+        variant="h3"
+        size={19}
+        center
+        accessibilityRole="header"
+        style={{ letterSpacing: 0, lineHeight: s(19) * 1.45 }}
+      >
         {title}
       </Text>
       {body ? (
@@ -206,7 +213,7 @@ export function EmptyState({ title, body, action, art }: EmptyStateProps) {
         </Text>
       ) : null}
       {action ? (
-        <Button
+        <Btn
           label={action.label}
           onPress={action.onPress}
           size="md"
@@ -238,10 +245,21 @@ export function Callout({ tone = 'info', children }: { tone?: CalloutTone; child
         borderRadius: s(12),
         paddingVertical: s(12),
         paddingHorizontal: s(14),
-        borderWidth: tone === 'brand' ? 1 : 0,
-        borderColor: c.brandLine,
       }}
     >
+      {tone === 'brand' ? (
+        // `.callout--brand`: inset 1px box-shadow, so the edge must not take layout space.
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: s(12),
+            borderWidth: 1,
+            borderColor: c.brandLine,
+          }}
+        />
+      ) : null}
       <Text size={13.5} color={look[1]}>
         {children}
       </Text>

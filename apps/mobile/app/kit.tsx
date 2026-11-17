@@ -7,7 +7,7 @@ import {
   Avatar,
   AvatarStack,
   base,
-  Button,
+  Btn,
   Callout,
   Card,
   Cell,
@@ -20,7 +20,7 @@ import {
   Group,
   GroupLabel,
   Header,
-  HeroBand,
+  Hero,
   IconButton,
   KeyValue,
   Meter,
@@ -87,7 +87,7 @@ function Gallery() {
   return (
     <View style={{ flex: 1, backgroundColor: c.white }}>
       <ScrollView testID="kit-scroll" contentContainerStyle={{ paddingBottom: s(24) }}>
-        <HeroBand
+        <Hero
           bar={
             <>
               <Text variant="h2" color="onOrg" oneLine style={{ flex: 1 }}>
@@ -110,23 +110,23 @@ function Gallery() {
             active={heroTab}
             onChange={setHeroTab}
           />
-        </HeroBand>
+        </Hero>
 
         <Arrive index={1}>
           <Section title="Buttons" sub="Primary, secondary, ghost, night">
             <View style={{ gap: s(8), paddingHorizontal: s(16) }}>
-              <Button
+              <Btn
                 label="Start reading · first 10% free"
                 block
                 onPress={() => toast({ message: 'Opening the reader' })}
               />
-              <Button label="Unlock all · 125 credits" variant="secondary" block />
-              <Button label="Write a review" variant="ghost" icon="pen" size="sm" />
-              <Button label="Pay the rest" variant="night" size="md" />
+              <Btn label="Unlock all · 125 credits" variant="s" block />
+              <Btn label="Write a review" variant="g" icon="pen" size="sm" />
+              <Btn label="Pay the rest" variant="n" size="md" />
               <Row inset={false}>
-                <Button label="Disabled" disabled size="md" />
-                <Button label="Saving" loading size="md" />
-                <Button label="Remove" variant="danger" size="sm" />
+                <Btn label="Disabled" disabled size="md" />
+                <Btn label="Saving" loading size="md" />
+                <Btn label="Remove" variant="x" size="sm" />
               </Row>
             </View>
           </Section>
@@ -316,13 +316,13 @@ function Gallery() {
             <Callout tone="brand">Pay as you read: about 9 credits a chapter, never more than 125.</Callout>
             <Callout tone="quiet">Re-reading is always free.</Callout>
             <Row>
-              <Button
+              <Btn
                 label="Show toast"
                 size="sm"
-                variant="secondary"
+                variant="s"
                 onPress={() => toast({ message: 'Chapter 8 unlocked · 9 credits', onUndo: () => {} })}
               />
-              <Button label="Open sheet" size="sm" variant="ghost" onPress={() => setSheet(true)} />
+              <Btn label="Open sheet" size="sm" variant="g" onPress={() => setSheet(true)} />
             </Row>
           </View>
           <Divider inset />
@@ -338,7 +338,7 @@ function Gallery() {
         open={sheet}
         onClose={() => setSheet(false)}
         title="Unlock all"
-        footer={<Button label="Unlock for 125 credits" block onPress={() => setSheet(false)} />}
+        footer={<Btn label="Unlock for 125 credits" block onPress={() => setSheet(false)} />}
       >
         <KeyValue
           rows={[

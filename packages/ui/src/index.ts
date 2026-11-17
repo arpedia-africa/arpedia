@@ -21,3 +21,4 @@ export * from './components/navigation';
 export * from './components/containers';
 export * from './components/content';
 export * from './components/feedback';
+export * from './components/brand';

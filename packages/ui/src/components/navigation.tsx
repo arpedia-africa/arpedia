@@ -151,7 +151,8 @@ export function TabBar({ tabs = mainTabs, active, onChange }: TabBarProps) {
 
 /* ─── Tabs (underlined, inside a screen) ─────────────────────────────────── */
 export interface TabsProps {
-  tabs: { key: string; label: string }[];
+  /** `count` renders the prototype's `.count` pill after the label. */
+  tabs: { key: string; label: string; count?: number }[];
   active: string;
   onChange: (key: string) => void;
   /** On a hero band: faded on-org text with a night underline (`.hero__tabs`). */
@@ -181,11 +182,36 @@ export function Tabs({ tabs, active, onChange, onBand }: TabsProps) {
             onPress={() => onChange(t.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
-            style={{ paddingHorizontal: s(10), paddingTop: s(12), paddingBottom: s(onBand ? 14 : 12) }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: s(onBand ? 6 : 4),
+              paddingHorizontal: s(10),
+              paddingTop: s(12),
+              paddingBottom: s(onBand ? 14 : 12),
+            }}
           >
             <Text size={14} weight={600} color={col} oneLine>
               {t.label}
             </Text>
+            {t.count !== undefined ? (
+              // .count: 22px pill, padding 0 7, accent fill, 11.5px 700
+              <View
+                style={{
+                  minWidth: s(22),
+                  height: s(22),
+                  paddingHorizontal: s(7),
+                  borderRadius: 999,
+                  backgroundColor: c.acc,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text size={11.5} weight={700} color="accOn" oneLine>
+                  {String(t.count)}
+                </Text>
+              </View>
+            ) : null}
             {on ? (
               <View
                 style={{

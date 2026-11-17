@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Image, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedProps, useAnimatedStyle } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { useFill } from '../motion';
 import { Text } from '../Text';
 import { useTheme } from '../theme';
@@ -20,7 +20,7 @@ function gradientPoints(deg: number) {
   return { start: { x: 0.5 - x, y: 0.5 - y }, end: { x: 0.5 + x, y: 0.5 + y } };
 }
 
-function CoverArt({ tone, w, h }: { tone: CoverTone; w: number; h: number }) {
+function CoverArt({ tone, w, h, s }: { tone: CoverTone; w: number; h: number; s: (n: number) => number }) {
   // Sample-cover decorations from the prototype (.cv.cN::before). Real books use their cover image.
   const white = (a: number) => `rgba(255,255,255,${a})`;
   switch (tone) {
@@ -46,11 +46,80 @@ function CoverArt({ tone, w, h }: { tone: CoverTone; w: number; h: number }) {
     }
     case 'c2':
       return (
-        <View style={{ position: 'absolute', left: 8, right: 8, top: h * 0.14 }}>
+        <View style={{ position: 'absolute', left: s(8), right: s(8), top: h * 0.14 }}>
           <View style={{ height: 1, backgroundColor: white(0.5) }} />
-          <View style={{ height: 1, marginTop: 5, backgroundColor: white(0.3) }} />
+          <View style={{ height: 1, marginTop: s(5), backgroundColor: white(0.3) }} />
         </View>
       );
+    case 'c3': {
+      // ::before: left 22%, top 8%, 56% × 52%; two 8%-wide #111 bands across the 135° and 45° gradients.
+      const bw = w * 0.56;
+      const bh = h * 0.52;
+      const band = ((bw + bh) / Math.SQRT2) * 0.08;
+      const cx = bw / 2;
+      const cy = bh / 2;
+      const far = bw + bh;
+      return (
+        <View
+          style={{
+            position: 'absolute',
+            left: w * 0.22,
+            top: h * 0.08,
+            width: bw,
+            height: bh,
+            overflow: 'hidden',
+          }}
+        >
+          <Svg width={bw} height={bh}>
+            <Line x1={cx - far} y1={cy + far} x2={cx + far} y2={cy - far} stroke="#111" strokeWidth={band} />
+            <Line x1={cx - far} y1={cy - far} x2={cx + far} y2={cy + far} stroke="#111" strokeWidth={band} />
+          </Svg>
+        </View>
+      );
+    }
+    case 'c5': {
+      // ::before: inset auto -10px 42% -10px, height 22%; 6px stripes every 12px.
+      const bh = h * 0.22;
+      const n = Math.ceil((w + s(20)) / s(12));
+      return (
+        <Svg
+          width={w}
+          height={bh}
+          style={{ position: 'absolute', left: 0, top: h - h * 0.42 - bh, overflow: 'visible' }}
+        >
+          {Array.from({ length: n }, (_, i) => (
+            <Rect key={i} x={-s(10) + i * s(12)} y={0} width={s(6)} height={bh} fill={white(0.12)} />
+          ))}
+        </Svg>
+      );
+    }
+    case 'c8': {
+      // ::before: top 18%, height 30%; 45° stripes, 4px on / 6px off.
+      const bh = h * 0.3;
+      const n = Math.ceil((w + bh) / Math.SQRT2 / s(10)) + 1;
+      return (
+        <View
+          style={{ position: 'absolute', left: 0, top: h * 0.18, width: w, height: bh, overflow: 'hidden' }}
+        >
+          <Svg width={w} height={bh}>
+            {Array.from({ length: n }, (_, k) => {
+              const cc = Math.SQRT2 * s(10) * k + Math.SQRT2 * s(2);
+              return (
+                <Line
+                  key={k}
+                  x1={0}
+                  y1={bh - cc}
+                  x2={w + bh}
+                  y2={w + bh + bh - cc}
+                  stroke={white(0.14)}
+                  strokeWidth={s(4)}
+                />
+              );
+            })}
+          </Svg>
+        </View>
+      );
+    }
     case 'c4':
       return (
         <View
@@ -66,23 +135,26 @@ function CoverArt({ tone, w, h }: { tone: CoverTone; w: number; h: number }) {
           }}
         />
       );
-    case 'c7':
+    case 'c7': {
+      // inset 12% 12% auto, height 34%, radius 50% 50% 0 0 (elliptical), 1.5px border, no bottom edge.
+      const bw = w * 0.76;
+      const bh = h * 0.34;
+      const sw = 1.5;
       return (
-        <View
-          style={{
-            position: 'absolute',
-            left: w * 0.12,
-            right: w * 0.12,
-            top: h * 0.12,
-            height: h * 0.34,
-            borderTopLeftRadius: w,
-            borderTopRightRadius: w,
-            borderWidth: 1.5,
-            borderBottomWidth: 0,
-            borderColor: white(0.45),
-          }}
-        />
+        <Svg
+          width={bw}
+          height={bh}
+          style={{ position: 'absolute', left: w * 0.12, top: h * 0.12, overflow: 'visible' }}
+        >
+          <Path
+            d={`M${sw / 2} ${bh}L${sw / 2} ${bh / 2}A${bw / 2 - sw / 2} ${bh / 2 - sw / 2} 0 0 1 ${bw - sw / 2} ${bh / 2}L${bw - sw / 2} ${bh}`}
+            fill="none"
+            stroke={white(0.45)}
+            strokeWidth={sw}
+          />
+        </Svg>
       );
+    }
     default:
       return null;
   }
@@ -150,14 +222,14 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
             {...gradientPoints(deg)}
             style={{ position: 'absolute', inset: 0 }}
           />
-          <CoverArt tone={tone} w={w} h={h} />
+          <CoverArt tone={tone} w={w} h={h} s={s} />
           <View
             style={{
               position: 'absolute',
               left: 0,
               top: 0,
               bottom: 0,
-              width: 3,
+              width: s(3),
               backgroundColor: 'rgba(255,255,255,0.18)',
             }}
           />
@@ -239,10 +311,8 @@ export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring }: Ava
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: ring ? s(2) : 0,
-    borderColor: c.white,
   };
-  return (
+  const face = (
     <View style={style} accessible accessibilityRole="image" accessibilityLabel={name}>
       {uri ? (
         <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
@@ -251,6 +321,21 @@ export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring }: Ava
           {initials(name)}
         </Text>
       )}
+    </View>
+  );
+  if (!ring) return face;
+  // `.stack .av`: box-shadow 0 0 0 2px white, drawn outside the avatar without taking layout space.
+  const r = s(2);
+  return (
+    <View
+      style={{
+        margin: -r,
+        padding: r,
+        borderRadius: square ? s(14) + r : 999,
+        backgroundColor: c.white,
+      }}
+    >
+      {face}
     </View>
   );
 }
@@ -400,7 +485,9 @@ export function Ring({
       style={{ width: d, height: d, alignItems: 'center', justifyContent: 'center' }}
     >
       <Svg width={d} height={d} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
-        <Circle cx={d / 2} cy={d / 2} r={r} stroke={c.surface} strokeWidth={stroke} fill="none" />
+        {/* `.ring::before`: white disc inside the track */}
+        <Circle cx={d / 2} cy={d / 2} r={r + stroke / 2} fill={c.surface} />
+        <Circle cx={d / 2} cy={d / 2} r={r - stroke / 2} fill={c.white} />
         <AnimatedCircle
           cx={d / 2}
           cy={d / 2}

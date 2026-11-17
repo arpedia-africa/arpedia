@@ -1,23 +1,27 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
-import { Icon, type IconName } from '../Icon';
+import { Icon, type IconName, type IconSize } from '../Icon';
 import { Press } from '../Pressable';
 import { Text } from '../Text';
 import { useTheme } from '../theme';
 import { motion } from '../tokens';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'night' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type BtnVariant = 'p' | 's' | 'n' | 'g' | 'x';
+export type BtnSize = 'sm' | 'md';
 
-export interface ButtonProps {
+export interface BtnProps {
   label: string;
   onPress?: () => void;
-  /** primary (.btn-p) · secondary (.btn-s) · ghost (.btn-g) · night (.btn-n) · danger (.btn-x) */
-  variant?: ButtonVariant;
-  /** sm 36 · md 42 · lg 48 (default) */
-  size?: ButtonSize;
+  /** p (.btn-p primary) · s (.btn-s secondary) · n (.btn-n night) · g (.btn-g outline) · x (.btn-x destructive) */
+  variant?: BtnVariant;
+  /** `.btn.sm` 36 · `.btn.md` 42 · omitted = `.btn` base 48 */
+  size?: BtnSize;
+  /** `.btn.block`: width 100% */
   block?: boolean;
   icon?: IconName;
+  /** Prototype icon size class (`ico xs|s`); default s (xs on sm buttons). */
+  iconSize?: IconSize;
+  /** `.btn.dis` */
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -25,33 +29,38 @@ export interface ButtonProps {
 }
 
 /** `.btn`: one line, never wraps (shrinks to 85% at most). */
-export function Button({
+export function Btn({
   label,
   onPress,
-  variant = 'primary',
-  size = 'lg',
+  variant = 'p',
+  size,
   block,
   icon,
+  iconSize,
   disabled,
   loading,
   style,
   accessibilityHint,
-}: ButtonProps) {
+}: BtnProps) {
   const { c, s } = useTheme();
-  const palette: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
-    primary: { bg: c.org, fg: c.onOrg },
-    secondary: { bg: c.orgTint, fg: c.orgInk },
-    ghost: { bg: c.white, fg: c.ink, border: c.line },
-    night: { bg: c.night, fg: '#FFFFFF' },
-    danger: { bg: c.errT, fg: c.err },
+  const palette: Record<BtnVariant, { bg: string; fg: string; border?: string }> = {
+    p: { bg: c.org, fg: c.onOrg },
+    s: { bg: c.orgTint, fg: c.orgInk },
+    // prototype hard-codes #fff on .btn-n
+    n: { bg: c.night, fg: '#FFFFFF' },
+    g: { bg: c.white, fg: c.ink, border: c.line },
+    x: { bg: c.errT, fg: c.err },
   };
   const off = disabled || loading;
+  // .btn.dis wins over every variant, including the .btn-g inset border
   const p = disabled ? { bg: c.surface, fg: c.ink3 } : palette[variant];
-  const dims = {
-    sm: { h: 36, px: 12, fs: 13, r: 10 },
-    md: { h: 42, px: 18, fs: 14, r: 12 },
-    lg: { h: 48, px: 18, fs: 15, r: 12 },
-  }[size];
+  const dims =
+    size === 'sm'
+      ? { h: 36, px: 12, fs: 13, r: 10 }
+      : size === 'md'
+        ? { h: 42, px: 18, fs: 14, r: 12 }
+        : { h: 48, px: 18, fs: 15, r: 12 };
+  const bw = 'border' in p && p.border ? 1.5 : 0;
   return (
     <Press
       onPress={off ? undefined : onPress}
@@ -63,16 +72,18 @@ export function Button({
       style={[
         {
           minHeight: s(dims.h),
-          paddingHorizontal: s(dims.px),
+          // .btn-g's line is an inset box-shadow (takes no space): RN border sits inside the
+          // box, so take it off the padding to keep the content where CSS puts it.
+          paddingHorizontal: s(dims.px - bw),
           borderRadius: s(dims.r),
           backgroundColor: p.bg,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: s(8),
-          alignSelf: block ? 'stretch' : 'flex-start',
+          ...(block ? { width: '100%' } : { alignSelf: 'flex-start' }),
         },
-        'border' in p && p.border ? { borderWidth: s(1.5), borderColor: p.border } : null,
+        bw ? { borderWidth: s(bw), borderColor: 'border' in p ? p.border : undefined } : null,
         style,
       ]}
       hitSlop={dims.h < 44 ? (44 - dims.h) / 2 : undefined}
@@ -81,7 +92,7 @@ export function Button({
         <ActivityIndicator color={p.fg} size="small" />
       ) : (
         <>
-          {icon ? <Icon name={icon} size={size === 'sm' ? 's' : 'm'} color={p.fg} /> : null}
+          {icon ? <Icon name={icon} size={iconSize ?? (size === 'sm' ? 'xs' : 's')} color={p.fg} /> : null}
           <Text size={dims.fs} weight={600} color={p.fg} oneLine style={{ flexShrink: 1 }}>
             {label}
           </Text>

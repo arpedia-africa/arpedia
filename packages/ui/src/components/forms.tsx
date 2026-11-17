@@ -22,12 +22,26 @@ export interface FieldProps extends Omit<TextInputProps, 'style' | 'placeholderT
   /** Icon inside the field, before the text (search, mail). */
   icon?: IconName;
   trailing?: ReactNode;
+  /** Show the focused look without focus (`.field.focus` specimen). */
+  focusedLook?: boolean;
 }
 
 /** Text box: grey at rest; white with a main-colour border and soft halo on focus; red on error. */
-export function Field({ label, hint, error, icon, trailing, onFocus, onBlur, ...input }: FieldProps) {
+export function Field({
+  label,
+  hint,
+  error,
+  icon,
+  trailing,
+  focusedLook,
+  onFocus,
+  onBlur,
+  ...input
+}: FieldProps) {
   const { c, s } = useTheme();
-  const [focus, setFocus] = useState(false);
+  const [focused, setFocus] = useState(false);
+  // `focusedLook` pins the focused look (the Design system's static "Focused" specimen).
+  const focus = focusedLook || focused;
   const f = useSharedValue(0);
   useEffect(() => {
     f.value = withTiming(focus ? 1 : 0, { duration: 150, easing: ease });
@@ -195,7 +209,8 @@ export function Chip({ label, onPress, state = 'off', icon }: ChipProps) {
       hitSlop={4}
       style={{
         minHeight: s(36),
-        paddingHorizontal: s(14),
+        // .chip.sel's ring is an inset box-shadow (no space): subtract it from the padding
+        paddingHorizontal: s(look.border ? 14 - 1.5 : 14),
         borderRadius: 999,
         backgroundColor: look.bg,
         flexDirection: 'row',

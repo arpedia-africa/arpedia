@@ -332,10 +332,21 @@ export function KeyValue({ rows, white }: { rows: KeyValueRow[]; white?: boolean
         borderRadius: s(14),
         paddingVertical: s(4),
         paddingHorizontal: s(14),
-        borderWidth: white ? 1 : 0,
-        borderColor: c.line,
       }}
     >
+      {white ? (
+        // `.kv--white` draws its 1px edge as an inset box-shadow: it must not take layout space.
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: s(14),
+            borderWidth: 1,
+            borderColor: c.line,
+          }}
+        />
+      ) : null}
       {rows.map((r, i) => (
         <View
           key={r.k}
@@ -352,6 +363,7 @@ export function KeyValue({ rows, white }: { rows: KeyValueRow[]; white?: boolean
             size={14}
             weight={r.total ? 600 : 400}
             color={r.total ? 'ink' : 'ink2'}
+            tabular
             oneLine
             style={{ flexShrink: 1 }}
           >

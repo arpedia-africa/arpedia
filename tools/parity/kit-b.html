@@ -1,0 +1,45 @@
+<!-- Parity page kit-b: inputs, grouped list and tab bar, verbatim prototype elements (Design system and s-home).
+     Only the .pk wrapper is harness layout; apps/mobile/app/parity.tsx mirrors it exactly. -->
+<div class="pk">
+  <div class="input">
+    <label for="d1">Default</label>
+    <div class="field"><input id="d1" placeholder="you@example.com" /></div>
+  </div>
+  <div class="input">
+    <label for="d2">Focused</label>
+    <div class="field focus"><input id="d2" value="Ngozi Eze" /></div>
+  </div>
+  <div class="input">
+    <label for="d3">Error</label>
+    <div class="field error"><input id="d3" value="ngozi@" /></div>
+    <span class="hint err">Enter a full email address.</span>
+  </div>
+</div>
+<div class="pt16 v12">
+  <div class="group-label">Grouped list</div>
+  <div class="group">
+    <div class="cell">
+      <span class="cell__body"
+        ><span class="cell__title">Cell title</span><span class="cell__sub">Supporting line</span></span
+      ><span class="cell__trail"
+        ><svg class="ico s" aria-hidden="true"><use href="#i-chev" /></svg
+      ></span>
+    </div>
+    <div class="cell">
+      <span class="cell__lead"><span class="av sm m">IN</span></span
+      ><span class="cell__body"><span class="cell__title">With avatar</span></span
+      ><span class="cell__trail"><span class="count">2</span></span>
+    </div>
+  </div>
+</div>
+<nav class="tabbar">
+  <a class="tab on"
+    ><svg class="ico" aria-hidden="true"><use href="#i-home" /></svg>Home</a
+  ><a class="tab"
+    ><svg class="ico" aria-hidden="true"><use href="#i-lib" /></svg>Library</a
+  ><a class="tab"
+    ><svg class="ico" aria-hidden="true"><use href="#i-users" /></svg>Community</a
+  ><a class="tab"
+    ><svg class="ico" aria-hidden="true"><use href="#i-user" /></svg>Profile</a
+  >
+</nav>
