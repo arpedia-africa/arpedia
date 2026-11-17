@@ -34,7 +34,7 @@ export function Sheet({ open, onClose, title, locked, children, footer }: SheetP
       setMounted(true);
       t.value = withTiming(1, { duration: reduceMotion ? motion.base : motion.slow, easing: ease });
     } else if (mounted) {
-      t.value = withTiming(0, { duration: motion.base, easing: ease }, done => {
+      t.value = withTiming(0, { duration: motion.base, easing: ease }, (done) => {
         if (done) runOnJS(setMounted)(false);
       });
     }
@@ -49,12 +49,29 @@ export function Sheet({ open, onClose, title, locked, children, footer }: SheetP
   };
 
   return (
-    <Modal visible={mounted} transparent statusBarTranslucent navigationBarTranslucent onRequestClose={dismiss} animationType="none">
-      <Animated.View style={[{ position: 'absolute', inset: 0, backgroundColor: 'rgba(17,24,39,0.45)', zIndex: z.backdrop }, backdrop]}>
-        <Pressable style={{ flex: 1 }} onPress={dismiss} accessibilityLabel="Close" accessibilityRole="button" />
+    <Modal
+      visible={mounted}
+      transparent
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={dismiss}
+      animationType="none"
+    >
+      <Animated.View
+        style={[
+          { position: 'absolute', inset: 0, backgroundColor: 'rgba(17,24,39,0.45)', zIndex: z.backdrop },
+          backdrop,
+        ]}
+      >
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={dismiss}
+          accessibilityLabel="Close"
+          accessibilityRole="button"
+        />
       </Animated.View>
       <Animated.View
-        onLayout={e => setH(e.nativeEvent.layout.height)}
+        onLayout={(e) => setH(e.nativeEvent.layout.height)}
         accessibilityViewIsModal
         style={[
           {
@@ -76,22 +93,61 @@ export function Sheet({ open, onClose, title, locked, children, footer }: SheetP
           panel,
         ]}
       >
-        <View style={{ width: s(40), height: s(5), borderRadius: s(5), backgroundColor: c.control, alignSelf: 'center', marginTop: s(8), marginBottom: s(4) }} />
+        <View
+          style={{
+            width: s(40),
+            height: s(5),
+            borderRadius: s(5),
+            backgroundColor: c.control,
+            alignSelf: 'center',
+            marginTop: s(8),
+            marginBottom: s(4),
+          }}
+        />
         {title ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8), paddingTop: s(6), paddingBottom: s(6), paddingLeft: s(18), paddingRight: s(8) }}>
-            <Text variant="h2" size={20} oneLine accessibilityRole="header" style={{ flex: 1, letterSpacing: s(20) * -0.01 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: s(8),
+              paddingTop: s(6),
+              paddingBottom: s(6),
+              paddingLeft: s(18),
+              paddingRight: s(8),
+            }}
+          >
+            <Text
+              variant="h2"
+              size={20}
+              oneLine
+              accessibilityRole="header"
+              style={{ flex: 1, letterSpacing: s(20) * -0.01 }}
+            >
               {title}
             </Text>
-            {locked ? <View style={{ width: s(44), height: s(44) }} /> : <IconButton icon="x" label="Close" onPress={onClose} />}
+            {locked ? (
+              <View style={{ width: s(44), height: s(44) }} />
+            ) : (
+              <IconButton icon="x" label="Close" onPress={onClose} />
+            )}
           </View>
         ) : null}
         <ScrollView
           bounces={false}
-          contentContainerStyle={{ paddingTop: s(4), paddingHorizontal: s(18), paddingBottom: footer ? s(12) : s(28) + insets.bottom, gap: s(14) }}
+          contentContainerStyle={{
+            paddingTop: s(4),
+            paddingHorizontal: s(18),
+            paddingBottom: footer ? s(12) : s(28) + insets.bottom,
+            gap: s(14),
+          }}
         >
           {children}
         </ScrollView>
-        {footer ? <View style={{ paddingHorizontal: s(18), paddingBottom: s(28) + insets.bottom, gap: s(8) }}>{footer}</View> : null}
+        {footer ? (
+          <View style={{ paddingHorizontal: s(18), paddingBottom: s(28) + insets.bottom, gap: s(8) }}>
+            {footer}
+          </View>
+        ) : null}
       </Animated.View>
     </Modal>
   );
@@ -120,7 +176,12 @@ export function Card({ soft, pad = true, onPress, accessibilityLabel, style, chi
   };
   if (!onPress) return <View style={[look, style]}>{children}</View>;
   return (
-    <Press onPress={onPress} pressScale={motion.press.row} accessibilityLabel={accessibilityLabel} style={[look, style]}>
+    <Press
+      onPress={onPress}
+      pressScale={motion.press.row}
+      accessibilityLabel={accessibilityLabel}
+      style={[look, style]}
+    >
       {children}
     </Press>
   );
@@ -128,7 +189,15 @@ export function Card({ soft, pad = true, onPress, accessibilityLabel, style, chi
 
 /* ─── Group + Cell ───────────────────────────────────────────────────────── */
 /** Rounded list container (`.group`); `flush` = edge to edge. Cells get 1px dividers. */
-export function Group({ flush, children, style }: { flush?: boolean; children?: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Group({
+  flush,
+  children,
+  style,
+}: {
+  flush?: boolean;
+  children?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
   const { c, s } = useTheme();
   const items = Children.toArray(children).filter(isValidElement);
   return (
@@ -136,7 +205,14 @@ export function Group({ flush, children, style }: { flush?: boolean; children?: 
       style={[
         flush
           ? { backgroundColor: c.white }
-          : { marginHorizontal: s(16), borderWidth: 1, borderColor: c.line, borderRadius: s(14), overflow: 'hidden', backgroundColor: c.white },
+          : {
+              marginHorizontal: s(16),
+              borderWidth: 1,
+              borderColor: c.line,
+              borderRadius: s(14),
+              overflow: 'hidden',
+              backgroundColor: c.white,
+            },
         style,
       ]}
     >
@@ -169,13 +245,32 @@ export interface CellProps {
   flush?: boolean;
 }
 
-export function Cell({ title, sub, lead, trail, chevron, onPress, top, highlight, danger, ugc, flush }: CellProps) {
+export function Cell({
+  title,
+  sub,
+  lead,
+  trail,
+  chevron,
+  onPress,
+  top,
+  highlight,
+  danger,
+  ugc,
+  flush,
+}: CellProps) {
   const { c, s } = useTheme();
   const body = (
     <>
       {lead ? <View>{lead}</View> : null}
       <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
-        <Text size={14.5} weight={600} color={danger ? 'err' : 'ink'} oneLine={!ugc} ellipsis={ugc} style={{ lineHeight: s(14.5) * 1.3 }}>
+        <Text
+          size={14.5}
+          weight={600}
+          color={danger ? 'err' : 'ink'}
+          oneLine={!ugc}
+          ellipsis={ugc}
+          style={{ lineHeight: s(14.5) * 1.3 }}
+        >
           {title}
         </Text>
         {sub ? (
@@ -209,7 +304,12 @@ export function Cell({ title, sub, lead, trail, chevron, onPress, top, highlight
   };
   if (!onPress) return <View style={style}>{body}</View>;
   return (
-    <Press onPress={onPress} pressScale={motion.press.row} accessibilityLabel={sub ? `${title}, ${sub}` : title} style={style}>
+    <Press
+      onPress={onPress}
+      pressScale={motion.press.row}
+      accessibilityLabel={sub ? `${title}, ${sub}` : title}
+      style={style}
+    >
       {body}
     </Press>
   );
@@ -248,7 +348,13 @@ export function KeyValue({ rows, white }: { rows: KeyValueRow[]; white?: boolean
             borderTopColor: c.line,
           }}
         >
-          <Text size={14} weight={r.total ? 600 : 400} color={r.total ? 'ink' : 'ink2'} oneLine style={{ flexShrink: 1 }}>
+          <Text
+            size={14}
+            weight={r.total ? 600 : 400}
+            color={r.total ? 'ink' : 'ink2'}
+            oneLine
+            style={{ flexShrink: 1 }}
+          >
             {r.k}
           </Text>
           <Text size={14} weight={r.total ? 800 : 600} tabular oneLine style={{ textAlign: 'right' }}>

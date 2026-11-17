@@ -70,24 +70,60 @@ export interface ThemeColors {
 
 export const themes: Record<ThemeName, ThemeColors> = {
   sunflower: {
-    org: '#F5931F', orgRgb: '245,147,31', orgInk: '#9A4F00', orgTint: '#FDEEDB', orgTint2: '#FFF6EA',
-    onOrg: '#4A2600', onOrgRgb: '74,38,0', acc: '#5E7A35', accOn: '#FFFFFF',
-    petalRgb: '255,214,90', petalK: 1, sunRgb: '122,143,62',
+    org: '#F5931F',
+    orgRgb: '245,147,31',
+    orgInk: '#9A4F00',
+    orgTint: '#FDEEDB',
+    orgTint2: '#FFF6EA',
+    onOrg: '#4A2600',
+    onOrgRgb: '74,38,0',
+    acc: '#5E7A35',
+    accOn: '#FFFFFF',
+    petalRgb: '255,214,90',
+    petalK: 1,
+    sunRgb: '122,143,62',
   },
   palm: {
-    org: '#2F6B4F', orgRgb: '47,107,79', orgInk: '#2F6B4F', orgTint: '#E3F0E8', orgTint2: '#F3F8F5',
-    onOrg: '#FFFFFF', onOrgRgb: '255,255,255', acc: '#E8902A', accOn: '#4A2600',
-    petalRgb: '255,255,255', petalK: 0.42, sunRgb: '214,168,74',
+    org: '#2F6B4F',
+    orgRgb: '47,107,79',
+    orgInk: '#2F6B4F',
+    orgTint: '#E3F0E8',
+    orgTint2: '#F3F8F5',
+    onOrg: '#FFFFFF',
+    onOrgRgb: '255,255,255',
+    acc: '#E8902A',
+    accOn: '#4A2600',
+    petalRgb: '255,255,255',
+    petalK: 0.42,
+    sunRgb: '214,168,74',
   },
   plum: {
-    org: '#6B4A8E', orgRgb: '107,74,142', orgInk: '#5E3F80', orgTint: '#EEE7F6', orgTint2: '#F8F4FB',
-    onOrg: '#FFFFFF', onOrgRgb: '255,255,255', acc: '#E0A030', accOn: '#4A2600',
-    petalRgb: '255,255,255', petalK: 0.42, sunRgb: '214,168,74',
+    org: '#6B4A8E',
+    orgRgb: '107,74,142',
+    orgInk: '#5E3F80',
+    orgTint: '#EEE7F6',
+    orgTint2: '#F8F4FB',
+    onOrg: '#FFFFFF',
+    onOrgRgb: '255,255,255',
+    acc: '#E0A030',
+    accOn: '#4A2600',
+    petalRgb: '255,255,255',
+    petalK: 0.42,
+    sunRgb: '214,168,74',
   },
   night: {
-    org: '#2A211A', orgRgb: '42,33,26', orgInk: '#9A4F00', orgTint: '#F1ECE6', orgTint2: '#F8F5F1',
-    onOrg: '#FFF6EA', onOrgRgb: '255,246,234', acc: '#F5931F', accOn: '#4A2600',
-    petalRgb: '245,147,31', petalK: 0.6, sunRgb: '217,139,43',
+    org: '#2A211A',
+    orgRgb: '42,33,26',
+    orgInk: '#9A4F00',
+    orgTint: '#F1ECE6',
+    orgTint2: '#F8F5F1',
+    onOrg: '#FFF6EA',
+    onOrgRgb: '255,246,234',
+    acc: '#F5931F',
+    accOn: '#4A2600',
+    petalRgb: '245,147,31',
+    petalK: 0.6,
+    sunRgb: '217,139,43',
   },
 };
 
@@ -135,7 +171,15 @@ export type TypeVariant = keyof typeof type;
 /** 4-pt spacing scale; screen gutter 16; section rhythm 24. */
 export const space = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, gutter: 16, section: 24 } as const;
 
-export const radius = { chip: 8, input: 12, button: 12, buttonSm: 10, card: 14, sheet: 20, pill: 999 } as const;
+export const radius = {
+  chip: 8,
+  input: 12,
+  button: 12,
+  buttonSm: 10,
+  card: 14,
+  sheet: 20,
+  pill: 999,
+} as const;
 
 export const motion = {
   fast: 120,
@@ -174,6 +218,13 @@ export type CoverTone = keyof typeof covers;
 
 /** Avatar backgrounds (.av.m/.o/.b/.t/.r/.k/.n/.g). */
 export const avatarTones = {
-  m: base.mauve, o: base.olive, b: base.brown, t: '#1F6F78', r: '#A23B2A', k: '#3F4A8A', n: base.night, g: '#C26A12',
+  m: base.mauve,
+  o: base.olive,
+  b: base.brown,
+  t: '#1F6F78',
+  r: '#A23B2A',
+  k: '#3F4A8A',
+  n: base.night,
+  g: '#C26A12',
 } as const;
 export type AvatarTone = keyof typeof avatarTones;

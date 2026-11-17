@@ -7,8 +7,8 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 
 // TanStack Query follows the phone's real connection, and cached server data survives restarts so
 // screens open offline (CLAUDE.md: every screen has an offline state).
-onlineManager.setEventListener(setOnline =>
-  NetInfo.addEventListener(state => setOnline(state.isConnected !== false)),
+onlineManager.setEventListener((setOnline) =>
+  NetInfo.addEventListener((state) => setOnline(state.isConnected !== false)),
 );
 
 export const queryClient = new QueryClient({
@@ -22,7 +22,10 @@ const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'arp
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 }}
+    >
       {children}
     </PersistQueryClientProvider>
   );

@@ -45,9 +45,12 @@ export function Skeleton({ width = '100%', height = 14, radius = 8, style }: Ske
   const band = useAnimatedStyle(() => ({ transform: [{ translateX: (x.value * 2 - 1) * w * 1.5 - w / 2 }] }));
   return (
     <View
-      onLayout={e => setW(e.nativeEvent.layout.width)}
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
       accessibilityLabel="Loading"
-      style={[{ width, height: s(height), borderRadius: s(radius), backgroundColor: c.surface, overflow: 'hidden' }, style]}
+      style={[
+        { width, height: s(height), borderRadius: s(radius), backgroundColor: c.surface, overflow: 'hidden' },
+        style,
+      ]}
     >
       {reduceMotion || !w ? null : (
         <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, width: w * 2 }, band]}>
@@ -79,7 +82,12 @@ const ToastContext = createContext<(t: ToastOptions) => void>(() => {});
 /** `const toast = useToast(); toast({ message: 'Saved', onUndo })` */
 export const useToast = () => useContext(ToastContext);
 
-export function Toast({ message, onUndo, undoLabel = 'Undo', bottom = 96 }: ToastOptions & { bottom?: number }) {
+export function Toast({
+  message,
+  onUndo,
+  undoLabel = 'Undo',
+  bottom = 96,
+}: ToastOptions & { bottom?: number }) {
   const { c, s, reduceMotion } = useTheme();
   return (
     <Animated.View
@@ -132,7 +140,10 @@ export function ToastProvider({ children, bottom }: { children: ReactNode; botto
     if (timer.current) clearTimeout(timer.current);
     const id = Date.now();
     setToast({ ...t, id });
-    timer.current = setTimeout(() => setToast(cur => (cur?.id === id ? null : cur)), t.duration ?? (t.onUndo ? 8000 : 4000));
+    timer.current = setTimeout(
+      () => setToast((cur) => (cur?.id === id ? null : cur)),
+      t.duration ?? (t.onUndo ? 8000 : 4000),
+    );
   }, []);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
   return (
@@ -173,7 +184,16 @@ export function EmptyState({ title, body, action, art }: EmptyStateProps) {
   const { c, s } = useTheme();
   return (
     <View style={{ alignItems: 'center', gap: s(10), paddingVertical: s(36), paddingHorizontal: s(28) }}>
-      <View style={{ width: s(96), height: s(96), borderRadius: 999, backgroundColor: c.orgTint2, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: s(96),
+          height: s(96),
+          borderRadius: 999,
+          backgroundColor: c.orgTint2,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {art}
       </View>
       <Text variant="h3" size={19} center accessibilityRole="header">
@@ -185,7 +205,14 @@ export function EmptyState({ title, body, action, art }: EmptyStateProps) {
           {body}
         </Text>
       ) : null}
-      {action ? <Button label={action.label} onPress={action.onPress} size="md" style={{ marginTop: s(6), alignSelf: 'center' }} /> : null}
+      {action ? (
+        <Button
+          label={action.label}
+          onPress={action.onPress}
+          size="md"
+          style={{ marginTop: s(6), alignSelf: 'center' }}
+        />
+      ) : null}
     </View>
   );
 }

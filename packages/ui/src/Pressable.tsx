@@ -15,18 +15,25 @@ export interface PressProps extends Omit<PressableProps, 'style' | 'children'> {
 }
 
 /** Tappable surface that sinks slightly while pressed (DESIGN.md "Press"); still under reduced motion. */
-export function Press({ pressScale = motion.press.button, style, onPressIn, onPressOut, children, ...rest }: PressProps) {
+export function Press({
+  pressScale = motion.press.button,
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: PressProps) {
   const { reduceMotion } = useTheme();
   const k = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: k.value }] }));
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      onPressIn={e => {
+      onPressIn={(e) => {
         if (!reduceMotion) k.value = withTiming(pressScale, { duration: motion.fast, easing: ease });
         onPressIn?.(e);
       }}
-      onPressOut={e => {
+      onPressOut={(e) => {
         k.value = withTiming(1, { duration: motion.fast, easing: ease });
         onPressOut?.(e);
       }}

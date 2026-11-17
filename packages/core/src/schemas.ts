@@ -76,7 +76,7 @@ export const BookManifest = z
     cipher: z.object({ alg: z.literal('AES-GCM'), key_bits: z.literal(256) }),
     chapters: z.array(ManifestChapter).min(1),
   })
-  .refine(m => m.chapters.reduce((a, c) => a + c.price_credits, 0) === m.price_credits, {
+  .refine((m) => m.chapters.reduce((a, c) => a + c.price_credits, 0) === m.price_credits, {
     message: 'chapter prices must sum to the book price',
     path: ['chapters'],
   });

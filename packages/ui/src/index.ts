@@ -1,7 +1,14 @@
 // Arpedia app kit. Every size goes through s() (useScale) and every colour through the theme.
 export * from './tokens';
 export * from './scale';
-export { ThemeProvider, useTheme, useScale, type ThemeValue, type Colors, type ThemeProviderProps } from './theme';
+export {
+  ThemeProvider,
+  useTheme,
+  useScale,
+  type ThemeValue,
+  type Colors,
+  type ThemeProviderProps,
+} from './theme';
 export { fontFamily } from './fonts';
 export { Text, type TextProps } from './Text';
 export { Icon, type IconName, type IconProps, type IconSize } from './Icon';

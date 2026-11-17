@@ -11,7 +11,7 @@ interface UiState {
 }
 
 export const useUi = create<UiState>()(
-  persist(set => ({ theme: 'sunflower', setTheme: theme => set({ theme }) }), {
+  persist((set) => ({ theme: 'sunflower', setTheme: (theme) => set({ theme }) }), {
     name: 'arpedia.ui',
     storage: createJSONStorage(() => AsyncStorage),
   }),

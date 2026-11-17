@@ -112,7 +112,10 @@ export function IconButton({ icon, label, onPress, color, dot, pressed, style }:
       pressScale={motion.press.icon}
       accessibilityLabel={label}
       accessibilityState={pressed === undefined ? undefined : { selected: pressed }}
-      style={[{ width: s(44), height: s(44), borderRadius: s(12), alignItems: 'center', justifyContent: 'center' }, style]}
+      style={[
+        { width: s(44), height: s(44), borderRadius: s(12), alignItems: 'center', justifyContent: 'center' },
+        style,
+      ]}
     >
       <Icon name={icon} color={color ?? c.ink} />
       {dot ? (

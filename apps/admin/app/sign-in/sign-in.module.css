@@ -1,0 +1,109 @@
+/* Ported from admin/src/00-head.html (.auth, .auth__art, .auth__form, .auth__card). */
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+.art {
+  background: var(--org);
+  color: var(--on-org);
+  position: relative;
+  overflow: hidden;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+}
+.art > :not(:global(.petals)) {
+  position: relative;
+  z-index: 1;
+}
+.art h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(34px, 4.4vw, 56px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  max-width: 12ch;
+}
+.art p {
+  font-size: 16px;
+  max-width: 42ch;
+  color: rgba(var(--on-org-rgb), 0.85);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.wordmark {
+  display: block;
+  height: 30px;
+  aspect-ratio: 344 / 96;
+  /* .wmk--night: the dark wordmark used on the main colour */
+  background: url('/brand/wordmark-night.png') left center / contain no-repeat;
+}
+.stack16 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.stack4 {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form {
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.card {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.card h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+.eye {
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: -6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.forgot {
+  align-self: flex-end;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+}
+.error {
+  font-size: 13px;
+  color: var(--err);
+  font-weight: 500;
+}
+@media (max-width: 860px) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .art {
+    padding: 28px 20px;
+    min-height: 220px;
+  }
+}

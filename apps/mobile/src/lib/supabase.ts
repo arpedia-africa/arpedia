@@ -8,8 +8,10 @@ const secureStorage = {
   async getItem(key: string) {
     const n = Number(await SecureStore.getItemAsync(`${key}.n`));
     if (!n) return null;
-    const parts = await Promise.all(Array.from({ length: n }, (_, i) => SecureStore.getItemAsync(`${key}.${i}`)));
-    return parts.some(p => p == null) ? null : parts.join('');
+    const parts = await Promise.all(
+      Array.from({ length: n }, (_, i) => SecureStore.getItemAsync(`${key}.${i}`)),
+    );
+    return parts.some((p) => p == null) ? null : parts.join('');
   },
   async setItem(key: string, value: string) {
     const parts = value.match(new RegExp(`.{1,${CHUNK}}`, 'gs')) ?? [''];

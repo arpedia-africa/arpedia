@@ -8,10 +8,10 @@
   "observability": { "enabled": true },
   "vars": {
     "APP_ENV": "local",
-    "SUPABASE_URL": "http://127.0.0.1:55321"
+    "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "durable_objects": {
-    "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }]
+    "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatRoom"] }],
   "env": {
@@ -19,15 +19,15 @@
       "name": "arpedia-chat-staging",
       "vars": { "APP_ENV": "staging", "SUPABASE_URL": "https://arpedia-staging.supabase.co" },
       "durable_objects": {
-        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }]
-      }
+        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+      },
     },
     "production": {
       "name": "arpedia-chat",
       "vars": { "APP_ENV": "production", "SUPABASE_URL": "https://arpedia.supabase.co" },
       "durable_objects": {
-        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }]
-      }
-    }
-  }
+        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+      },
+    },
+  },
 }

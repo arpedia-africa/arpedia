@@ -6,7 +6,7 @@ import type { AppEnv } from '../../env';
 // Authenticated health check: proves the token, the database and R2 are reachable.
 const health = new Hono<AppEnv>();
 
-health.get('/', requireUser, async c => {
+health.get('/', requireUser, async (c) => {
   const db = serviceDb(c.env);
   const [{ error: dbError }, r2] = await Promise.all([
     db.from('books').select('id', { head: true, count: 'exact' }).limit(1),

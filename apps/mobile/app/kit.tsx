@@ -49,7 +49,15 @@ const WIDTHS = [320, 360, 375] as const;
 function Row({ children, wrap = true }: { children: React.ReactNode; wrap?: boolean }) {
   const { s } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', flexWrap: wrap ? 'wrap' : 'nowrap', gap: s(8), paddingHorizontal: s(16), alignItems: 'center' }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: wrap ? 'wrap' : 'nowrap',
+        gap: s(8),
+        paddingHorizontal: s(16),
+        alignItems: 'center',
+      }}
+    >
       {children}
     </View>
   );
@@ -97,7 +105,11 @@ function Gallery() {
         <Arrive index={1}>
           <Section title="Buttons" sub="Primary, secondary, ghost, night">
             <View style={{ gap: s(8), paddingHorizontal: s(16) }}>
-              <Button label="Start reading · first 10% free" block onPress={() => toast({ message: 'Opening the reader' })} />
+              <Button
+                label="Start reading · first 10% free"
+                block
+                onPress={() => toast({ message: 'Opening the reader' })}
+              />
               <Button label="Unlock all · 125 credits" variant="secondary" block />
               <Button label="Write a review" variant="ghost" icon="pen" size="sm" />
               <Button label="Pay the rest" variant="night" size="md" />
@@ -120,8 +132,12 @@ function Gallery() {
               <IconButton icon="bell" label="Notifications" dot />
             </Row>
             <View style={{ height: s(12) }} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: s(8), paddingHorizontal: s(16) }}>
-              {['all', 'romance', 'faith', 'thriller', 'poetry'].map(k => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: s(8), paddingHorizontal: s(16) }}
+            >
+              {['all', 'romance', 'faith', 'thriller', 'poetry'].map((k) => (
                 <Chip
                   key={k}
                   label={k === 'all' ? 'All genres' : k[0]!.toUpperCase() + k.slice(1)}
@@ -141,9 +157,23 @@ function Gallery() {
         <Arrive index={3}>
           <Section title="Forms">
             <View style={{ gap: s(16), paddingHorizontal: s(16) }}>
-              <Field label="Email" placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
-              <Field label="Password" placeholder="At least 8 characters" secureTextEntry hint="Use 8 or more letters and numbers." />
-              <Field label="Phone" defaultValue="0803 000" error="Enter all 11 digits of your phone number." />
+              <Field
+                label="Email"
+                placeholder="you@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <Field
+                label="Password"
+                placeholder="At least 8 characters"
+                secureTextEntry
+                hint="Use 8 or more letters and numbers."
+              />
+              <Field
+                label="Phone"
+                defaultValue="0803 000"
+                error="Enter all 11 digits of your phone number."
+              />
               <Field icon="search" placeholder="Books, authors, clubs" accessibilityLabel="Search" />
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text variant="title">Auto-unlock next chapter</Text>
@@ -188,7 +218,12 @@ function Gallery() {
               onPress={() => {}}
             />
             <Cell title="Notifications" trail="On" chevron onPress={() => {}} />
-            <Cell title="Ifeoma's Readers" sub="Public community · 860 members" lead={<Avatar name="Ifeoma Nwachukwu" tone="g" />} trail={<Count value={3} />} />
+            <Cell
+              title="Ifeoma's Readers"
+              sub="Public community · 860 members"
+              lead={<Avatar name="Ifeoma Nwachukwu" tone="g" />}
+              trail={<Count value={3} />}
+            />
             <Cell title="Delete account" danger onPress={() => {}} />
           </Group>
         </Section>
@@ -230,7 +265,11 @@ function Gallery() {
         </Section>
 
         <Section title="Covers and people">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: s(12), paddingHorizontal: s(16), alignItems: 'flex-end' }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: s(12), paddingHorizontal: s(16), alignItems: 'flex-end' }}
+          >
             <Cover title="Harmattan Letters" author="Ifeoma Nwachukwu" size={128} tone="c1" />
             <Cover title="Still Waters, Lagos" author="Chioma Okafor" size={88} tone="c2" />
             <Cover title="The Alignment" author="Adaeze Rosemary Possible" size={104} tone="c3" />
@@ -247,7 +286,13 @@ function Gallery() {
             <Avatar name="Chiamaka Obi" tone="t" />
             <Avatar name="Tunde Bakare" size="sm" tone="b" />
             <Avatar name="Zainab Yusuf" size="xs" tone="k" />
-            <AvatarStack people={[{ name: 'Ngozi Eze', tone: 'm' }, { name: 'Musa Danladi', tone: 'o' }, { name: 'Halima Bello', tone: 'r' }]} />
+            <AvatarStack
+              people={[
+                { name: 'Ngozi Eze', tone: 'm' },
+                { name: 'Musa Danladi', tone: 'o' },
+                { name: 'Halima Bello', tone: 'r' },
+              ]}
+            />
           </Row>
         </Section>
 
@@ -261,7 +306,12 @@ function Gallery() {
             <Callout tone="brand">Pay as you read: about 9 credits a chapter, never more than 125.</Callout>
             <Callout tone="quiet">Re-reading is always free.</Callout>
             <Row>
-              <Button label="Show toast" size="sm" variant="secondary" onPress={() => toast({ message: 'Chapter 8 unlocked · 9 credits', onUndo: () => {} })} />
+              <Button
+                label="Show toast"
+                size="sm"
+                variant="secondary"
+                onPress={() => toast({ message: 'Chapter 8 unlocked · 9 credits', onUndo: () => {} })}
+              />
               <Button label="Open sheet" size="sm" variant="ghost" onPress={() => setSheet(true)} />
             </Row>
           </View>
@@ -298,30 +348,38 @@ function Gallery() {
 /** Dev-only gallery of every kit component, in every theme, at 320 / 360 / 375dp. */
 export default function Kit() {
   const window = useWindowDimensions();
-  const theme = useUi(st => st.theme);
-  const setTheme = useUi(st => st.setTheme);
+  const theme = useUi((st) => st.theme);
+  const setTheme = useUi((st) => st.setTheme);
   const [width, setWidth] = useState<number>(Math.min(375, Math.round(window.width)));
   const [reduce, setReduce] = useState<boolean | undefined>(undefined);
   if (!__DEV__) return <Redirect href="/home" />;
 
   return (
-    <SafeAreaView testID="kit-gallery" style={{ flex: 1, backgroundColor: base.line }} edges={['top', 'bottom']}>
+    <SafeAreaView
+      testID="kit-gallery"
+      style={{ flex: 1, backgroundColor: base.line }}
+      edges={['top', 'bottom']}
+    >
       <ThemeProvider theme={theme}>
         <View style={{ padding: 8, gap: 6, backgroundColor: base.ink }}>
           <Segmented<ThemeName>
-            options={THEMES.map(t => ({ value: t, label: themeMeta[t].label }))}
+            options={THEMES.map((t) => ({ value: t, label: themeMeta[t].label }))}
             value={theme}
             onChange={setTheme}
           />
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
               <Segmented
-                options={WIDTHS.map(w => ({ value: String(w), label: `${w}dp` }))}
+                options={WIDTHS.map((w) => ({ value: String(w), label: `${w}dp` }))}
                 value={String(width)}
-                onChange={v => setWidth(Number(v))}
+                onChange={(v) => setWidth(Number(v))}
               />
             </View>
-            <Chip label={reduce ? 'Motion off' : 'Motion on'} state={reduce ? 'on' : 'off'} onPress={() => setReduce(r => !r)} />
+            <Chip
+              label={reduce ? 'Motion off' : 'Motion on'}
+              state={reduce ? 'on' : 'off'}
+              onPress={() => setReduce((r) => !r)}
+            />
           </View>
         </View>
       </ThemeProvider>

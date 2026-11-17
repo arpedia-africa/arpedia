@@ -52,7 +52,8 @@ export default {
 
     const m = url.pathname.match(/^\/rooms\/([A-Za-z0-9_-]{1,64})\/ws$/);
     if (!m) return new Response('not found', { status: 404 });
-    if (request.headers.get('Upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
+    if (request.headers.get('Upgrade') !== 'websocket')
+      return new Response('expected websocket', { status: 426 });
 
     // Browsers cannot set headers on a WebSocket, so the token may also come as ?token=.
     const token = bearer(request.headers.get('Authorization')) ?? url.searchParams.get('token');

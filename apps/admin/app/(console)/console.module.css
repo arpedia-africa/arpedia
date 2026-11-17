@@ -1,0 +1,125 @@
+/* Page structure from admin/src/00-head.html (.band, .band--home, .page, .panel, .empty). */
+.band {
+  background: var(--white);
+  color: var(--ink);
+  position: relative;
+  overflow: hidden;
+  padding: 18px 28px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.bandHome {
+  background: var(--org);
+  color: var(--on-org);
+  position: relative;
+  overflow: hidden;
+  padding: 26px 28px 24px;
+}
+.bandRow {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 1304px;
+}
+.bandText {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.band h1,
+.bandHome h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.bandHome h1 {
+  font-size: 30px;
+  line-height: 1.05;
+}
+.bandHome p {
+  font-size: 15px;
+  color: rgba(var(--on-org-rgb), 0.85);
+  max-width: 70ch;
+}
+.page {
+  padding: 24px 28px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1360px;
+  width: 100%;
+}
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 880px;
+  width: 100%;
+}
+.panel {
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 12px;
+  flex-wrap: wrap;
+}
+.panelTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  flex: 1;
+  min-width: 0;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 40px 20px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+.empty b {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+@media (max-width: 760px) {
+  .page {
+    padding: 18px 16px 40px;
+  }
+  .band {
+    padding: 14px 16px;
+  }
+  .band h1 {
+    font-size: 22px;
+  }
+  .bandHome {
+    padding: 20px 16px;
+  }
+  .bandHome h1 {
+    font-size: 25px;
+  }
+}

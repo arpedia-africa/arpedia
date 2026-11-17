@@ -9,7 +9,7 @@
   "observability": { "enabled": true },
   "vars": {
     "APP_ENV": "local",
-    "SUPABASE_URL": "http://127.0.0.1:55321"
+    "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-local" }],
   "env": {
@@ -17,17 +17,17 @@
       "name": "arpedia-api-staging",
       "vars": {
         "APP_ENV": "staging",
-        "SUPABASE_URL": "https://arpedia-staging.supabase.co"
+        "SUPABASE_URL": "https://arpedia-staging.supabase.co",
       },
-      "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-staging" }]
+      "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-staging" }],
     },
     "production": {
       "name": "arpedia-api",
       "vars": {
         "APP_ENV": "production",
-        "SUPABASE_URL": "https://arpedia.supabase.co"
+        "SUPABASE_URL": "https://arpedia.supabase.co",
       },
-      "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books" }]
-    }
-  }
+      "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books" }],
+    },
+  },
 }

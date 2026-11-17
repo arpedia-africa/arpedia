@@ -72,7 +72,14 @@ export function splitParts(chapters: SplitInput[]): SplitPart[] {
   chapters.forEach((ch, parentOrd) => {
     const total = sum(ch.paragraphs);
     if (total <= maxWords || ch.paragraphs.length < 2) {
-      out.push({ title: ch.title, kind: 'chapter', parentOrd, start: 0, end: ch.paragraphs.length, words: total });
+      out.push({
+        title: ch.title,
+        kind: 'chapter',
+        parentOrd,
+        start: 0,
+        end: ch.paragraphs.length,
+        words: total,
+      });
       return;
     }
     // cumulative words at the end of each paragraph
@@ -105,7 +112,7 @@ export function splitParts(chapters: SplitInput[]): SplitPart[] {
     let merged = true;
     while (merged && ranges.length > 1) {
       merged = false;
-      const i = ranges.findIndex(r => r.words < MIN_PART_WORDS);
+      const i = ranges.findIndex((r) => r.words < MIN_PART_WORDS);
       if (i !== -1) {
         const j = i === ranges.length - 1 ? i - 1 : i + 1;
         const [a, b] = i < j ? [ranges[i]!, ranges[j]!] : [ranges[j]!, ranges[i]!];
@@ -115,7 +122,14 @@ export function splitParts(chapters: SplitInput[]): SplitPart[] {
       }
     }
     if (ranges.length === 1) {
-      out.push({ title: ch.title, kind: 'chapter', parentOrd, start: 0, end: ch.paragraphs.length, words: total });
+      out.push({
+        title: ch.title,
+        kind: 'chapter',
+        parentOrd,
+        start: 0,
+        end: ch.paragraphs.length,
+        words: total,
+      });
       return;
     }
     ranges.forEach((r, i) =>
@@ -133,19 +147,19 @@ export function splitParts(chapters: SplitInput[]): SplitPart[] {
  */
 export function chapterPrices(price: number, chapterPages: number[]): number[] {
   assertCount(price, 'price');
-  if (chapterPages.some(w => !(w >= 0) || !Number.isFinite(w)))
+  if (chapterPages.some((w) => !(w >= 0) || !Number.isFinite(w)))
     throw new RangeError('chapter pages must be finite numbers ≥ 0');
   const total = sum(chapterPages);
   if (total === 0) {
     if (price === 0) return chapterPages.map(() => 0);
     throw new RangeError('no chargeable chapters to carry the price');
   }
-  const exact = chapterPages.map(w => (price * w) / total);
+  const exact = chapterPages.map((w) => (price * w) / total);
   const shares = exact.map(Math.floor);
   let left = price - sum(shares);
   const order = exact
     .map((e, i) => ({ i, frac: e - Math.floor(e), w: chapterPages[i]! }))
-    .filter(x => x.w > 0)
+    .filter((x) => x.w > 0)
     .sort((a, b) => b.frac - a.frac || a.i - b.i);
   for (let k = 0; left > 0; k = (k + 1) % order.length, left--) shares[order[k]!.i]! += 1;
   return shares;

@@ -24,7 +24,14 @@ export interface ScreenProps {
 }
 
 /** Safe-area screen: status bar colour, optional fixed header and footer, scrolling body. */
-export function Screen({ top = 'white', scroll = true, footer, header, children, contentStyle }: ScreenProps) {
+export function Screen({
+  top = 'white',
+  scroll = true,
+  footer,
+  header,
+  children,
+  contentStyle,
+}: ScreenProps) {
   const { c, name } = useTheme();
   const onOrg = top === 'org';
   const lightIcons = onOrg && name !== 'sunflower';
@@ -81,7 +88,10 @@ export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse }: P
   const { c } = useTheme();
   const drift = useDrift(undefined, reverse);
   return (
-    <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, opacity }, style, drift]}>
+    <Animated.View
+      pointerEvents="none"
+      style={[{ position: 'absolute', width: size, height: size, opacity }, style, drift]}
+    >
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Path d={petalPath(size)} fill={rgba(c.petalRgb, alpha * c.petalK)} />
       </Svg>
@@ -131,7 +141,12 @@ export function HeroBand({ bar, barBack, title, xl, sub, low, children, style }:
       {title || sub || children ? (
         <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) }}>
           {title ? (
-            <Text variant="display" size={xl ? 36 : 30} color="onOrg" style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}>
+            <Text
+              variant="display"
+              size={xl ? 36 : 30}
+              color="onOrg"
+              style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}
+            >
               {title}
             </Text>
           ) : null}
@@ -202,7 +217,13 @@ export function Section({ title, sub, link, onLink, children, style }: SectionPr
 export function GroupLabel({ children }: { children: string }) {
   const { s } = useTheme();
   return (
-    <Text size={12} weight={700} color="ink3" oneLine style={{ paddingHorizontal: s(16), paddingBottom: s(8) }}>
+    <Text
+      size={12}
+      weight={700}
+      color="ink3"
+      oneLine
+      style={{ paddingHorizontal: s(16), paddingBottom: s(8) }}
+    >
       {children}
     </Text>
   );

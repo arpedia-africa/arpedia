@@ -1,6 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
-import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { fontFamily } from '../fonts';
 import { Icon, type IconName } from '../Icon';
 import { ease } from '../motion';
@@ -74,11 +79,11 @@ export function Field({ label, hint, error, icon, trailing, onFocus, onBlur, ...
           {icon ? <Icon name={icon} size="s" color={c.ink3} /> : null}
           <TextInput
             {...input}
-            onFocus={e => {
+            onFocus={(e) => {
               setFocus(true);
               onFocus?.(e);
             }}
-            onBlur={e => {
+            onBlur={(e) => {
               setFocus(false);
               onBlur?.(e);
             }}
@@ -122,7 +127,9 @@ export function Toggle({ value, onChange, label, disabled }: ToggleProps) {
   useEffect(() => {
     t.value = withTiming(value ? 1 : 0, { duration: motion.base, easing: ease });
   }, [value, t]);
-  const track = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(t.value, [0, 1], [c.control, c.org]) }));
+  const track = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(t.value, [0, 1], [c.control, c.org]),
+  }));
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: t.value * s(18) }] }));
   return (
     <Pressable
@@ -133,7 +140,9 @@ export function Toggle({ value, onChange, label, disabled }: ToggleProps) {
       onPress={() => onChange(!value)}
       hitSlop={8}
     >
-      <Animated.View style={[{ width: s(46), height: s(28), borderRadius: 999, opacity: disabled ? 0.5 : 1 }, track]}>
+      <Animated.View
+        style={[{ width: s(46), height: s(28), borderRadius: 999, opacity: disabled ? 0.5 : 1 }, track]}
+      >
         <Animated.View
           style={[
             {
@@ -215,9 +224,15 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
   return (
     <View
       accessibilityRole="tablist"
-      style={{ flexDirection: 'row', backgroundColor: c.surface, borderRadius: s(12), padding: s(4), gap: s(4) }}
+      style={{
+        flexDirection: 'row',
+        backgroundColor: c.surface,
+        borderRadius: s(12),
+        padding: s(4),
+        gap: s(4),
+      }}
     >
-      {options.map(o => {
+      {options.map((o) => {
         const on = o.value === value;
         return (
           <Pressable

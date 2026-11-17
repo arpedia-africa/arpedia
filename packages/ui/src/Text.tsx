@@ -1,7 +1,13 @@
 import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
 import { fontFamily } from './fonts';
 import { useTheme, type Colors } from './theme';
-import { type as typeScale, type FontFamily, type FontWeight, type TypeStyle, type TypeVariant } from './tokens';
+import {
+  type as typeScale,
+  type FontFamily,
+  type FontWeight,
+  type TypeStyle,
+  type TypeVariant,
+} from './tokens';
 
 export interface TextProps extends RNTextProps {
   variant?: TypeVariant;

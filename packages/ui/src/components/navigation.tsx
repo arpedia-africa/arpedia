@@ -41,7 +41,11 @@ export function Header({ title, onBack, close, action, border, titleLeft }: Head
         borderBottomColor: c.line,
       }}
     >
-      {onBack ? <IconButton icon={close ? 'x' : 'back'} label={close ? 'Close' : 'Back'} onPress={onBack} /> : titleLeft ? null : spacer}
+      {onBack ? (
+        <IconButton icon={close ? 'x' : 'back'} label={close ? 'Close' : 'Back'} onPress={onBack} />
+      ) : titleLeft ? null : (
+        spacer
+      )}
       <Text
         size={16}
         weight={700}
@@ -82,7 +86,14 @@ function TabIndicator({ on }: { on: boolean }) {
   return (
     <Animated.View
       style={[
-        { position: 'absolute', top: -s(6), width: s(30), height: s(3), borderRadius: s(3), backgroundColor: c.org },
+        {
+          position: 'absolute',
+          top: -s(6),
+          width: s(30),
+          height: s(3),
+          borderRadius: s(3),
+          backgroundColor: c.org,
+        },
         anim,
       ]}
     />
@@ -113,7 +124,7 @@ export function TabBar({ tabs = mainTabs, active, onChange }: TabBarProps) {
         zIndex: z.tabbar,
       }}
     >
-      {tabs.map(t => {
+      {tabs.map((t) => {
         const on = t.key === active;
         const col = on ? c.night : c.ink3;
         return (
@@ -160,7 +171,7 @@ export function Tabs({ tabs, active, onChange, onBand }: TabsProps) {
         borderBottomColor: c.line,
       }}
     >
-      {tabs.map(t => {
+      {tabs.map((t) => {
         const on = t.key === active;
         const col = onBand ? (on ? c.onOrg : `rgba(${c.onOrgRgb},0.62)`) : on ? c.ink : c.ink3;
         return (

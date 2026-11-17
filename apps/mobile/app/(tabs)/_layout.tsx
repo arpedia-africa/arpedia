@@ -12,8 +12,8 @@ export default function TabsLayout() {
         tabBar={({ state, navigateToTab }) => (
           <TabBar
             active={state.routes[state.index]?.name ?? 'home'}
-            onChange={name => {
-              const route = state.routes.find(r => r.name === name);
+            onChange={(name) => {
+              const route = state.routes.find((r) => r.name === name);
               if (route) navigateToTab(route.key);
             }}
           />

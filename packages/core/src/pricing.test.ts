@@ -56,7 +56,7 @@ describe('chapterPrices', () => {
     const price = bookPrice(Math.ceil(total(pages)));
     const prices = chapterPrices(price, pages);
     expect(total(prices)).toBe(price);
-    expect(prices.every(p => p >= 0 && Number.isInteger(p))).toBe(true);
+    expect(prices.every((p) => p >= 0 && Number.isInteger(p))).toBe(true);
   });
   it('gives free (zero-weight) chapters 0', () => {
     expect(chapterPrices(10, [0, 5, 5])).toEqual([0, 5, 5]);
@@ -71,7 +71,7 @@ describe('chapterPrices', () => {
   });
   it('sums exactly over many random books', () => {
     let seed = 7;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (let n = 0; n < 500; n++) {
       const pages = Array.from({ length: 1 + Math.floor(rnd() * 40) }, () => Math.round(rnd() * 2000) / 100);
       if (total(pages) === 0) continue;
@@ -95,8 +95,8 @@ describe('splitParts', () => {
   it('splits a long chapter into ceil(W ÷ 5000) roughly equal parts', () => {
     const parts = splitParts([{ title: 'Long', paragraphs: paras(120, 100) }]); // 12,000 words
     expect(parts).toHaveLength(3);
-    expect(parts.map(p => p.title)).toEqual(['Long · part 1', 'Long · part 2', 'Long · part 3']);
-    expect(parts.every(p => p.kind === 'part' && p.words === 4000)).toBe(true);
+    expect(parts.map((p) => p.title)).toEqual(['Long · part 1', 'Long · part 2', 'Long · part 3']);
+    expect(parts.every((p) => p.kind === 'part' && p.words === 4000)).toBe(true);
     expect(parts[0]!.end).toBe(parts[1]!.start);
   });
   it('prefers a scene break within 15% of the ideal cut', () => {
@@ -113,7 +113,7 @@ describe('splitParts', () => {
   it('keeps every paragraph exactly once', () => {
     const p = [300, 1200, 800, 2000, 50, 3000, 900, 400, 2500, 700, 1100];
     const parts = splitParts([{ title: 'X', paragraphs: p }]);
-    expect(total(parts.map(x => x.words))).toBe(total(p));
+    expect(total(parts.map((x) => x.words))).toBe(total(p));
     parts.slice(1).forEach((x, i) => expect(x.start).toBe(parts[i]!.end));
   });
 });

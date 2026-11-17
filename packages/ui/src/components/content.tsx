@@ -135,22 +135,51 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
       {uri ? (
         <Image
           source={{ uri }}
-          style={{ width: frame.width, height: frame.height, aspectRatio: frame.aspectRatio, borderRadius: frame.borderRadius }}
+          style={{
+            width: frame.width,
+            height: frame.height,
+            aspectRatio: frame.aspectRatio,
+            borderRadius: frame.borderRadius,
+          }}
           resizeMode="cover"
         />
       ) : (
         <View style={frame}>
-          <LinearGradient colors={[from, to]} {...gradientPoints(deg)} style={{ position: 'absolute', inset: 0 }} />
+          <LinearGradient
+            colors={[from, to]}
+            {...gradientPoints(deg)}
+            style={{ position: 'absolute', inset: 0 }}
+          />
           <CoverArt tone={tone} w={w} h={h} />
-          <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, backgroundColor: 'rgba(255,255,255,0.18)' }} />
-          <Text family="reading" weight={600} size={titleSize} color={fg} style={{ lineHeight: s(titleSize) * 1.15 }}>
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+            }}
+          />
+          <Text
+            family="reading"
+            weight={600}
+            size={titleSize}
+            color={fg}
+            style={{ lineHeight: s(titleSize) * 1.15 }}
+          >
             {title}
           </Text>
           {author && !tiny ? (
             <Text
               size={7.5}
               color={tone === 'c3' ? '#222222' : fg}
-              style={{ opacity: 0.85, letterSpacing: s(7.5) * 0.05, marginTop: s(3), textTransform: 'uppercase' }}
+              style={{
+                opacity: 0.85,
+                letterSpacing: s(7.5) * 0.05,
+                marginTop: s(3),
+                textTransform: 'uppercase',
+              }}
             >
               {author}
             </Text>
@@ -163,7 +192,13 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
 
 /* ─── Avatar ─────────────────────────────────────────────────────────────── */
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-const avatarDims: Record<AvatarSize, [number, number]> = { xs: [20, 8], sm: [26, 10], md: [36, 12], lg: [52, 17], xl: [88, 28] };
+const avatarDims: Record<AvatarSize, [number, number]> = {
+  xs: [20, 8],
+  sm: [26, 10],
+  md: [36, 12],
+  lg: [52, 17],
+  xl: [88, 28],
+};
 
 export interface AvatarProps {
   name: string;
@@ -180,7 +215,7 @@ const initials = (name: string) =>
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map(p => p[0]!.toUpperCase())
+    .map((p) => p[0]!.toUpperCase())
     .join('');
 
 /** `.av`: photo or initials on a tone. */
@@ -291,7 +326,15 @@ export function Unread() {
 
 /* ─── Meter and Ring ─────────────────────────────────────────────────────── */
 /** Progress bar (`.bar`), 0–1. Grows from zero when it appears. */
-export function Meter({ value, thin, style }: { value: number; thin?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Meter({
+  value,
+  thin,
+  style,
+}: {
+  value: number;
+  thin?: boolean;
+  style?: StyleProp<ViewStyle>;
+}) {
   const { c, s } = useTheme();
   const f = useFill();
   const h = s(thin ? 3 : 5);
@@ -304,7 +347,16 @@ export function Meter({ value, thin, style }: { value: number; thin?: boolean; s
       style={[{ height: h, borderRadius: h, backgroundColor: c.surface, overflow: 'hidden' }, style]}
     >
       <Animated.View
-        style={[{ width: `${pct * 100}%`, height: '100%', borderRadius: h, backgroundColor: c.acc, transformOrigin: 'left' }, fill]}
+        style={[
+          {
+            width: `${pct * 100}%`,
+            height: '100%',
+            borderRadius: h,
+            backgroundColor: c.acc,
+            transformOrigin: 'left',
+          },
+          fill,
+        ]}
       />
     </View>
   );
@@ -313,7 +365,17 @@ export function Meter({ value, thin, style }: { value: number; thin?: boolean; s
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /** Progress ring (`.ring`), 0–1, 44px with a 4px track; content sits in the middle. */
-export function Ring({ value, size = 44, inner, children }: { value: number; size?: number; inner?: number; children?: ReactNode }) {
+export function Ring({
+  value,
+  size = 44,
+  inner,
+  children,
+}: {
+  value: number;
+  size?: number;
+  inner?: number;
+  children?: ReactNode;
+}) {
   const { c, s } = useTheme();
   const f = useFill();
   const d = s(size);
