@@ -27,7 +27,9 @@ if (!args.has('--no-prebuild')) {
 }
 const android = join(mobile, 'android');
 const gradlew = join(android, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
-run(`"${gradlew}"`, ['assembleRelease', '-PreactNativeArchitectures=x86_64'], android);
+const gradleArgs = ['assembleRelease', '-PreactNativeArchitectures=x86_64'];
+if (process.platform === 'win32') gradleArgs.push('-I', `"${join(root, 'tools/android-short-cxx.gradle')}"`);
+run(`"${gradlew}"`, gradleArgs, android);
 if (!args.has('--no-install')) {
   run('adb', ['install', '-r', join(mobile, 'android/app/build/outputs/apk/release/app-release.apk')], root);
 }
