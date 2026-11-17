@@ -1,0 +1,16 @@
+node_modules
+pnpm-lock.yaml
+dist
+.next
+.expo
+.wrangler
+.turbo
+android
+ios
+prototype
+admin
+docs
+assets
+*.md
+supabase/.temp
+**/database.types.ts

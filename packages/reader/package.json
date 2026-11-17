@@ -1,0 +1,13 @@
+{
+  "name": "@arpedia/reader",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "foliate-js reader bundle and bridge (flow 04)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src"
+  }
+}
