@@ -13,6 +13,7 @@ export interface SignInState {
 // Same message for a wrong password and for someone who isn't staff, so the form never reveals
 // which emails have staff accounts (flow 16 rule 1).
 const REFUSED = "That email and password don't match. Check them and try again.";
+const LOCKED = 'Too many tries. Try again in 15 minutes or reset your password.';
 
 export async function signIn(_prev: SignInState, form: FormData): Promise<SignInState> {
   const email = String(form.get('email') ?? '').trim().toLowerCase();
@@ -20,8 +21,15 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
   if (!email || !password) return { error: 'Enter your work email and password.', email };
 
   const supabase = await serverSupabase();
+  // 5 wrong passwords in 15 minutes lock the email (flow 16 rule 8), staff or not.
+  const { data: locked } = await supabase.rpc('staff_signin_locked', { p_email: email });
+  if (locked) return { error: LOCKED, email };
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: REFUSED, email };
+  if (error) {
+    await supabase.rpc('note_staff_signin_failure', { p_email: email });
+    return { error: REFUSED, email };
+  }
 
   const staff = await getStaff();
   if (!staff) {
@@ -29,7 +37,10 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
     await supabase.auth.signOut({ scope: 'local' });
     return { error: REFUSED, email };
   }
-  redirect('/');
+  await supabase.rpc('clear_staff_signin_failures');
+  // Every password sign-in continues to two-step (rule 2); the console layout sends unenrolled
+  // staff on to authenticator setup.
+  redirect(staff.mfaEnrolled ? '/sign-in/two-step' : '/sign-in/two-step/setup');
 }
 
 /** Continue with Google, limited to @arpedia.africa accounts (hd hint here, enforced in callback/route.ts). */

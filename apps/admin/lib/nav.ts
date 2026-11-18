@@ -92,6 +92,59 @@ export const nav: NavSection[] = [
   },
 ];
 
+/**
+ * Who may open each page: any one of these permissions (role_permissions, allowed or limited).
+ * Pages not listed are open to every staff member. The server checks again in every RPC.
+ */
+export const pageAccess: Record<string, string[]> = {
+  books: ['approve_books', 'format_books'],
+  curation: ['curate_discover'],
+  genres: ['curate_discover'],
+  users: ['view_readers'],
+  applications: ['approve_books'],
+  'data-requests': ['export_personal'],
+  reports: ['moderate_reports'],
+  community: ['moderate_reports'],
+  claims: ['decide_claims'],
+  appeals: ['moderate_reports'],
+  automod: ['moderate_reports'],
+  support: ['answer_support'],
+  help: ['answer_support'],
+  revenue: ['view_money'],
+  subscriptions: ['view_money'],
+  transactions: ['view_money'],
+  refunds: ['refund'],
+  credits: ['grant_credits'],
+  pricing: ['change_prices'],
+  promos: ['change_prices'],
+  royalties: ['release_payouts'],
+  payouts: ['release_payouts'],
+  'bank-accounts': ['release_payouts'],
+  campaigns: ['send_push'],
+  banners: ['send_push'],
+  emails: ['send_push'],
+  analytics: ['view_analytics'],
+  exports: ['view_analytics'],
+  team: ['manage_team'],
+  audit: ['view_audit'],
+  config: ['manage_settings'],
+  'pricing-rules': ['manage_settings'],
+  policies: ['manage_settings'],
+  integrations: ['manage_settings'],
+};
+
+export const canOpen = (page: string, permissions: readonly string[]) =>
+  !pageAccess[page] || pageAccess[page].some(p => permissions.includes(p));
+
+/** The sidebar for one role: sections and pages it can open, each section linking to its first page. */
+export function navFor(permissions: readonly string[]): NavSection[] {
+  return nav.flatMap(sec => {
+    if (!sec.sub.length) return [sec];
+    const sub = sec.sub.filter(s => canOpen(s.key, permissions));
+    return sub.length ? [{ ...sec, sub, href: `/${sub[0]!.key}` }] : [];
+  });
+}
+
 /** Find the section and page for a path like "/curation". */
 export function locate(pathname: string) {
   const page = pathname.split('/')[1] ?? '';

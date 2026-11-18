@@ -1,11 +1,15 @@
 import { notFound } from 'next/navigation';
-import { locate } from '@/lib/nav';
+import { NoAccess } from '@/components/no-access';
+import { canOpen, locate } from '@/lib/nav';
+import { requireStaff } from '@/lib/staff';
 
 /** Placeholder for console pages that later flows build, so sidebar links never 404. */
 export default async function SectionPage({ params }: { params: Promise<{ section: string }> }) {
   const { section: key } = await params;
   const { section, page } = locate(`/${key}`);
   if (!section || !page) notFound();
+  const staff = await requireStaff();
+  if (!canOpen(page.key, staff.permissions)) return <NoAccess page={page.key} label={page.label} role={staff.role} />;
   return (
     <section className="screen enter">
       <div className="band">
