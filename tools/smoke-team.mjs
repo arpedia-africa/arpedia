@@ -93,3 +93,26 @@ if ((await rpc(fresh, 'get_staff_context')).body !== null) fail('disabled staff 
 if ((await rpc(amaka, 'set_staff_status', { p_user: row.id, p_active: true })).status !== 204)
   fail('enable failed');
 console.log('ok  disable cuts access at once; switch on again works');
+
+// Sign-in lockout (rule 8): only the Worker, after a real password check, counts failures.
+const anonRpc = await fetch(`${env.API_URL}/rest/v1/rpc/note_staff_signin_failure`, {
+  method: 'POST',
+  headers: { apikey: env.ANON_KEY, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ p_email: email }),
+});
+if (anonRpc.ok) fail('anyone signed out can note sign-in failures');
+const signIn = (password) =>
+  fetch(`${api}/v1/staff-sign-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+r = await signIn('a-long-staff-password');
+if (r.status !== 200 || !(await r.json()).refresh_token) fail(`good password returned ${r.status}`);
+for (let i = 0; i < 5; i++) {
+  r = await signIn('wrong-password');
+  if (r.status !== 401) fail(`wrong password ${i + 1} returned ${r.status}`);
+}
+r = await signIn('a-long-staff-password');
+if (r.status !== 423) fail(`sixth try after 5 wrong passwords returned ${r.status}`);
+console.log('ok  staff sign-in: 5 wrong passwords lock the email; failures only counted by the Worker');

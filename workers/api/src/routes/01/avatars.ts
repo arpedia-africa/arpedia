@@ -32,6 +32,28 @@ async function sign(env: Env, message: string) {
   return hex(await crypto.subtle.sign('HMAC', key, enc.encode(message)));
 }
 
+/** Origin for URLs saved on profiles: the configured public one, so they survive a domain move. */
+const publicOrigin = (env: Env, reqUrl: string) =>
+  (env.PUBLIC_API_URL ?? new URL(reqUrl).origin).replace(/\/+$/, '');
+
+/** The body, or null as soon as it passes `max` bytes (a chunked body has no Content-Length). */
+async function readAtMost(body: ReadableStream<Uint8Array> | null, max: number) {
+  const out = new Uint8Array(max);
+  let size = 0;
+  if (!body) return out.subarray(0, 0);
+  const reader = body.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return out.subarray(0, size);
+    if (size + value.byteLength > max) {
+      await reader.cancel();
+      return null;
+    }
+    out.set(value, size);
+    size += value.byteLength;
+  }
+}
+
 /** Constant-time compare of two hex strings. */
 function sameHex(a: string, b: string) {
   if (a.length !== b.length) return false;
@@ -58,7 +80,7 @@ avatars.post('/upload', requireUser, async (c) => {
   const key = `avatars/${uid}/${crypto.randomUUID()}.${ext}`;
   const exp = Math.floor(Date.now() / 1000) + URL_LIFE_S;
   const sig = await sign(c.env, `${key}|${type}|${exp}`);
-  const origin = new URL(c.req.url).origin;
+  const origin = publicOrigin(c.env, c.req.url);
   const path = key.slice('avatars/'.length);
   return c.json({
     upload_url: `${origin}/v1/avatars/${path}?type=${encodeURIComponent(type)}&exp=${exp}&sig=${sig}`,
@@ -80,17 +102,24 @@ avatars.put('/:uid/:file', requireUser, async (c) => {
 
   const declared = Number(c.req.header('Content-Length') ?? '0');
   if (declared > MAX_BYTES) return c.json({ error: 'too_large' }, 413);
-  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const bytes = await readAtMost(c.req.raw.body, MAX_BYTES);
+  if (!bytes) return c.json({ error: 'too_large' }, 413);
   if (bytes.byteLength === 0) return c.json({ error: 'empty' }, 400);
-  if (bytes.byteLength > MAX_BYTES) return c.json({ error: 'too_large' }, 413);
   if (sniff(bytes) !== type) return c.json({ error: 'not_an_image' }, 415);
 
   await c.env.BOOKS.put(key, bytes, {
     httpMetadata: { contentType: type, cacheControl: 'public, max-age=31536000, immutable' },
   });
-  const avatarUrl = `${new URL(c.req.url).origin}/v1/avatars/${uid}/${file}`;
-  const { error } = await serviceDb(c.env).from('profiles').update({ avatar_url: avatarUrl }).eq('id', uid);
+  const avatarUrl = `${publicOrigin(c.env, c.req.url)}/v1/avatars/${uid}/${file}`;
+  const db = serviceDb(c.env);
+  const { data: before } = await db.from('profiles').select('avatar_url').eq('id', uid).single();
+  const { error } = await db.from('profiles').update({ avatar_url: avatarUrl }).eq('id', uid);
   if (error) throw new Error(`avatar_url update failed: ${error.message}`);
+  // The previous photo (one of ours, any origin) is no longer shown anywhere.
+  const old = /\/v1\/avatars\/([0-9a-f-]{36})\/([0-9a-f-]{36}\.(?:webp|jpg|png))$/.exec(
+    before?.avatar_url ?? '',
+  );
+  if (old && old[1] === uid && old[2] !== file) await c.env.BOOKS.delete(`avatars/${uid}/${old[2]}`);
   return c.json({ avatar_url: avatarUrl });
 });
 

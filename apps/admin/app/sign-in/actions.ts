@@ -14,22 +14,40 @@ export interface SignInState {
 // which emails have staff accounts (flow 16 rule 1).
 const REFUSED = "That email and password don't match. Check them and try again.";
 const LOCKED = 'Too many tries. Try again in 15 minutes or reset your password.';
+const OFFLINE = "We couldn't sign you in just now. Check your connection and try again.";
 
 export async function signIn(_prev: SignInState, form: FormData): Promise<SignInState> {
   const email = String(form.get('email') ?? '').trim().toLowerCase();
   const password = String(form.get('password') ?? '');
   if (!email || !password) return { error: 'Enter your work email and password.', email };
 
-  const supabase = await serverSupabase();
-  // 5 wrong passwords in 15 minutes lock the email (flow 16 rule 8), staff or not.
-  const { data: locked } = await supabase.rpc('staff_signin_locked', { p_email: email });
-  if (locked) return { error: LOCKED, email };
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    await supabase.rpc('note_staff_signin_failure', { p_email: email });
-    return { error: REFUSED, email };
+  // The api Worker checks the password and keeps the lockout: 5 wrong passwords in 15 minutes
+  // lock the email (flow 16 rule 8), staff or not.
+  let r: Response;
+  try {
+    r = await fetch(`${process.env.API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-sign-in`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    return { error: OFFLINE, email };
   }
+  const body = (await r.json().catch(() => ({}))) as {
+    access_token?: string;
+    refresh_token?: string;
+    error?: string;
+  };
+  if (r.status === 423 || r.status === 429) return { error: LOCKED, email };
+  if (!r.ok || !body.access_token || !body.refresh_token)
+    return { error: r.status === 401 ? REFUSED : OFFLINE, email };
+
+  const supabase = await serverSupabase();
+  const { error } = await supabase.auth.setSession({
+    access_token: body.access_token,
+    refresh_token: body.refresh_token,
+  });
+  if (error) return { error: OFFLINE, email };
 
   const staff = await getStaff();
   if (!staff) {

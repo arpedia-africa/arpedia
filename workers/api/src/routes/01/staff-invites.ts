@@ -85,6 +85,8 @@ invites.post('/', requireUser, async (c) => {
   if (!/^[^@\s]+@arpedia\.africa$/.test(email)) return c.json({ error: 'not_staff_domain' }, 400);
   if (!name || name.length > 80) return c.json({ error: 'bad_name' }, 400);
   if (!ROLES.includes(role)) return c.json({ error: 'bad_role' }, 400);
+  // Off the local stack a missing ADMIN_URL would email a dead localhost link.
+  if (!c.env.ADMIN_URL && c.env.APP_ENV !== 'local') throw new Error('ADMIN_URL is not set');
 
   const token = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const jwt = c.req.header('Authorization')!.slice('Bearer '.length);
@@ -101,7 +103,15 @@ invites.post('/', requireUser, async (c) => {
     throw new Error(`invite_staff failed: ${error.message}`);
   }
   const link = `${c.env.ADMIN_URL ?? 'http://localhost:3000'}/invite/${token}`;
-  const emailed = await sendInviteEmail(c.env, email, name, role, link);
+  let emailed: boolean;
+  try {
+    emailed = await sendInviteEmail(c.env, email, name, role, link);
+  } catch (e) {
+    // Nobody holds this token, so cancel the invite rather than leave a dead "Invited" row.
+    await callerDb(c.env, jwt).rpc('revoke_staff_invite', { p_invite: id as string });
+    console.error(e);
+    return c.json({ error: 'email_failed' }, 502);
+  }
   return c.json({
     id,
     expires_at: new Date(Date.now() + 72 * 3600_000).toISOString(),

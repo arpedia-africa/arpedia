@@ -1,12 +1,14 @@
 -- Flow 01 · sign-up trigger, onboarding steps, genres, devices and profile privacy.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(27);
 
-insert into auth.users (id, email, raw_user_meta_data) values
+insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data) values
   ('30000000-0000-4000-a000-000000000001', 'ada@test.local',
-   '{"full_name":"Ada Writer","terms_version":"3","privacy_version":"2"}'),
-  ('30000000-0000-4000-a000-000000000002', 'bola@test.local', '{"name":"Bola G","picture":"https://x/y.png"}');
+   '{"full_name":"Ada Writer","terms_version":"3","privacy_version":"2","avatar_url":"https://evil.example/t.png"}',
+   '{"provider":"email"}'),
+  ('30000000-0000-4000-a000-000000000002', 'bola@test.local',
+   '{"name":"Bola G","picture":"https://lh3.googleusercontent.com/a/y"}', '{"provider":"google"}');
 
 -- ─── Trigger ────────────────────────────────────────────────────────────────
 select is((select full_name from public.profiles where id = '30000000-0000-4000-a000-000000000001'), 'Ada Writer',
@@ -15,8 +17,10 @@ select ok((select username ~ '^adawriter[0-9]{4}$' from public.profiles where id
   'username is name plus 4 digits');
 select is((select terms_version * 10 + privacy_version from public.profiles where id = '30000000-0000-4000-a000-000000000001'),
   32, 'terms and privacy versions stored');
-select is((select avatar_url from public.profiles where id = '30000000-0000-4000-a000-000000000002'), 'https://x/y.png',
-  'Google picture becomes the avatar');
+select is((select avatar_url from public.profiles where id = '30000000-0000-4000-a000-000000000002'),
+  'https://lh3.googleusercontent.com/a/y', 'Google picture becomes the avatar');
+select is((select avatar_url from public.profiles where id = '30000000-0000-4000-a000-000000000001'), null,
+  'email sign-up metadata never sets the avatar');
 select is((select onboarding_step from public.profiles where id = '30000000-0000-4000-a000-000000000001'), 'signup',
   'new account starts at signup');
 

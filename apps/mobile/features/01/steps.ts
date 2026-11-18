@@ -33,13 +33,15 @@ const useQueue = create<QueueState>()(
 );
 
 let flushing = false;
-/** Send queued steps in order; stops at the first network failure and tries again later. */
+/** Send queued steps in order; stops at the first failure that isn't a refused value and tries again later. */
 export async function flushSteps() {
   if (flushing) return;
   flushing = true;
   try {
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user.id;
+    // No session yet (offline token refresh): keep everything for the next try.
+    if (!uid) return;
     for (;;) {
       const next = useQueue.getState().pending[0];
       if (!next) break;
@@ -52,8 +54,9 @@ export async function flushSteps() {
         p_step: next.step,
         p_payload: next.payload,
       });
-      // A refused payload (bad value) is dropped; a network error keeps it for later.
-      if (error && (error.message?.match(/fetch|network/i) || !error.code)) break;
+      // Only a refused value (SQLSTATE class 22/23) is dropped; network, auth (stale token) and
+      // server errors keep it for later.
+      if (error && !/^2[23]/.test(error.code ?? '')) break;
       useQueue.getState().shift();
       void queryClient.invalidateQueries({ queryKey: profileKey(uid) });
     }

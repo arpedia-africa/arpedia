@@ -28,6 +28,10 @@ describe('phone normalisation', () => {
   it('uses the country calling code', () => {
     expect(normalisePhone('024 123 4567', '233')).toBe('+233241234567');
   });
+  it('keeps the whole number within E.164 lengths, as the database does', () => {
+    expect(normalisePhone('123456', '1')).toBeNull();
+    expect(normalisePhone('1234567', '1')).toBe('+11234567');
+  });
 });
 
 describe('age check', () => {

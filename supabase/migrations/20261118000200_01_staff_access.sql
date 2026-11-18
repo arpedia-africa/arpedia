@@ -249,7 +249,9 @@ begin
 end $$;
 
 -- ─── Sign-in lockouts (rule 8) ──────────────────────────────────────────────
--- 5 wrong passwords in 15 minutes lock that email for 15 minutes. Callable before sign-in.
+-- 5 wrong passwords in 15 minutes lock that email for 15 minutes. Service role only: the api
+-- Worker's /v1/staff-sign-in checks the password itself and notes real failures, so nobody can
+-- lock a staff email out by calling these directly.
 create function public.staff_signin_locked(p_email text) returns boolean
 language sql stable security definer set search_path = '' as $$
   select count(*) >= 5 from public.staff_auth_failures
@@ -258,8 +260,10 @@ $$;
 
 create function public.note_staff_signin_failure(p_email text) returns void
 language sql security definer set search_path = '' as $$
+  -- Failures only matter for 15 minutes; keep a day for support, then prune.
+  delete from public.staff_auth_failures where at < now() - interval '1 day';
   insert into public.staff_auth_failures (email, kind)
-  select lower(trim(p_email)), 'password' where char_length(p_email) between 3 and 320
+  select lower(trim(p_email)), 'password' where char_length(p_email) between 3 and 320;
 $$;
 
 -- After a good password the caller clears their own email's failures.
@@ -367,11 +371,13 @@ begin
 end $$;
 
 -- Rule 16: at least 2 active Super admins must remain while 2 or more exist.
+-- One check at a time (held to commit), so two demotions at once can't both see 3 and pass.
 create function public._check_super_admins(p_user uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
   n int;
 begin
+  perform pg_advisory_xact_lock(hashtext('arpedia.super_admins'));
   select count(*) into n from public.staff_roles where role = 'super_admin' and active;
   if exists (select 1 from public.staff_roles where user_id = p_user and role = 'super_admin' and active)
      and n <= 2 then
@@ -600,7 +606,7 @@ revoke execute on function public.staff_mfa_verified_at(), public.staff_mfa_ok()
   from public, anon, authenticated;
 
 grant execute on function public.staff_signin_locked(text), public.note_staff_signin_failure(text)
-  to anon, authenticated;
+  to service_role;
 grant execute on function public.staff_mfa_verified_at(), public.staff_mfa_ok(), public.has_permission(text),
   public.require_permission(text), public.get_staff_context(), public.clear_staff_signin_failures(),
   public.note_staff_code_failure(), public.create_staff_backup_codes(), public.use_staff_backup_code(text),

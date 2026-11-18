@@ -50,7 +50,8 @@ export const validPassword = (pw: string) => pw.length >= PASSWORD_MIN;
 /**
  * Normalise a phone number typed after a calling code into E.164. Spaces, dashes and brackets are
  * ignored, a repeated calling code or a leading 0 is dropped. Nigeria (+234) needs exactly 10 digits
- * after the code; other codes accept 6 to 12. Returns null when it can't be right.
+ * after the code; other codes accept 6 to 12, and the whole number 8 to 15 digits (the database's
+ * E.164 check). Returns null when it can't be right.
  */
 export function normalisePhone(input: string, callingCode = '234'): string | null {
   let d = input.replace(/[\s\-().]/g, '');
@@ -62,6 +63,8 @@ export function normalisePhone(input: string, callingCode = '234'): string | nul
   if (d.startsWith('0')) d = d.slice(1);
   if (!/^[1-9][0-9]*$/.test(d)) return null;
   if (callingCode === '234' ? d.length !== 10 : d.length < 6 || d.length > 12) return null;
+  const total = callingCode.length + d.length;
+  if (total < 8 || total > 15) return null;
   return `+${callingCode}${d}`;
 }
 

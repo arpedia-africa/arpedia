@@ -2,7 +2,7 @@
 -- at-least-2-Super-admins, disable, backup codes, lockouts.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(37);
+select plan(38);
 
 -- Seeded Super admins become Operations admins inside this test so the counts below are ours.
 update public.staff_roles set role = 'operations_admin' where role = 'super_admin';
@@ -130,6 +130,10 @@ select is(public.use_staff_backup_code('abcd-1234'), -1, 'a used backup code is 
 -- ─── Lockout: 5 wrong passwords in 15 minutes ───────────────────────────────
 reset role;
 set local role anon;
+select throws_ok($$select public.note_staff_signin_failure('locked@arpedia.africa')$$, '42501', null,
+  'anyone signed out cannot note failures (only the Worker that checked the password)');
+reset role;
+set local role service_role;
 select public.note_staff_signin_failure('Locked@arpedia.africa') from generate_series(1, 4);
 select ok(not public.staff_signin_locked('locked@arpedia.africa'), '4 wrong passwords do not lock');
 select public.note_staff_signin_failure('locked@arpedia.africa');

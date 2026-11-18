@@ -17,7 +17,8 @@ alter table public.profiles
   add column date_of_birth date,
   add column country text not null default 'NG',
   add column signup_intent public.signup_intent,
-  add column onboarding_step text not null default 'signup',
+  -- Existing accounts are past onboarding; only new rows start at 'signup' (default set below).
+  add column onboarding_step text not null default 'done',
   add column terms_version int,
   add column privacy_version int,
   add column terms_accepted_at timestamptz,
@@ -26,6 +27,7 @@ alter table public.profiles
   add constraint profiles_phone_shape check (phone is null or phone ~ '^\+[1-9][0-9]{7,14}$'),
   add constraint profiles_country_shape check (country ~ '^[A-Z]{2}$'),
   add constraint profiles_onboarding_step check (public.onboarding_step_ord(onboarding_step) is not null);
+alter table public.profiles alter column onboarding_step set default 'signup';
 
 -- Public face of a reader: never phone, birthday or onboarding fields. Owned by postgres, so it
 -- reads past profiles RLS; later flows add counts.
@@ -52,6 +54,7 @@ end $$;
 
 -- Creates the profile for every new auth user. Email sign-up sends full_name, terms_version and
 -- privacy_version in user metadata; Google sends full_name/name and avatar_url/picture.
+-- Email sign-up metadata is client-supplied, so a photo URL is only taken from Google.
 create function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -59,10 +62,13 @@ declare
   nm text := left(btrim(coalesce(meta ->> 'full_name', meta ->> 'name', '')), 80);
   tv int := case when meta ->> 'terms_version' ~ '^[0-9]{1,6}$' then (meta ->> 'terms_version')::int end;
   pv int := case when meta ->> 'privacy_version' ~ '^[0-9]{1,6}$' then (meta ->> 'privacy_version')::int end;
+  pic text := coalesce(meta ->> 'avatar_url', meta ->> 'picture');
+  av text := case when new.raw_app_meta_data ->> 'provider' = 'google'
+                   and pic ~ '^https://[a-z0-9-]+\.googleusercontent\.com/' then left(pic, 500) end;
 begin
   insert into public.profiles (id, username, full_name, avatar_url, terms_version, privacy_version,
     terms_accepted_at)
-  values (new.id, public.make_username(nm), nm, coalesce(meta ->> 'avatar_url', meta ->> 'picture'), tv, pv,
+  values (new.id, public.make_username(nm), nm, av, tv, pv,
     case when tv is not null or pv is not null then now() end)
   on conflict (id) do nothing;
   return new;
