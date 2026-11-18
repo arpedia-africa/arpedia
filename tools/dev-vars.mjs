@@ -35,10 +35,11 @@ writeFileSync(
   join(root, 'apps/admin/.env.local'),
   `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\nAPI_URL=http://127.0.0.1:${apiPort}\n`,
 );
-// The Android emulator reaches the host at 10.0.2.2.
-const emu = env.API_URL.replace('127.0.0.1', '10.0.2.2');
+// The Android emulator reaches the host at 10.0.2.2. A real phone (--phone) uses 127.0.0.1
+// through `adb reverse tcp:<port> tcp:<port>` for the Supabase API and api Worker ports.
+const host = process.argv.includes('--phone') ? '127.0.0.1' : '10.0.2.2';
 writeFileSync(
   join(root, 'apps/mobile/.env.local'),
-  `EXPO_PUBLIC_SUPABASE_URL=${emu}\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nEXPO_PUBLIC_API_URL=http://10.0.2.2:8787\n`,
+  `EXPO_PUBLIC_SUPABASE_URL=${env.API_URL.replace('127.0.0.1', host)}\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nEXPO_PUBLIC_API_URL=http://${host}:${apiPort}\n`,
 );
 console.log('Wrote workers/*/.dev.vars, apps/admin/.env.local and apps/mobile/.env.local');
