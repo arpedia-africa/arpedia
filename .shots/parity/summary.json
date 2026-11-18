@@ -3,8 +3,43 @@
   "results": [
     {
       "name": "kit-a-sunflower",
-      "pct": 3.692649098474341,
+      "pct": 2.853444290337494,
       "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-sunflower.png"
+    },
+    {
+      "name": "kit-a-palm",
+      "pct": 2.9880721220527047,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-palm.png"
+    },
+    {
+      "name": "kit-a-plum",
+      "pct": 3.0461396208969025,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-plum.png"
+    },
+    {
+      "name": "kit-a-night",
+      "pct": 3.1478502080443826,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-a-night.png"
+    },
+    {
+      "name": "kit-b-sunflower",
+      "pct": 3.579023508137432,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-sunflower.png"
+    },
+    {
+      "name": "kit-b-palm",
+      "pct": 3.591078963230862,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-palm.png"
+    },
+    {
+      "name": "kit-b-plum",
+      "pct": 3.593007836045811,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-plum.png"
+    },
+    {
+      "name": "kit-b-night",
+      "pct": 3.598794454490657,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\kit-b-night.png"
     }
   ]
 }
