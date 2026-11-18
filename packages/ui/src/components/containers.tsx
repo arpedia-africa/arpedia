@@ -174,9 +174,9 @@ export interface CardProps {
 }
 
 export function Card({ soft, pad = true, onPress, accessibilityLabel, style, children }: CardProps) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const look: ViewStyle = {
-    borderWidth: 1,
+    borderWidth: bw(1),
     borderColor: soft ? rgba(c.orgRgb, 0.22) : c.line,
     borderRadius: s(14),
     backgroundColor: soft ? c.orgTint2 : c.white,
@@ -209,7 +209,7 @@ export function Group({
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const items = Children.toArray(children).filter(isValidElement);
   return (
     <View
@@ -218,7 +218,7 @@ export function Group({
           ? { backgroundColor: c.white }
           : {
               marginHorizontal: s(16),
-              borderWidth: 1,
+              borderWidth: bw(1),
               borderColor: c.line,
               borderRadius: s(14),
               overflow: 'hidden',
@@ -235,7 +235,7 @@ export function Group({
             {child}
           </GroupDivider.Provider>
         ) : (
-          <View key={child.key ?? i} style={i > 0 ? { borderTopWidth: 1, borderTopColor: c.line } : null}>
+          <View key={child.key ?? i} style={i > 0 ? { borderTopWidth: bw(1), borderTopColor: c.line } : null}>
             {child}
           </View>
         ),
@@ -277,7 +277,7 @@ export function Cell({
   ugc,
   flush,
 }: CellProps) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const divider = useContext(GroupDivider);
   const body = (
     <>
@@ -321,7 +321,7 @@ export function Cell({
     paddingHorizontal: s(flush ? 16 : 14),
     minHeight: s(56),
     backgroundColor: highlight ? c.orgTint2 : 'transparent',
-    ...(divider ? { borderTopWidth: 1, borderTopColor: c.line } : null),
+    ...(divider ? { borderTopWidth: bw(1), borderTopColor: c.line } : null),
   };
   if (!onPress) return <View style={style}>{body}</View>;
   return (
@@ -345,7 +345,7 @@ export interface KeyValueRow {
 
 /** `.kv`: label/value rows on a grey panel; totals in bold. */
 export function KeyValue({ rows, white }: { rows: KeyValueRow[]; white?: boolean }) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   return (
     <View
       style={{
@@ -376,7 +376,7 @@ export function KeyValue({ rows, white }: { rows: KeyValueRow[]; white?: boolean
             justifyContent: 'space-between',
             gap: s(12),
             paddingVertical: s(10),
-            borderTopWidth: i > 0 ? 1 : 0,
+            borderTopWidth: i > 0 ? bw(1) : 0,
             borderTopColor: c.line,
           }}
         >

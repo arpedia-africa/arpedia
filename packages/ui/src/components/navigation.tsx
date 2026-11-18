@@ -25,7 +25,7 @@ export interface HeaderProps {
 
 /** `.appbar`: back, centred title, one action. Every secondary screen. */
 export function Header({ title, onBack, close, action, border, titleLeft }: HeaderProps) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const spacer = <View style={{ width: s(44) }} />;
   return (
     <View
@@ -37,7 +37,7 @@ export function Header({ title, onBack, close, action, border, titleLeft }: Head
         paddingHorizontal: s(6),
         backgroundColor: c.white,
         zIndex: z.sticky,
-        borderBottomWidth: border ? 1 : 0,
+        borderBottomWidth: border ? bw(1) : 0,
         borderBottomColor: c.line,
       }}
     >
@@ -108,14 +108,14 @@ export interface TabBarProps {
 
 /** `.tabbar`: four tabs; the active one is night with a main-colour line that grows from the centre. */
 export function TabBar({ tabs = mainTabs, active, onChange }: TabBarProps) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const bottom = useBottomInset(22);
   return (
     <View
       accessibilityRole="tabbar"
       style={{
         flexDirection: 'row',
-        borderTopWidth: 1,
+        borderTopWidth: bw(1),
         borderTopColor: c.line,
         paddingTop: s(6),
         paddingHorizontal: s(6),
@@ -160,7 +160,7 @@ export interface TabsProps {
 }
 
 export function Tabs({ tabs, active, onChange, onBand }: TabsProps) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   return (
     <View
       accessibilityRole="tablist"
@@ -168,7 +168,7 @@ export function Tabs({ tabs, active, onChange, onBand }: TabsProps) {
         flexDirection: 'row',
         gap: s(4),
         paddingHorizontal: s(onBand ? 6 : 12),
-        borderBottomWidth: onBand ? 0 : 1,
+        borderBottomWidth: onBand ? 0 : bw(1),
         borderBottomColor: c.line,
       }}
     >

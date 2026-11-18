@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { PixelRatio, useWindowDimensions } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { scaleFor, scaled } from './scale';
+import { scaleFor, scaled, snapBorder } from './scale';
 import { base, themes, type ThemeColors, type ThemeName } from './tokens';
 
 export type Colors = typeof base & ThemeColors;
@@ -13,6 +13,8 @@ export interface ThemeValue {
   scale: number;
   /** Scale a design size: s(16) → 16 at 375dp, 13.6 at 320dp. */
   s: (n: number) => number;
+  /** Scale a border width, then snap it to whole device pixels like Chrome: bw(1), bw(1.5). */
+  bw: (n: number) => number;
   reduceMotion: boolean;
 }
 
@@ -38,6 +40,7 @@ export function ThemeProvider({ theme = 'sunflower', width, reduceMotion, childr
       c: { ...base, ...themes[theme] },
       scale,
       s: (n: number) => scaled(n, scale),
+      bw: (n: number) => snapBorder(scaled(n, scale), PixelRatio.get()),
       reduceMotion: reduceMotion ?? osReduce,
     };
   }, [theme, w, reduceMotion, osReduce]);

@@ -38,7 +38,7 @@ export function Field({
   onBlur,
   ...input
 }: FieldProps) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const [focused, setFocus] = useState(false);
   // `focusedLook` pins the focused look (the Design system's static "Focused" specimen).
   const focus = focusedLook || focused;
@@ -87,7 +87,7 @@ export function Field({
               borderRadius: s(12),
               minHeight: s(50),
               paddingHorizontal: s(14),
-              borderWidth: s(1.5),
+              borderWidth: bw(1.5),
             },
             box,
           ]}
@@ -113,6 +113,8 @@ export function Field({
               // `padding: 12px 0`; Android's TextInput adds its own side padding otherwise
               paddingVertical: s(12),
               paddingHorizontal: 0,
+              // Chrome centres the font's ascent+descent; Android's extra font padding put the text ~1px low
+              includeFontPadding: false,
               fontFamily: fontFamily('ui', 400),
               ...androidFontSize(fs, fontFamily('ui', 400)),
               color: c.ink,
