@@ -7,6 +7,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import { fontFamily } from './fonts';
+import { fontMetrics } from './fonts/metrics';
 import { useTheme, type Colors } from './theme';
 import {
   type as typeScale,
@@ -64,26 +65,50 @@ export function Text({
   };
   const lines = oneLine || ellipsis ? { numberOfLines: 1 } : {};
   const shrink = oneLine && !ellipsis ? { adjustsFontSizeToFit: true, minimumFontScale: 0.85 } : {};
-  const merged = StyleSheet.flatten([textStyle, style]);
+  const merged = StyleSheet.flatten([textStyle, style]) ?? {};
   return (
     <RNText
       {...lines}
       {...shrink}
       ellipsizeMode={ellipsis ? 'tail' : undefined}
       maxFontSizeMultiplier={oneLine ? 1.6 : undefined}
-      style={[merged, { lineHeight: snapLineHeight(merged?.lineHeight) }]}
+      style={[merged, androidLineBox(merged)]}
       {...rest}
     />
   );
 }
 
 /**
- * Android rounds each line box UP to whole physical pixels (RN CustomLineHeightSpan), so a 30.6px
- * line at 2.88x becomes 89px instead of 88.1 and every text block below drifts down. Snap to the
- * nearest physical pixel (a hair under it, so the ceil lands there) to match CSS line boxes on average.
+ * Android places text in its line box differently from Chrome (the prototype), so on Android:
+ * - Line height: RN rounds each line box UP to whole device pixels (CustomLineHeightSpan), so a
+ *   30.6px line at 2.88x becomes 89px instead of 88.1 and everything below drifts. Snap to the
+ *   nearest device pixel (a hair under it, so the ceil lands there).
+ * - Baseline: both round ascent and descent to device pixels, but Chrome (subpixel text) moves a
+ *   rounded-down descent's pixel over from the ascent and floors the half-leading, while RN ceils
+ *   it. Shift the glyphs by the difference so they sit where the prototype draws them.
  */
-export function snapLineHeight(lineHeight: number | undefined): number | undefined {
-  if (lineHeight == null || Platform.OS !== 'android') return lineHeight;
-  const r = PixelRatio.get();
-  return (Math.max(1, Math.round(lineHeight * r)) - 0.01) / r;
+function androidLineBox(style: TextStyle): TextStyle | null {
+  const { lineHeight, fontSize, fontFamily: name, transform } = style;
+  if (Platform.OS !== 'android' || lineHeight == null) return null;
+  const r = PixelRatio.get() * PixelRatio.getFontScale();
+  const lhPx = Math.max(1, Math.round(lineHeight * r)) - 0.01;
+  const m = name ? fontMetrics[name] : undefined;
+  if (!m || fontSize == null) return { lineHeight: lhPx / r };
+  const a = fontSize * r * m[0];
+  const d = fontSize * r * m[1];
+  const ai = Math.round(a);
+  const di = Math.round(d);
+  const android = ai + Math.ceil((Math.ceil(lhPx) - ai - di) / 2);
+  let ab = ai;
+  let db = di;
+  if (db < d && ab >= 1) {
+    db++;
+    ab--;
+  }
+  const chrome = ab + Math.floor((lineHeight * r - ab - db) / 2);
+  const shift = (chrome - android) / PixelRatio.get();
+  return {
+    lineHeight: lhPx / r,
+    ...(shift ? { transform: [...(Array.isArray(transform) ? transform : []), { translateY: shift }] } : {}),
+  };
 }
