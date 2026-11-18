@@ -226,7 +226,11 @@ export function PaywallHero({
   );
 }
 
-/** `.pw-badge`: night pill at top -10 / left 12; `--quiet` = tint 2 with a tint ring. */
+/**
+ * `.pw-badge`: night pill at top -10 / left 12; `--quiet` = tint 2 with a tint ring.
+ * Quiet text is orgInk, not the prototype's --on-org: that is white or cream in Palm, Plum and
+ * Night, which leaves "Best value" unreadable on the near-white tint. Sunflower turns a lighter brown.
+ */
 function Badge({ label, quiet }: { label: string; quiet?: boolean }) {
   const { c, s } = useTheme();
   return (
@@ -243,7 +247,7 @@ function Badge({ label, quiet }: { label: string; quiet?: boolean }) {
       }}
     >
       {quiet ? <Ring width={1} color={c.orgTint} radius={999} /> : null}
-      <Text size={11.5} weight={700} color={quiet ? 'onOrg' : '#FFFFFF'} oneLine>
+      <Text size={11.5} weight={700} color={quiet ? 'orgInk' : '#FFFFFF'} oneLine>
         {label}
       </Text>
     </View>

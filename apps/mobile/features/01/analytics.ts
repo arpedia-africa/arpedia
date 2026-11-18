@@ -19,12 +19,17 @@ export type OnboardingEvent =
   | 'restore_tapped'
   | 'onboarding_completed';
 
-/** No-op when PostHog is off (local builds have no key). */
-export function useTrack() {
-  const posthog = usePostHog() as ReturnType<typeof usePostHog> | undefined;
-  return useCallback(
-    (event: OnboardingEvent, props?: Record<string, string | number | boolean>) =>
-      posthog?.capture(event, props),
-    [posthog],
-  );
+type Track = (event: OnboardingEvent, props?: Record<string, string | number | boolean>) => void;
+const noop: Track = () => {};
+
+function usePostHogTrack(): Track {
+  const posthog = usePostHog();
+  return useCallback<Track>((event, props) => posthog.capture(event, props), [posthog]);
 }
+
+// The key is fixed at build time, so the hook choice never changes between renders.
+// Without a key there is no PostHogProvider, and usePostHog would log an error on every screen.
+const useNoTrack = () => noop;
+
+/** No-op when PostHog is off (local builds have no key). */
+export const useTrack: () => Track = process.env.EXPO_PUBLIC_POSTHOG_KEY ? usePostHogTrack : useNoTrack;
