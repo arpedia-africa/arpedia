@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import {
   PixelRatio,
   Platform,
@@ -71,23 +71,26 @@ export function Text({
   const maxScale = rest.maxFontSizeMultiplier ?? (oneLine ? 1.6 : undefined);
   const [lineCount, setLineCount] = useState(1);
   const countLines = Platform.OS === 'android' && !oneLine && !ellipsis && rest.numberOfLines !== 1;
-  const { onTextLayout } = rest;
+  const { onTextLayout, children } = rest;
+  const parentFit = useContext(FitContext);
+  const fitsSelf = !!((oneLine && !ellipsis) || rest.adjustsFontSizeToFit);
+  const fit: Fit = fitsSelf ? 'self' : parentFit;
+  const box = androidLineBox(merged, fit, maxScale, plainText(children));
+  // Spans nested in a fitting Text go through the same search: tell them where it starts.
+  const search: FitSearch | null =
+    fitsSelf && box?.fontSize != null
+      ? {
+          start: Math.ceil(box.fontSize * textRatio(maxScale)),
+          min: Math.trunc(Math.fround(4 * PixelRatio.get())),
+        }
+      : null;
   return (
     <RNText
       {...lines}
       {...shrink}
       ellipsizeMode={ellipsis ? 'tail' : undefined}
       maxFontSizeMultiplier={oneLine ? 1.6 : undefined}
-      style={[
-        merged,
-        androidLineBox(
-          merged,
-          !!((oneLine && !ellipsis) || rest.adjustsFontSizeToFit),
-          maxScale,
-          plainText(rest.children),
-        ),
-        androidHeightFix(merged, lineCount, maxScale),
-      ]}
+      style={[merged, box, androidHeightFix(merged, lineCount, maxScale)]}
       {...rest}
       onTextLayout={
         countLines
@@ -97,7 +100,9 @@ export function Text({
             }
           : onTextLayout
       }
-    />
+    >
+      {search ? <FitContext.Provider value={search}>{children}</FitContext.Provider> : children}
+    </RNText>
   );
 }
 
@@ -128,7 +133,9 @@ function androidHeightFix(style: TextStyle, lineCount: number, maxScale?: number
  *   typical one overshoots on lowercase copy (13px subs came out ~2 device px wider per line).
  *   With adjustsFontSizeToFit, RN's fit search rescales the size by float ratios and truncates on
  *   every step even when the text fits (TextLayoutManager.adjustSpannableFontToFit), so 37px ends at
- *   32px. Start from the size whose search ends nearest the wanted size (fitStart).
+ *   32px. Start from the size whose search ends nearest the wanted size (fitStart). Spans nested in
+ *   a fitting Text are rescaled by the same ratios (13px "/month" in a 28px price drew at ~12px), so
+ *   they pick their start against the parent's search (FitContext).
  * - Line height: RN rounds each line box UP to whole device pixels (CustomLineHeightSpan), so a
  *   30.6px line at 2.88x becomes 89px instead of 88.1 and everything below drifts. Snap to the
  *   nearest device pixel (a hair under it, so the ceil lands there).
@@ -136,28 +143,42 @@ function androidHeightFix(style: TextStyle, lineCount: number, maxScale?: number
  *   rounded-down descent's pixel over from the ascent and floors the half-leading, while RN ceils
  *   it. Shift the glyphs by the difference so they sit where the prototype draws them.
  */
-function androidLineBox(style: TextStyle, fit: boolean, maxScale?: number, text?: string): TextStyle | null {
+function androidLineBox(style: TextStyle, fit: Fit, maxScale?: number, text?: string): TextStyle | null {
   const { lineHeight, fontSize, fontFamily: name } = style;
   if (Platform.OS !== 'android' || lineHeight == null) return null;
-  const r = PixelRatio.get() * Math.min(PixelRatio.getFontScale(), maxScale ?? Infinity);
+  const r = textRatio(maxScale);
   const lhPx = Math.max(1, Math.round(lineHeight * r)) - 0.01;
   const m = name ? fontMetrics[name] : undefined;
   if (!m || !name || fontSize == null) return { lineHeight: lhPx / r };
   const nearest = Math.max(1, Math.round(fontSize * r));
-  const [startPx, sizePx] = fit ? fitStart(fontSize * r) : [nearest, nearest];
+  const [startPx, sizePx] =
+    fit === 'self' ? fitStart(fontSize * r) : fit ? fitStart(fontSize * r, fit) : [nearest, nearest];
   return lineBox(style, m, meanAdvance(name, text) ?? m[2], r, lhPx, startPx, sizePx);
 }
 
-/** The text of plain string children (strings and numbers only), else undefined. */
+const textRatio = (maxScale?: number) =>
+  PixelRatio.get() * Math.min(PixelRatio.getFontScale(), maxScale ?? Infinity);
+
+/**
+ * How RN's fit search will resize this text: 'self' = this Text fits (adjustsFontSizeToFit), a
+ * FitSearch = it is nested in one that does (the search rescales every span by the same ratios),
+ * null = no search.
+ */
+type Fit = 'self' | FitSearch | null;
+interface FitSearch {
+  /** The fitting Text's start size (px): the search's first interval end. */
+  start: number;
+  min: number;
+}
+const FitContext = createContext<FitSearch | null>(null);
+
+/** The text of the string children (strings and numbers; nested Texts style their own runs). */
 function plainText(children: unknown): string | undefined {
   if (typeof children === 'string' || typeof children === 'number') return String(children);
   if (!Array.isArray(children)) return undefined;
   let out = '';
-  for (const c of children) {
-    if (typeof c === 'string' || typeof c === 'number') out += String(c);
-    else if (c != null && c !== false) return undefined;
-  }
-  return out;
+  for (const c of children) if (typeof c === 'string' || typeof c === 'number') out += String(c);
+  return out || undefined;
 }
 
 /**
@@ -228,27 +249,34 @@ export function androidInputShift(fontSize: number, lineHeight: number, family: 
   return (chrome - android) / PixelRatio.get();
 }
 
-/** The size RN's fit search ends at from `start` px when the text fits (float32, like the Kotlin). */
-function fitResult(start: number, min: number): number {
-  let size = start;
+/** The ratios RN's fit search rescales every span by, from `start` px, when the text fits. */
+function fitRatios(start: number, min: number): number[] {
+  const out: number[] = [];
   let low = min;
   let prev = start;
   for (;;) {
     const cur = Math.floor((low + start + 1) / 2);
-    size = Math.max(Math.trunc(Math.fround(size * Math.fround(cur / prev))), min);
-    if (low === start) return size;
+    out.push(Math.fround(cur / prev));
+    if (low === start) return out;
     low = cur;
     prev = cur;
   }
 }
 
-/** [start px to ask for, px it is drawn at]: the drawn size nearest `exact` px. */
-function fitStart(exact: number): [number, number] {
-  const min = Math.trunc(Math.fround(4 * PixelRatio.get()));
+/** The size a span of `size` px ends at after the search (float32 and truncation, like the Kotlin). */
+const fitApply = (size: number, ratios: number[], min: number) =>
+  ratios.reduce((s, q) => Math.max(Math.trunc(Math.fround(s * q)), min), size);
+
+/**
+ * [start px to ask for, px it is drawn at]: the drawn size nearest `exact` px. For a span nested in
+ * a fitting Text, the search's ratios come from that Text's start (`parent`).
+ */
+function fitStart(exact: number, parent?: FitSearch): [number, number] {
+  const min = parent?.min ?? Math.trunc(Math.fround(4 * PixelRatio.get()));
   let best: [number, number] = [Math.ceil(exact), Math.ceil(exact)];
   let err = Infinity;
   for (let start = Math.max(min, Math.floor(exact) - 2); start <= Math.ceil(exact) + 6; start++) {
-    const drawn = fitResult(start, min);
+    const drawn = fitApply(start, fitRatios(parent?.start ?? start, min), min);
     if (Math.abs(drawn - exact) < err) {
       err = Math.abs(drawn - exact);
       best = [start, drawn];
@@ -280,10 +308,19 @@ function lineBox(
   }
   const chrome = ab + Math.floor((lineHeight * r - ab - db) / 2);
   const shift = (chrome - android) / PixelRatio.get();
+  const spacing = (letterSpacing ?? 0) + (fontSize - sizePx / r) * advance;
+  // Chrome counts the spacing after a line's last letter in its width, Android leaves it out, so a
+  // centred line with letter spacing sits half a spacing off (right-aligned: a whole one).
+  const align = style.textAlign === 'center' ? 0.5 : style.textAlign === 'right' ? 1 : 0;
+  const shiftX = -spacing * align;
+  const moves = [
+    ...(Math.abs(shiftX) > 0.01 ? [{ translateX: shiftX }] : []),
+    ...(shift ? [{ translateY: shift }] : []),
+  ];
   return {
     fontSize: (startPx - 0.01) / r,
-    letterSpacing: (letterSpacing ?? 0) + (fontSize - sizePx / r) * advance,
+    letterSpacing: spacing,
     lineHeight: lhPx / r,
-    ...(shift ? { transform: [...(Array.isArray(transform) ? transform : []), { translateY: shift }] } : {}),
+    ...(moves.length ? { transform: [...(Array.isArray(transform) ? transform : []), ...moves] } : {}),
   };
 }

@@ -268,6 +268,24 @@ async function loadDevBundle() {
   await sleep(3000); // a deep link sent while the router mounts is dropped
 }
 
+/**
+ * The owner may pick up the phone: never capture unless our app is in front. Checks every 30 s for up
+ * to 10 minutes, then gives up (no screenshot of anything else is ever taken).
+ */
+async function waitForFocus(pkg) {
+  for (let i = 0; i <= 20; i++) {
+    const focus =
+      adb('shell', 'dumpsys', 'window')
+        .toString()
+        .match(/mCurrentFocus=.*/)?.[0] ?? '';
+    if (focus.includes(`${pkg}/`)) return;
+    if (i === 20) break;
+    console.warn(`${pkg} is not in front (${focus.trim()}); waiting 30 s`);
+    await sleep(30_000);
+  }
+  throw new Error(`${pkg} was not in front for 10 minutes; no capture taken`);
+}
+
 /** Open a parity page in an app, wait for its PARITY_READY line, capture below the status bar. */
 async function capture(pkg, query, id, theme, kind, g, height) {
   if (pkg === DEV_PACKAGE) await loadDevBundle();
@@ -298,6 +316,7 @@ async function capture(pkg, query, id, theme, kind, g, height) {
   const top = Number(m[4]);
   height ??= Number(m[5]);
   await sleep(900); // arrive animations
+  await waitForFocus(pkg);
   const raw = adb('exec-out', 'screencap', '-p');
   const h = Math.min(Math.floor(height * g.dpr), g.heightPx - top);
   return {

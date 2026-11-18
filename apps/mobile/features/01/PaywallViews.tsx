@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, PixelRatio, View } from 'react-native';
+import Svg, { Line } from 'react-native-svg';
 import { approxBooks, formatNaira, perMonthNaira, type Plan, type PlanId } from '@arpedia/core';
 import {
   Avatar,
@@ -291,15 +292,8 @@ function PlanCard({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () 
         {`${formatNaira(plan.priceNaira)} ${PERIOD[plan.id].every}`}
       </Text>
       {/* .gets: margin-top 10, padding-top 10, 1px dashed rule */}
-      <View
-        style={{
-          marginTop: s(10),
-          paddingTop: s(10),
-          borderTopWidth: 1,
-          borderTopColor: c.line,
-          borderStyle: 'dashed',
-        }}
-      >
+      <View style={{ marginTop: s(10), paddingTop: ruleWidth() + s(10) }}>
+        <DashedRule color={c.line} />
         <Text size={13.5} weight={700} style={{ lineHeight: s(13.5) * 1.35 }}>
           {`${n(plan.credits)} credits`}
         </Text>
@@ -310,6 +304,47 @@ function PlanCard({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () 
     </Press>
   );
 }
+
+/**
+ * `border-top: 1px dashed` as Chrome draws it: the width floored to whole device pixels, dashes 3×
+ * and gaps 2× that width, the gap stretched so the rule starts and ends on a whole dash (Blink's
+ * StrokeData::SelectBestDashGap). Android's own dashed border uses 3×/3× of the unrounded width.
+ */
+function DashedRule({ color }: { color: string }) {
+  const [width, setWidth] = useState(0);
+  const dpr = PixelRatio.get();
+  const t = ruleWidth() * dpr;
+  const len = width * dpr;
+  const dash = 3 * t;
+  const gap = 2 * t;
+  const fewer = Math.floor((len + gap) / (dash + gap));
+  const gapFewer = (len - fewer * dash) / (fewer - 1);
+  const gapMore = (len - (fewer + 1) * dash) / fewer;
+  const best = gapMore <= 0 || Math.abs(gapFewer - gap) < Math.abs(gapMore - gap) ? gapFewer : gapMore;
+  return (
+    <View
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2 }}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {width > 0 && len > dash * 2 ? (
+        <Svg width={width} height={2}>
+          <Line
+            x1={0}
+            y1={t / dpr / 2}
+            x2={width}
+            y2={t / dpr / 2}
+            stroke={color}
+            strokeWidth={t / dpr}
+            strokeDasharray={[dash / dpr, best / dpr]}
+          />
+        </Svg>
+      ) : null}
+    </View>
+  );
+}
+
+/** A 1px CSS border's width in dp: Chrome floors it to whole device pixels (at least one). */
+const ruleWidth = () => Math.max(1, Math.floor(PixelRatio.get())) / PixelRatio.get();
 
 /** Skeleton price card while store prices load (never show a price before it loads). */
 function PlanSkeleton() {
