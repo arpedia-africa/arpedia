@@ -166,6 +166,7 @@ fix that closes the issue, mark it ready, stop (merge-when-green merges it). If 
   - **`merge-when-green` workflow:** squash-merges a ready (non-draft) PR labelled `flow-*` or `fix` only when every check on its latest commit is green. Builders never merge.
   - **`main-guard` workflow:** sends a high-priority ntfy alert if anything reaches `main` without a merged PR.
   - **CI runs only on ready PRs and `main`,** to stay inside the 2,000 free Actions minutes a month. Builders run the same gates locally while working.
+  - **The Android emulator job (Maestro) runs nightly on `main` only** (03:00 Lagos, or by hand with Run workflow). On PRs, builders run the same Maestro flows on the owner's phone before marking a PR ready. A failed nightly run opens a `fix` issue, which the builder takes first.
 - **Production deploys** only from tagged releases, which you trigger.
 - **Production deploys** only from tagged releases, which you trigger.
 - **Cost:** a wake with nothing to do ends in under a minute. About 26 building sessions in total, spread across whichever accounts are active.

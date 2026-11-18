@@ -4,7 +4,10 @@ Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live st
 
 0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (final release parity on `c1212d5c`, 320/360 checks), fix what fails, remove the label, then continue it as in 1.
 1. If a flow PR is unfinished, or has failing CI or review findings: check out its branch, read the PR's Progress / Next step / Notes and the last commits, and carry on from Next step. **First read the PR comments (`gh pr view <n> --comments`). Any comment starting with "Coordinator request" comes from the owner and has top priority.** Do its items before anything else, then reply with a comment "Done: <request title>" listing what you did. When you update the PR description, never drop sections you didn't write.
-2. If a flow PR is complete and you have run every gate locally and they all pass: mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
+1b. If an open issue labelled `fix` is titled "Nightly android failed": read the linked run's Maestro log, fix it on branch `fix/<issue>` with a PR labelled `fix` that closes the issue, run the Maestro flows on the phone, mark it ready, stop.
+2. If a flow PR is complete and you have run every gate locally and they all pass:
+   - Local gates include the flow's Maestro flows **on the phone** at 320, 360 and 375dp (`tools/maestro-widths.mjs`). Paste the result in the PR. GitHub CI no longer runs Android on PRs; it runs only nightly on main.
+   - Then mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
 3. Otherwise start the next ready flow, taking lanes in this order: L1-critical, then L2-product, then L3-money-ops. A flow is ready when it isn't started, all its deps are merged, and its questions are in answeredQuestions or acceptDefaultsFor.
    - The first flow is 00 Foundation (docs/prd/00-foundation.md), which also sets up CI and branch protection.
    - Claim it: push branch flow/NN-name from main, then open a draft PR labelled flow-NN with the Progress checklist from CLOUD-RUN.md.
