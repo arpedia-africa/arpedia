@@ -6,7 +6,6 @@ import {
   Count,
   Cover,
   EmptyState,
-  Group,
   IconButton,
   OnHero,
   Petals,
@@ -121,7 +120,15 @@ export interface InboxRowView {
  * `.cell.cell--tap` in a flush group: avatar, `.com-row-name` (title + Live pill or Author badge),
  * one-line `.cell__sub`, and `.v4` trail (time over `.count`).
  */
-export function InboxRowCell({ row, divider, onPress }: { row: InboxRowView; divider: boolean; onPress: () => void }) {
+export function InboxRowCell({
+  row,
+  divider,
+  onPress,
+}: {
+  row: InboxRowView;
+  divider: boolean;
+  onPress: () => void;
+}) {
   const { c, s, bw } = useTheme();
   return (
     <Press
@@ -141,12 +148,7 @@ export function InboxRowCell({ row, divider, onPress }: { row: InboxRowView; div
       <Avatar name={row.name} uri={row.avatarUrl ?? undefined} tone={row.tone} square={!row.person} />
       <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(6), minWidth: 0 }}>
-          <Text
-            size={14.5}
-            weight={600}
-            ellipsis
-            style={{ flexShrink: 1, lineHeight: s(14.5) * 1.3 }}
-          >
+          <Text size={14.5} weight={600} ellipsis style={{ flexShrink: 1, lineHeight: s(14.5) * 1.3 }}>
             {row.name}
           </Text>
           {row.live ? <Pill label="Live" tone="night" /> : row.author ? <AuthorBadge /> : null}
@@ -175,20 +177,29 @@ export function InboxRowCell({ row, divider, onPress }: { row: InboxRowView; div
 
 /** `.group.group--flush.pt8` of inbox rows. */
 export function InboxList({ rows, onOpen }: { rows: InboxRowView[]; onOpen: (row: InboxRowView) => void }) {
-  const { s } = useTheme();
+  const { c, s } = useTheme();
+  // Rows draw their own `.cell + .cell` divider (kit Group would add a second one around non-Cells).
   return (
     <View style={{ paddingTop: s(8) }}>
-      <Group flush>
+      <View style={{ backgroundColor: c.white }}>
         {rows.map((r, i) => (
           <InboxRowCell key={r.id} row={r} divider={i > 0} onPress={() => onOpen(r)} />
         ))}
-      </Group>
+      </View>
     </View>
   );
 }
 
 /** `.h8.inset.pt16`: "N conversations with new messages" and Mark all read (`.section__link`). */
-export function UnreadBar({ count, onMarkAll, busy }: { count: number; onMarkAll: () => void; busy?: boolean }) {
+export function UnreadBar({
+  count,
+  onMarkAll,
+  busy,
+}: {
+  count: number;
+  onMarkAll: () => void;
+  busy?: boolean;
+}) {
   const { s } = useTheme();
   return (
     <View
@@ -219,7 +230,17 @@ export interface RoomsSummary {
 }
 
 /** `.rt-card`: 16 padding, radius 18, 1px inset line (rooms: tinted, row with covers). */
-function RtCard({ rooms, onPress, children, label }: { rooms?: boolean; onPress: () => void; children: ReactNode; label: string }) {
+function RtCard({
+  rooms,
+  onPress,
+  children,
+  label,
+}: {
+  rooms?: boolean;
+  onPress: () => void;
+  children: ReactNode;
+  label: string;
+}) {
   const { c, s } = useTheme();
   return (
     <Press
@@ -326,7 +347,13 @@ export function ReadTogether({
                     : { left: 0, top: s(10), transform: [{ rotate: '-6deg' }], zIndex: 1 }),
                 }}
               >
-                <Cover title={b.title} tone={b.tone} size={48} fluid boxShadow="0 10px 18px -10px rgba(0,0,0,0.45)" />
+                <Cover
+                  title={b.title}
+                  tone={b.tone}
+                  size={48}
+                  fluid
+                  boxShadow="0 10px 18px -10px rgba(0,0,0,0.45)"
+                />
               </View>
             ))}
           </View>

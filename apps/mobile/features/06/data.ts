@@ -57,6 +57,37 @@ export function useMarkAllRead() {
   });
 }
 
+export type Community = Database['public']['Functions']['search_communities']['Returns'][number];
+
+/** Public communities; the query (2+ characters) is debounced by the caller. */
+export function useCommunities(q: string, type: string) {
+  return useQuery({
+    queryKey: ['community', 'discover', q, type],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_communities', {
+        p_q: q.length >= 2 ? q : undefined,
+        p_type: type,
+        p_limit: 50,
+      });
+      if (error) throw error;
+      return data;
+    },
+    placeholderData: (prev) => prev,
+  });
+}
+
+/** Join adds the user as member and puts the community in the inbox; it doesn't open the chat. */
+export function useJoin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (group: string) => {
+      const { error } = await supabase.rpc('join_group', { p_group: group });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['community'] }),
+  });
+}
+
 const TONES: AvatarTone[] = ['n', 'm', 'o', 'b', 'k', 't', 'g', 'r'];
 
 /** A stable avatar tone per conversation (the prototype colours each one differently). */

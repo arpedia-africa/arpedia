@@ -55,6 +55,7 @@ import {
   type InboxRowView,
   type InboxTab,
 } from '../features/06/InboxViews';
+import { DiscoverHero, DiscoverRow, TypeChips, type DiscoverRowView } from '../features/06/DiscoverViews';
 
 const PAGES = [
   'kit-a',
@@ -70,6 +71,7 @@ const PAGES = [
   's-community',
   's-dms',
   's-community-groups',
+  's-discover',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -149,9 +151,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <KitB />
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
-        <View>
-          {FLOW06.has(page) ? <Flow06 page={page} /> : <Flow01 page={page} />}
-        </View>
+        <View>{FLOW06.has(page) ? <Flow06 page={page} /> : <Flow01 page={page} />}</View>
       )}
     </View>
   );
@@ -296,7 +296,73 @@ function Flow01({ page }: { page: Page }) {
 }
 
 // ─── Flow 06 screens with the prototype's values (tools/parity/s-*.html) ────
-const FLOW06 = new Set<Page>(['s-community', 's-dms', 's-community-groups']);
+const FLOW06 = new Set<Page>(['s-community', 's-dms', 's-community-groups', 's-discover']);
+
+const DISCOVER: DiscoverRowView[] = [
+  [
+    'ao',
+    'Arpedia Official',
+    'o',
+    'Official · public · 12.4k members',
+    'Announcements, new releases and reading challenges.',
+    true,
+  ],
+  [
+    'gr',
+    'Grace Readers',
+    'n',
+    'Group · public · 1,240 members · live now',
+    'Christian fiction book club. This week: Harmattan Letters ch. 7–9.',
+    true,
+  ],
+  [
+    'ir',
+    "Ifeoma's Readers",
+    'm',
+    'Author · public · 860 members',
+    'The official community for readers of Ifeoma Nwachukwu.',
+    true,
+  ],
+  [
+    'hl',
+    'Harmattan Letters Read-Along',
+    'b',
+    'Read-along · public · 64 members',
+    'Week-by-week discussion. Please mark spoilers.',
+    true,
+  ],
+  [
+    'fb',
+    'Faith & Books',
+    'k',
+    'Group · public · 2.1k members',
+    'Christian and faith-based reading, devotionals and testimonies.',
+    false,
+  ],
+  [
+    'sr',
+    'Short Reads Lounge',
+    't',
+    'Group · public · 540 members',
+    'Quick stories for quick commutes. Share the ones you finished on the danfo.',
+    false,
+  ],
+  [
+    'un',
+    'UNN Christian Fellowship Books',
+    'g',
+    'Group · public · 386 members',
+    'Campus reading group. Next pick vote closes Friday.',
+    false,
+  ],
+].map(([id, name, tone, type, description, joined]) => ({
+  id: id as string,
+  name: name as string,
+  tone: tone as DiscoverRowView['tone'],
+  type: type as string,
+  description: description as string,
+  joined: joined as boolean,
+}));
 
 const row = (
   id: string,
@@ -306,14 +372,43 @@ const row = (
   time: string,
   unread = 0,
   extra: Partial<InboxRowView> = {},
-): InboxRowView => ({ id, name, tone, sub, time, unread, person: false, live: false, author: false, muted: false, ...extra });
-
-const GR = row('gr', 'Grace Readers', 'n', 'Chioma: The night vigil chapter 😭 who else cried?', 'now', 8, { live: true });
-const IN = row('in', 'Ifeoma Nwachukwu', 'm', 'Ifeoma: Thank you Ngozi! Chapter 12 will answer that 😊', '45m', 1, {
-  person: true,
-  author: true,
+): InboxRowView => ({
+  id,
+  name,
+  tone,
+  sub,
+  time,
+  unread,
+  person: false,
+  live: false,
+  author: false,
+  muted: false,
+  ...extra,
 });
-const IR = row('ir', "Ifeoma's Readers", 'm', 'Ifeoma: A small treat: I will answer three questions on Friday', '1h', 3);
+
+const GR = row('gr', 'Grace Readers', 'n', 'Chioma: The night vigil chapter 😭 who else cried?', 'now', 8, {
+  live: true,
+});
+const IN = row(
+  'in',
+  'Ifeoma Nwachukwu',
+  'm',
+  'Ifeoma: Thank you Ngozi! Chapter 12 will answer that 😊',
+  '45m',
+  1,
+  {
+    person: true,
+    author: true,
+  },
+);
+const IR = row(
+  'ir',
+  "Ifeoma's Readers",
+  'm',
+  'Ifeoma: A small treat: I will answer three questions on Friday',
+  '1h',
+  3,
+);
 const AO = row(
   'ao',
   'Arpedia Official',
@@ -322,11 +417,35 @@ const AO = row(
   '3h',
   2,
 );
-const HL = row('hl', 'Harmattan Letters Read-Along', 'b', 'Hauwa: Friday we move to chapter 9. Catch up!', '5h');
-const AS = row('as', 'Arpedia Support', 'k', 'Arpedia Team: Hello Ngozi, welcome to Arpedia. Ask us anything here.', '4d');
+const HL = row(
+  'hl',
+  'Harmattan Letters Read-Along',
+  'b',
+  'Hauwa: Friday we move to chapter 9. Catch up!',
+  '5h',
+);
+const AS = row(
+  'as',
+  'Arpedia Support',
+  'k',
+  'Arpedia Team: Hello Ngozi, welcome to Arpedia. Ask us anything here.',
+  '4d',
+);
 
 function Flow06({ page }: { page: Page }) {
   const { s } = useTheme();
+  if (page === 's-discover')
+    return (
+      <View style={{ paddingBottom: s(28) }}>
+        <DiscoverHero query="" onQuery={noop} onBack={noop} />
+        <TypeChips value="all" onChange={noop} />
+        <View style={{ paddingTop: s(8) }}>
+          {DISCOVER.map((r, i) => (
+            <DiscoverRow key={r.id} row={r} divider={i > 0} onOpen={noop} onJoin={noop} />
+          ))}
+        </View>
+      </View>
+    );
   const tab: InboxTab = page === 's-dms' ? 'unread' : page === 's-community-groups' ? 'groups' : 'all';
   const hero = (
     <CommunityHero tab={tab} counts={{ all: 5, unread: 4 }} onTab={noop} onRooms={noop} onDiscover={noop} />
