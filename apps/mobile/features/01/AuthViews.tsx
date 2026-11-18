@@ -83,6 +83,7 @@ export function LoginView({
   onForgot,
   onCreate,
 }: LoginViewProps) {
+  const { s } = useTheme();
   const [shown, setShown] = useState(false);
   return (
     <>
@@ -117,8 +118,9 @@ export function LoginView({
             onSubmitEditing={onSubmit}
             trailing={<Eye shown={shown} onToggle={() => setShown((v) => !v)} />}
           />
-          <View style={{ alignItems: 'flex-start' }}>
-            <Link label="Forgot password?" onPress={onForgot} />
+          {/* `.onb-forgot`: align-self flex-end, 13.5px, margin-top −6 */}
+          <View style={{ alignItems: 'flex-end', marginTop: s(-6) }}>
+            <Link label="Forgot password?" size={13.5} onPress={onForgot} />
           </View>
           <View style={{ gap: 8 }}>
             <Btn

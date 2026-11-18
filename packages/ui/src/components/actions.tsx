@@ -162,10 +162,20 @@ export function IconButton({ icon, label, onPress, color, dot, pressed, style }:
 }
 
 /** Text link in the main ink colour (`.link`). */
-export function Link({ label, onPress }: { label: string; onPress?: () => void; children?: ReactNode }) {
+export function Link({
+  label,
+  onPress,
+  size,
+}: {
+  label: string;
+  onPress?: () => void;
+  /** Font size in CSS px (e.g. `.onb-forgot` 13.5); defaults to the body size. */
+  size?: number;
+  children?: ReactNode;
+}) {
   return (
     <Press onPress={onPress} accessibilityRole="link" hitSlop={12} pressScale={1}>
-      <Text weight={600} color="orgInk" oneLine>
+      <Text weight={600} color="orgInk" size={size} oneLine>
         {label}
       </Text>
     </Press>
