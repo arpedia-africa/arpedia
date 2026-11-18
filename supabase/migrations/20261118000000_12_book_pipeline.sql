@@ -647,13 +647,13 @@ begin
   if not found then return array['no_diff']; end if;
   select b.author_id into v_author from public.book_revisions r join public.books b on b.id = r.book_id
    where r.id = p_rev;
-  if d.changed_pct >= public._threshold('fast_lane_changed_pct') then v_reasons := v_reasons || 'changed_pct'; end if;
-  if d.chapters_added > 0 or d.chapters_removed > 0 then v_reasons := v_reasons || 'chapters_changed'; end if;
-  if d.cover_changed then v_reasons := v_reasons || 'cover_changed'; end if;
-  if d.metadata_changed then v_reasons := v_reasons || 'metadata_changed'; end if;
-  if not public.author_in_good_standing(v_author) then v_reasons := v_reasons || 'author_standing'; end if;
-  if public.revision_score(p_rev) < public._threshold('ready_score') then v_reasons := v_reasons || 'score'; end if;
-  if public.has_blocking_flag(p_rev) then v_reasons := v_reasons || 'blocking_flag'; end if;
+  if d.changed_pct >= public._threshold('fast_lane_changed_pct') then v_reasons := array_append(v_reasons, 'changed_pct'); end if;
+  if d.chapters_added > 0 or d.chapters_removed > 0 then v_reasons := array_append(v_reasons, 'chapters_changed'); end if;
+  if d.cover_changed then v_reasons := array_append(v_reasons, 'cover_changed'); end if;
+  if d.metadata_changed then v_reasons := array_append(v_reasons, 'metadata_changed'); end if;
+  if not public.author_in_good_standing(v_author) then v_reasons := array_append(v_reasons, 'author_standing'); end if;
+  if public.revision_score(p_rev) < public._threshold('ready_score') then v_reasons := array_append(v_reasons, 'score'); end if;
+  if public.has_blocking_flag(p_rev) then v_reasons := array_append(v_reasons, 'blocking_flag'); end if;
   return v_reasons;
 end $$;
 
@@ -733,7 +733,7 @@ begin
   values (v_book.id,
           coalesce((select max(revision_no) from public.book_revisions where book_id = v_book.id), 0) + 1,
           'draft', 'upload', v_src, v_uid,
-          case when v_author <> v_uid then 'staff' else 'author' end,
+          (case when v_author <> v_uid then 'staff' else 'author' end)::public.revision_origin,
           v_book.current_revision_id, v_meta)
   returning * into v_rev;
   update public.book_revisions
@@ -982,7 +982,8 @@ declare
 begin
   perform public._require_service('complete_seal');
   v_rev := public._lock_revision(p_rev);
-  if v_rev.generation <> p_generation or v_rev.status not in ('processing', 'needs_fixes', 'ready_for_review') then
+  if v_rev.generation <> p_generation or v_rev.sealed_generation is not distinct from p_generation
+     or v_rev.status not in ('processing', 'needs_fixes', 'ready_for_review') then
     return jsonb_build_object('applied', false);
   end if;
   if nullif(p_seal ->> 'artifact_prefix', '') is null or nullif(p_seal ->> 'manifest_key', '') is null then
