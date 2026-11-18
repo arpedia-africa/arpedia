@@ -1089,7 +1089,9 @@ begin
   return jsonb_build_object(
     'book', jsonb_build_object('id', b.id, 'title', b.title, 'status', b.status),
     'revision', jsonb_build_object('id', r.id, 'revision_no', r.revision_no, 'words', r.words, 'pages', r.pages,
-      'price', r.price_credits, 'preview_percent', r.preview_percent, 'free_through_ord', r.free_through_ord),
+      'price', r.price_credits, 'preview_percent', r.preview_percent, 'free_through_ord', r.free_through_ord,
+      'published_at', r.published_at,
+      'published_by', (select full_name from public.profiles where id = r.published_by)),
     'effective_price', (select effective_price from public.book_effective where book_id = p_book),
     'price_override', case when b.price_override_credits is null then null else
       jsonb_build_object('credits', b.price_override_credits, 'reason', b.price_override_reason) end,
@@ -1120,13 +1122,30 @@ begin
   return jsonb_build_object(
     'readers', (select count(*) from public.reading_progress where book_id = p_book),
     'finished', (select count(*) from public.reading_progress where book_id = p_book and max_percent >= 95),
-    'dropoff', coalesce((select jsonb_agg(jsonb_build_object('chapter_ord', chapter_ord, 'readers', n) order by chapter_ord)
-      from (select chapter_ord, count(*) as n from public.reading_progress where book_id = p_book
-            group by chapter_ord) d), '[]'),
+    'finished_preview', (select count(*) from public.reading_progress p join public.book_effective e on e.book_id = p.book_id
+                         where p.book_id = p_book and p.max_percent >= e.effective_preview_percent),
+    -- Readers who last opened the book on each of the last 14 days (Lagos time).
+    'per_day', (select jsonb_agg(jsonb_build_object('day', d::date, 'readers',
+                  (select count(*) from public.reading_progress p where p.book_id = p_book
+                     and (p.last_opened_at at time zone 'Africa/Lagos')::date = d::date)) order by d)
+                from generate_series((now() at time zone 'Africa/Lagos')::date - 13,
+                                     (now() at time zone 'Africa/Lagos')::date, interval '1 day') d),
+    -- Share of readers reaching each numbered chapter (reading_progress.chapter_ord is the furthest).
+    'reach', coalesce((select jsonb_agg(jsonb_build_object('no', x.no, 'title', x.title, 'readers', x.n) order by x.no)
+      from (select row_number() over (order by c.ord) as no, c.title,
+                   (select count(*) from public.reading_progress p where p.book_id = p_book and p.chapter_ord >= c.ord) as n
+            from public.chapters c join public.books b on b.current_revision_id = c.revision_id
+            where b.id = p_book and c.kind = 'chapter') x), '[]'),
     'unlocks_upfront', (select count(distinct user_id) from public.entitlements
                         where book_id = p_book and scope = 'book' and source = 'unlock_all'),
-    'unlocks_paygo', (select count(distinct user_id) from public.entitlements
-                      where book_id = p_book and scope = 'chapter'),
+    'unlocks_paygo', (select count(distinct user_id) from public.entitlements e
+                      where e.book_id = p_book and e.scope = 'chapter'
+                        and not exists (select 1 from public.entitlements u where u.user_id = e.user_id
+                                          and u.book_id = p_book and u.scope = 'book' and u.source = 'unlock_all')),
+    'avg_paid', (select round(avg(paid)) from (
+        select -sum(delta) as paid from public.credit_ledger
+        where book_id = p_book and reason in ('unlock_all', 'chapter', 'undo') group by user_id
+        having -sum(delta) > 0) x),
     'avg_paygo_credits', (select round(avg(paid)) from (
         select -sum(delta) as paid from public.credit_ledger
         where book_id = p_book and reason in ('chapter', 'undo') group by user_id having -sum(delta) > 0) x),
@@ -1135,7 +1154,17 @@ begin
     'tips', (select coalesce(sum(credits), 0) from public.tips where book_id = p_book),
     'author_earning_kobo', (select coalesce(sum(author_earning_kobo), 0) from public.credit_ledger
                             where book_id = p_book),
-    'month_open_from', date_trunc('month', now() at time zone 'Africa/Lagos')
+    -- Last 6 months, newest first; the current month stays open until it closes (flow 13).
+    'months', coalesce((select jsonb_agg(jsonb_build_object('month', m, 'credits', c, 'earning_kobo', k) order by m desc)
+      from (select date_trunc('month', created_at at time zone 'Africa/Lagos')::date as m,
+                   -sum(delta) filter (where reason in ('unlock_all', 'chapter', 'undo', 'gift_out', 'tip')) as c,
+                   sum(author_earning_kobo) as k
+            from public.credit_ledger where book_id = p_book
+              and created_at > now() - interval '6 months' and author_earning_kobo <> 0
+            group by 1) mm), '[]'),
+    'month_open_from', date_trunc('month', now() at time zone 'Africa/Lagos')::date,
+    'rating', (select jsonb_build_object('avg', s.avg, 'count', s.count)
+               from public.book_rating_stats s where s.book_id = p_book)
   );
 end $$;
 
