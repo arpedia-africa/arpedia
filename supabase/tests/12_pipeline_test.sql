@@ -3,7 +3,7 @@
 -- anchor migration, unpublish refunds, RLS and the staff role matrix.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(72);
+select plan(73);
 
 -- ─── Actors ─────────────────────────────────────────────────────────────────
 insert into auth.users (id, email) values
@@ -270,6 +270,11 @@ select pg_temp.as_user('12000000-0000-4000-a000-000000000003');
 select is(public.revision_links('12000000-0000-4000-e000-000000000002') - 'paragraphs' - 'kept',
   '{"highlights":2,"highlights_kept":1,"comments_moved":1,"published":false}'::jsonb,
   'Revisions counts the highlights and discussions that will move');
+-- PostgREST sessions preload pg-safeupdate, which refuses a DELETE with no WHERE; tests can't load it,
+-- so check the function bodies instead (migrate_anchors once cleared its temp table that way).
+select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.prosrc ~* 'delete\s+from\s+[a-z_."]+\s*;'), 0,
+  'no function deletes without a WHERE (pg-safeupdate refuses it under PostgREST)');
 select is((public.publish_revision('12000000-0000-4000-e000-000000000002') -> 'anchors_moved' ->> 'highlights')::int, 1,
   'one highlight moved');
 select is((select published_by from public.book_revisions where id = '12000000-0000-4000-e000-000000000002'),

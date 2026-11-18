@@ -544,7 +544,7 @@ declare
   v_pc int := 0;
 begin
   create temp table if not exists _anchor_map (old_id text primary key, new_id text not null) on commit drop;
-  delete from _anchor_map;
+  delete from _anchor_map where true; -- pg-safeupdate (PostgREST roles) refuses a DELETE with no WHERE
 
   insert into _anchor_map (old_id, new_id)
   select b.para_id,
