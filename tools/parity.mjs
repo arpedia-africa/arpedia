@@ -471,6 +471,12 @@ try {
           { x: 248, y: 0, width: W - 248, height: 150 },
         ],
       },
+      // The Send back modal over Fix flagged issues; issue wording comes from the seeded flags.
+      'book-changes': {
+        path: '/books/00000000-0000-4000-d100-000000000001/changes',
+        as: 'amaka@arpedia.africa',
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
     };
     for (const id of ids) {
       const p = pages[id];

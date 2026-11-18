@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Released } from './released';
+import { QueueToast } from './queue-toast';
 import { RowLink } from './row';
-import { BooksHeader, FILE_TYPE, Toolbar, bookCounts, coverClass, initials, waited } from './shared';
+import { BooksHeader, FILE_TYPE, Toolbar, bookCounts, coverClass, initials, waited, type Supa } from './shared';
 import { serverSupabase } from '@/lib/supabase/server';
 
 interface Search {
@@ -12,9 +12,38 @@ interface Search {
   genre?: string;
   /** Set by Fix flagged issues after Mark fixed and send to review. */
   released?: string;
+  /** Set after Send back, with the number of issues sent. */
+  sent?: string;
+  n?: string;
 }
 
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
+
+type Row = { id: string; book: { title: string; author: { full_name: string | null } | null } | null };
+
+/** The toast for a book that just left the queue (Mark fixed, or Send back). */
+async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
+  const id = sp.released ?? sp.sent;
+  if (!id) return null;
+  let row = rows.find(r => r.id === id);
+  if (!row) {
+    const { data } = await supabase
+      .from('book_revisions')
+      .select('id, book:books!book_revisions_book_id_fkey(title, author:profiles!books_author_id_fkey(full_name))')
+      .eq('id', id)
+      .maybeSingle();
+    row = data ?? undefined;
+  }
+  if (!row) return null;
+  const title = row.book?.title ?? 'The book';
+  const author = row.book?.author?.full_name ?? '';
+  const first = author.split(' ')[0] || 'The author';
+  if (sp.released) return { msg: `${title} is ready for review. ${first} is told when it goes live.`, undoId: id };
+  const n = Number(sp.n ?? 0);
+  return {
+    msg: `Sent back to ${author || 'the author'}. ${first} gets a push and an email${n ? ` with the ${n} fix${n === 1 ? '' : 'es'}` : ''}.`,
+  };
+}
 
 /** Books · Needs you (s-books): Needs fixes and Ready for review, oldest promise first. */
 export default async function BooksPage({ searchParams }: { searchParams: Promise<Search> }) {
@@ -48,7 +77,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
     if (sp.genre && !r.book?.genres.includes(sp.genre)) return false;
     return true;
   });
-  const released = sp.released ? data?.find(r => r.id === sp.released) : undefined;
+  const toast = await queueToast(supabase, sp, data ?? []);
   const genres = [...new Set((data ?? []).flatMap(r => r.book?.genres ?? []))].sort();
   const filters = [
     { href: '/books?type=docx', label: 'File type: Word' },
@@ -156,13 +185,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </div>
-      {released && (
-        <Released
-          id={released.id}
-          title={released.book?.title ?? 'The book'}
-          firstName={(released.book?.author?.full_name ?? '').split(' ')[0] || 'The author'}
-        />
-      )}
+      {toast && <QueueToast msg={toast.msg} undoId={toast.undoId} />}
     </section>
   );
 }
