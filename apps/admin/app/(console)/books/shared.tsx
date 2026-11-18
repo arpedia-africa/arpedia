@@ -59,6 +59,27 @@ export async function latestOnly<T extends { book_id: string; revision_no: numbe
   return rows.filter(r => latest.get(r.book_id) === r.revision_no);
 }
 
+/** Where a Needs you book opens: Fix flagged issues, Revisions (an update) or Quick review. */
+export const reviewHref = (r: { id: string; status: string; base_revision_id: string | null }) =>
+  r.status === 'needs_fixes'
+    ? `/books/${r.id}/fix`
+    : r.base_revision_id
+      ? `/books/${r.id}/revisions`
+      : `/books/${r.id}/review`;
+
+/** "Book 2 of 7 in Needs you" and where Skip goes, for the decision bar. */
+export async function queuePosition(supabase: Supa, id: string) {
+  const { data } = await supabase
+    .from('book_revisions')
+    .select('id, status, base_revision_id')
+    .in('status', ['needs_fixes', 'ready_for_review'])
+    .order('due_at', { ascending: true, nullsFirst: false });
+  const list = data ?? [];
+  const at = Math.max(0, list.findIndex(r => r.id === id));
+  const next = list.length > 1 ? list[(at + 1) % list.length]! : null;
+  return { position: at + 1, total: list.length, skipHref: next ? reviewHref(next) : '/books' };
+}
+
 export interface Counts {
   needs: number;
   processing: number;

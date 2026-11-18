@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
-import { api } from '@/lib/api';
 import { serverSupabase } from '@/lib/supabase/server';
-import { FILE_TYPE, coverClass, waited } from '../../shared';
+import { FILE_TYPE, coverClass, queuePosition, waited } from '../../shared';
+import { loadWork } from '../../work';
 import { Decide, DownloadOriginal, FixShell, FlagActions } from './client';
 
 /** Plain names for the checks (rule 24). */
@@ -39,34 +39,12 @@ const DONE: Record<string, string> = {
 
 const OPS = new Set(Object.keys(DONE));
 
-/** The parts of the working copy (packages/convert `WorkCopy`) the editor shows. */
-interface Work {
-  chapters: {
-    title: string;
-    blocks: {
-      text: string;
-      sceneBreak?: boolean;
-      html: string;
-      images?: { path: string; bytes: number; alone: boolean }[];
-    }[];
-  }[];
-  anchors: { uids: string[]; ids: string[][] };
-}
-
 type Location = { chapter_uid?: string; para_id?: string; image?: string };
 
 const n0 = (n: number) => n.toLocaleString('en-NG');
 const mb = (bytes: number) => `${(bytes / 1_048_576).toLocaleString('en-NG', { maximumFractionDigits: 1 })} MB`;
 const day = (at: string) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' });
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
-
-/** The working copy as the Worker serves it to staff (rule 19). Null when it cannot be loaded. */
-async function loadWork(revisionId: string): Promise<Work | null> {
-  const link = await api<{ book_url: string }>('/v1/books/preview-url', { revision_id: revisionId });
-  if (!link.ok) return null;
-  const res = await fetch(link.data.book_url, { cache: 'no-store' }).catch(() => null);
-  return res?.ok ? ((await res.json()) as Work) : null;
-}
 
 /** Fix flagged issues (s-book-formatter): staff fix only what the system flagged (rules 29–33). */
 export default async function FixPage({
@@ -78,7 +56,7 @@ export default async function FixPage({
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const supabase = await serverSupabase();
-  const [{ data: rev }, { data: flags }, { data: chapters }, { data: queue }, { data: config }] = await Promise.all([
+  const [{ data: rev }, { data: flags }, { data: chapters }, queue, { data: config }] = await Promise.all([
     supabase
       .from('book_revisions')
       .select(
@@ -96,11 +74,7 @@ export default async function FixPage({
       .order('blocking', { ascending: false })
       .order('created_at', { ascending: true }),
     supabase.from('chapters').select('chapter_uid, ord, title, words').eq('revision_id', id).order('ord'),
-    supabase
-      .from('book_revisions')
-      .select('id, status, base_revision_id')
-      .in('status', ['needs_fixes', 'ready_for_review'])
-      .order('due_at', { ascending: true, nullsFirst: false }),
+    queuePosition(supabase, id),
     supabase.from('pipeline_config').select('value').eq('key', 'thresholds').maybeSingle(),
   ]);
   if (!rev) notFound();
@@ -123,16 +97,6 @@ export default async function FixPage({
   const flagged = new Set(open.flatMap(f => ((f.location as Location)?.para_id ? [(f.location as Location).para_id!] : [])));
   const flaggedImages = new Set(open.flatMap(f => ((f.location as Location)?.image ? [(f.location as Location).image!] : [])));
 
-  const list = queue ?? [];
-  const at = Math.max(0, list.findIndex(r => r.id === id));
-  const next = list.length > 1 ? list[(at + 1) % list.length]! : null;
-  const skipHref = !next
-    ? '/books'
-    : next.status === 'needs_fixes'
-      ? `/books/${next.id}/fix`
-      : next.base_revision_id
-        ? `/books/${next.id}/revisions`
-        : `/books/${next.id}/review`;
   const coverOk = !open.some(f => f.check_key.startsWith('cover_'));
   const shown = (chapters ?? []).slice(0, 12);
   const pdfHeavy = rev.source_type === 'pdf' && open.length >= 5;
@@ -348,11 +312,11 @@ export default async function FixPage({
         </div>
         <Decide
           revisionId={id}
-          position={at + 1}
-          total={list.length}
+          position={queue.position}
+          total={queue.total}
           canRelease={!blocking}
           blockedReason="Fix the flags that block publishing first, or send the book back."
-          skipHref={skipHref}
+          skipHref={queue.skipHref}
         />
       </section>
     </FixShell>

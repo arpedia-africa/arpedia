@@ -2,21 +2,31 @@
 -- for the admin screens and their checks. Loaded after seed.sql (supabase/config.toml).
 -- Ids: books 00000000-0000-4000-c100-…, revisions 00000000-0000-4000-d100-….
 
--- Obiageli Nnaji, the prototype's author of Market Day in Onitsha (Fix flagged issues, Send back).
+-- The prototype's people for these screens: Obiageli Nnaji (Market Day in Onitsha, Fix flagged issues),
+-- Esther Akande (Garden of Small Mercies, Quick review) and Ifeanyi Obi, a second Publisher.
+create temporary table seed_pipeline_users (id uuid, email text, full_name text, username text, is_author boolean,
+  role public.staff_role);
+insert into seed_pipeline_users values
+  ('00000000-0000-4000-a000-000000000010', 'obiageli@example.com',  'Obiageli Nnaji', 'obiageli',      true,  null),
+  ('00000000-0000-4000-a000-000000000011', 'esther@example.com',    'Esther Akande',  'esther',        true,  null),
+  ('00000000-0000-4000-b000-000000000008', 'ifeanyi@arpedia.africa', 'Ifeanyi Obi',   'ifeanyi.staff', false, 'publisher');
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
   confirmation_token, recovery_token, email_change_token_new, email_change)
-values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-000000000010', 'authenticated',
-  'authenticated', 'obiageli@example.com', extensions.crypt('arpedia-local', extensions.gen_salt('bf')), now(),
-  '{"provider":"email","providers":["email"]}', '{"full_name":"Obiageli Nnaji"}', now(), now(), '', '', '', '');
+select '00000000-0000-0000-0000-000000000000', id, 'authenticated', 'authenticated', email,
+  extensions.crypt('arpedia-local', extensions.gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}', jsonb_build_object('full_name', full_name), now(), now(), '', '', '', ''
+from seed_pipeline_users;
 insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
-values (gen_random_uuid(), '00000000-0000-4000-a000-000000000010', '00000000-0000-4000-a000-000000000010', 'email',
-  '{"sub":"00000000-0000-4000-a000-000000000010","email":"obiageli@example.com","email_verified":true}',
-  now(), now(), now());
+select gen_random_uuid(), id, id::text, 'email',
+  jsonb_build_object('sub', id::text, 'email', email, 'email_verified', true), now(), now(), now()
+from seed_pipeline_users;
 insert into public.profiles (id, username, full_name, is_author)
-values ('00000000-0000-4000-a000-000000000010', 'obiageli', 'Obiageli Nnaji', true)
+select id, username, full_name, is_author from seed_pipeline_users
 on conflict (id) do update set username = excluded.username, full_name = excluded.full_name,
   is_author = excluded.is_author;
+insert into public.staff_roles (user_id, role)
+select id, role from seed_pipeline_users where role is not null;
 
 create temporary table seed_queue (n int, title text, author uuid, genre text, source public.source_type,
   status public.revision_status, words int, routed interval, assignee uuid, flags jsonb, step text);
@@ -33,9 +43,8 @@ insert into seed_queue values
      {"check_key":"toc_mismatch","message":"The contents list has 18 chapters but 21 were found."},
      {"check_key":"cover_too_small","message":"The cover is 640 px wide; 800 px or more looks sharp."},
      {"check_key":"chapter_title","message":"Chapter 7 has no title.","suggestion":"Chapter 7"}]', null),
-  (3, 'Garden of Small Mercies', '00000000-0000-4000-a000-000000000004', 'Christian & Faith', 'epub', 'ready_for_review',
-   57300, '4 days', '00000000-0000-4000-b000-000000000001',
-   '[{"check_key":"cover_aspect","message":"The cover is not the usual book shape (about 2 : 3)."}]', null),
+  (3, 'Garden of Small Mercies', '00000000-0000-4000-a000-000000000011', 'Christian & Faith', 'epub', 'ready_for_review',
+   71480, '4 days', '00000000-0000-4000-b000-000000000008', '[]', null),
   (4, 'Kano Nights', '00000000-0000-4000-a000-000000000006', 'Thriller', 'epub', 'ready_for_review',
    68900, '2 days', '00000000-0000-4000-b000-000000000001',
    '[{"check_key":"copyright_missing","message":"There is no copyright page.","suggestion":"Add one from the book details."}]', null),

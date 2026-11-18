@@ -15,15 +15,19 @@ interface Search {
   /** Set after Send back, with the number of issues sent. */
   sent?: string;
   n?: string;
+  /** Set after Approve and publish; `scheduled` when it was scheduled, `quiet` when followers aren't told. */
+  published?: string;
+  scheduled?: string;
+  quiet?: string;
 }
 
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
 
 type Row = { id: string; book: { title: string; author: { full_name: string | null } | null } | null };
 
-/** The toast for a book that just left the queue (Mark fixed, or Send back). */
+/** The toast for a book that just left the queue (Mark fixed, Send back, or Approve). */
 async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
-  const id = sp.released ?? sp.sent;
+  const id = sp.released ?? sp.sent ?? sp.published;
   if (!id) return null;
   let row = rows.find(r => r.id === id);
   if (!row) {
@@ -39,6 +43,10 @@ async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
   const author = row.book?.author?.full_name ?? '';
   const first = author.split(' ')[0] || 'The author';
   if (sp.released) return { msg: `${title} is ready for review. ${first} is told when it goes live.`, undoId: id };
+  if (sp.published && sp.scheduled)
+    return { msg: `${title} is scheduled. It shows under Coming soon until it goes live.` };
+  if (sp.published)
+    return { msg: sp.quiet ? `${title} is live. ${first} is told.` : `${title} is live. ${first} and followers notified.` };
   const n = Number(sp.n ?? 0);
   return {
     msg: `Sent back to ${author || 'the author'}. ${first} gets a push and an email${n ? ` with the ${n} fix${n === 1 ? '' : 'es'}` : ''}.`,

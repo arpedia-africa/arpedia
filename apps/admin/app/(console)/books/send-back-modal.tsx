@@ -67,6 +67,9 @@ export function SendBackModal({
         <div className="modal__b">
           <div className="stack s8">
             <b style={{ fontSize: 13 }}>What the author needs to fix</b>
+            {!initial.length && (
+              <span className="hint">No automatic flags on this book. Add what you found in the spot-check.</span>
+            )}
             {issues.map((x, i) => (
               <div className="ct-issue" key={i}>
                 <span
@@ -94,18 +97,27 @@ export function SendBackModal({
                 </div>
               </div>
             ))}
-            <span className="hint">
-              {initial.length ? (
-                `Filled from the ${initial.length} flag${initial.length === 1 ? '' : 's'} the system found. Edit the wording or untick what you fixed yourself.`
-              ) : (
-                <>
-                  Type what you found.{' '}
-                  <a className="link" role="button" tabIndex={0} onClick={() => setIssues(l => [...l, { text: '', on: true }])}>
-                    Add another
-                  </a>
-                </>
-              )}
-            </span>
+            {initial.length ? (
+              <span className="hint">
+                {`Filled from the ${initial.length} flag${initial.length === 1 ? '' : 's'} the system found. Edit the wording or untick what you fixed yourself.`}
+              </span>
+            ) : (
+              <a
+                className="link"
+                style={{ fontSize: 13 }}
+                role="button"
+                tabIndex={0}
+                onClick={() => setIssues(l => [...l, { text: '', on: true }])}
+                onKeyDown={e => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setIssues(l => [...l, { text: '', on: true }]);
+                  }
+                }}
+              >
+                Add another issue
+              </a>
+            )}
           </div>
           <div className="f full">
             <label htmlFor="sb-note">
@@ -121,6 +133,8 @@ export function SendBackModal({
               onChange={e => setNote(e.target.value)}
             ></textarea>
           </div>
+          {/* From Fix flagged issues only: Quick review's modal has no preview (s-book-sendback). */}
+          {initial.length > 0 && (
           <div className="stack s8">
             <b style={{ fontSize: 13 }}>{`What ${first} sees in Studio`}</b>
             <div className="ct-seen">
@@ -139,6 +153,7 @@ export function SendBackModal({
               {note.trim() && <span className="muted">{note.trim()}</span>}
             </div>
           </div>
+          )}
         </div>
         <div className="modal__f">
           <Link className="btn btn-g" href={closeHref}>

@@ -477,6 +477,36 @@ try {
         as: 'amaka@arpedia.africa',
         regions: [{ x: 0, y: 0, width: W, height: H }],
       },
+      // Quick review of the seeded Ready for review book (Garden of Small Mercies): shell and page
+      // header. Seeded books have no working copy, so the phone pages show their error state.
+      'book-preview': {
+        path: '/books/00000000-0000-4000-d100-000000000003/review',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // The two modals over Quick review: shell, topbar and the whole modal box. The dimmed page
+      // behind is Quick review itself (gated above), whose phone pages hold the book's own text.
+      'book-sendback': {
+        path: '/books/00000000-0000-4000-d100-000000000003/sendback',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+          { x: 444, y: 107, width: 800, height: 473 },
+        ],
+      },
+      'book-approve': {
+        path: '/books/00000000-0000-4000-d100-000000000003/approve',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+          { x: 544, y: 107, width: 600, height: 343 },
+        ],
+      },
     };
     for (const id of ids) {
       const p = pages[id];
