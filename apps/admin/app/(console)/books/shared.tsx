@@ -33,6 +33,32 @@ export function waited(since: string | null, now = Date.now()) {
   return `${d} day${d === 1 ? '' : 's'}`;
 }
 
+/** "3 days ago", "5 hours ago", "Just now". */
+export function ago(since: string | null, now = Date.now()) {
+  const w = waited(since, now);
+  return w && w !== 'Just now' ? `${w} ago` : w;
+}
+
+/** 09:38, Lagos time. */
+export const clock = (at: string) =>
+  new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+
+/** The Lagos calendar day of a time, as YYYY-MM-DD. */
+export const lagosDay = (at: string | number) =>
+  new Date(at).toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' });
+
+/** Keep only revisions that are still their book's latest (a resubmission replaces a sent-back one). */
+export async function latestOnly<T extends { book_id: string; revision_no: number }>(supabase: Supa, rows: T[]) {
+  if (!rows.length) return rows;
+  const { data: all } = await supabase
+    .from('book_revisions')
+    .select('book_id, revision_no')
+    .in('book_id', [...new Set(rows.map(r => r.book_id))]);
+  const latest = new Map<string, number>();
+  for (const r of all ?? []) latest.set(r.book_id, Math.max(latest.get(r.book_id) ?? 0, r.revision_no));
+  return rows.filter(r => latest.get(r.book_id) === r.revision_no);
+}
+
 export interface Counts {
   needs: number;
   processing: number;
@@ -60,17 +86,7 @@ export async function bookCounts(supabase: Supa): Promise<Counts> {
     books('taken_down'),
     books('rejected'),
   ]);
-  const sentRows = sent.data ?? [];
-  let sentback = 0;
-  if (sentRows.length) {
-    const { data: all } = await supabase
-      .from('book_revisions')
-      .select('book_id, revision_no')
-      .in('book_id', [...new Set(sentRows.map(r => r.book_id))]);
-    const latest = new Map<string, number>();
-    for (const r of all ?? []) latest.set(r.book_id, Math.max(latest.get(r.book_id) ?? 0, r.revision_no));
-    sentback = sentRows.filter(r => latest.get(r.book_id) === r.revision_no).length;
-  }
+  const sentback = (await latestOnly(supabase, sent.data ?? [])).length;
   return {
     needs: needs.count ?? 0,
     processing: processing.count ?? 0,

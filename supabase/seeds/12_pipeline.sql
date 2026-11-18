@@ -36,7 +36,9 @@ insert into seed_queue values
   (10, 'Okada Diaries', '00000000-0000-4000-a000-000000000006', 'Short stories', 'epub', 'sent_back',
    31250, null, null, '[]', null),
   (11, 'The Last Harmattan', '00000000-0000-4000-a000-000000000005', 'Christian & Faith', 'pdf', 'sent_back',
-   39900, null, null, '[]', null);
+   39900, null, null, '[]', null),
+  (12, 'Aunty Bisi''s Kitchen', '00000000-0000-4000-a000-000000000007', 'Food & Home', 'docx', 'sent_back',
+   null, null, null, '[]', 'failed');
 
 insert into public.books (id, author_id, title, genres, description, status, created_at)
 select ('00000000-0000-4000-c100-' || lpad(n::text, 12, '0'))::uuid, author, title, array[genre],
@@ -56,6 +58,7 @@ select ('00000000-0000-4000-d100-' || lpad(n::text, 12, '0'))::uuid,
               when 'with_desk' then now() + interval '1 day' end,
   assignee, case when assignee is not null then now() - interval '1 hour' end,
   case when step = 'received' then jsonb_build_object('received', now() - interval '20 hours')
+       when step = 'failed' then jsonb_build_object('received', now() - interval '40 minutes')
        when step is not null then jsonb_build_object('received', now() - interval '9 minutes',
          'converted', now() - interval '8 minutes', 'chapters_found', now() - interval '6 minutes')
        else jsonb_build_object('received', now() - interval '3 days', 'scored', now() - coalesce(routed, '1 day')) end,
@@ -77,7 +80,18 @@ select ('00000000-0000-4000-d100-' || lpad(n::text, 12, '0'))::uuid,
   '[{"text":"Chapters run together after chapter 6."},{"text":"The cover is blurry."}]',
   'Please send the Word file; the PDF lost the chapter breaks.', '00000000-0000-4000-b000-000000000003',
   'quick_review', now() - make_interval(days => n - 7)
-from seed_queue where status = 'sent_back';
+from seed_queue where status = 'sent_back' and step is null;
+-- Okada Diaries was reminded within the last day, so it shows "Reminded" instead of the button.
+update public.send_backs set reminded_at = now() - interval '20 hours'
+where revision_id = '00000000-0000-4000-d100-000000000010';
+
+-- Failed today: a Word file that could not be opened went back automatically (rule 48).
+update public.book_revisions
+   set sent_back_note = 'We could not open your file. It looks damaged, which can happen when a download stops halfway. Please save it again as .docx and upload it here. Nothing else is needed.'
+ where id = '00000000-0000-4000-d100-000000000012';
+insert into public.send_backs (revision_id, issues, note, sent_by, source, sent_at)
+select id, '[]', sent_back_note, null, 'desk_auto', now() - interval '38 minutes'
+from public.book_revisions where id = '00000000-0000-4000-d100-000000000012';
 
 -- An update to a live book: The Alignment r2 adds an epilogue (1.1% changed), waiting for review.
 insert into public.book_revisions (id, book_id, revision_no, status, draft_step, source_type, uploaded_by,
