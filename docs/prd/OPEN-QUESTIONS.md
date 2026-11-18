@@ -132,14 +132,3 @@ Every question raised while writing the flow files, each with the default we bui
 | 99 | Reading reminder pushes | Add to the automatic list, off by default | 15 |
 | 100 | Install numbers source | Play Console export | 15 |
 | 101 ★ | iOS under a partner's Apple account: how Apple's payouts for iOS sales reach Arpedia, and whose name shows as seller | Written agreement with the partner before the first iOS release | 09, 17 |
-
-## Public domain books and country access
-| # | Question | Default | Flow |
-|---|---|---|---|
-| 102 ★ | Add public domain books (classic novels, Christian classics, early African writing) | Yes. Staff upload them (flow 12 staff upload) under a house author, "Arpedia Classics", with payouts off. Only books free in every country we serve: author died more than 70 years ago (1955 or earlier in 2026). Candidate list in `docs/catalogue/` | 12 |
-| 103 ★ | Price of public domain books (the pages ÷ 2 rule would charge about 200 credits for a long classic that is free elsewhere) | Free to read (0 credits), shown as "Free classic". Changing the price rule needs the owner's sign-off | 03, 12 |
-| 104 ★ | Author earnings on house-author books | None. No author share is recorded; any credits spent stay with Arpedia in the ledger | 03, 13 |
-| 105 ★ | Country access: a book may be free to use in some countries and protected in others (copyright follows where the book is read, not where the company is registered) | Each book gets an optional list of allowed countries (empty = everywhere). A reader's country comes from the Play billing country, then SIM country, then IP. Books not allowed in the reader's country are hidden from Home, Explore and Search, and the key Worker refuses to release their chapter keys. Build the column and check now; launch with everywhere-free books only | 02, 03, 04, 12 |
-| 106 | Reader moves or travels to a country where an unlocked book is not allowed | The book stays in their library, but new chapter keys follow the current country; the book page explains "Not available in your country". Chapters already downloaded stay readable | 03, 04 |
-| 107 | Old language and colonial-era attitudes in classic texts | Keep the original text. Staff add a content note and a short editor's note on the About page | 12 |
-| 108 ★ | Who checks a book's copyright status | The Publisher records the author's death year, the text source and the allowed countries on upload; a second Publisher signs off before it goes live. Use the original text only (no modern introductions, notes or newer translations) | 12 |
