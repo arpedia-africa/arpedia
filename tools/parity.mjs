@@ -246,7 +246,7 @@ async function capture(pkg, query, id, theme, kind, g, height) {
   for (let i = 0; i < 80 && !m; i++) {
     await sleep(250);
     const log = adb('logcat', '-d', '-s', 'ReactNativeJS:I').toString();
-    m = [...log.matchAll(/PARITY_READY page=(\S+) theme=(\S+) kind=(\S+) top=(\d+)(?: h=([\d.]+))?/g)]
+    m = [...log.matchAll(/PARITY_READY page=(\S+) theme=(\S+) kind=(\S+) top=(\d+)(?: h=(\d+(?:\.\d+)?))?/g)]
       .filter((x) => x[1] === id && x[2] === theme && x[3] === kind)
       .pop();
   }
