@@ -1079,9 +1079,12 @@ begin
   perform public._set_chapter_prices(p_rev, p_prices);
 end $$;
 
--- Re-run of checks on the chapters a staff fix touched (rule 31).
+-- Re-run of checks on the chapters a staff fix touched (rule 31). p_result (counts and chapters, as
+-- for confirm_chapters) replaces the chapter rows when the fix changed them. Only the open flags of
+-- the re-run checks (p_check_keys; null = all) on those chapters are replaced.
 create function public.complete_rescore(p_rev uuid, p_work_version int, p_chapter_uids uuid[],
-                                        p_flags jsonb, p_chapters jsonb default null) returns jsonb
+                                        p_flags jsonb, p_result jsonb default null,
+                                        p_check_keys text[] default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v_rev public.book_revisions;
@@ -1091,12 +1094,14 @@ begin
   if v_rev.work_version <> p_work_version or v_rev.status <> 'needs_fixes' then
     return jsonb_build_object('applied', false);
   end if;
-  if p_chapters is not null then
-    perform public._replace_chapters(p_rev, p_chapters);
+  if p_result is not null then
+    perform public._apply_counts(p_rev, p_result);
+    perform public._replace_chapters(p_rev, p_result -> 'chapters');
   end if;
   delete from public.book_flags
    where revision_id = p_rev and source = 'worker' and status = 'open'
-     and (location ->> 'chapter_uid')::uuid = any (p_chapter_uids);
+     and (location ->> 'chapter_uid')::uuid = any (p_chapter_uids)
+     and (p_check_keys is null or check_key = any (p_check_keys));
   perform public._insert_flags(p_rev, p_flags, 'worker');
   return jsonb_build_object('applied', true, 'readiness', public._rescore(p_rev),
                             'blocking', public.has_blocking_flag(p_rev));
@@ -1800,7 +1805,7 @@ grant execute on function
   public.confirm_chapters(uuid, uuid, jsonb),
   public.complete_seal(uuid, int, jsonb),
   public.set_chapter_prices(uuid, jsonb),
-  public.complete_rescore(uuid, int, uuid[], jsonb, jsonb),
+  public.complete_rescore(uuid, int, uuid[], jsonb, jsonb, text[]),
   public.begin_reseal(uuid, uuid),
   public.record_fix(uuid, uuid, jsonb, jsonb, int, uuid),
   public.undo_fix(uuid, int, uuid),

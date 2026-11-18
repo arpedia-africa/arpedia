@@ -1,5 +1,6 @@
-// Signed upload URLs (rule 5). The Worker signs {R2 key, size limit, expiry} with UPLOAD_SIGNING_KEY;
-// PUT /v1/books/objects/:token streams the body into R2. No S3 credentials leave the Worker.
+// Signed URLs (rules 5, 19, 21). The Worker signs {R2 key, size limit, expiry} with UPLOAD_SIGNING_KEY;
+// PUT /v1/books/objects/:token streams the body into R2, and a read token serves the files under a
+// prefix (GET /v1/books/objects/:token/<path>). No S3 credentials leave the Worker.
 
 export interface UploadClaim {
   /** R2 object key. */
@@ -8,6 +9,8 @@ export interface UploadClaim {
   max: number;
   /** Expiry, seconds since the epoch. */
   exp: number;
+  /** 'get': read files under the prefix `k` (previews, desk downloads). Absent: one upload. */
+  use?: 'get';
 }
 
 const enc = new TextEncoder();

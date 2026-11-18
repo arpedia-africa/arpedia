@@ -1267,8 +1267,9 @@ export type Database = {
       complete_rescore: {
         Args: {
           p_chapter_uids: string[];
-          p_chapters?: Json;
+          p_check_keys?: string[];
           p_flags: Json;
+          p_result?: Json;
           p_rev: string;
           p_work_version: number;
         };

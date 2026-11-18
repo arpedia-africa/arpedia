@@ -210,13 +210,46 @@ export function verifyPackage(
   const { words, pages, price, preview } = priceChapters(chapters, opts.previewPercent);
 
   // ─── Checks (rule 24). Plagiarism and policy run through provider adapters in the Worker. ───
+  flags.push(...checkChapters(chapters, { untitledBook }));
+  const coverBytes = opts.cover ?? (opf.coverHref ? files[opf.coverHref] : undefined) ?? null;
+  const cover = coverBytes && imageType(coverBytes) ? imageSize(coverBytes) : null;
+  if (cover && cover.width < 800)
+    flags.push({
+      check_key: 'cover_too_small',
+      message: `The cover is ${cover.width} px wide; 800 px or more looks sharp.`,
+    });
+  if (cover && cover.height > 0 && (cover.width / cover.height < 0.55 || cover.width / cover.height > 0.7))
+    flags.push({
+      check_key: 'cover_aspect',
+      message: 'The cover is not the usual book shape (about 2 : 3).',
+    });
+
+  return { ok: true, chapters, images, words, pages, price, preview, flags };
+}
+
+/** The flag keys checkChapters can raise; a rescore replaces only these. */
+export const TEXT_CHECKS = [
+  'too_short',
+  'chapter_title',
+  'image_too_large',
+  'repeated_text',
+  'copyright_missing',
+];
+
+/**
+ * The text checks on a chapter list: on verify, and again after a staff fix (the rescore stage,
+ * rule 31). Cover checks need the cover file and stay in verifyPackage.
+ */
+export function checkChapters(chapters: WorkChapter[], opts: { untitledBook?: boolean } = {}): VerifyFlag[] {
+  const flags: VerifyFlag[] = [];
+  const words = chapters.reduce((a, c) => a + c.words, 0);
   if (words < MIN_WORDS)
     flags.push({
       check_key: 'too_short',
       message: `This book has ${words} words. Books need at least 1,000.`,
     });
   chapters.forEach((c, ord) => {
-    if (!c.titled && !c.front && !untitledBook)
+    if (!c.titled && !c.front && !opts.untitledBook)
       flags.push({
         check_key: 'chapter_title',
         message: `Chapter ${ord + 1} has no title.`,
@@ -250,7 +283,7 @@ export function verifyPackage(
         location: { chapter_ord: i + 1, block: 0 },
       });
   }
-  if (!front.includes('copyright'))
+  if (!chapters.some((c) => c.front === 'copyright'))
     flags.push({
       check_key: 'copyright_missing',
       message: 'There is no copyright page.',
@@ -258,20 +291,7 @@ export function verifyPackage(
       auto_fixable: true,
       fix_op: { op: 'insert_copyright_page' },
     });
-  const coverBytes = opts.cover ?? (opf.coverHref ? files[opf.coverHref] : undefined) ?? null;
-  const cover = coverBytes && imageType(coverBytes) ? imageSize(coverBytes) : null;
-  if (cover && cover.width < 800)
-    flags.push({
-      check_key: 'cover_too_small',
-      message: `The cover is ${cover.width} px wide; 800 px or more looks sharp.`,
-    });
-  if (cover && cover.height > 0 && (cover.width / cover.height < 0.55 || cover.width / cover.height > 0.7))
-    flags.push({
-      check_key: 'cover_aspect',
-      message: 'The cover is not the usual book shape (about 2 : 3).',
-    });
-
-  return { ok: true, chapters, images, words, pages, price, preview, flags };
+  return flags;
 }
 
 /**

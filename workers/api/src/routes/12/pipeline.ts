@@ -6,16 +6,18 @@ import type { Json } from '@arpedia/core';
 import {
   type BaseChapter,
   type BookAnchors,
-  type WorkChapter,
+  type VerifyFlag,
+  type WorkCopy,
   UnsafeArchiveError,
   assignAnchors,
   safeUnzip,
   sealBook,
   verifyPackage,
 } from '@arpedia/convert';
-import type { PreviewCut } from '@arpedia/core';
 import { serviceDb } from '../../db';
 import type { Env } from '../../env';
+
+export type { WorkCopy };
 
 export interface StageMsg {
   revision_id: string;
@@ -23,18 +25,7 @@ export interface StageMsg {
   generation: number;
 }
 
-/** The plain working copy: work/{rev}/v{n}/book.json plus its images. */
-export interface WorkCopy {
-  v: 1;
-  chapters: WorkChapter[];
-  anchors: BookAnchors;
-  preview: PreviewCut;
-  words: number;
-  pages: number;
-  price: number;
-}
-
-const workPrefix = (rev: string, version: number) => `work/${rev}/v${version}/`;
+export const workPrefix = (rev: string, version: number) => `work/${rev}/v${version}/`;
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const bytesOf = async (env: Env, key: string | null) => {
   if (!key) return null;
@@ -43,8 +34,9 @@ const bytesOf = async (env: Env, key: string | null) => {
 };
 
 type Db = ReturnType<typeof serviceDb>;
+export type Revision = Awaited<ReturnType<typeof revision>>;
 
-async function revision(db: Db, id: string) {
+export async function revision(db: Db, id: string) {
   const { data, error } = await db
     .from('book_revisions')
     .select('*, books!book_revisions_book_id_fkey(title)')
@@ -59,7 +51,7 @@ export async function loadWork(env: Env, rev: string, version: number): Promise<
   return o ? ((await o.json()) as WorkCopy) : null;
 }
 
-async function saveWork(
+export async function saveWork(
   env: Env,
   rev: string,
   version: number,
@@ -115,7 +107,46 @@ export function countsPayload(work: WorkCopy) {
   };
 }
 
-async function verifyStage(env: Env, db: Db, rev: Awaited<ReturnType<typeof revision>>) {
+/**
+ * Flags as stored: chapter ords and block indexes become chapter uids and paragraph ids, which stay
+ * put when chapters move. A fix op that names a chapter carries its uid too.
+ */
+export function locateFlags(flags: VerifyFlag[], anchors: BookAnchors) {
+  return flags.map(
+    (
+      f,
+    ): {
+      check_key: string;
+      message: string;
+      suggestion: string | null;
+      auto_fixable: boolean;
+      fix_op: Record<string, unknown> | null;
+      location: { chapter_uid?: string; para_id?: string; image?: string };
+    } => {
+      const ord = f.location?.chapter_ord;
+      const uid = ord === undefined ? undefined : anchors.uids[ord];
+      return {
+        check_key: f.check_key,
+        message: f.message,
+        suggestion: f.suggestion ?? null,
+        auto_fixable: f.auto_fixable ?? false,
+        fix_op: f.fix_op
+          ? (({ chapter_ord: _ord, ...op }) => (uid ? { ...op, chapter_uid: uid } : op))(f.fix_op)
+          : null,
+        location:
+          ord === undefined
+            ? {}
+            : {
+                chapter_uid: uid,
+                ...(f.location?.block !== undefined ? { para_id: anchors.ids[ord]![f.location.block] } : {}),
+                ...(f.location?.image ? { image: f.location.image } : {}),
+              },
+      };
+    },
+  );
+}
+
+async function verifyStage(env: Env, db: Db, rev: Revision) {
   const fail = (reason: string, message?: string) =>
     db.rpc('complete_verify', {
       p_rev: rev.id,
@@ -147,24 +178,7 @@ async function verifyStage(env: Env, db: Db, rev: Awaited<ReturnType<typeof revi
   };
   await saveWork(env, rev.id, rev.work_version, work, v.images);
 
-  const flags = v.flags.map((f) => {
-    const ord = f.location?.chapter_ord;
-    return {
-      check_key: f.check_key,
-      message: f.message,
-      suggestion: f.suggestion ?? null,
-      auto_fixable: f.auto_fixable ?? false,
-      fix_op: f.fix_op ?? null,
-      location:
-        ord === undefined
-          ? {}
-          : {
-              chapter_uid: anchors.uids[ord],
-              ...(f.location?.block !== undefined ? { para_id: anchors.ids[ord]![f.location.block] } : {}),
-              ...(f.location?.image ? { image: f.location.image } : {}),
-            },
-    };
-  });
+  const flags = locateFlags(v.flags, anchors);
   const { error } = await db.rpc('complete_verify', {
     p_rev: rev.id,
     p_generation: rev.generation,
@@ -210,10 +224,10 @@ function diff(base: WorkCopy, next: WorkCopy) {
 
 const stable = (o: unknown) => JSON.stringify(o, Object.keys((o ?? {}) as object).sort());
 
-async function sealStage(env: Env, db: Db, rev: Awaited<ReturnType<typeof revision>>) {
+export async function sealStage(env: Env, db: Db, rev: Revision) {
   const work = await loadWork(env, rev.id, rev.work_version);
   if (!work) throw new Error(`working copy v${rev.work_version} missing for ${rev.id}`);
-  const prefix = workPrefix(rev.id, rev.work_version);
+  const prefix = workPrefix(rev.id, work.imagesFrom ?? rev.work_version);
   const images: Record<string, Uint8Array> = {};
   for (const c of work.chapters)
     for (const b of c.blocks)

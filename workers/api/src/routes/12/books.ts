@@ -1,48 +1,29 @@
-// Author book endpoints (docs/prd/12-book-pipeline.md Server): upload, signed object PUT,
-// finalize, confirm chapters, submit, status. Staff fix/release/preview and desk endpoints follow.
+// Book endpoints (docs/prd/12-book-pipeline.md Server): signed object PUT and GET, then the author
+// path (upload, finalize, confirm chapters, submit, status). Staff fixes, release and previews are in
+// staff.ts and the desk CLI's endpoints in desk.ts.
 import type { Json } from '@arpedia/core';
-import { splitParts } from '@arpedia/core';
-import { priceChapters } from '@arpedia/convert';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@arpedia/core';
-import { Hono, type Context } from 'hono';
+import { applyEdits } from '@arpedia/convert';
+import { Hono } from 'hono';
 import { z } from 'zod';
 import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv } from '../../env';
 import { countsPayload, loadWork, runStage, type WorkCopy } from './pipeline';
-import { signUpload, verifyUpload } from './tokens';
+import desk from './desk';
+import { rpcError, signedUrl, userDb } from './http';
+import staff from './staff';
+import { verifyUpload } from './tokens';
 
 const MB = 1024 * 1024;
 const LIMITS = { docx: 50 * MB, epub: 50 * MB, pdf: 100 * MB, cover: 10 * MB, converted: 50 * MB };
-const URL_MINUTES = 15;
-
-/** PostgREST error → HTTP status, from the SQLSTATE the RPC raised. */
-const STATUS: Record<string, 400 | 403 | 404 | 409> = {
-  '42501': 403,
-  '22023': 400,
-  '22P02': 400,
-  P0002: 404,
-  '23505': 409,
-  '23514': 409,
-  '40001': 409,
-};
-const rpcError = (c: Context<AppEnv>, e: { code?: string; message: string }) =>
-  c.json({ error: e.message }, STATUS[e.code ?? ''] ?? 500);
-
-/** A client that calls RPCs as the signed-in user, so auth.uid() and RLS apply. */
-const userDb = (c: Context<AppEnv>) =>
-  createClient<Database>(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: c.req.header('Authorization')! }, fetch: (...a) => fetch(...a) },
-  });
 
 const books = new Hono<AppEnv>();
 
 // The signed token is the credential here (no JWT), so this route comes before requireUser.
 books.put('/objects/:token', async (c) => {
   const claim = await verifyUpload(c.env.UPLOAD_SIGNING_KEY, c.req.param('token'));
-  if (!claim) return c.json({ error: 'This upload link has expired. Start the upload again.' }, 403);
+  if (!claim || claim.use)
+    return c.json({ error: 'This upload link has expired. Start the upload again.' }, 403);
   const size = Number(c.req.header('Content-Length') ?? NaN);
   if (!Number.isFinite(size) || size <= 0 || size > claim.max)
     return c.json({ error: 'file_too_large' }, 413);
@@ -57,7 +38,26 @@ books.put('/objects/:token', async (c) => {
   return c.json({ ok: true });
 });
 
+// A read link serves the files under its prefix: the working copy for previews, a desk source.
+books.get('/objects/:token/:path{.+}', async (c) => {
+  const claim = await verifyUpload(c.env.UPLOAD_SIGNING_KEY, c.req.param('token'));
+  if (claim?.use !== 'get') return c.json({ error: 'This link has expired.' }, 403);
+  const path = c.req.param('path');
+  if (path.split('/').some((p) => p === '..' || p === '.' || p === ''))
+    return c.json({ error: 'not_found' }, 404);
+  const obj = await c.env.BOOKS.get(claim.k.endsWith('/') ? claim.k + path : claim.k);
+  if (!obj) return c.json({ error: 'not_found' }, 404);
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': obj.httpMetadata?.contentType ?? 'application/octet-stream',
+      'Cache-Control': 'private, max-age=300',
+    },
+  });
+});
+
 books.use('*', requireUser);
+books.route('/', staff);
+books.route('/desk', desk);
 
 const UploadBody = z.object({
   book_id: z.uuid().optional(),
@@ -93,18 +93,16 @@ books.post('/upload', async (c) => {
     cover_key: string;
     converted_key: string | null;
   };
-  const exp = Math.floor(Date.now() / 1000) + URL_MINUTES * 60;
-  const origin = new URL(c.req.url).origin;
-  const url = async (k: string, max: number) =>
-    `${origin}/v1/books/objects/${await signUpload(c.env.UPLOAD_SIGNING_KEY, { k, max, exp })}`;
+  const url = (k: string, max: number) => signedUrl(c, k, { max });
+  const source = await url(rev.source_key, LIMITS[body.data.meta.source_type]);
   return c.json({
     book_id: rev.book_id,
     revision_id: rev.revision_id,
-    expires_at: new Date(exp * 1000).toISOString(),
+    expires_at: source.expires_at,
     uploads: {
-      source: await url(rev.source_key, LIMITS[body.data.meta.source_type]),
-      cover: await url(rev.cover_key, LIMITS.cover),
-      ...(rev.converted_key ? { converted: await url(rev.converted_key, LIMITS.converted) } : {}),
+      source: source.url,
+      cover: (await url(rev.cover_key, LIMITS.cover)).url,
+      ...(rev.converted_key ? { converted: (await url(rev.converted_key, LIMITS.converted)).url } : {}),
     },
   });
 });
@@ -114,6 +112,17 @@ const FinalizeBody = z.object({
   converted: z.boolean(),
   /** Why the phone did not convert (falls back to the desk). */
   reason: z.enum(['conversion_failed', 'out_of_memory', 'too_large', 'conversion_skipped']).optional(),
+  /** Desk push only: the epubcheck report as flags (rule 21). */
+  flags: z
+    .array(
+      z.object({
+        check_key: z.literal('file_check_error'),
+        message: z.string().max(500),
+        suggestion: z.string().max(500).optional(),
+      }),
+    )
+    .max(200)
+    .optional(),
 });
 
 books.post('/finalize', async (c) => {
@@ -127,9 +136,11 @@ books.post('/finalize', async (c) => {
     .single();
   if (error || !rev) return c.json({ error: 'not_found' }, 404);
 
-  // The objects must be there; their hashes come from R2, never from the client.
+  // The objects must be there; their hashes come from R2, never from the client. A PDF has no
+  // converted key until the desk pushes one.
+  const convertedKey = rev.converted_key ?? `src/${rev.id}/converted.epub`;
   const [source, converted, cover] = await Promise.all(
-    [rev.source_key, body.data.converted ? rev.converted_key : null, rev.cover_key].map((k) =>
+    [rev.source_key, body.data.converted ? convertedKey : null, rev.cover_key].map((k) =>
       k ? c.env.BOOKS.head(k) : null,
     ),
   );
@@ -150,6 +161,7 @@ books.post('/finalize', async (c) => {
       file_bytes: source.size,
       converted: body.data.converted,
       reason: body.data.reason ?? null,
+      ...(body.data.flags ? { flags: body.data.flags } : {}),
     } as Json,
   });
   if (fe) return rpcError(c, fe);
@@ -176,52 +188,6 @@ const ConfirmBody = z.object({
     )
     .max(500),
 });
-
-/** Renames and merges (Studio step 3), re-splitting anything over 20 pages, then a recount. */
-function applyEdits(work: WorkCopy, edits: z.infer<typeof ConfirmBody>['edits']): WorkCopy {
-  const ch = work.chapters.map((c) => ({ ...c, blocks: [...c.blocks] }));
-  const a = {
-    ...work.anchors,
-    uids: [...work.anchors.uids],
-    ids: work.anchors.ids.map((x) => [...x]),
-    fps: work.anchors.fps.map((x) => [...x]),
-  };
-  for (const e of edits) {
-    if (e.ord >= ch.length) throw new RangeError('no such chapter');
-    if (e.op === 'rename') Object.assign(ch[e.ord]!, { title: e.title, titled: true });
-    else {
-      const up = ch[e.ord - 1]!;
-      up.blocks.push(...ch[e.ord]!.blocks);
-      a.ids[e.ord - 1]!.push(...a.ids[e.ord]!);
-      a.fps[e.ord - 1]!.push(...a.fps[e.ord]!);
-      ch.splice(e.ord, 1);
-      a.uids.splice(e.ord, 1);
-      a.ids.splice(e.ord, 1);
-      a.fps.splice(e.ord, 1);
-    }
-  }
-  // a merge that passes 20 pages is split again; the first part keeps the chapter's uid
-  const out: WorkCopy = { ...work, chapters: [], anchors: { ...a, uids: [], ids: [], fps: [] } };
-  ch.forEach((c, i) => {
-    const parts = c.front ? null : splitParts([{ title: c.title, paragraphs: c.blocks.map((b) => b.words) }]);
-    for (const [k, p] of (
-      parts ?? [{ title: c.title, kind: c.kind, start: 0, end: c.blocks.length }]
-    ).entries()) {
-      out.chapters.push({
-        ...c,
-        title: p.title,
-        kind: parts && parts.length > 1 ? 'part' : c.kind,
-        blocks: c.blocks.slice(p.start, p.end),
-      });
-      out.anchors.uids.push(k === 0 ? a.uids[i]! : crypto.randomUUID());
-      out.anchors.ids.push(a.ids[i]!.slice(p.start, p.end));
-      out.anchors.fps.push(a.fps[i]!.slice(p.start, p.end));
-    }
-  });
-  // the 10% default target; per-book overrides are flow 03's
-  Object.assign(out, priceChapters(out.chapters));
-  return out;
-}
 
 books.post('/confirm', async (c) => {
   const body = ConfirmBody.safeParse(await c.req.json().catch(() => null));
