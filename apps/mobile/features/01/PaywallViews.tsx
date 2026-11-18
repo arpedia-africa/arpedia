@@ -321,7 +321,12 @@ function DashedRule({ color }: { color: string }) {
   const fewer = Math.floor((len + gap) / (dash + gap));
   const gapFewer = (len - fewer * dash) / (fewer - 1);
   const gapMore = (len - (fewer + 1) * dash) / fewer;
-  const best = gapMore <= 0 || Math.abs(gapFewer - gap) < Math.abs(gapMore - gap) ? gapFewer : gapMore;
+  const best =
+    fewer < 2
+      ? gapMore
+      : gapMore <= 0 || Math.abs(gapFewer - gap) < Math.abs(gapMore - gap)
+        ? gapFewer
+        : gapMore;
   return (
     <View
       style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2 }}
