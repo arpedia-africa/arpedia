@@ -2,18 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { serverSupabase } from '@/lib/supabase/server';
-import { coverClass, queuePosition } from '../../shared';
+import { coverClass, date, dayMonth, queuePosition } from '../../shared';
 import { loadWork } from '../../work';
 import { ApproveUpdate, AuditCell, Changes, Revert } from './client';
 import { passages, type Passage } from './diff';
 
 const n0 = (n: number) => n.toLocaleString('en-NG');
 const pct1 = (n: number) => n.toLocaleString('en-NG', { maximumFractionDigits: 1 });
-// Three-letter months as in the prototype ("2 Sep"); ICU's en-GB says "Sept".
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const lagos = (at: string) => new Date(new Date(at).getTime() + 3_600_000); // WAT, no daylight saving
-const dayMonth = (at: string) => `${lagos(at).getUTCDate()} ${MONTHS[lagos(at).getUTCMonth()]}`;
-const date = (at: string) => `${dayMonth(at)} ${lagos(at).getUTCFullYear()}`;
 
 /** Length band, as in the Explore filter (flow 02 rule 16): under 150 pages, 150 to 300, 300+. */
 const band = (pages: number) => (pages < 150 ? 'Short' : pages < 300 ? 'Medium' : 'Long');

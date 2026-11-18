@@ -4,7 +4,8 @@ import type { serverSupabase } from '@/lib/supabase/server';
 import { Menu } from './menu';
 
 export type Supa = Awaited<ReturnType<typeof serverSupabase>>;
-export type Tab = 'needs' | 'processing' | 'sentback' | 'live';
+/** `more`: a list under the More menu (no tab selected). */
+export type Tab = 'needs' | 'processing' | 'sentback' | 'live' | 'more';
 
 export const FILE_TYPE: Record<string, string> = { docx: 'Word', epub: 'EPUB', pdf: 'PDF' };
 
@@ -42,6 +43,14 @@ export function ago(since: string | null, now = Date.now()) {
 /** 09:38, Lagos time. */
 export const clock = (at: string) =>
   new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+
+// Three-letter months as in the prototype ("2 Sep"); ICU's en-GB says "Sept".
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const lagos = (at: string) => new Date(new Date(at).getTime() + 3_600_000); // WAT, no daylight saving
+/** "2 Sep", Lagos time. */
+export const dayMonth = (at: string) => `${lagos(at).getUTCDate()} ${MONTHS[lagos(at).getUTCMonth()]}`;
+/** "2 Sep 2026", Lagos time. */
+export const date = (at: string) => `${dayMonth(at)} ${lagos(at).getUTCFullYear()}`;
 
 /** The Lagos calendar day of a time, as YYYY-MM-DD. */
 export const lagosDay = (at: string | number) =>
@@ -169,9 +178,21 @@ export function BooksHeader({ tab, counts }: { tab: Tab; counts: Counts }) {
   );
 }
 
-export function Toolbar({ q, filters }: { q?: string; filters?: { href: string; label: string }[] }) {
+export function Toolbar({
+  q,
+  filters,
+  hidden,
+}: {
+  q?: string;
+  filters?: { href: string; label: string }[];
+  /** Query values the search keeps (the More list it searches in). */
+  hidden?: Record<string, string>;
+}) {
   return (
     <form className="toolbar" action="" method="get">
+      {Object.entries(hidden ?? {}).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
       <label className="search">
         <Icon name="search" size="s" />
         <input name="q" defaultValue={q} placeholder="Title or author" aria-label="Search books" />
