@@ -5,6 +5,7 @@ param(
   [Parameter(Mandatory = $true)][string]$Topic,
   [int]$Minutes = 10,
   [string]$Repo = 'arpedia-africa/arpedia',
+  [int]$ChecklistIssue = 0,        # GitHub issue that holds the live build checklist
   [string[]]$BuilderLog = @()   # one or more builder logs, comma-separated
 )
 $ErrorActionPreference = 'Continue'
@@ -51,6 +52,7 @@ while ($true) {
   if ($newest -and $newest -eq $lastSha -and $prio -ne 'high') { $lines = @('No new commits in the last ' + $Minutes + ' min (still working).') + $lines; $tags = 'hourglass' }
   $lastSha = $newest
 
+  if ($ChecklistIssue) { try { node "$PSScriptRoot\checklist.mjs" --issue $ChecklistIssue | Out-Null } catch {} }   # live checklist issue
   Send-Ntfy -title 'Arpedia build' -body ($lines -join "`n") -tags $tags -prio $prio -click $click
   Write-Host "$(Get-Date -Format HH:mm) sent: $($lines[0])"
   Start-Sleep -Seconds ($Minutes * 60)
