@@ -27,7 +27,7 @@ const n = (v: number) => v.toLocaleString('en-NG');
 const DATE = new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'long' });
 
 /** Postgres raises `P0001` with the code as the message and JSON detail (03 migration). */
-function rpcError(e: unknown): { code: string; detail: Record<string, number> } {
+export function rpcError(e: unknown): { code: string; detail: Record<string, number> } {
   const err = e as { code?: string; message?: string; details?: string };
   if (err?.code !== 'P0001') return { code: 'network', detail: {} };
   let detail = {};
@@ -48,15 +48,27 @@ export function variantFor(d: BookPageData, mode: UnlockMode): Variant {
 
 export interface UnlockSheetProps {
   book: BookPageData;
-  /** The option tapped; null keeps the sheet closed. */
-  open: UnlockMode | null;
+  /**
+   * The option tapped; null keeps the sheet closed. 'short' is a gift or tip the balance doesn't
+   * cover: only the not-enough-credits or no-plan body shows, for `need` credits.
+   */
+  open: UnlockMode | 'short' | null;
+  need?: number;
   onClose: () => void;
   onRead: () => void;
   onPlans: () => void;
   onBuyPack: (pack: TopupPack) => void;
 }
 
-export function UnlockSheet({ book: d, open, onClose, onRead, onPlans, onBuyPack }: UnlockSheetProps) {
+export function UnlockSheet({
+  book: d,
+  open,
+  need: shortNeed = 0,
+  onClose,
+  onRead,
+  onPlans,
+  onBuyPack,
+}: UnlockSheetProps) {
   const qc = useQueryClient();
   const toast = useToast();
   const track = useTrack();
@@ -65,11 +77,17 @@ export function UnlockSheet({ book: d, open, onClose, onRead, onPlans, onBuyPack
   const [key, setKey] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<UnlockMode>('all');
+  const short = open === 'short';
 
   useEffect(() => {
     if (!open) return;
-    const v = variantFor(d, open);
-    setMode(open);
+    const v: Variant =
+      open === 'short'
+        ? spendSheet(shortNeed, d.balance, d.plan.state) === 'nosub'
+          ? 'nosub'
+          : 'low'
+        : variantFor(d, open);
+    if (open !== 'short') setMode(open);
     setVariant(v);
     setKey(Crypto.randomUUID());
     setError(null);
@@ -168,7 +186,8 @@ export function UnlockSheet({ book: d, open, onClose, onRead, onPlans, onBuyPack
   const paid = d.paid_credits;
   const missing = Math.max(
     0,
-    (mode === 'all' ? (paid > 0 ? d.remaining : d.price) : (d.first_unpaid?.price ?? 0)) - d.balance,
+    (short ? shortNeed : mode === 'all' ? (paid > 0 ? d.remaining : d.price) : (d.first_unpaid?.price ?? 0)) -
+      d.balance,
   );
   const { pack: preset, enough } = pickTopupPack(missing);
   const [pack, setPack] = useState<TopupPack>(preset);
@@ -186,11 +205,14 @@ export function UnlockSheet({ book: d, open, onClose, onRead, onPlans, onBuyPack
       sub: `${n(d.pages ?? 0)} pages · ${n(d.chapters)} chapters · ${n(d.price)} credits`,
     },
     paygo: { title: 'Pay as you read', sub: `${d.book.title} · ${n(d.price)} credits in total` },
-    low: { title: `You need ${n(missing)} more credits`, sub: `${d.book.title} costs ${n(d.price)} credits` },
+    low: {
+      title: `You need ${n(missing)} more credits`,
+      sub: short ? `Your balance is ${n(d.balance)} credits` : `${d.book.title} costs ${n(d.price)} credits`,
+    },
     nosub: { title: 'Credits come with a plan' },
   };
 
-  const covered = chaptersCovered(d.balance, d.unpaid_prices ?? []);
+  const covered = short ? 0 : chaptersCovered(d.balance, d.unpaid_prices ?? []);
   const lowCopy = [
     planCredits && periodEnd
       ? `Your plan adds ${n(planCredits)} more on ${periodEnd}, or top up now.`
@@ -241,8 +263,8 @@ export function UnlockSheet({ book: d, open, onClose, onRead, onPlans, onBuyPack
         />
       ) : variant === 'low' ? (
         <LowBody
-          bookLine={`${d.book.title} · ${n(d.pages ?? 0)} pages`}
-          price={d.price}
+          bookLine={short ? 'You’re sending' : `${d.book.title} · ${n(d.pages ?? 0)} pages`}
+          price={short ? shortNeed : d.price}
           balance={d.balance}
           copy={lowCopy}
           packs={TOPUP_PACKS}

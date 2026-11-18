@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { onlineManager, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Callout, EmptyState, Screen, useTheme, useToast } from '@arpedia/ui';
+import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { useTrack } from '../../features/03/analytics';
 import { BookPageSkeleton, BookPageView } from '../../features/03/BookViews';
 import { bookKey, toModel, useBookPage, type BookPageData } from '../../features/03/book';
+import { GiftSheet, TipSheet } from '../../features/03/GiftSheet';
+import { MenuBody, ReportSheet, moreItems } from '../../features/03/MoreSheet';
 import { UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
 
@@ -42,10 +44,18 @@ export default function BookPage() {
     },
   });
 
-  const [sheet, setSheet] = useState<UnlockMode | null>(null);
+  const [sheet, setSheet] = useState<UnlockMode | 'short' | null>(null);
+  const [need, setNeed] = useState(0);
+  const [overlay, setOverlay] = useState<'more' | 'gift' | 'tip' | 'report' | null>(null);
   const openSheet = (m: UnlockMode) => {
     track('buy_option_tapped', { book_id: id, option: m === 'all' ? 'unlock_all' : 'pay_go' });
     setSheet(m);
+  };
+  /** Gift and Tip follow the credit checks too (rule 14): short of credits opens low or no-plan. */
+  const short = (amount: number) => {
+    setOverlay(null);
+    setNeed(amount);
+    setSheet('short');
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -101,7 +111,7 @@ export default function BookPage() {
           onBack: back,
           onSave: soon,
           onShare: soon,
-          onMore: soon,
+          onMore: () => setOverlay('more'),
           onAuthor: soon,
           onFollow: d.is_author ? undefined : () => follow.mutate(!d.following),
           onReviews: soon,
@@ -120,11 +130,37 @@ export default function BookPage() {
       <UnlockSheet
         book={d}
         open={sheet}
+        need={need}
         onClose={() => setSheet(null)}
         onRead={soon}
         onPlans={soon}
         onBuyPack={soon}
       />
+      <Sheet open={overlay === 'more'} onClose={() => setOverlay(null)} bold title={d.book.title}>
+        <MenuBody
+          items={moreItems({
+            author: d.book.author.name ?? '',
+            comingSoon: d.coming_soon,
+            isAuthor: d.is_author,
+            online,
+            // request_download is flow 04's (reader and downloads).
+            onDownload: () => {
+              setOverlay(null);
+              soon();
+            },
+            onGift: () => {
+              if (!online) return;
+              if (d.balance < d.price) return short(d.price);
+              setOverlay('gift');
+            },
+            onTip: () => online && setOverlay('tip'),
+            onReport: () => online && setOverlay('report'),
+          })}
+        />
+      </Sheet>
+      <GiftSheet book={d} open={overlay === 'gift'} onClose={() => setOverlay(null)} />
+      <TipSheet book={d} open={overlay === 'tip'} onClose={() => setOverlay(null)} onShort={short} />
+      <ReportSheet bookId={d.book.id} open={overlay === 'report'} onClose={() => setOverlay(null)} />
     </Screen>
   );
 }
