@@ -2,3 +2,4 @@
 export * from './sanitize';
 export * from './epub';
 export * from './verify';
+export * from './seal-book';
