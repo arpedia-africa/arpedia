@@ -19,6 +19,8 @@ interface Search {
   published?: string;
   scheduled?: string;
   quiet?: string;
+  /** Set after Approve update on Revisions, with the revision number. */
+  update?: string;
 }
 
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
@@ -43,6 +45,8 @@ async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
   const author = row.book?.author?.full_name ?? '';
   const first = author.split(' ')[0] || 'The author';
   if (sp.released) return { msg: `${title} is ready for review. ${first} is told when it goes live.`, undoId: id };
+  if (sp.published && sp.update)
+    return { msg: `${title} update (r${sp.update}) is live. ${first} is told; readers move to the new version.` };
   if (sp.published && sp.scheduled)
     return { msg: `${title} is scheduled. It shows under Coming soon until it goes live.` };
   if (sp.published)

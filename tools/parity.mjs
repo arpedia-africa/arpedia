@@ -507,6 +507,16 @@ try {
           { x: 544, y: 107, width: 600, height: 343 },
         ],
       },
+      // Revisions of the seeded update (The Alignment r4): shell, page header, tabs and the revisions
+      // table head. Rows, panels and the fast-lane list hold seeded data, compared by eye.
+      'book-revisions': {
+        path: '/books/00000000-0000-4000-d100-000000000099/revisions',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
     };
     for (const id of ids) {
       const p = pages[id];

@@ -7,11 +7,14 @@ export function Menu({
   trigger,
   children,
   tab,
+  link,
   left,
 }: {
   trigger: ReactNode;
   children: ReactNode;
   tab?: boolean;
+  /** The trigger is the cell's own text (a table cell that opens actions), not a filter button. */
+  link?: boolean;
   /** Open towards the right (the prototype's `left:0;right:auto`). */
   left?: boolean;
 }) {
@@ -36,6 +39,14 @@ export function Menu({
         <a role="tab" aria-selected="false" style={{ cursor: 'pointer' }} {...props}>
           {trigger}
         </a>
+      ) : link ? (
+        <button
+          type="button"
+          style={{ font: 'inherit', color: 'inherit', background: 'none', border: 0, padding: 0, cursor: 'pointer', textDecoration: 'underline dotted' }}
+          {...props}
+        >
+          {trigger}
+        </button>
       ) : (
         <button className="fbtn" type="button" {...props}>
           {trigger}
