@@ -18,7 +18,7 @@ param(
 if ($Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-$Lane" }
 if ($NoPhone -and -not $Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-nophone" }
 $ErrorActionPreference = 'Continue'
-$LockDir = "$env:USERPROFILE\projectsrpedia-locks"   # phone and database locks shared by builders on this PC
+$LockDir = "$env:USERPROFILEprojectsrpedia-locks"   # phone and database locks shared by builders on this PC
 New-Item -ItemType Directory -Force $LockDir | Out-Null
 
 # Build in a separate clone so your own working copy is never touched.
