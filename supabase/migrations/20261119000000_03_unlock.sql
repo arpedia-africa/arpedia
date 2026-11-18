@@ -479,7 +479,8 @@ begin
   end if;
 
   insert into public.entitlements (user_id, book_id, scope, source, ledger_id)
-  values (v_user, p_book, 'book', case when v_remaining > 0 then 'unlock_all' else 'chapter_complete' end,
+  values (v_user, p_book, 'book',
+          (case when v_remaining > 0 then 'unlock_all' else 'chapter_complete' end)::public.entitlement_source,
           (v_spend ->> 'ledger_id')::bigint)
   returning id into v_ent;
 
@@ -938,7 +939,7 @@ end $$;
 -- Readers also loved: rebuilt nightly from finished-together counts.
 create function public.rebuild_book_related() returns void
 language sql security definer set search_path = '' as $$
-  delete from public.book_related;
+  delete from public.book_related where true;
   insert into public.book_related (book_id, related_book_id, score)
   select a.book_id, b.book_id, count(*)
   from public.reading_progress a
@@ -988,9 +989,9 @@ begin
                and (c.price_credits is null or c.price_credits < 0
                     or (c.ord <= r.free_through_ord and c.price_credits <> 0)))
      or (select sum(price_credits) from public.chapters where revision_id = p_rev)
-        <> case when exists (select 1 from public.chapters c join public.book_revisions r on r.id = c.revision_id
-                             where c.revision_id = p_rev and c.ord > r.free_through_ord)
-                then p_price else 0 end then
+        <> (case when exists (select 1 from public.chapters c join public.book_revisions r on r.id = c.revision_id
+                              where c.revision_id = p_rev and c.ord > r.free_through_ord)
+                 then p_price else 0 end) then
     perform public._raise('bad_chapter_prices');
   end if;
 end $$;
