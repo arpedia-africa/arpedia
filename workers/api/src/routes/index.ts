@@ -2,5 +2,9 @@
 import type { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import health from './00/health';
+import avatars from './01/avatars';
 
-export const routes: [path: string, router: Hono<AppEnv>][] = [['/v1/health', health]];
+export const routes: [path: string, router: Hono<AppEnv>][] = [
+  ['/v1/health', health],
+  ['/v1/avatars', avatars],
+];
