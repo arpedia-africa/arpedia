@@ -991,7 +991,8 @@ create function public.admin_list_channels(p_kind text default null, p_status te
 returns table (id uuid, kind public.group_kind, name text, owner_id uuid, owner_name text,
                who_can_post public.group_who_can_post, visibility public.group_visibility,
                member_count int, messages_7d int, open_reports int, status text,
-               locked_until timestamptz, muted_until timestamptz, created_at timestamptz)
+               locked_until timestamptz, muted_until timestamptz, created_at timestamptz,
+               slow_mode_seconds int)
 language plpgsql stable security definer set search_path = '' as $$
 begin
   perform public.require_community_admin(false);
@@ -1006,15 +1007,39 @@ begin
              case when g.locked_until > now() then 'locked'
                   when coalesce(g.last_message_at, g.created_at) < now() - interval '7 days' then 'quiet'
                   else 'active' end as st,
-             g.locked_until as lu, g.muted_until as mu, g.created_at as ca
+             g.locked_until as lu, g.muted_until as mu, g.created_at as ca, g.slow_mode_seconds as sm
       from public.groups g
       where g.kind in ('official', 'club', 'author', 'readalong') and g.archived_at is null
         and (p_kind is null or g.kind::text = p_kind)
-        and (p_q is null or g.name ilike '%' || p_q || '%')
+        and (p_q is null or g.name ilike '%' || p_q || '%' or public.sender_name(g.owner_id) ilike '%' || p_q || '%')
     ) t
     where (p_status is null or t.st = p_status)
       and (p_reports is null or (t.reps > 0) = p_reports)
-    order by t.gkind = 'official' desc, t.mc desc, t.gname;
+    order by t.m7 desc, t.mc desc, t.gname;
+end $$;
+
+-- The four numbers on the Community page.
+create function public.admin_community_stats() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare v_today timestamptz := date_trunc('day', now() at time zone 'Africa/Lagos') at time zone 'Africa/Lagos';
+begin
+  perform public.require_community_admin(false);
+  return jsonb_build_object(
+    'channels', (select count(*) from public.groups where kind in ('official', 'club', 'author', 'readalong') and archived_at is null),
+    'official', (select count(*) from public.groups where kind = 'official' and archived_at is null),
+    'author', (select count(*) from public.groups where kind = 'author' and archived_at is null),
+    'rooms_live', (select count(*) from public.groups where kind = 'room' and archived_at is null
+                     and live_count >= 1 and live_at > now() - interval '5 minutes'),
+    'rooms_readers', (select coalesce(sum(live_count), 0) from public.groups where kind = 'room' and archived_at is null
+                        and live_at > now() - interval '5 minutes'),
+    'messages_today', (select count(*) from public.messages where created_at >= v_today),
+    'messages_last_week', (select count(*) from public.messages
+                           where created_at >= v_today - interval '7 days'
+                             and created_at < now() - interval '7 days'),
+    'muted', (select count(*) from public.group_members where muted_until > now()),
+    'muted_ending_week', (select count(*) from public.group_members
+                          where muted_until > now() and muted_until < now() + interval '7 days')
+  );
 end $$;
 
 create function public.admin_create_official_channel(p_name text, p_description text,
@@ -1045,8 +1070,20 @@ begin
   return jsonb_build_object(
     'group', to_jsonb(g) - 'live_count' - 'live_at' || jsonb_build_object(
       'owner_name', public.sender_name(g.owner_id),
+      'members_week', (select count(*) from public.group_members m where m.group_id = g.id
+                         and m.banned_at is null and m.joined_at > now() - interval '7 days'),
       'messages_7d', (select count(*) from public.messages x where x.group_id = g.id and x.created_at > now() - interval '7 days'),
-      'open_reports', (select count(*) from public.reports r where r.group_id = g.id and r.status <> 'resolved')),
+      'posters_7d', (select count(distinct x.sender_id) from public.messages x where x.group_id = g.id
+                       and x.created_at > now() - interval '7 days'),
+      'open_reports', (select count(*) from public.reports r where r.group_id = g.id and r.status <> 'resolved'),
+      'oldest_report_at', (select min(r.created_at) from public.reports r where r.group_id = g.id and r.status <> 'resolved'),
+      'moderators', coalesce((select jsonb_agg(public.sender_name(m.user_id) order by m.joined_at)
+                              from public.group_members m where m.group_id = g.id and m.role = 'moderator'
+                                and m.banned_at is null), '[]'::jsonb)),
+    'pins', coalesce((select jsonb_agg(jsonb_build_object(
+        'message_id', p.message_id, 'body', coalesce(x.body, x.quote ->> 'text'),
+        'sender_name', public.sender_name(x.sender_id), 'pinned_at', p.pinned_at) order by p.pinned_at)
+      from public.message_pins p join public.messages x on x.id = p.message_id where p.group_id = g.id), '[]'::jsonb),
     'members', coalesce((select jsonb_agg(jsonb_build_object(
         'user_id', m.user_id, 'name', public.sender_name(m.user_id), 'role', m.role, 'joined_at', m.joined_at,
         'muted_until', m.muted_until, 'banned_at', m.banned_at,
@@ -1168,7 +1205,8 @@ begin
       'unblock_user', 'get_blocked', 'report_message', 'search_communities', 'get_group_access',
       'can_quote', 'persist_messages', 'set_live_count', 'touch_last_seen', 'admin_list_channels',
       'admin_create_official_channel', 'admin_get_channel', 'admin_update_channel',
-      'admin_set_channel_state', 'admin_mute_member', 'refresh_member_counts', 'purge_deleted_messages'])
+      'admin_set_channel_state', 'admin_mute_member', 'admin_community_stats', 'refresh_member_counts',
+      'purge_deleted_messages'])
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f);
   end loop;
@@ -1185,7 +1223,7 @@ grant execute on function
   public.search_communities(text, text, int, int),
   public.admin_list_channels(text, text, boolean, text),
   public.admin_create_official_channel(text, text, public.group_who_can_post, public.group_visibility),
-  public.admin_get_channel(uuid), public.admin_update_channel(uuid, jsonb, text),
+  public.admin_get_channel(uuid), public.admin_update_channel(uuid, jsonb, text), public.admin_community_stats(),
   public.admin_set_channel_state(uuid, timestamptz, timestamptz, text),
   public.admin_mute_member(uuid, uuid, timestamptz, text),
   -- used inside RLS policies

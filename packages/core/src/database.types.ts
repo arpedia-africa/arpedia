@@ -1607,6 +1607,7 @@ export type Database = {
         Args: { p_token_hash: string; p_user: string };
         Returns: Database['public']['Enums']['staff_role'];
       };
+      admin_community_stats: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_create_official_channel: {
         Args: {
           p_description: string;
@@ -1631,6 +1632,7 @@ export type Database = {
           open_reports: number;
           owner_id: string;
           owner_name: string;
+          slow_mode_seconds: number;
           status: string;
           visibility: Database['public']['Enums']['group_visibility'];
           who_can_post: Database['public']['Enums']['group_who_can_post'];
