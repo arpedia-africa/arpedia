@@ -112,6 +112,38 @@ export const approxBooks = (credits: number) => Math.max(1, Math.round(credits /
 
 export const formatNaira = (n: number) => `₦${n.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
 
+export const TERMS_URL = 'https://arpedia.africa/terms';
+export const PRIVACY_URL = 'https://arpedia.africa/privacy';
+
+/** "A", "A and B", "A, B and C". */
+const listWords = (words: string[]) =>
+  words.length <= 1 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+
+/**
+ * Paywall headline and sub line (rule 24): "<first name>, your shelf is ready" and
+ * "<N> books in <up to three picked genres>. Start reading tonight." With no picks: "Your shelf is
+ * ready" and the whole catalogue. With no catalogue yet only the call to read stays.
+ */
+export function paywallCopy(firstName: string | null, genres: string[], bookCount: number) {
+  const picked = genres.slice(0, 3);
+  const title = firstName && picked.length ? `${firstName}, your shelf is ready` : 'Your shelf is ready';
+  const books = `${bookCount.toLocaleString('en-NG')} ${bookCount === 1 ? 'book' : 'books'}`;
+  const sub =
+    bookCount === 0
+      ? 'Start reading tonight.'
+      : picked.length
+        ? `${books} in ${listWords(picked)}. Start reading tonight.`
+        : `${books} on Arpedia. Start reading tonight.`;
+  return { title, sub };
+}
+
+/** "12 Feb" for a renewal date (ISO, calendar date). */
+export function shortDate(iso: string) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const [, m, d] = iso.split('-').map(Number) as [number, number, number];
+  return `${d} ${months[m - 1]}`;
+}
+
 const addDays = (iso: string, days: number) => {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);

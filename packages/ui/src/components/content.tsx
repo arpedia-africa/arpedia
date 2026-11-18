@@ -4,6 +4,7 @@ import Animated, { useAnimatedProps, useAnimatedStyle } from 'react-native-reani
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { nightOnHero, useOnHero } from '../hero';
+import { Icon, type IconName } from '../Icon';
 import { useFill } from '../motion';
 import { Text } from '../Text';
 import { useTheme } from '../theme';
@@ -358,7 +359,18 @@ export function AvatarStack({ people, size = 'sm' }: { people: AvatarProps[]; si
 /* ─── Pill, Count, Unread ────────────────────────────────────────────────── */
 export type PillTone = 'brand' | 'night' | 'ok' | 'warn' | 'err' | 'info' | 'grey';
 
-export function Pill({ label, tone = 'brand', icon }: { label: string; tone?: PillTone; icon?: ReactNode }) {
+export function Pill({
+  label,
+  tone = 'brand',
+  icon,
+  iconName,
+}: {
+  label: string;
+  tone?: PillTone;
+  icon?: ReactNode;
+  /** Sprite icon (`.ico.xs`) drawn in the pill's text colour. */
+  iconName?: IconName;
+}) {
   const { c, s, name } = useTheme();
   const onHero = useOnHero();
   const look = {
@@ -383,6 +395,7 @@ export function Pill({ label, tone = 'brand', icon }: { label: string; tone?: Pi
       }}
     >
       {icon}
+      {iconName ? <Icon name={iconName} size="xs" color={look[1]} /> : null}
       <Text size={12} weight={600} color={look[1]} oneLine>
         {label}
       </Text>

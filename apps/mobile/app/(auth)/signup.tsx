@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '@arpedia/ui';
-import { PASSWORD_MIN, validEmail, validName, validPassword } from '@arpedia/core';
+import { PASSWORD_MIN, PRIVACY_URL, TERMS_URL, validEmail, validName, validPassword } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { SignupView, type FieldErrors, type SignupValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
@@ -13,8 +13,6 @@ import { onboardingClock } from '../../features/01/steps';
 // Policy versions the reader accepts by creating an account (stored with the time, rule 1).
 const TERMS_VERSION = 1;
 const PRIVACY_VERSION = 1;
-const TERMS_URL = 'https://arpedia.africa/terms';
-const PRIVACY_URL = 'https://arpedia.africa/privacy';
 
 type Errors = FieldErrors<'name' | 'email' | 'password' | 'form' | 'google'>;
 

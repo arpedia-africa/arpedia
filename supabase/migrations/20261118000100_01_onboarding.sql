@@ -302,6 +302,53 @@ begin
   return dev.download_enabled;
 end $$;
 
+-- s-all-set (rule 30): read, never typed in. Credits and plan come from the caller's latest
+-- plan_grant ledger row (flow 09 writes it with ref_type 'plan', ref_id = plan id; renewal is
+-- that date plus the plan's period until flow 09's subscription row exists). Plus this week's top
+-- live book (most unlocks in 7 days, then all time) with its credit price, and the top author.
+create function public.get_all_set() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  uid uuid := auth.uid();
+  g_credits int;
+  g_plan text;
+  g_at timestamptz;
+begin
+  if uid is null then
+    raise exception 'sign in first' using errcode = '42501';
+  end if;
+  select l.delta, l.ref_id, l.created_at into g_credits, g_plan, g_at
+    from public.credit_ledger l
+    where l.user_id = uid and l.reason = 'plan_grant' and l.delta > 0
+    order by l.created_at desc limit 1;
+  return jsonb_build_object(
+    'credits', g_credits,
+    'plan', g_plan,
+    'granted_at', g_at,
+    'book', (
+      select jsonb_build_object('id', b.id, 'title', b.title, 'price', r.price_credits)
+      from public.books b
+      left join public.book_revisions r on r.id = b.current_revision_id
+      where b.status = 'live'
+      order by (select count(*) from public.entitlements e
+                where e.book_id = b.id and e.created_at > now() - interval '7 days') desc,
+               (select count(*) from public.entitlements e where e.book_id = b.id) desc,
+               b.title
+      limit 1),
+    'author', (
+      select jsonb_build_object('id', p.id, 'name', p.full_name, 'genre', a.genre, 'books', a.books)
+      from (
+        select b.author_id, count(*) as books, min(b.genres[1]) as genre,
+          sum((select count(*) from public.entitlements e where e.book_id = b.id)) as reads
+        from public.books b where b.status = 'live'
+        group by b.author_id
+      ) a join public.profiles p on p.id = a.author_id
+      where p.id <> uid and p.deleted_at is null
+      order by a.reads desc, a.books desc, p.full_name
+      limit 1)
+  );
+end $$;
+
 -- ─── Row level security ─────────────────────────────────────────────────────
 alter table public.genres enable row level security;
 alter table public.user_genres enable row level security;
@@ -322,8 +369,9 @@ grant select on public.user_genres, public.user_devices, public.public_profiles 
 -- onboarding_step_ord stays public: pure, and used by the profiles check constraint.
 revoke execute on function public.make_username(text), public.handle_new_user(),
   public.set_user_genres(uuid[]), public.save_onboarding_step(text, jsonb), public.get_onboarding_paywall(),
-  public.register_device(text, text, text, text, text)
+  public.register_device(text, text, text, text, text), public.get_all_set()
   from public, anon;
 grant execute on function public.set_user_genres(uuid[]), public.save_onboarding_step(text, jsonb),
-  public.get_onboarding_paywall(), public.register_device(text, text, text, text, text)
+  public.get_onboarding_paywall(), public.register_device(text, text, text, text, text),
+  public.get_all_set()
   to authenticated;

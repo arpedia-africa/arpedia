@@ -362,6 +362,9 @@ isOneToOne: false
             "credit_balance":
 { Args: { "p_user": string }; Returns: number
                            },
+"get_all_set":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "get_onboarding_paywall":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

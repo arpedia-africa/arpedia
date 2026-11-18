@@ -281,6 +281,76 @@ export function SignupView({
   );
 }
 
+/**
+ * New password, opened by the reset link (rule 11; no prototype screen, Q91). Built from the
+ * Log in pieces: same hero, sheet, rule and eye. `expired` = the link was used or is over 60 minutes.
+ */
+export function NewPasswordView({
+  password,
+  error,
+  formError,
+  busy,
+  expired,
+  onChange,
+  onBlur,
+  onSubmit,
+  onLogin,
+}: {
+  password: string;
+  error?: string;
+  formError?: string | null;
+  busy?: boolean;
+  expired?: boolean;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  onSubmit: () => void;
+  onLogin: () => void;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <>
+      <OnbHero
+        title={expired ? 'This link has expired' : 'Set a new password'}
+        sub={
+          expired
+            ? 'Reset links work once, for 60 minutes. Ask for a new one from Log in.'
+            : 'You’ll use it to log in from now on.'
+        }
+      />
+      <OnbSheet>
+        <Form>
+          {expired ? null : (
+            <Field
+              label="New password"
+              placeholder={`At least ${PASSWORD_MIN} characters`}
+              value={password}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={error}
+              hint={`Use at least ${PASSWORD_MIN} characters.`}
+              secureTextEntry={!shown}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="go"
+              onSubmitEditing={onSubmit}
+              trailing={<Eye shown={shown} onToggle={() => setShown((v) => !v)} />}
+            />
+          )}
+          <View style={{ gap: 8 }}>
+            {expired ? (
+              <Btn label="Back to Log in" block onPress={onLogin} />
+            ) : (
+              <Btn label="Save password" block onPress={onSubmit} loading={busy} />
+            )}
+            <FormError>{formError}</FormError>
+          </View>
+        </Form>
+      </OnbSheet>
+    </>
+  );
+}
+
 /** Forgot password (rule 11, Q91 default: a sheet). Same reply for every email. */
 export function ForgotSheet({
   open,

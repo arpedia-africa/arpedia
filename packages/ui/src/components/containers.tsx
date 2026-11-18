@@ -17,6 +17,7 @@ import { Text } from '../Text';
 import { useTheme } from '../theme';
 import { motion, rgba, z } from '../tokens';
 import { IconButton } from './actions';
+import { Petals } from './layout';
 
 /* ─── Sheet ──────────────────────────────────────────────────────────────── */
 export interface SheetProps {
@@ -27,10 +28,12 @@ export interface SheetProps {
   locked?: boolean;
   children?: ReactNode;
   footer?: ReactNode;
+  /** `.panel.bk-bold`: grab and title sit on a main-colour head with petals (`.bk-sheethead`). */
+  bold?: boolean;
 }
 
 /** Bottom sheet that glides up; backdrop fades. Reduced motion: fade only. */
-export function Sheet({ open, onClose, title, locked, children, footer }: SheetProps) {
+export function Sheet({ open, onClose, title, locked, children, footer, bold }: SheetProps) {
   const { c, s, reduceMotion } = useTheme();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(open);
@@ -99,51 +102,58 @@ export function Sheet({ open, onClose, title, locked, children, footer }: SheetP
             elevation: 16,
           },
           panel,
+          bold ? { overflow: 'hidden' } : null,
         ]}
       >
-        <View
-          style={{
-            width: s(40),
-            height: s(5),
-            borderRadius: s(5),
-            backgroundColor: c.control,
-            alignSelf: 'center',
-            marginTop: s(8),
-            marginBottom: s(4),
-          }}
-        />
-        {title ? (
+        <View style={bold ? { backgroundColor: c.org, overflow: 'hidden', paddingBottom: s(8) } : null}>
+          {/* .bk-sheethead::after: 220px petals at right -90, top -120 */}
+          {bold ? <Petals size={s(220)} style={{ right: s(-90), top: s(-120) }} /> : null}
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: s(8),
-              paddingTop: s(6),
-              paddingBottom: s(6),
-              paddingLeft: s(18),
-              paddingRight: s(8),
+              width: s(40),
+              height: s(5),
+              borderRadius: s(5),
+              backgroundColor: bold ? rgba(c.onOrgRgb, 0.35) : c.control,
+              alignSelf: 'center',
+              marginTop: s(8),
+              marginBottom: s(4),
             }}
-          >
-            <Text
-              variant="h2"
-              size={20}
-              oneLine
-              accessibilityRole="header"
-              style={{ flex: 1, letterSpacing: s(20) * -0.01 }}
+          />
+          {title ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: s(8),
+                paddingTop: s(6),
+                paddingBottom: s(6),
+                paddingLeft: s(18),
+                paddingRight: s(8),
+              }}
             >
-              {title}
-            </Text>
-            {locked ? (
-              <View style={{ width: s(44), height: s(44) }} />
-            ) : (
-              <IconButton icon="x" label="Close" onPress={onClose} />
-            )}
-          </View>
-        ) : null}
+              <Text
+                variant="h2"
+                size={20}
+                oneLine
+                color={bold ? 'onOrg' : undefined}
+                accessibilityRole="header"
+                style={{ flex: 1, letterSpacing: s(20) * -0.01 }}
+              >
+                {title}
+              </Text>
+              {locked ? (
+                <View style={{ width: s(44), height: s(44) }} />
+              ) : (
+                <IconButton icon="x" label="Close" onPress={onClose} color={bold ? c.onOrg : undefined} />
+              )}
+            </View>
+          ) : null}
+        </View>
         <ScrollView
           bounces={false}
           contentContainerStyle={{
-            paddingTop: s(4),
+            // .panel.bk-bold > .pb: padding-top 16
+            paddingTop: s(bold ? 16 : 4),
             paddingHorizontal: s(18),
             paddingBottom: footer ? s(12) : s(28) + insets.bottom,
             gap: s(14),
