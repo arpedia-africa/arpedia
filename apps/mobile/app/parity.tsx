@@ -47,6 +47,14 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import {
+  CommunityHero,
+  InboxList,
+  ReadTogether,
+  UnreadBar,
+  type InboxRowView,
+  type InboxTab,
+} from '../features/06/InboxViews';
 
 const PAGES = [
   'kit-a',
@@ -59,6 +67,9 @@ const PAGES = [
   's-profile-setup',
   's-plans-onboard',
   's-all-set',
+  's-community',
+  's-dms',
+  's-community-groups',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -139,7 +150,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          <Flow01 page={page} />
+          {FLOW06.has(page) ? <Flow06 page={page} /> : <Flow01 page={page} />}
         </View>
       )}
     </View>
@@ -282,6 +293,86 @@ function Flow01({ page }: { page: Page }) {
     default:
       return null;
   }
+}
+
+// ─── Flow 06 screens with the prototype's values (tools/parity/s-*.html) ────
+const FLOW06 = new Set<Page>(['s-community', 's-dms', 's-community-groups']);
+
+const row = (
+  id: string,
+  name: string,
+  tone: InboxRowView['tone'],
+  sub: string,
+  time: string,
+  unread = 0,
+  extra: Partial<InboxRowView> = {},
+): InboxRowView => ({ id, name, tone, sub, time, unread, person: false, live: false, author: false, muted: false, ...extra });
+
+const GR = row('gr', 'Grace Readers', 'n', 'Chioma: The night vigil chapter 😭 who else cried?', 'now', 8, { live: true });
+const IN = row('in', 'Ifeoma Nwachukwu', 'm', 'Ifeoma: Thank you Ngozi! Chapter 12 will answer that 😊', '45m', 1, {
+  person: true,
+  author: true,
+});
+const IR = row('ir', "Ifeoma's Readers", 'm', 'Ifeoma: A small treat: I will answer three questions on Friday', '1h', 3);
+const AO = row(
+  'ao',
+  'Arpedia Official',
+  'o',
+  'Arpedia Team: Reading challenge: finish one book this month to enter the free-year draw',
+  '3h',
+  2,
+);
+const HL = row('hl', 'Harmattan Letters Read-Along', 'b', 'Hauwa: Friday we move to chapter 9. Catch up!', '5h');
+const AS = row('as', 'Arpedia Support', 'k', 'Arpedia Team: Hello Ngozi, welcome to Arpedia. Ask us anything here.', '4d');
+
+function Flow06({ page }: { page: Page }) {
+  const { s } = useTheme();
+  const tab: InboxTab = page === 's-dms' ? 'unread' : page === 's-community-groups' ? 'groups' : 'all';
+  const hero = (
+    <CommunityHero tab={tab} counts={{ all: 5, unread: 4 }} onTab={noop} onRooms={noop} onDiscover={noop} />
+  );
+  // .body.body-end: padding-bottom 28
+  return (
+    <View style={{ paddingBottom: s(28) }}>
+      {hero}
+      {page === 's-community' ? (
+        <>
+          <InboxList rows={[GR, IN, IR, AO, HL, AS]} onOpen={noop} />
+          <ReadTogether
+            rooms={{
+              people: [
+                { name: 'Chioma Okafor', tone: 'm' },
+                { name: 'Ifeoma Nwachukwu', tone: 'o' },
+                { name: 'Musa Danjuma', tone: 'k' },
+              ],
+              readingNow: 5,
+              books: [
+                { title: 'The Alignment', tone: 'c3' },
+                { title: 'Harmattan Letters', tone: 'c1' },
+              ],
+            }}
+            onRooms={noop}
+            onDiscover={noop}
+          />
+        </>
+      ) : page === 's-dms' ? (
+        <>
+          <UnreadBar count={4} onMarkAll={noop} />
+          <InboxList rows={[GR, IN, IR, AO]} onOpen={noop} />
+        </>
+      ) : (
+        <InboxList
+          rows={[
+            { ...GR, sub: 'Club · 1,240 members · reading Harmattan Letters' },
+            { ...IR, sub: 'Author community · 860 members' },
+            { ...AO, sub: 'Official · 12.4k members · announcements' },
+            { ...HL, sub: 'Read-along · 64 members' },
+          ]}
+          onOpen={noop}
+        />
+      )}
+    </View>
+  );
 }
 
 function Pk({ children }: { children: React.ReactNode }) {
