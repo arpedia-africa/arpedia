@@ -658,10 +658,10 @@ begin
 end $$;
 
 -- ─── Author RPCs ────────────────────────────────────────────────────────────
--- Start a revision (Studio step 1, or a staff upload for an author). p_book null starts a new book.
+-- Start a revision (Studio step 1, or a staff upload for an author). No p_book starts a new book.
 -- p_meta: source_type, title, subtitle, description, genres, content_notes, age, language;
 -- staff uploads add author_id and rights_confirmed; replace=true closes an earlier revision in review.
-create function public.create_revision(p_book uuid, p_meta jsonb) returns jsonb
+create function public.create_revision(p_meta jsonb, p_book uuid default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v_uid uuid := auth.uid();
@@ -1766,7 +1766,7 @@ grant execute on function public._is_revision_author(uuid) to authenticated;
 
 -- Authors and staff, with their own JWT.
 grant execute on function
-  public.create_revision(uuid, jsonb),
+  public.create_revision(jsonb, uuid),
   public.submit_revision(uuid),
   public.get_revision_status(uuid),
   public.has_blocking_flag(uuid),

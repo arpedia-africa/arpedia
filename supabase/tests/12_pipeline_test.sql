@@ -90,10 +90,10 @@ $$;
 
 -- ═══ 1. Author path: create → finalize → verify → confirm → submit → seal ═════
 select pg_temp.as_user('12000000-0000-4000-a000-000000000001');
-select lives_ok($$select public.create_revision(null, '{"source_type":"docx","title":"Harmattan Test"}')$$,
+select lives_ok($$select public.create_revision('{"source_type":"docx","title":"Harmattan Test"}')$$,
   'author starts a book');
-select throws_ok($$select public.create_revision((select id from public.books where title = 'Harmattan Test'),
-  '{"source_type":"epub"}')$$, '23505', null, 'one open revision per book unless the author confirms replacing it');
+select throws_ok($$select public.create_revision('{"source_type":"epub"}',
+  (select id from public.books where title = 'Harmattan Test'))$$, '23505', null, 'one open revision per book unless the author confirms replacing it');
 select throws_ok($$select public.complete_verify(pg_temp.rev('Harmattan Test'), 1, '{}')$$, '42501', null,
   'authors cannot post Worker results');
 select throws_ok($$update public.book_revisions set status = 'live' where id = pg_temp.rev('Harmattan Test')$$,

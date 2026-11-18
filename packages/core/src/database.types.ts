@@ -1277,7 +1277,7 @@ export type Database = {
       complete_seal: { Args: { p_generation: number; p_rev: string; p_seal: Json }; Returns: Json };
       complete_verify: { Args: { p_generation: number; p_result: Json; p_rev: string }; Returns: Json };
       confirm_chapters: { Args: { p_actor: string; p_result: Json; p_rev: string }; Returns: Json };
-      create_revision: { Args: { p_book: string; p_meta: Json }; Returns: Json };
+      create_revision: { Args: { p_book?: string; p_meta: Json }; Returns: Json };
       credit_balance: { Args: { p_user: string }; Returns: number };
       desk_claim: { Args: { p_actor?: string; p_rev?: string }; Returns: Json };
       desk_heartbeat: { Args: { p_actor?: string; p_rev: string }; Returns: string };
