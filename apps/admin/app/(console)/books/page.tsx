@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Released } from './released';
 import { RowLink } from './row';
 import { BooksHeader, FILE_TYPE, Toolbar, bookCounts, coverClass, initials, waited } from './shared';
 import { serverSupabase } from '@/lib/supabase/server';
@@ -9,6 +10,8 @@ interface Search {
   nobody?: string;
   late?: string;
   genre?: string;
+  /** Set by Fix flagged issues after Mark fixed and send to review. */
+  released?: string;
 }
 
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
@@ -45,6 +48,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
     if (sp.genre && !r.book?.genres.includes(sp.genre)) return false;
     return true;
   });
+  const released = sp.released ? data?.find(r => r.id === sp.released) : undefined;
   const genres = [...new Set((data ?? []).flatMap(r => r.book?.genres ?? []))].sort();
   const filters = [
     { href: '/books?type=docx', label: 'File type: Word' },
@@ -152,6 +156,13 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </div>
+      {released && (
+        <Released
+          id={released.id}
+          title={released.book?.title ?? 'The book'}
+          firstName={(released.book?.author?.full_name ?? '').split(' ')[0] || 'The author'}
+        />
+      )}
     </section>
   );
 }

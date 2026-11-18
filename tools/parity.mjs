@@ -445,6 +445,32 @@ try {
           { x: 248, y: 0, width: W - 248, height: 297 },
         ],
       },
+      // Shell, band and tabs; the jobs and rows below hold seeded data.
+      'book-processing': {
+        path: '/books/processing',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'books-sentback': {
+        path: '/books/sent-back',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // Shell and page header of the seeded Needs fixes book (Market Day in Onitsha).
+      'book-formatter': {
+        path: '/books/00000000-0000-4000-d100-000000000001/fix',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 150 },
+        ],
+      },
     };
     for (const id of ids) {
       const p = pages[id];

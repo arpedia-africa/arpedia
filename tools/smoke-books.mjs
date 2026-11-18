@@ -242,6 +242,14 @@ const tampered = await fetch(preview.book_url.replace(/\/objects\/[^.]+/, '/obje
 if (tampered.ok) await fail('a tampered read link worked');
 ok('preview-url: staff read the working copy; another author and a tampered link cannot');
 
+const original = await call(publisher, 'POST', '/source-url', { revision_id: rev });
+const originalRes = await fetch(original.url);
+if (!originalRes.ok || (await originalRes.arrayBuffer()).byteLength === 0)
+  await fail(`source-url did not serve the original (${originalRes.status})`);
+const authorSource = await send(author, 'POST', '/source-url', { revision_id: rev });
+if (authorSource.status !== 403) await fail(`a non-staff user got the source link (${authorSource.status})`);
+ok('source-url: staff download the original; others cannot');
+
 const flag = (s, key) => s.flags.find((f) => f.check_key === key);
 const version = async () =>
   (await rest(`book_revisions?id=eq.${rev}&select=work_version`, { jwt: publisher })).json[0].work_version;

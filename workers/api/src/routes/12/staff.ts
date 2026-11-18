@@ -242,4 +242,16 @@ staff.post('/preview-url', async (c) => {
   });
 });
 
+/** A short-lived link to the author's original file, for Download original on Fix flagged issues. */
+staff.post('/source-url', async (c) => {
+  const body = z.object({ revision_id: z.uuid() }).safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: 'invalid_request' }, 400);
+  const db = serviceDb(c.env);
+  if (!(await isPublisher(db, c.var.user.sub))) return notStaff(c);
+  const rev = await revision(db, body.data.revision_id).catch(() => null);
+  if (!rev?.source_key) return c.json({ error: 'not_found' }, 404);
+  const link = await signedUrl(c, rev.source_key, { get: true });
+  return c.json({ url: `${link.url}source.${rev.source_type}`, expires_at: link.expires_at });
+});
+
 export default staff;
