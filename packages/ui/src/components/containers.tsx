@@ -1,4 +1,12 @@
-import { Children, isValidElement, useEffect, useState, type ReactNode } from 'react';
+import {
+  Children,
+  createContext,
+  isValidElement,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Modal, Pressable, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -188,6 +196,9 @@ export function Card({ soft, pad = true, onPress, accessibilityLabel, style, chi
 }
 
 /* ─── Group + Cell ───────────────────────────────────────────────────────── */
+/** True for a Cell that follows another row in a Group (it draws the 1px divider). */
+const GroupDivider = createContext(false);
+
 /** Rounded list container (`.group`); `flush` = edge to edge. Cells get 1px dividers. */
 export function Group({
   flush,
@@ -216,11 +227,19 @@ export function Group({
         style,
       ]}
     >
-      {items.map((child, i) => (
-        <View key={child.key ?? i} style={i > 0 ? { borderTopWidth: 1, borderTopColor: c.line } : null}>
-          {child}
-        </View>
-      ))}
+      {items.map((child, i) =>
+        // `.cell + .cell` draws its divider inside the cell's min-height (border-box), so a Cell
+        // draws its own; anything else gets it on a wrapper.
+        child.type === Cell ? (
+          <GroupDivider.Provider key={child.key ?? i} value={i > 0}>
+            {child}
+          </GroupDivider.Provider>
+        ) : (
+          <View key={child.key ?? i} style={i > 0 ? { borderTopWidth: 1, borderTopColor: c.line } : null}>
+            {child}
+          </View>
+        ),
+      )}
     </View>
   );
 }
@@ -259,6 +278,7 @@ export function Cell({
   flush,
 }: CellProps) {
   const { c, s } = useTheme();
+  const divider = useContext(GroupDivider);
   const body = (
     <>
       {lead ? <View>{lead}</View> : null}
@@ -301,6 +321,7 @@ export function Cell({
     paddingHorizontal: s(flush ? 16 : 14),
     minHeight: s(56),
     backgroundColor: highlight ? c.orgTint2 : 'transparent',
+    ...(divider ? { borderTopWidth: 1, borderTopColor: c.line } : null),
   };
   if (!onPress) return <View style={style}>{body}</View>;
   return (

@@ -10,7 +10,7 @@ import { fontFamily } from '../fonts';
 import { Icon, type IconName } from '../Icon';
 import { ease } from '../motion';
 import { Press } from '../Pressable';
-import { Text } from '../Text';
+import { Text, androidFontSize } from '../Text';
 import { useTheme } from '../theme';
 import { motion, rgba } from '../tokens';
 
@@ -112,7 +112,7 @@ export function Field({
               paddingVertical: s(12),
               paddingHorizontal: 0,
               fontFamily: fontFamily('ui', 400),
-              fontSize: fs,
+              ...androidFontSize(fs, fontFamily('ui', 400)),
               color: c.ink,
             }}
           />

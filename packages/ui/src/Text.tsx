@@ -112,6 +112,21 @@ function androidLineBox(style: TextStyle, fit: boolean, maxScale?: number): Text
   return lineBox(style, m, r, lhPx, startPx, sizePx);
 }
 
+/**
+ * Font size and letter spacing for text outside `Text` (TextInput) on Android: the nearest device
+ * pixel instead of RN's round-up, the remainder as letter spacing (see androidLineBox).
+ */
+export function androidFontSize(
+  fontSize: number,
+  family: string,
+): Pick<TextStyle, 'fontSize' | 'letterSpacing'> {
+  const m = fontMetrics[family];
+  if (Platform.OS !== 'android' || !m) return { fontSize };
+  const r = PixelRatio.get() * PixelRatio.getFontScale();
+  const px = Math.max(1, Math.round(fontSize * r));
+  return { fontSize: (px - 0.01) / r, letterSpacing: (fontSize - px / r) * m[2] };
+}
+
 /** The size RN's fit search ends at from `start` px when the text fits (float32, like the Kotlin). */
 function fitResult(start: number, min: number): number {
   let size = start;
