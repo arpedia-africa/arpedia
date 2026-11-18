@@ -3,7 +3,7 @@
 -- anchor migration, unpublish refunds, RLS and the staff role matrix.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(68);
+select plan(71);
 
 -- ─── Actors ─────────────────────────────────────────────────────────────────
 insert into auth.users (id, email) values
@@ -263,9 +263,17 @@ select is(public.complete_seal('12000000-0000-4000-e000-000000000002', 3,
 select is((select reasons from public.revision_diffs where revision_id = '12000000-0000-4000-e000-000000000002'),
   array['chapters_changed'], 'the diff records why');
 
+select pg_temp.as_user('12000000-0000-4000-a000-000000000001');
+select throws_ok($$select public.revision_links('12000000-0000-4000-e000-000000000002')$$, '42501', null,
+  'only publishers read paragraph links');
 select pg_temp.as_user('12000000-0000-4000-a000-000000000003');
+select is(public.revision_links('12000000-0000-4000-e000-000000000002') - 'paragraphs' - 'kept',
+  '{"highlights":2,"highlights_kept":1,"comments_moved":1,"published":false}'::jsonb,
+  'Revisions counts the highlights and discussions that will move');
 select is((public.publish_revision('12000000-0000-4000-e000-000000000002') -> 'anchors_moved' ->> 'highlights')::int, 1,
   'one highlight moved');
+select is((select published_by from public.book_revisions where id = '12000000-0000-4000-e000-000000000002'),
+  '12000000-0000-4000-a000-000000000003'::uuid, 'the revision records who approved it');
 select pg_temp.as_owner();
 select is((select status::text from public.book_revisions where id = (select base_revision_id from public.book_revisions
   where id = '12000000-0000-4000-e000-000000000002')), 'superseded', 'the old revision is superseded');

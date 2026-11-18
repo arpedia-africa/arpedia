@@ -118,19 +118,88 @@ insert into public.send_backs (revision_id, issues, note, sent_by, source, sent_
 select id, '[]', sent_back_note, null, 'desk_auto', now() - interval '38 minutes'
 from public.book_revisions where id = '00000000-0000-4000-d100-000000000012';
 
--- An update to a live book: The Alignment r2 adds an epilogue (1.1% changed), waiting for review.
+-- Revision history for Revisions (s-book-revisions). The Alignment: r1 (Tunde Bakare) and r2 (Ifeanyi Obi,
+-- new cover) replaced, r3 live through the fast lane, r4 adds an epilogue (1.1% changed) and waits for a person.
+-- The seeded live revision becomes r3; r1 and r2 are inserted before it.
+update public.book_revisions
+   set revision_no = 3, fast_lane = true, uploaded_by = '00000000-0000-4000-a000-000000000008', created_via = 'author',
+       submitted_at = now() - interval '77 days 2 hours', published_at = now() - interval '77 days'
+ where id = '00000000-0000-4000-d000-000000000007';
+insert into public.book_revisions (id, book_id, revision_no, status, source_type, uploaded_by, created_via,
+  base_revision_id, words, pages, price_credits, preview_percent, submitted_at, published_at, published_by,
+  cover_sha256, manifest_key)
+values
+  ('00000000-0000-4000-d100-000000000097', '00000000-0000-4000-c000-000000000007', 1, 'superseded', 'docx',
+   '00000000-0000-4000-b000-000000000003', 'staff', null, 65870, 264, 132, 10.0,
+   now() - interval '190 days', now() - interval '189 days', '00000000-0000-4000-b000-000000000003', 'cover-a',
+   'books/00000000-0000-4000-d100-000000000097/g1/manifest.json'),
+  ('00000000-0000-4000-d100-000000000098', '00000000-0000-4000-c000-000000000007', 2, 'superseded', 'docx',
+   '00000000-0000-4000-b000-000000000008', 'staff', '00000000-0000-4000-d100-000000000097', 65950, 264, 132, 10.0,
+   now() - interval '128 days', now() - interval '127 days', '00000000-0000-4000-b000-000000000008', 'cover-b',
+   'books/00000000-0000-4000-d100-000000000098/g1/manifest.json');
+update public.book_revisions set base_revision_id = '00000000-0000-4000-d100-000000000098'
+ where id = '00000000-0000-4000-d000-000000000007';
+insert into public.revision_diffs (revision_id, base_revision_id, inserted_words, deleted_words, changed_pct,
+  chapters_added, chapters_removed, changed_chapter_uids, cover_changed, metadata_changed, fast_lane_eligible,
+  reasons)
+values
+  ('00000000-0000-4000-d100-000000000098', '00000000-0000-4000-d100-000000000097', 160, 80, 0.364, 0, 0, '{}',
+   true, false, false, array['cover_changed']),
+  ('00000000-0000-4000-d000-000000000007', '00000000-0000-4000-d100-000000000098', 90, 40, 0.197, 0, 0,
+   (select array_agg(chapter_uid::text order by ord) from public.chapters
+     where revision_id = '00000000-0000-4000-d000-000000000007' and ord between 2 and 8),
+   false, false, true, '{}');
+
+-- Fast-lane updates of other live books (the "Recent fast-lane updates" panel and its spot audit).
+create temporary table seed_fast (n int, base_no int, pct numeric, ago interval, audit public.fast_lane_result);
+insert into seed_fast values
+  (1, 2, 0.2, '7 days', 'ok'),
+  (4, 1, 0.4, '21 days', 'ok'),
+  (8, 1, 0.1, '30 days', 'ok'),
+  (2, 2, 1.2, '9 days', 'pending');
+update public.book_revisions r set revision_no = f.base_no + 1
+  from seed_fast f where r.id = ('00000000-0000-4000-d000-' || lpad(f.n::text, 12, '0'))::uuid;
+insert into public.book_revisions (id, book_id, revision_no, status, source_type, uploaded_by, words, pages,
+  price_credits, preview_percent, submitted_at, published_at, published_by, manifest_key)
+select ('00000000-0000-4000-d100-' || lpad((100 + f.n * 10 + g.i)::text, 12, '0'))::uuid, r.book_id, g.i,
+  'superseded', 'docx', b.author_id, r.words, r.pages, r.price_credits, 10.0,
+  r.submitted_at - make_interval(days => 40 * (f.base_no + 1 - g.i)),
+  r.published_at - make_interval(days => 40 * (f.base_no + 1 - g.i)), '00000000-0000-4000-b000-000000000003',
+  format('books/%s/g1/manifest.json', r.id)
+from seed_fast f
+join public.book_revisions r on r.id = ('00000000-0000-4000-d000-' || lpad(f.n::text, 12, '0'))::uuid
+join public.books b on b.id = r.book_id
+cross join lateral generate_series(1, f.base_no) g(i);
+update public.book_revisions r
+   set fast_lane = true, published_at = now() - f.ago, submitted_at = now() - f.ago - interval '20 minutes',
+       base_revision_id = ('00000000-0000-4000-d100-' || lpad((100 + f.n * 10 + f.base_no)::text, 12, '0'))::uuid
+  from seed_fast f where r.id = ('00000000-0000-4000-d000-' || lpad(f.n::text, 12, '0'))::uuid;
+insert into public.revision_diffs (revision_id, base_revision_id, inserted_words, deleted_words, changed_pct,
+  changed_chapter_uids, fast_lane_eligible)
+select r.id, r.base_revision_id, round(r.words * f.pct / 200), round(r.words * f.pct / 200), f.pct,
+  (select array_agg(c.chapter_uid::text order by c.ord) from public.chapters c
+    where c.revision_id = r.id and c.ord in (1, 4)), true
+from seed_fast f join public.book_revisions r on r.id = ('00000000-0000-4000-d000-' || lpad(f.n::text, 12, '0'))::uuid;
+insert into public.fast_lane_audits (revision_id, status, audited_by, note, picked_at, audited_at)
+select ('00000000-0000-4000-d000-' || lpad(f.n::text, 12, '0'))::uuid, f.audit,
+  case when f.audit = 'ok' then '00000000-0000-4000-b000-000000000008'::uuid end, null,
+  now() - f.ago + interval '1 day', case when f.audit = 'ok' then now() - f.ago + interval '2 days' end
+from seed_fast f;
+
 insert into public.book_revisions (id, book_id, revision_no, status, draft_step, source_type, uploaded_by,
   base_revision_id, words, pages, price_credits, preview_percent, submitted_at, routed_at, due_at, assigned_to,
   last_activity_at, steps, chapters_confirmed_at, generation, sealed_generation)
-values ('00000000-0000-4000-d100-000000000099', '00000000-0000-4000-c000-000000000007', 2, 'ready_for_review',
+values ('00000000-0000-4000-d100-000000000099', '00000000-0000-4000-c000-000000000007', 4, 'ready_for_review',
   null, 'docx', '00000000-0000-4000-a000-000000000008', '00000000-0000-4000-d000-000000000007',
   66740, 267, 134, 10.0, now() - interval '26 hours', now() - interval '1 day', now() + interval '2 days',
   '00000000-0000-4000-b000-000000000003', now() - interval '2 hours',
   jsonb_build_object('received', now() - interval '26 hours', 'scored', now() - interval '1 day'),
   now() - interval '27 hours', 1, 1);
 insert into public.revision_diffs (revision_id, base_revision_id, inserted_words, deleted_words, changed_pct,
-  chapters_added, chapters_removed, cover_changed, metadata_changed, author_in_good_standing, fast_lane_eligible,
-  reasons)
+  chapters_added, chapters_removed, changed_chapter_uids, added_chapter_uids, cover_changed, metadata_changed,
+  author_in_good_standing, fast_lane_eligible, reasons)
 values ('00000000-0000-4000-d100-000000000099', '00000000-0000-4000-d000-000000000007', 740, 0, 1.121, 1, 0,
-  false, false, true, false, array['chapters_added']);
+  (select array_agg(chapter_uid::text) from public.chapters
+    where revision_id = '00000000-0000-4000-d000-000000000007' and ord = 13),
+  array[gen_random_uuid()::text], false, false, true, false, array['chapters_changed']);
 select public._rescore('00000000-0000-4000-d100-000000000099');

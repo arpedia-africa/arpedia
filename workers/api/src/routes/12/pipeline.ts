@@ -201,17 +201,26 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
 function diff(base: WorkCopy, next: WorkCopy) {
   const words = (t: string) => t.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? [];
   const baseText = new Map<string, string>();
-  base.chapters.forEach((c, i) => c.blocks.forEach((b, j) => baseText.set(base.anchors.ids[i]![j]!, b.text)));
+  const baseChapter = new Map<string, string>();
+  base.chapters.forEach((c, i) =>
+    c.blocks.forEach((b, j) => {
+      const id = base.anchors.ids[i]![j]!;
+      baseText.set(id, b.text);
+      baseChapter.set(id, base.anchors.uids[i]!);
+    }),
+  );
   let inserted = 0;
   let deleted = 0;
   const seen = new Set<string>();
+  const changed = new Set<string>();
   next.chapters.forEach((c, i) =>
     c.blocks.forEach((b, j) => {
       const id = next.anchors.ids[i]![j]!;
       const old = baseText.get(id);
       seen.add(id);
-      if (old === undefined) return void (inserted += words(b.text).length);
       if (old === b.text) return;
+      changed.add(next.anchors.uids[i]!);
+      if (old === undefined) return void (inserted += words(b.text).length);
       const count = (xs: string[]) =>
         xs.reduce((m, w) => m.set(w, (m.get(w) ?? 0) + 1), new Map<string, number>());
       const a = count(words(old));
@@ -220,15 +229,23 @@ function diff(base: WorkCopy, next: WorkCopy) {
       for (const [w, k] of a) deleted += Math.max(0, k - (n.get(w) ?? 0));
     }),
   );
-  for (const [id, text] of baseText) if (!seen.has(id)) deleted += words(text).length;
+  for (const [id, text] of baseText)
+    if (!seen.has(id)) {
+      deleted += words(text).length;
+      changed.add(baseChapter.get(id)!);
+    }
   const baseUids = new Set(base.anchors.uids);
   const nextUids = new Set(next.anchors.uids);
+  const added = [...nextUids].filter((u) => !baseUids.has(u));
   return {
     inserted_words: inserted,
     deleted_words: deleted,
     changed_pct: base.words ? Math.round(((inserted + deleted) / base.words) * 100_000) / 1000 : 100,
-    chapters_added: [...nextUids].filter((u) => !baseUids.has(u)).length,
+    chapters_added: added.length,
     chapters_removed: [...baseUids].filter((u) => !nextUids.has(u)).length,
+    // Changed chapters the new revision still has; added ones are listed apart.
+    changed_chapter_uids: next.anchors.uids.filter((u) => changed.has(u) && baseUids.has(u)),
+    added_chapter_uids: added,
   };
 }
 

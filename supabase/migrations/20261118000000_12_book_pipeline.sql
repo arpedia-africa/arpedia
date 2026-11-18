@@ -51,6 +51,8 @@ alter table public.book_revisions
   add column free_through_ord integer not null default -1,
   add column readiness integer not null default 0 check (readiness between 0 and 100),
   add column fast_lane boolean not null default false,
+  -- Who approved it (null for the fast lane). Scheduled: who scheduled it.
+  add column published_by uuid references public.profiles (id),
   -- Bumped by every upload, submit and reseal. Worker results for an older generation are ignored.
   add column generation integer not null default 0,
   add column sealed_generation integer,
@@ -236,6 +238,9 @@ create table public.revision_diffs (
   changed_pct numeric(7, 3) not null default 0,
   chapters_added integer not null default 0,
   chapters_removed integer not null default 0,
+  -- chapter_uids of the new revision whose text changed, and of chapters it adds (Revisions "Change").
+  changed_chapter_uids text[] not null default '{}',
+  added_chapter_uids text[] not null default '{}',
   cover_changed boolean not null default false,
   metadata_changed boolean not null default false,
   author_in_good_standing boolean not null default true,
@@ -603,6 +608,7 @@ begin
   end if;
   update public.book_revisions
      set status = 'live', published_at = coalesce(published_at, now()), schedule_at = null,
+         published_by = case when p_mode = 'fast_lane' then null else coalesce(p_actor, published_by) end,
          assigned_to = null, due_at = null, fast_lane = fast_lane or p_mode = 'fast_lane'
    where id = p_rev;
   update public.books set
@@ -976,7 +982,7 @@ end $$;
 -- p_seal: artifact_prefix, manifest_key, work_version, chapters[{chapter_uid, free_file, full_file}],
 -- keys[{chapter_uid|null, wrapped_key (base64), key_version}] (new keys only), anchors[], prices[],
 -- anchor_migrations[], diff{inserted_words, deleted_words, changed_pct, chapters_added,
--- chapters_removed, cover_changed, metadata_changed, diff_key}.
+-- chapters_removed, changed_chapter_uids, added_chapter_uids, cover_changed, metadata_changed, diff_key}.
 create function public.complete_seal(p_rev uuid, p_generation int, p_seal jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -1035,19 +1041,22 @@ begin
   if p_seal ? 'diff' and v_rev.base_revision_id is not null then
     select author_id into v_author from public.books where id = v_rev.book_id;
     insert into public.revision_diffs (revision_id, base_revision_id, inserted_words, deleted_words, changed_pct,
-                                       chapters_added, chapters_removed, cover_changed, metadata_changed,
-                                       author_in_good_standing, diff_key)
+                                       chapters_added, chapters_removed, changed_chapter_uids, added_chapter_uids,
+                                       cover_changed, metadata_changed, author_in_good_standing, diff_key)
     select p_rev, v_rev.base_revision_id, coalesce(d.inserted_words, 0), coalesce(d.deleted_words, 0),
            coalesce(d.changed_pct, 0), coalesce(d.chapters_added, 0), coalesce(d.chapters_removed, 0),
+           coalesce(d.changed_chapter_uids, '{}'), coalesce(d.added_chapter_uids, '{}'),
            coalesce(d.cover_changed, false), coalesce(d.metadata_changed, false),
            public.author_in_good_standing(v_author), d.diff_key
     from jsonb_to_record(p_seal -> 'diff') as d(inserted_words int, deleted_words int, changed_pct numeric,
-                                                chapters_added int, chapters_removed int, cover_changed boolean,
-                                                metadata_changed boolean, diff_key text)
+                                                chapters_added int, chapters_removed int,
+                                                changed_chapter_uids text[], added_chapter_uids text[],
+                                                cover_changed boolean, metadata_changed boolean, diff_key text)
     on conflict (revision_id) do update set
       inserted_words = excluded.inserted_words, deleted_words = excluded.deleted_words,
       changed_pct = excluded.changed_pct, chapters_added = excluded.chapters_added,
-      chapters_removed = excluded.chapters_removed, cover_changed = excluded.cover_changed,
+      chapters_removed = excluded.chapters_removed, changed_chapter_uids = excluded.changed_chapter_uids,
+      added_chapter_uids = excluded.added_chapter_uids, cover_changed = excluded.cover_changed,
       metadata_changed = excluded.metadata_changed, author_in_good_standing = excluded.author_in_good_standing,
       diff_key = excluded.diff_key;
   end if;
@@ -1381,7 +1390,7 @@ begin
   end if;
 
   if p_schedule_at is not null and p_schedule_at > now() then
-    update public.book_revisions set status = 'scheduled', schedule_at = p_schedule_at,
+    update public.book_revisions set status = 'scheduled', schedule_at = p_schedule_at, published_by = v_actor,
       notify_followers = p_notify_followers, assigned_to = null, due_at = null where id = p_rev;
     update public.books set status = 'scheduled' where id = v_book.id and current_revision_id is null;
     perform public._audit(v_actor, 'books', 'book.schedule', 'book_revision', p_rev::text, v_book.title,
@@ -1541,6 +1550,54 @@ begin
     perform public._notify('fast_lane_problem', jsonb_build_object('revision_id', p_rev, 'role', 'publisher',
       'note', p_note));
   end if;
+end $$;
+
+-- Paragraph links for an update (Revisions, rule 46): base paragraphs kept, and the highlights and
+-- discussions on removed paragraphs that move (or moved, once published) to the nearest one.
+create function public.revision_links(p_rev uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_rev public.book_revisions;
+  v_paras int;
+  v_gone int;
+  v_hl int := 0;
+  v_hl_moving int := 0;
+  v_pc_moving int := 0;
+begin
+  if not public.is_staff('publisher') then
+    raise exception 'revision_links: publishers only' using errcode = 'insufficient_privilege';
+  end if;
+  select * into v_rev from public.book_revisions where id = p_rev;
+  if not found or v_rev.base_revision_id is null then
+    return null;
+  end if;
+  select count(*) into v_paras from public.paragraph_anchors where revision_id = v_rev.base_revision_id;
+  select count(*) into v_gone from public.anchor_migrations
+   where base_revision_id = v_rev.base_revision_id and new_revision_id = p_rev and new_para_id is null;
+  if v_rev.anchors_moved is not null then
+    -- Published: what migrate_anchors actually moved.
+    v_hl_moving := coalesce((v_rev.anchors_moved ->> 'highlights')::int, 0);
+    v_pc_moving := coalesce((v_rev.anchors_moved ->> 'comments')::int, 0);
+  else
+    if to_regclass('public.annotations') is not null then
+      execute 'select count(*) from public.annotations a where a.book_id = $1 and exists (
+                 select 1 from public.anchor_migrations m where m.base_revision_id = $2 and m.new_revision_id = $3
+                   and m.new_para_id is null and m.old_para_id in (a.start_para_id, a.end_para_id))'
+        into v_hl_moving using v_rev.book_id, v_rev.base_revision_id, p_rev;
+    end if;
+    if to_regclass('public.passage_comments') is not null then
+      execute 'select count(*) from public.passage_comments c where c.book_id = $1 and exists (
+                 select 1 from public.anchor_migrations m where m.base_revision_id = $2 and m.new_revision_id = $3
+                   and m.new_para_id is null and m.old_para_id = c.para_id)'
+        into v_pc_moving using v_rev.book_id, v_rev.base_revision_id, p_rev;
+    end if;
+  end if;
+  if to_regclass('public.annotations') is not null then
+    execute 'select count(*) from public.annotations a where a.book_id = $1' into v_hl using v_rev.book_id;
+  end if;
+  return jsonb_build_object('paragraphs', v_paras, 'kept', v_paras - v_gone, 'highlights', v_hl,
+                            'highlights_kept', greatest(v_hl - v_hl_moving, 0), 'comments_moved', v_pc_moving,
+                            'published', v_rev.anchors_moved is not null);
 end $$;
 
 -- ─── Desk RPCs ──────────────────────────────────────────────────────────────
@@ -1763,7 +1820,7 @@ begin
         'complete_rescore', 'begin_reseal', 'record_fix', 'undo_fix', 'book_queue_read', 'book_queue_ack',
         'claim_revision', 'release_to_review', 'undo_release_to_review', 'send_back_revision', 'reject_revision',
         'publish_revision', 'revert_to_revision', 'unpublish_book', 'republish_book', 'remind_author',
-        'audit_fast_lane', 'desk_claim', 'desk_heartbeat', 'desk_reject_unreadable', 'publish_due',
+        'audit_fast_lane', 'revision_links', 'desk_claim', 'desk_heartbeat', 'desk_reject_unreadable', 'publish_due',
         'pipeline_sla', 'sent_back_reminder', 'select_fast_lane_audits', 'desk_lease_reaper',
         '_is_revision_author')
   loop
@@ -1796,6 +1853,7 @@ grant execute on function
   public.republish_book(uuid, uuid),
   public.remind_author(uuid, uuid),
   public.audit_fast_lane(uuid, public.fast_lane_result, text, uuid),
+  public.revision_links(uuid),
   public.desk_claim(uuid, uuid),
   public.desk_heartbeat(uuid, uuid),
   public.desk_reject_unreadable(uuid, text, uuid)

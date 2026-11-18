@@ -303,6 +303,7 @@ export type Database = {
           preview_percent: number | null;
           price_credits: number | null;
           published_at: string | null;
+          published_by: string | null;
           readiness: number;
           review_opened_at: string | null;
           revision_no: number;
@@ -358,6 +359,7 @@ export type Database = {
           preview_percent?: number | null;
           price_credits?: number | null;
           published_at?: string | null;
+          published_by?: string | null;
           readiness?: number;
           review_opened_at?: string | null;
           revision_no: number;
@@ -412,6 +414,7 @@ export type Database = {
           preview_percent?: number | null;
           price_credits?: number | null;
           published_at?: string | null;
+          published_by?: string | null;
           readiness?: number;
           review_opened_at?: string | null;
           revision_no?: number;
@@ -457,6 +460,13 @@ export type Database = {
           {
             foreignKeyName: 'book_revisions_desk_claimed_by_fkey';
             columns: ['desk_claimed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'book_revisions_published_by_fkey';
+            columns: ['published_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -952,8 +962,10 @@ export type Database = {
       };
       revision_diffs: {
         Row: {
+          added_chapter_uids: string[];
           author_in_good_standing: boolean;
           base_revision_id: string;
+          changed_chapter_uids: string[];
           changed_pct: number;
           chapters_added: number;
           chapters_removed: number;
@@ -969,8 +981,10 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          added_chapter_uids?: string[];
           author_in_good_standing?: boolean;
           base_revision_id: string;
+          changed_chapter_uids?: string[];
           changed_pct?: number;
           chapters_added?: number;
           chapters_removed?: number;
@@ -985,8 +999,10 @@ export type Database = {
           revision_id: string;
         };
         Update: {
+          added_chapter_uids?: string[];
           author_in_good_standing?: boolean;
           base_revision_id?: string;
+          changed_chapter_uids?: string[];
           changed_pct?: number;
           chapters_added?: number;
           chapters_removed?: number;
@@ -1187,6 +1203,7 @@ export type Database = {
           preview_percent: number | null;
           price_credits: number | null;
           published_at: string | null;
+          published_by: string | null;
           readiness: number;
           review_opened_at: string | null;
           revision_no: number;
@@ -1315,6 +1332,7 @@ export type Database = {
       remind_author: { Args: { p_actor?: string; p_rev: string }; Returns: undefined };
       republish_book: { Args: { p_actor?: string; p_book: string }; Returns: Json };
       revert_to_revision: { Args: { p_actor?: string; p_reason: string; p_rev: string }; Returns: Json };
+      revision_links: { Args: { p_rev: string }; Returns: Json };
       revision_score: { Args: { p_rev: string }; Returns: number };
       select_fast_lane_audits: { Args: Record<PropertyKey, never>; Returns: number };
       send_back_revision: {
