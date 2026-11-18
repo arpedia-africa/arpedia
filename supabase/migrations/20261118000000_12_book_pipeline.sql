@@ -379,14 +379,17 @@ declare
   v_n int;
 begin
   insert into public.book_flags (revision_id, check_key, severity, weight, blocking, message, suggestion,
-                                 location, auto_fixable, fix_op, source)
+                                 location, auto_fixable, fix_op, source, created_at)
   select p_rev, f.check_key,
          case when coalesce((v_checks -> f.check_key ->> 'blocking')::boolean, false) then 'blocking' else 'warning' end,
          coalesce((v_checks -> f.check_key ->> 'weight')::int, 0),
          coalesce((v_checks -> f.check_key ->> 'blocking')::boolean, false),
-         f.message, f.suggestion, coalesce(f.location, '{}'), coalesce(f.auto_fixable, false), f.fix_op, p_source
-  from jsonb_to_recordset(coalesce(p_flags, '[]')) as f(check_key text, message text, suggestion text,
-                                                        location jsonb, auto_fixable boolean, fix_op jsonb)
+         f.message, f.suggestion, coalesce(f.location, '{}'), coalesce(f.auto_fixable, false), f.fix_op, p_source,
+         -- keep the order the checks reported them in (screens list flags by created_at)
+         now() + e.ord * interval '1 microsecond'
+  from jsonb_array_elements(coalesce(p_flags, '[]')) with ordinality as e(v, ord)
+  cross join lateral jsonb_to_record(e.v) as f(check_key text, message text, suggestion text,
+                                               location jsonb, auto_fixable boolean, fix_op jsonb)
   -- A flag staff dismissed stays dismissed when the same issue is found again.
   where not exists (
     select 1 from public.book_flags d

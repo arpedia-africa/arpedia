@@ -66,7 +66,7 @@ export function SendBackModal({
         </div>
         <div className="modal__b">
           <div className="stack s8">
-            <b>What the author needs to fix</b>
+            <b style={{ fontSize: 13 }}>What the author needs to fix</b>
             {issues.map((x, i) => (
               <div className="ct-issue" key={i}>
                 <span
@@ -122,7 +122,7 @@ export function SendBackModal({
             ></textarea>
           </div>
           <div className="stack s8">
-            <b>{`What ${first} sees in Studio`}</b>
+            <b style={{ fontSize: 13 }}>{`What ${first} sees in Studio`}</b>
             <div className="ct-seen">
               <b>
                 {chosen.length

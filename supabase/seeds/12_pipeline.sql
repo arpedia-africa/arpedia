@@ -2,14 +2,30 @@
 -- for the admin screens and their checks. Loaded after seed.sql (supabase/config.toml).
 -- Ids: books 00000000-0000-4000-c100-…, revisions 00000000-0000-4000-d100-….
 
+-- Obiageli Nnaji, the prototype's author of Market Day in Onitsha (Fix flagged issues, Send back).
+insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change)
+values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-000000000010', 'authenticated',
+  'authenticated', 'obiageli@example.com', extensions.crypt('arpedia-local', extensions.gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}', '{"full_name":"Obiageli Nnaji"}', now(), now(), '', '', '', '');
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+values (gen_random_uuid(), '00000000-0000-4000-a000-000000000010', '00000000-0000-4000-a000-000000000010', 'email',
+  '{"sub":"00000000-0000-4000-a000-000000000010","email":"obiageli@example.com","email_verified":true}',
+  now(), now(), now());
+insert into public.profiles (id, username, full_name, is_author)
+values ('00000000-0000-4000-a000-000000000010', 'obiageli', 'Obiageli Nnaji', true)
+on conflict (id) do update set username = excluded.username, full_name = excluded.full_name,
+  is_author = excluded.is_author;
+
 create temporary table seed_queue (n int, title text, author uuid, genre text, source public.source_type,
   status public.revision_status, words int, routed interval, assignee uuid, flags jsonb, step text);
 insert into seed_queue values
-  (1, 'Market Day in Onitsha', '00000000-0000-4000-a000-000000000005', 'Literary fiction', 'docx', 'needs_fixes',
+  (1, 'Market Day in Onitsha', '00000000-0000-4000-a000-000000000010', 'Literary fiction', 'docx', 'needs_fixes',
    61204, '1 day', null,
    '[{"check_key":"image_too_large","message":"Chapter 12 has a picture of 6.2 MB. It will load slowly on mobile data.","suggestion":"Shrink it to about 1.2 MB. No visible change.","location":{"image":"img/12.jpg"},"auto_fixable":true,"fix_op":{"op":"shrink_image","image":"img/12.jpg"}},
-     {"check_key":"chapter_title","message":"Chapter 4 starts with \"A debt in naira\" but it looks like body text, so it may not appear in the contents.","suggestion":"Make it the chapter 4 heading."},
-     {"check_key":"repeated_text","message":"The end of \"Brother Chike\" is repeated at the start of the next chapter.","suggestion":"Remove the repeated paragraphs."}]', null),
+     {"check_key":"chapter_title","message":"Chapter 4 starts with “A debt in naira” but it looks like body text, so it may not appear in the contents.","suggestion":"Make it the chapter 4 heading."},
+     {"check_key":"chapter_title","message":"Chapter 9 has two possible titles: “What the river keeps” and “IX”.","suggestion":"Use “What the river keeps”."}]', null),
   (2, 'The Prayer Warrior''s Wife', '00000000-0000-4000-a000-000000000009', 'Christian & Faith', 'pdf', 'needs_fixes',
    48210, '2 days', '00000000-0000-4000-b000-000000000003',
    '[{"check_key":"pdf_source","message":"This book was made from a PDF."},

@@ -14,7 +14,9 @@ export function Remind({ revisionId, firstName, reminded }: { revisionId: string
   return (
     <>
       {reminded ? (
-        <span className="faint">{reminded}</span>
+        <span className="faint" style={{ fontSize: 12.5 }}>
+          {reminded}
+        </span>
       ) : (
         <button
           className="btn btn-g sm"
