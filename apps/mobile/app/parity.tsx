@@ -22,6 +22,7 @@ import {
   THEMES,
   Wordmark,
   useTheme,
+  type AvatarTone,
   type ThemeName,
 } from '@arpedia/ui';
 import { LAUNCH_PLANS } from '@arpedia/core';
@@ -47,7 +48,9 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import { AboutView, BackHero, DiscussionLockedView } from '../features/03/AboutViews';
 import { BookPageView, type BookPageModel } from '../features/03/BookViews';
+import { ReviewsView, WriteReviewView, type ReviewItem } from '../features/03/ReviewViews';
 
 const PAGES = [
   'kit-a',
@@ -61,6 +64,10 @@ const PAGES = [
   's-plans-onboard',
   's-all-set',
   's-book',
+  's-book-about',
+  's-reviews',
+  's-write-review',
+  's-book-discussion',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -140,7 +147,13 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <KitB />
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
-        <View>{page === 's-book' ? <Flow03 page={page} /> : <Flow01 page={page} />}</View>
+        <View>
+          {page.startsWith('s-book') || page.includes('review') ? (
+            <Flow03 page={page} />
+          ) : (
+            <Flow01 page={page} />
+          )}
+        </View>
       )}
     </View>
   );
@@ -339,10 +352,153 @@ function Flow03({ page }: { page: Page }) {
           }}
         />
       );
+    case 's-book-about':
+      return (
+        <>
+          <BackHero title="About this ebook" sub="Harmattan Letters · Ifeoma Nwachukwu" onBack={noop} />
+          <AboutView
+            description="A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage, her faith and the man next door who keeps fixing her gate."
+            facts={[
+              { k: 'Language', v: 'English' },
+              { k: 'Age', v: '16+' },
+              { k: 'Author', v: 'Ifeoma Nwachukwu', onPress: noop },
+              { k: 'Publisher', v: 'Arpedia Originals' },
+              { k: 'Published on', v: '3 October 2026' },
+              { k: 'ISBN', v: '978-978-101-2007-1', num: true },
+              { k: 'Genre', v: 'Christian & Faith', onPress: noop },
+              { k: 'Purchases', v: '4,605', num: true },
+              { k: 'Length', v: '62,400 words · 250 pages' },
+              { k: 'Price', v: '125 credits (₦375) · half a credit a page' },
+              { k: 'Chapters', v: '14 · about 4 h 30 min' },
+              { k: 'Size', v: '1.4 MB' },
+            ]}
+            notes={['Grief', 'Prayer', 'Slow-burn romance']}
+            clean
+          />
+        </>
+      );
+    case 's-reviews':
+      return (
+        <>
+          <BackHero title="Ratings & reviews" sub="Harmattan Letters · 1,284 reviews" onBack={noop} />
+          <ReviewsView
+            rating="4.7"
+            count={1284}
+            bars={BOOK.bars}
+            filter={null}
+            onFilter={noop}
+            reviews={REVIEWS}
+            onWrite={noop}
+            writeLabel="Write a review"
+            onMore={noop}
+            onLike={noop}
+          />
+        </>
+      );
+    case 's-write-review':
+      return (
+        <>
+          <BackHero
+            title="Rate this ebook"
+            sub="Harmattan Letters · you finished it on 10 November"
+            onBack={noop}
+          />
+          <WriteReviewView
+            stars={4}
+            onStars={noop}
+            body="The letters are the best part. I wanted more of Mama Nkem."
+            onBody={noop}
+            spoiler={false}
+            onSpoiler={noop}
+          />
+        </>
+      );
+    case 's-book-discussion':
+      return (
+        <>
+          <BackHero title="Discussion" sub="Harmattan Letters · reader notes and reactions" onBack={noop} />
+          <DiscussionLockedView
+            percent={38}
+            chapter={7}
+            chapters={14}
+            onRead={noop}
+            passage={{ sub: '12 comments on chapter 7 · only up to where you are', onPress: noop }}
+            club={{
+              name: 'Grace Readers',
+              title: 'Grace Readers are on chapter 8',
+              sub: '1,240 members reading together',
+              onPress: noop,
+            }}
+          />
+        </>
+      );
     default:
       return null;
   }
 }
+
+const REVIEWS: ReviewItem[] = [
+  [
+    'Chiamaka Obi',
+    't',
+    5,
+    24,
+    '2 days ago',
+    'I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.',
+  ],
+  [
+    'Tunji Adebisi',
+    'k',
+    5,
+    18,
+    '5 days ago',
+    'Quiet, observant and deeply moving. Mama Nkem is one of the best mothers-in-law in recent Nigerian fiction.',
+  ],
+  [
+    'Hauwa Musa',
+    'r',
+    4,
+    11,
+    '1 week ago',
+    'The letters structure is brilliant. I was nervous about the ending and the author stuck the landing.',
+  ],
+  [
+    'Kelechi Nwosu',
+    'm',
+    5,
+    7,
+    '2 weeks ago',
+    'The neighbour who fixes the gate deserves his own book. That is all.',
+  ],
+  [
+    'Funke Alabi',
+    'b',
+    4,
+    5,
+    '3 weeks ago',
+    'Beautiful prose. A few slow patches in the middle, but the last two chapters made up for them.',
+  ],
+  [
+    'Ibrahim Lawal',
+    'o',
+    5,
+    3,
+    '1 month ago',
+    'Gave my mother a copy. She called me from Kaduna to talk about it for an hour.',
+  ],
+].map(([name, tone, stars, likes, age, body], i) => ({
+  id: `r${i}`,
+  userId: `u${i}`,
+  name: name as string,
+  tone: tone as AvatarTone,
+  stars: stars as number,
+  likes: likes as number,
+  age: age as string,
+  body: body as string,
+  spoiler: false,
+  liked: false,
+  mine: false,
+}));
 
 function Pk({ children }: { children: React.ReactNode }) {
   const { s } = useTheme();

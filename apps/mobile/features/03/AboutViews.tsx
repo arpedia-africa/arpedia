@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import {
+  Avatar,
   Btn,
   Cell,
   Group,
@@ -140,6 +141,7 @@ export function DiscussionLockedView({
   chapters,
   onRead,
   passage,
+  club,
 }: {
   percent: number;
   chapter: number;
@@ -147,6 +149,8 @@ export function DiscussionLockedView({
   onRead: () => void;
   /** "Passage talk is open" row (flow 06); hidden until there is one. */
   passage?: { sub: string; onPress: () => void } | null;
+  /** The club reading this book (flow 06), when there is one. */
+  club?: { name: string; title: string; sub: string; onPress: () => void } | null;
 }) {
   const { s } = useTheme();
   return (
@@ -173,10 +177,21 @@ export function DiscussionLockedView({
         </View>
         <Btn label="Keep reading" icon="book" onPress={onRead} />
       </View>
-      {passage ? (
+      {passage || club ? (
         <View style={{ paddingTop: s(24) }}>
           <Group>
-            <Cell title="Passage talk is open" sub={passage.sub} chevron onPress={passage.onPress} />
+            {passage ? (
+              <Cell title="Passage talk is open" sub={passage.sub} chevron onPress={passage.onPress} />
+            ) : null}
+            {club ? (
+              <Cell
+                title={club.title}
+                sub={club.sub}
+                lead={<Avatar name={club.name} size="md" tone="n" square />}
+                chevron
+                onPress={club.onPress}
+              />
+            ) : null}
           </Group>
         </View>
       ) : null}
