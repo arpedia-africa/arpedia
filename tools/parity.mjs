@@ -228,8 +228,49 @@ async function referenceServer() {
   };
 }
 
+/**
+ * A cold-started dev build opens its launcher, not Metro, so a deep link alone shows nothing. Point it
+ * at Metro (adb reverse tcp:8081) once per run and wait for the bundle to run (first build can be slow).
+ */
+let devLoaded = false;
+async function loadDevBundle() {
+  if (devLoaded) return;
+  // No dev menu, intro sheet or floating Tools button in captures (expo-dev-menu's own prefs; written
+  // while the app is stopped, since it saves its in-memory copy on exit).
+  adb('shell', 'am', 'force-stop', DEV_PACKAGE);
+  const prefs =
+    "<?xml version='1.0' encoding='utf-8' standalone='yes' ?><map><boolean name='isOnboardingFinished' value='true' />" +
+    "<boolean name='showsAtLaunch' value='false' /><boolean name='showFab' value='false' /></map>";
+  adb(
+    'shell',
+    `run-as ${DEV_PACKAGE} sh -c "echo \\"${prefs}\\" > shared_prefs/expo.modules.devmenu.sharedpreferences.xml"`,
+  );
+  adb('reverse', 'tcp:8081', 'tcp:8081');
+  adb('logcat', '-c');
+  const metro = encodeURIComponent('http://127.0.0.1:8081');
+  adb(
+    'shell',
+    'am',
+    'start',
+    '-W',
+    '-a',
+    'android.intent.action.VIEW',
+    '-d',
+    `exp+arpedia://expo-development-client/?url=${metro}`,
+    DEV_PACKAGE,
+  );
+  for (let i = 0; i < 360 && !devLoaded; i++) {
+    await sleep(500);
+    devLoaded = /Running "main"/.test(adb('logcat', '-d', '-s', 'ReactNativeJS:I').toString());
+  }
+  if (!devLoaded)
+    throw new Error(`${DEV_PACKAGE} did not load the bundle from Metro (is Metro running on :8081?)`);
+  await sleep(3000); // a deep link sent while the router mounts is dropped
+}
+
 /** Open a parity page in an app, wait for its PARITY_READY line, capture below the status bar. */
 async function capture(pkg, query, id, theme, kind, g, height) {
+  if (pkg === DEV_PACKAGE) await loadDevBundle();
   adb('logcat', '-c');
   adb(
     'shell',
