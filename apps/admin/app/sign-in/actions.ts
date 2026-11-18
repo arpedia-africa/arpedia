@@ -25,7 +25,8 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
 
   const staff = await getStaff();
   if (!staff) {
-    await supabase.auth.signOut();
+    // `local` drops the session cookies before the network call, so a refused account never keeps one.
+    await supabase.auth.signOut({ scope: 'local' });
     return { error: REFUSED, email };
   }
   redirect('/');

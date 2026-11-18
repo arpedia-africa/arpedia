@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
 
   const email = data.user?.email?.toLowerCase() ?? '';
   if (!email.endsWith(`@${STAFF_DOMAIN}`) || !(await getStaff())) {
-    await supabase.auth.signOut();
+    // `local` drops the session cookies before the network call, so a refused account never keeps one.
+    await supabase.auth.signOut({ scope: 'local' });
     return to('/sign-in?error=refused');
   }
   return to('/');

@@ -9,10 +9,11 @@ const SUFFIX = 'applicationIdSuffix ".dev"';
 module.exports = function withDevVariant(config) {
   config = withAppBuildGradle(config, (cfg) => {
     if (!cfg.modResults.contents.includes(SUFFIX)) {
-      cfg.modResults.contents = cfg.modResults.contents.replace(
-        /(buildTypes\s*\{\s*debug\s*\{)/,
-        `$1\n            ${SUFFIX}`,
-      );
+      const debugBlock = /(buildTypes\s*\{\s*debug\s*\{)/;
+      // Without the suffix the debug build would install over the release app, so fail the prebuild.
+      if (!debugBlock.test(cfg.modResults.contents))
+        throw new Error('dev-variant: no buildTypes { debug { in app/build.gradle; cannot add .dev suffix');
+      cfg.modResults.contents = cfg.modResults.contents.replace(debugBlock, `$1\n            ${SUFFIX}`);
     }
     return cfg;
   });
