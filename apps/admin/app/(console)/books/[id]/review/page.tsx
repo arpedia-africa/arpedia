@@ -2,12 +2,11 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { serverSupabase } from '@/lib/supabase/server';
-import { FILE_TYPE, coverClass, queuePosition, waited } from '../../shared';
+import { FILE_TYPE, coverClass, dayMonth as day, queuePosition, waited } from '../../shared';
 import { loadWork, type Work } from '../../work';
 import { Claim, ReviewDecide } from './client';
 
 const n0 = (n: number) => n.toLocaleString('en-NG');
-const day = (at: string) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' });
 const WORDS_PER_PAGE = 250;
 
 /** The eight automated checks in plain names (rule 35), each with the flag kinds that fail it. */

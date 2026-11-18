@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { serverSupabase } from '@/lib/supabase/server';
-import { FILE_TYPE, coverClass, queuePosition, waited } from '../../shared';
+import { FILE_TYPE, coverClass, dayMonth as day, queuePosition, waited } from '../../shared';
 import { loadWork } from '../../work';
 import { Decide, DownloadOriginal, FixShell, FlagActions } from './client';
 
@@ -42,8 +42,11 @@ const OPS = new Set(Object.keys(DONE));
 type Location = { chapter_uid?: string; para_id?: string; image?: string };
 
 const n0 = (n: number) => n.toLocaleString('en-NG');
-const mb = (bytes: number) => `${(bytes / 1_048_576).toLocaleString('en-NG', { maximumFractionDigits: 1 })} MB`;
-const day = (at: string) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' });
+/** "2.4 MB"; small files in KB, so a 30 KB file doesn't read "0 MB". */
+const mb = (bytes: number) =>
+  bytes < 102_400
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1_048_576).toLocaleString('en-NG', { maximumFractionDigits: 1 })} MB`;
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
 
 /** Fix flagged issues (s-book-formatter): staff fix only what the system flagged (rules 29–33). */
@@ -93,7 +96,8 @@ export default async function FixPage({
   const uid = sp.ch ?? loc.chapter_uid ?? work?.anchors.uids[0] ?? chapters?.[0]?.chapter_uid;
   const ci = work && uid ? Math.max(0, work.anchors.uids.indexOf(uid)) : 0;
   const chapter = work?.chapters[ci];
-  const chNo = chapters?.find(c => c.chapter_uid === uid)?.ord ?? ci;
+  // ords start at 0; numbered as in the flag messages ("Chapter 2 has no title").
+  const chNo = (chapters?.find(c => c.chapter_uid === uid)?.ord ?? ci) + 1;
   const flagged = new Set(open.flatMap(f => ((f.location as Location)?.para_id ? [(f.location as Location).para_id!] : [])));
   const flaggedImages = new Set(open.flatMap(f => ((f.location as Location)?.image ? [(f.location as Location).image!] : [])));
 
@@ -225,7 +229,7 @@ export default async function FixPage({
                     if (img)
                       return (
                         <div key={pid ?? bi} id={pid} className="ct-img">
-                          {`Image in chapter ${chNo} ·${mb(img.bytes)}${flaggedImages.has(img.path) ? ' · flagged' : ''}`}
+                          {`Image in chapter ${chNo} · ${mb(img.bytes)}${flaggedImages.has(img.path) ? ' · flagged' : ''}`}
                         </div>
                       );
                     if (b.sceneBreak)
