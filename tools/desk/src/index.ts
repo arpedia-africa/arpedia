@@ -8,13 +8,14 @@
 //   desk logout
 // A scanned, corrupt or password-protected file goes back to the author automatically. Jobs are kept
 // in ~/.arpedia-desk/jobs/<revision id>/ (source, converted.epub, epubcheck.json, job.json).
+// Tools come from PATH; PANDOC, PDFTOTEXT (poppler's, not xpdf's) and EPUBCHECK_JAR override them.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { call, DeskError, download, endpoints, HOME, login, put, session, type Session } from './api';
-import { convertJob, ToolMissing, type SourceType } from './convert';
+import { convertJob, type SourceType } from './convert';
 import type { DeskFlag } from './report';
 
 interface Job {
@@ -215,6 +216,6 @@ async function main() {
 }
 
 main().catch((e: unknown) => {
-  process.stderr.write(`${e instanceof DeskError || e instanceof ToolMissing ? e.message : String(e)}\n`);
+  process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`);
   process.exit(1);
 });

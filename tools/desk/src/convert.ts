@@ -4,7 +4,7 @@
 import { normalizeHtml, sanitizeHtml, imageType, writeEpub } from '@arpedia/convert';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { basename, join, relative, resolve } from 'node:path';
 import { pdfToHtml, parseBbox, SCANNED_CHARS_PER_PAGE, textPerPage } from './pdf';
 import { reportFlags, type DeskFlag, type EpubcheckReport } from './report';
 
@@ -23,7 +23,7 @@ export class ToolMissing extends Error {}
 
 const INSTALL: Record<string, string> = {
   pandoc: 'Install pandoc (https://pandoc.org/installing.html) to convert Word and EPUB files.',
-  pdftotext: 'Install poppler (pdftotext) to convert PDF files.',
+  pdftotext: "Install poppler (pdftotext) to convert PDF files, or set PDFTOTEXT to poppler's pdftotext.",
   java: 'Install Java 11 or later to run epubcheck.',
   epubcheck: 'Install epubcheck (https://www.w3.org/publishing/epubcheck/) or set EPUBCHECK_JAR.',
 };
@@ -36,23 +36,43 @@ function run(cmd: string, args: string[], cwd: string): Promise<{ code: number; 
     child.stderr.on('data', (d: Buffer) => {
       if (stderr.length < 64 * 1024) stderr += d.toString('utf8');
     });
+    const name = basename(cmd).replace(/\.exe$/i, '');
     child.on('error', (err: NodeJS.ErrnoException) =>
-      fail(err.code === 'ENOENT' ? new ToolMissing(INSTALL[cmd] ?? `Install ${cmd}.`) : err),
+      fail(err.code === 'ENOENT' ? new ToolMissing(INSTALL[name] ?? `Install ${name}.`) : err),
     );
     child.on('close', (code) => done({ code: code ?? 1, stderr: stderr.trim() }));
   });
 }
 
+/**
+ * Exit codes that mean the file itself can't be read, so it goes back to the author. Any other
+ * failure is a problem on this computer (wrong tool, bad option) and must never send a book back.
+ * pdftotext: 1 can't open the PDF (corrupt or password), 3 permissions. pandoc: 44 XML, 63 other
+ * (a broken docx container), 64 parse error, 92–94 text decoding.
+ */
+const UNREADABLE = { pdftotext: [1, 3], pandoc: [44, 63, 64, 92, 93, 94] };
+const tool = (name: 'pdftotext' | 'pandoc') => process.env[name.toUpperCase()] ?? name;
+
+class ToolFailed extends Error {}
+const toolFailed = (name: string, r: { code: number; stderr: string }, hint = '') =>
+  new ToolFailed(`${name} failed (exit ${r.code})${hint}: ${r.stderr.split('\n').slice(0, 3).join(' ')}`);
+
 /** Book HTML from the source file, or why it can't be read. */
 async function sourceHtml(dir: string, source: string, type: SourceType) {
   if (type === 'pdf') {
-    const r = await run('pdftotext', ['-enc', 'UTF-8', '-bbox-layout', source, 'layout.html'], dir);
-    if (r.code !== 0)
+    const r = await run(tool('pdftotext'), ['-enc', 'UTF-8', '-bbox-layout', source, 'layout.html'], dir);
+    if (UNREADABLE.pdftotext.includes(r.code))
       return {
         ok: false as const,
         reason: 'unreadable' as const,
         detail: r.stderr || `pdftotext exit ${r.code}`,
       };
+    if (r.code !== 0)
+      throw toolFailed(
+        'pdftotext',
+        r,
+        ". It must be poppler's pdftotext (xpdf's has no -bbox-layout); set PDFTOTEXT",
+      );
     const pages = parseBbox(readFileSync(join(dir, 'layout.html'), 'utf8'));
     const perPage = textPerPage(pages);
     if (perPage < SCANNED_CHARS_PER_PAGE)
@@ -64,12 +84,13 @@ async function sourceHtml(dir: string, source: string, type: SourceType) {
     return { ok: true as const, html: pdfToHtml(pages) };
   }
   const r = await run(
-    'pandoc',
+    tool('pandoc'),
     ['-f', type, '-t', 'html5', '--wrap=none', '--extract-media=.', '-o', 'body.html', source],
     dir,
   );
-  if (r.code !== 0)
+  if (UNREADABLE.pandoc.includes(r.code))
     return { ok: false as const, reason: 'unreadable' as const, detail: r.stderr || `pandoc exit ${r.code}` };
+  if (r.code !== 0) throw toolFailed('pandoc', r);
   return { ok: true as const, html: readFileSync(join(dir, 'body.html'), 'utf8') };
 }
 
