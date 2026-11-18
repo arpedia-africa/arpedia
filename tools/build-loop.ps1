@@ -35,8 +35,18 @@ $allowed = @(
   'Bash(cp:*)','Bash(mv:*)','Bash(rm:*)','Bash(touch:*)','Bash(echo:*)','Bash(sed:*)','Bash(jq:*)','Bash(curl:*)'
 )
 
+function Test-Online {
+  try { $c = New-Object Net.Sockets.TcpClient; $ok = $c.ConnectAsync('api.anthropic.com', 443).Wait(5000); $c.Close(); return $ok } catch { return $false }
+}
+
 $run = 0
 while ($true) {
+  # Offline: wait here, checking every minute, instead of letting a run hang on API retries.
+  if (-not (Test-Online)) {
+    Write-Host "$(Get-Date -Format HH:mm) Offline. Checking again every minute ..." -ForegroundColor DarkYellow
+    while (-not (Test-Online)) { Start-Sleep -Seconds 60 }
+    Write-Host "$(Get-Date -Format HH:mm) Back online." -ForegroundColor DarkYellow
+  }
   $run++
   git checkout -q main 2>$null; git pull -q --ff-only 2>$null
   $prompt = Get-Content -Raw "$WorkDir\docs\prd\BUILDER-PROMPT.md"
@@ -61,7 +71,11 @@ while ($true) {
     Write-Host "Switch account with:  claude /login   then run this script again. Work continues from GitHub." -ForegroundColor Red
     break
   }
-  if ($text -match 'NOTHING-TO-DO') {
+  if ($text -match "Can't reach the API server|ENOTFOUND|ECONNRESET|ETIMEDOUT") {
+    # the connection dropped mid-run: go straight back to the offline check, no 8-minute wait
+    Write-Host "Connection dropped during the run. Retrying when online ..." -ForegroundColor DarkYellow
+    Start-Sleep -Seconds 30
+  } elseif ($text -match 'NOTHING-TO-DO') {
     Write-Host "Nothing ready. Waiting $IdleMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($IdleMinutes * 60)
   } elseif ($text -match 'WAITING-FOR-CI' -or $before -eq $after) {
