@@ -8,8 +8,11 @@ import {
   type BookAnchors,
   type VerifyFlag,
   type WorkCopy,
+  TEXT_CHECKS,
   UnsafeArchiveError,
   assignAnchors,
+  carryCopyright,
+  checkChapters,
   safeUnzip,
   sealBook,
   verifyPackage,
@@ -65,11 +68,15 @@ export async function saveWork(
   });
 }
 
-/** The live revision's chapters, paragraph ids and fingerprints, for keeping anchors. */
-async function baseChapters(env: Env, db: Db, baseId: string | null): Promise<BaseChapter[]> {
-  if (!baseId) return [];
+/** The working copy the base (live) revision was sealed from. */
+async function baseWork(env: Env, db: Db, baseId: string | null): Promise<WorkCopy | null> {
+  if (!baseId) return null;
   const base = await revision(db, baseId);
-  const work = await loadWork(env, baseId, base.sealed_work_version ?? base.work_version);
+  return loadWork(env, baseId, base.sealed_work_version ?? base.work_version);
+}
+
+/** The base revision's chapters, paragraph ids and fingerprints, for keeping anchors. */
+function baseChapters(work: WorkCopy | null): BaseChapter[] {
   if (!work) return [];
   return work.chapters.map((c, i) => ({
     chapter_uid: work.anchors.uids[i]!,
@@ -166,16 +173,27 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   const v = verifyPackage(files, { cover: await bytesOf(env, rev.cover_key), previewPercent: 10 });
   if (!v.ok) return fail(v.reason, v.message);
 
-  const anchors = await assignAnchors(v.chapters, await baseChapters(env, db, rev.base_revision_id));
-  const work: WorkCopy = {
+  const base = await baseWork(env, db, rev.base_revision_id);
+  let work: WorkCopy = {
     v: 1,
     chapters: v.chapters,
-    anchors,
+    anchors: await assignAnchors(v.chapters, baseChapters(base)),
     preview: v.preview,
     words: v.words,
     pages: v.pages,
     price: v.price,
   };
+  // An update keeps the live revision's copyright page when the new file has none; the text checks
+  // run again on the chapter list it was added to.
+  const carried = base && carryCopyright(work, base);
+  if (carried) {
+    work = carried;
+    v.flags = [
+      ...checkChapters(work.chapters, { untitledBook: v.untitledBook }),
+      ...v.flags.filter((f) => !TEXT_CHECKS.includes(f.check_key)),
+    ];
+  }
+  const { anchors } = work;
   await saveWork(env, rev.id, rev.work_version, work, v.images);
 
   // A book the desk made from a PDF says so (rule 22).

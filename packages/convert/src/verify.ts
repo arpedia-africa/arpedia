@@ -63,6 +63,8 @@ export interface VerifyOk {
   price: number;
   preview: PreviewCut;
   flags: VerifyFlag[];
+  /** One untitled body: no chapter-title flags (pass to `checkChapters` when rechecking). */
+  untitledBook: boolean;
 }
 export interface VerifyFailed {
   ok: false;
@@ -224,7 +226,7 @@ export function verifyPackage(
       message: 'The cover is not the usual book shape (about 2 : 3).',
     });
 
-  return { ok: true, chapters, images, words, pages, price, preview, flags };
+  return { ok: true, chapters, images, words, pages, price, preview, flags, untitledBook };
 }
 
 /** The flag keys checkChapters can raise; a rescore replaces only these. */

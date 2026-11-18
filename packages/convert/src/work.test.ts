@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { safeUnzip } from './sanitize';
 import { assignAnchors } from './seal-book';
 import { checkChapters, verifyPackage } from './verify';
-import { FixError, applyFix, copyrightText, type WorkCopy } from './work';
+import { FixError, applyFix, carryCopyright, copyrightText, type WorkCopy } from './work';
 
 const words = (n: number, w = 'word') => Array.from({ length: n }, () => w).join(' ');
 
@@ -121,5 +121,31 @@ describe('applyFix', () => {
     const r = await applyFix(w, { op: 'dismiss_flag', reason: 'Intended' });
     expect(r).toEqual({ work: w, touched: [], restructured: false });
     await expect(applyFix(w, { op: 'shrink_image', image: 'img/1.png' })).rejects.toBeInstanceOf(FixError);
+  });
+});
+
+describe('carryCopyright', () => {
+  const withPage = async () =>
+    (await applyFix(await work(), { op: 'insert_copyright_page', text: copyrightText('Ada', 2026) })).work;
+
+  it("keeps the live revision's copyright page, uid and paragraph ids in an update without one", async () => {
+    const live = await withPage();
+    const update = await work();
+    expect(checkChapters(update.chapters).map((f) => f.check_key)).toContain('copyright_missing');
+    const next = carryCopyright(update, live)!;
+    expect(next.chapters.map((c) => c.title)).toEqual(['Copyright', 'One', 'Chapter 2', 'Three']);
+    expect(next.anchors.uids[0]).toBe(live.anchors.uids[0]);
+    expect(next.anchors.ids[0]).toEqual(live.anchors.ids[0]);
+    expect(next.anchors.uids.slice(1)).toEqual(update.anchors.uids);
+    expect(next.price).toBe(update.price);
+    expect(sum(next)).toBe(next.price);
+    expect(checkChapters(next.chapters).map((f) => f.check_key)).not.toContain('copyright_missing');
+    expect(update.chapters).toHaveLength(3); // the input is not changed
+  });
+
+  it('does nothing when the update has its own page or the live one has none', async () => {
+    const live = await withPage();
+    expect(carryCopyright(live, live)).toBeNull();
+    expect(carryCopyright(await work(), await work())).toBeNull();
   });
 });

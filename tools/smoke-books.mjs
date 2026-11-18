@@ -324,6 +324,32 @@ const { json: keys } = await rest(
 );
 ok(`book live; ${keys.length} active keys`);
 
+// An update from the same file (still no copyright page) keeps the live revision's staff-added page,
+// with its chapter uid, so it doesn't diff as a removed chapter.
+const upd = await call(author, 'POST', '/upload', {
+  book_id: live.book_id,
+  meta: { source_type: 'epub', title: 'Smoke Test', description: 'An update.', language: 'en' },
+});
+await put(upd.uploads.source, epub);
+await put(upd.uploads.converted, epub);
+await call(author, 'POST', '/finalize', { revision_id: upd.revision_id, converted: true });
+const updChecked = await waitFor(
+  author,
+  upd.revision_id,
+  (s) => s.draft_step === 'chapters',
+  'update verify',
+);
+const [liveRows, updRows] = await Promise.all(
+  [rev, upd.revision_id].map(
+    async (id) => (await rest(`chapters?revision_id=eq.${id}&select=ord,title,chapter_uid&order=ord`)).json,
+  ),
+);
+if (updRows[0]?.title !== 'Copyright' || updRows[0].chapter_uid !== liveRows[0].chapter_uid)
+  await fail(`update chapters ${JSON.stringify(updRows.map((c) => c.title))}`);
+if (updChecked.flags.some((f) => f.check_key === 'copyright_missing'))
+  await fail('the update was flagged for a missing copyright page');
+ok('update: the live Copyright page carries over with its chapter uid; no copyright flag');
+
 await worker.dispose();
 worker = undefined;
 

@@ -180,6 +180,29 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
   }
 }
 
+/**
+ * An update whose file has no copyright page keeps the live revision's one (usually added by staff
+ * with a fix): same chapter uid, paragraph ids and text, so the update doesn't diff as a removed
+ * chapter and nobody has to add it again on every revision. Null when there is nothing to carry.
+ */
+export function carryCopyright(work: WorkCopy, base: WorkCopy): WorkCopy | null {
+  if (work.chapters.some((c) => c.front === 'copyright')) return null;
+  const at = base.chapters.findIndex((c) => c.front === 'copyright');
+  const page = base.chapters[at];
+  const uid = base.anchors.uids[at];
+  if (!page || !uid || page.kind !== 'chapter' || page.blocks.some((b) => b.images?.length)) return null;
+  if (work.anchors.uids.includes(uid)) return null;
+  const { chapters, anchors } = clone(work);
+  chapters.unshift({ ...page, blocks: [...page.blocks], parentOrd: null });
+  for (const c of chapters.slice(1)) if (c.parentOrd !== null) c.parentOrd += 1;
+  anchors.uids.unshift(uid);
+  anchors.ids.unshift([...base.anchors.ids[at]!]);
+  anchors.fps.unshift([...base.anchors.fps[at]!]);
+  const next: WorkCopy = { ...work, chapters, anchors };
+  Object.assign(next, priceChapters(next.chapters, work.preview.percent));
+  return next;
+}
+
 /** The text of a copyright page made from the book's details. */
 export const copyrightText = (author: string, year: number) =>
   `Copyright © ${year} ${author}. All rights reserved. No part of this book may be copied or shared without the author's written permission. Published on Arpedia.`;
