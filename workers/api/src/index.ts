@@ -6,7 +6,14 @@ import { consumeQueue } from './routes/12/pipeline';
 
 const app = new Hono<AppEnv>();
 
-app.use('*', cors({ origin: '*', allowHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'] }));
+// X-Content-SHA256: the admin console uploads files from the browser straight to signed object URLs.
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Content-SHA256'],
+  }),
+);
 
 // Public liveness probe (no auth, no dependencies).
 app.get('/health', (c) => c.json({ ok: true, service: 'api', env: c.env.APP_ENV }));

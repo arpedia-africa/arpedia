@@ -18,7 +18,7 @@ export function QueueToast({ msg, undoId, republishId }: { msg: string; undoId?:
     once.current = true;
     // Drop ?released= / ?sent= without a server round trip, so a reload doesn't show the toast again.
     const url = new URL(window.location.href);
-    for (const k of ['released', 'sent', 'n', 'published', 'scheduled', 'quiet', 'update', 'unpublished', 'told'])
+    for (const k of ['released', 'sent', 'n', 'published', 'scheduled', 'quiet', 'update', 'unpublished', 'told', 'added'])
       url.searchParams.delete(k);
     window.history.replaceState(null, '', url);
     show(

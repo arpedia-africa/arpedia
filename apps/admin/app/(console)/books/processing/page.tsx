@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { QueueToast } from '../queue-toast';
 import { BooksHeader, FILE_TYPE, bookCounts, clock, coverClass, lagosDay, type Supa } from '../shared';
 import { serverSupabase } from '@/lib/supabase/server';
 
@@ -78,7 +79,8 @@ function Track({ steps, failed }: { steps: Steps; failed?: boolean }) {
 }
 
 /** Books · Processing (s-book-processing): what the system is converting, and what failed today. */
-export default async function ProcessingPage() {
+export default async function ProcessingPage({ searchParams }: { searchParams: Promise<{ added?: string }> }) {
+  const { added } = await searchParams;
   const supabase = await serverSupabase();
   const book = `book:books!book_revisions_book_id_fkey(id, title, author:profiles!books_author_id_fkey(full_name))`;
   const [counts, jobs, failed] = await Promise.all([
@@ -102,11 +104,19 @@ export default async function ProcessingPage() {
   const today = lagosDay(now);
   const rows = jobs.data ?? [];
   const fails = (failed.data ?? []).filter(f => lagosDay(f.sent_at) === today && f.revision);
+  // After Upload a book (s-book-new): the author is told a book was added to their account (rule 51).
+  const addedRow = added ? rows.find(r => r.id === added) : undefined;
+  const addedName = addedRow?.book?.author?.full_name?.split(' ')[0];
   const estimate = await estimator(supabase, [...new Set(rows.map(r => r.source_type).filter(t => t != null))]);
 
   return (
     <section className="screen enter">
       <BooksHeader tab="processing" counts={counts} />
+      {added && (
+        <QueueToast
+          msg={`Upload started. ${addedName ?? 'The author'} gets a push and an email that a book was added to their account.`}
+        />
+      )}
       <div className="page">
         <div className="stack s20">
           <div className="panel panel--flush">

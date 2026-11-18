@@ -526,6 +526,13 @@ try {
         fill: `const i=document.getElementById('unpublish-title');for(let k=0;k<50&&!Object.keys(i).some(x=>x.startsWith('__reactProps'));k++)await new Promise(r=>setTimeout(r,100));Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'Harmattan Letters');i.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,300));`,
         regions: [{ x: 564, y: 135, width: 556, height: 711 }],
       },
+      // Upload a book, searching "Ifeoma" with the first author picked, as in the prototype.
+      'book-new': {
+        path: '/books/new?q=Ifeoma',
+        as: 'amaka@arpedia.africa',
+        fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();await new Promise(r=>setTimeout(r,300));`,
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
     };
     for (const id of ids) {
       const p = pages[id];
