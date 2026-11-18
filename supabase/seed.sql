@@ -136,3 +136,23 @@ with spend as (
 )
 insert into public.entitlements (user_id, book_id, scope, source, ledger_id)
 select '00000000-0000-4000-a000-000000000001', book_id, 'book', 'unlock_all', id from spend;
+
+-- ─── Flow 01 · onboarding ───────────────────────────────────────────────────
+-- Seeded accounts have finished onboarding; Ngozi picked Fiction and Nigerian books.
+update public.profiles set onboarding_step = 'done', signup_intent = case when is_author then 'author' else 'reader' end::public.signup_intent,
+  terms_version = 1, privacy_version = 1, terms_accepted_at = now()
+where id in (select id from seed_users);
+insert into public.user_genres (user_id, genre_id)
+select '00000000-0000-4000-a000-000000000001', id from public.genres where slug in ('fiction', 'nigerian-books');
+-- Tag the seed books with launch genres too, so genre picks find them.
+update public.books set genres = genres || case title
+    when 'Harmattan Letters'    then array['Fiction', 'Christian', 'Nigerian books']
+    when 'Ruth of Ibadan'       then array['Fiction', 'Nigerian books']
+    when 'A House Called Grace' then array['Fiction', 'Christian', 'Drama']
+    when 'Still Waters, Lagos'  then array['Fiction', 'African literature', 'Nigerian books']
+    when 'Seven Bridges to Jos' then array['Fiction', 'Drama']
+    when 'Psalms for the Danfo' then array['Faith', 'Short reads']
+    when 'The Alignment'        then array['Fiction']
+    when 'Bread on Water'       then array['Short reads', 'African literature']
+  end
+where id in (select ('00000000-0000-4000-c000-' || lpad(n::text, 12, '0'))::uuid from seed_books);

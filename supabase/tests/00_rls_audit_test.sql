@@ -12,7 +12,8 @@ insert into public.profiles (id, full_name, is_author) values
   ('20000000-0000-4000-a000-000000000001', 'Reader', false),
   ('20000000-0000-4000-a000-000000000002', 'Author', true),
   ('20000000-0000-4000-a000-000000000003', 'Pub', false),
-  ('20000000-0000-4000-a000-000000000004', 'Ana', false);
+  ('20000000-0000-4000-a000-000000000004', 'Ana', false)
+  on conflict (id) do update set full_name = excluded.full_name, is_author = excluded.is_author; -- flow 01 trigger
 insert into public.staff_roles (user_id, role) values
   ('20000000-0000-4000-a000-000000000003', 'publisher'),
   ('20000000-0000-4000-a000-000000000004', 'analyst');

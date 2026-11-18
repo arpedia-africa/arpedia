@@ -11,7 +11,8 @@ insert into auth.users (id, email) values
 insert into public.profiles (id, full_name) values
   ('10000000-0000-4000-a000-000000000001', 'Reader A'),
   ('10000000-0000-4000-a000-000000000002', 'Reader B'),
-  ('10000000-0000-4000-a000-000000000003', 'Finance F');
+  ('10000000-0000-4000-a000-000000000003', 'Finance F')
+  on conflict (id) do update set full_name = excluded.full_name; -- flow 01 trigger creates profiles
 insert into public.staff_roles (user_id, role) values ('10000000-0000-4000-a000-000000000003', 'finance');
 insert into public.credit_ledger (user_id, delta, reason, bucket) values
   ('10000000-0000-4000-a000-000000000001', 300, 'plan_grant', 'plan'),
