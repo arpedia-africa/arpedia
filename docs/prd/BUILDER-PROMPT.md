@@ -51,6 +51,11 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
 3. Edit, and the phone reloads in seconds. Capture with `node tools/parity.mjs --dev <ids>` while you iterate.
 4. When nothing visible differs on the dev build: one release build (`tools/android-release.mjs`), a final `node tools/parity.mjs <ids>` for the side-by-side images, posted in the PR. **The percentage is advisory (owner decision): never spend time on 1–2 device-pixel text offsets or anti-aliasing. The owner says when a screen is wrong.**
 5. **Bar: very, very good, not perfectionist** (CLAUDE.md). Before marking the visual step done, review each side-by-side as a demanding designer would: hierarchy, spacing rhythm, alignment, real and long data, four themes, empty/loading/error/offline states, smooth motion. Fix what a person would notice; skip what only a pixel diff notices. Then list in the PR anything you judged "good enough", so the owner can decide.
+6. **Owner preview (every flow with app screens, before `gh pr ready`):** leave the owner a working app on `c1212d5c`:
+   - The **release** app `com.arpedia.reader` pointed at this PC's local stack with `127.0.0.1` URLs, plus `adb reverse` for the Supabase API and the api Worker ports (never `10.0.2.2` on the phone).
+   - The local stack and Worker left running, with a seeded demo reader account (and a demo author or staff account where the flow has one). These are local test logins only, not secrets.
+   - Post a PR comment "Owner preview" with the demo logins, what to tap through, and what is still a placeholder.
+   - Until staging exists, the preview only works while the phone is plugged into this PC.
 
 The dev build `com.arpedia.reader.dev` is ours: installing, clearing or uninstalling it on the phone is approved.
 
