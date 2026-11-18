@@ -20,6 +20,8 @@ export interface BtnProps {
   /** `.btn.block`: width 100% */
   block?: boolean;
   icon?: IconName;
+  /** Icon after the label ("Continue →"). */
+  iconAfter?: IconName;
   /** Prototype icon size class (`ico xs|s`); default s (xs on sm buttons). */
   iconSize?: IconSize;
   /** `.btn.dis` */
@@ -37,6 +39,7 @@ export function Btn({
   size,
   block,
   icon,
+  iconAfter,
   iconSize,
   disabled,
   loading,
@@ -100,6 +103,9 @@ export function Btn({
           <Text size={dims.fs} weight={600} color={p.fg} oneLine style={{ flexShrink: 1 }}>
             {label}
           </Text>
+          {iconAfter ? (
+            <Icon name={iconAfter} size={iconSize ?? (size === 'sm' ? 'xs' : 's')} color={p.fg} />
+          ) : null}
         </>
       )}
     </Press>

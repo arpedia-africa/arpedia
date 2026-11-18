@@ -5,6 +5,8 @@ appId: com.arpedia.reader
 ---
 - launchApp:
     clearState: true
+# Since flow 01 the app starts at Log in; kit builds open the gallery by link.
+- openLink: arpedia://kit
 - extendedWaitUntil:
     visible:
       id: kit-gallery
