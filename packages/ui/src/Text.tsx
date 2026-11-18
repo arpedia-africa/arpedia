@@ -8,6 +8,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import { fontFamily } from './fonts';
+import { ADVANCE_CHARS, fontAdvances } from './fonts/advances';
 import { fontMetrics } from './fonts/metrics';
 import { useTheme, type Colors } from './theme';
 import {
@@ -79,7 +80,12 @@ export function Text({
       maxFontSizeMultiplier={oneLine ? 1.6 : undefined}
       style={[
         merged,
-        androidLineBox(merged, !!((oneLine && !ellipsis) || rest.adjustsFontSizeToFit), maxScale),
+        androidLineBox(
+          merged,
+          !!((oneLine && !ellipsis) || rest.adjustsFontSizeToFit),
+          maxScale,
+          plainText(rest.children),
+        ),
         androidHeightFix(merged, lineCount, maxScale),
       ]}
       {...rest}
@@ -117,7 +123,9 @@ function androidHeightFix(style: TextStyle, lineCount: number, maxScale?: number
  * Android places text in its line box differently from Chrome (the prototype), so on Android:
  * - Font size: RN rounds it UP to whole device pixels (TextAttributes), so 15px at 2.88x draws at
  *   44px instead of 43.2 and labels come out ~2% wider. Snap to the nearest device pixel instead, and
- *   give the remainder back as letter spacing (font size difference × the font's typical advance).
+ *   give the remainder back as letter spacing: font size difference × the mean advance of this text's
+ *   characters (meanAdvance), or the font's typical advance when the text isn't a plain string. The
+ *   typical one overshoots on lowercase copy (13px subs came out ~2 device px wider per line).
  *   With adjustsFontSizeToFit, RN's fit search rescales the size by float ratios and truncates on
  *   every step even when the text fits (TextLayoutManager.adjustSpannableFontToFit), so 37px ends at
  *   32px. Start from the size whose search ends nearest the wanted size (fitStart).
@@ -128,31 +136,72 @@ function androidHeightFix(style: TextStyle, lineCount: number, maxScale?: number
  *   rounded-down descent's pixel over from the ascent and floors the half-leading, while RN ceils
  *   it. Shift the glyphs by the difference so they sit where the prototype draws them.
  */
-function androidLineBox(style: TextStyle, fit: boolean, maxScale?: number): TextStyle | null {
+function androidLineBox(style: TextStyle, fit: boolean, maxScale?: number, text?: string): TextStyle | null {
   const { lineHeight, fontSize, fontFamily: name } = style;
   if (Platform.OS !== 'android' || lineHeight == null) return null;
   const r = PixelRatio.get() * Math.min(PixelRatio.getFontScale(), maxScale ?? Infinity);
   const lhPx = Math.max(1, Math.round(lineHeight * r)) - 0.01;
   const m = name ? fontMetrics[name] : undefined;
-  if (!m || fontSize == null) return { lineHeight: lhPx / r };
+  if (!m || !name || fontSize == null) return { lineHeight: lhPx / r };
   const nearest = Math.max(1, Math.round(fontSize * r));
   const [startPx, sizePx] = fit ? fitStart(fontSize * r) : [nearest, nearest];
-  return lineBox(style, m, r, lhPx, startPx, sizePx);
+  return lineBox(style, m, meanAdvance(name, text) ?? m[2], r, lhPx, startPx, sizePx);
+}
+
+/** The text of plain string children (strings and numbers only), else undefined. */
+function plainText(children: unknown): string | undefined {
+  if (typeof children === 'string' || typeof children === 'number') return String(children);
+  if (!Array.isArray(children)) return undefined;
+  let out = '';
+  for (const c of children) {
+    if (typeof c === 'string' || typeof c === 'number') out += String(c);
+    else if (c != null && c !== false) return undefined;
+  }
+  return out;
+}
+
+/**
+ * Mean advance (em) of the characters of `text` in a font, or undefined when it can't be told (no
+ * text, or more than a tenth of the characters have no known advance).
+ */
+function meanAdvance(family: string, text?: string): number | undefined {
+  const adv = fontAdvances[family];
+  if (!adv || !text) return undefined;
+  let sum = 0;
+  let known = 0;
+  let n = 0;
+  for (const ch of text) {
+    if (ch === '\n') continue;
+    n++;
+    const i = ADVANCE_CHARS.indexOf(ch);
+    const a = i === -1 ? 0 : (adv[i] ?? 0);
+    if (a) {
+      sum += a;
+      known++;
+    }
+  }
+  if (!known || known < n * 0.9) return undefined;
+  return sum / known / 1e4;
 }
 
 /**
  * Font size and letter spacing for text outside `Text` (TextInput) on Android: the nearest device
- * pixel instead of RN's round-up, the remainder as letter spacing (see androidLineBox).
+ * pixel instead of RN's round-up, the remainder as letter spacing (see androidLineBox). Pass the
+ * shown text (value or placeholder) for the exact make-up.
  */
 export function androidFontSize(
   fontSize: number,
   family: string,
+  text?: string,
 ): Pick<TextStyle, 'fontSize' | 'letterSpacing'> {
   const m = fontMetrics[family];
   if (Platform.OS !== 'android' || !m) return { fontSize };
   const r = PixelRatio.get() * PixelRatio.getFontScale();
   const px = Math.max(1, Math.round(fontSize * r));
-  return { fontSize: (px - 0.01) / r, letterSpacing: (fontSize - px / r) * m[2] };
+  return {
+    fontSize: (px - 0.01) / r,
+    letterSpacing: (fontSize - px / r) * (meanAdvance(family, text) ?? m[2]),
+  };
 }
 
 /**
@@ -211,6 +260,7 @@ function fitStart(exact: number): [number, number] {
 function lineBox(
   style: TextStyle,
   m: readonly [number, number, number],
+  advance: number,
   r: number,
   lhPx: number,
   startPx: number,
@@ -232,7 +282,7 @@ function lineBox(
   const shift = (chrome - android) / PixelRatio.get();
   return {
     fontSize: (startPx - 0.01) / r,
-    letterSpacing: (letterSpacing ?? 0) + (fontSize - sizePx / r) * m[2],
+    letterSpacing: (letterSpacing ?? 0) + (fontSize - sizePx / r) * advance,
     lineHeight: lhPx / r,
     ...(shift ? { transform: [...(Array.isArray(transform) ? transform : []), { translateY: shift }] } : {}),
   };

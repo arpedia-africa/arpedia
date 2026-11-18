@@ -122,7 +122,11 @@ export function Field({
               paddingHorizontal: 0,
               includeFontPadding: false,
               fontFamily: fontFamily('ui', 400),
-              ...androidFontSize(fs, fontFamily('ui', 400)),
+              ...androidFontSize(
+                fs,
+                fontFamily('ui', 400),
+                input.secureTextEntry && input.value ? undefined : input.value || input.placeholder,
+              ),
               color: c.ink,
             }}
           />
