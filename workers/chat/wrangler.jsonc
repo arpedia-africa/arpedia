@@ -1,5 +1,7 @@
 // Arpedia chat Worker: one Durable Object per conversation (group, club, DM thread, reading room).
-// Top level = local (`wrangler dev`); env.staging and env.production deploy. Flow 06 fills it in.
+// Top level = local (`wrangler dev`); env.staging and env.production deploy.
+// Secrets (wrangler secret put): SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY. Locally they come
+// from .dev.vars (`pnpm dev:vars`).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "arpedia-chat",
@@ -11,22 +13,25 @@
     "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "durable_objects": {
-    "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+    "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatRoom"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
+    { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },
+  ],
   "env": {
     "staging": {
       "name": "arpedia-chat-staging",
       "vars": { "APP_ENV": "staging", "SUPABASE_URL": "https://arpedia-staging.supabase.co" },
       "durable_objects": {
-        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+        "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
       },
     },
     "production": {
       "name": "arpedia-chat",
       "vars": { "APP_ENV": "production", "SUPABASE_URL": "https://arpedia.supabase.co" },
       "durable_objects": {
-        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+        "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
       },
     },
   },
