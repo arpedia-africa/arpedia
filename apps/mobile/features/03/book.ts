@@ -56,7 +56,13 @@ export interface BookPageData {
   paid_credits: number;
   remaining: number;
   first_unpaid: { ord: number; chapter_uid: string; price: number } | null;
-  progress: { percent: number; max_percent: number; chapter_ord: number | null; finished_at: string | null } | null;
+  unpaid_prices: number[];
+  progress: {
+    percent: number;
+    max_percent: number;
+    chapter_ord: number | null;
+    finished_at: string | null;
+  } | null;
   balance: number;
   plan: { state: PlanState; status?: string; plan_code?: string; period_end?: string };
   following: boolean;

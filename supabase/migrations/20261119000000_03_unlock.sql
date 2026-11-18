@@ -714,6 +714,13 @@ begin
     'paid_credits', v_paid,
     'remaining', case when v_owns then 0 else public._remaining(v_user, p_book) end,
     'first_unpaid', v_first_unpaid,
+    -- Unpaid chapter prices in reading order, for "your N credits cover the next k chapters" (rule 27).
+    'unpaid_prices', case when v_owns then '[]'::jsonb else (
+      select coalesce(jsonb_agg(c.price_credits order by c.ord), '[]')
+      from public.chapters c
+      where c.revision_id = r.id and c.price_credits > 0
+        and not exists (select 1 from public.entitlements e where e.user_id = v_user and e.book_id = p_book
+                          and e.scope = 'chapter' and e.chapter_uid = c.chapter_uid and e.revoked_at is null)) end,
     'progress', case when v_progress.user_id is null then null else jsonb_build_object(
       'percent', v_progress.percent, 'max_percent', v_progress.max_percent,
       'chapter_ord', v_progress.chapter_ord, 'finished_at', v_progress.finished_at) end,

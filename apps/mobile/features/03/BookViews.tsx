@@ -105,7 +105,13 @@ function Arrow({ label, onPress }: { label: string; onPress: () => void }) {
       accessibilityRole="link"
       accessibilityLabel={label}
       hitSlop={4}
-      style={{ width: s(36), height: s(36), borderRadius: s(10), alignItems: 'center', justifyContent: 'center' }}
+      style={{
+        width: s(36),
+        height: s(36),
+        borderRadius: s(10),
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <Icon name="arrow" size="s" color={c.orgInk} />
     </Press>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { onlineManager, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { useTrack } from '../../features/03/analytics';
 import { BookPageSkeleton, BookPageView } from '../../features/03/BookViews';
 import { bookKey, toModel, useBookPage, type BookPageData } from '../../features/03/book';
+import { UnlockSheet } from '../../features/03/UnlockSheet';
+import type { UnlockMode } from '../../features/03/UnlockViews';
 
 export default function BookPage() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
@@ -40,6 +42,12 @@ export default function BookPage() {
     },
   });
 
+  const [sheet, setSheet] = useState<UnlockMode | null>(null);
+  const openSheet = (m: UnlockMode) => {
+    track('buy_option_tapped', { book_id: id, option: m === 'all' ? 'unlock_all' : 'pay_go' });
+    setSheet(m);
+  };
+
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   // Sheets and the screens behind them land in the next steps of flow 03.
   const soon = () => toast({ message: 'Coming soon' });
@@ -58,7 +66,11 @@ export default function BookPage() {
           {page.isError ? (
             <EmptyState
               title="This book didn’t load"
-              body={online ? 'Something went wrong on our side. Try again.' : 'You’re offline. Connect and try again.'}
+              body={
+                online
+                  ? 'Something went wrong on our side. Try again.'
+                  : 'You’re offline. Connect and try again.'
+              }
               action={{ label: 'Try again', onPress: () => void page.refetch() }}
             />
           ) : (
@@ -95,15 +107,23 @@ export default function BookPage() {
           onReviews: soon,
           onDiscussion: soon,
           onMain: soon,
-          onUnlockAll: soon,
-          onPayGo: soon,
-          onPayRest: soon,
+          onUnlockAll: () => openSheet('all'),
+          onPayGo: () => openSheet('paygo'),
+          onPayRest: () => openSheet('all'),
           onTopUp: soon,
           onAbout: soon,
           onWriteReview: soon,
           onBook: (b) => router.push({ pathname: '/book/[id]', params: { id: b, source: 'related' } }),
           spendOff: !online,
         }}
+      />
+      <UnlockSheet
+        book={d}
+        open={sheet}
+        onClose={() => setSheet(null)}
+        onRead={soon}
+        onPlans={soon}
+        onBuyPack={soon}
       />
     </Screen>
   );

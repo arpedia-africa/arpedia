@@ -140,9 +140,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <KitB />
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
-        <View>
-          {page === 's-book' ? <Flow03 page={page} /> : <Flow01 page={page} />}
-        </View>
+        <View>{page === 's-book' ? <Flow03 page={page} /> : <Flow01 page={page} />}</View>
       )}
     </View>
   );

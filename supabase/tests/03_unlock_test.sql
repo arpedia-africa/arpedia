@@ -2,7 +2,7 @@
 -- rows, and admin_set_book_price.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(56);
+select plan(58);
 
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 reader (plan, 200 credits), 2 reader (no plan, 10), 3 author, 4 finance, 5 reader (paygo),
@@ -219,6 +219,13 @@ select is(public.admin_set_book_price('30300000-0000-4000-c000-000000000001', 12
   'finance overrides the price');
 select is((select new_credits from public.book_price_history where book_id = '30300000-0000-4000-c000-000000000001'
            and kind = 'override'), 120, 'price history row written');
+
+-- Auto-unlock reader setting (rule 23): own row only, known keys only.
+select pg_temp.as_user('30300000-0000-4000-a000-000000000001');
+select is(public.set_reader_setting('auto_unlock', 'false') ->> 'auto_unlock', 'false',
+  'reader turns Auto-unlock off');
+select throws_ok($$select public.set_reader_setting('is_staff', 'true')$$,
+  'P0001', 'bad_setting', 'unknown settings are refused');
 
 select * from finish();
 rollback;

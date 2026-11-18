@@ -144,7 +144,10 @@ export function Hero({ bar, barBack, title, xl, sub, low, children, style, bodyS
         ) : null}
         {title || sub || children ? (
           <View
-            style={[{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) }, bodyStyle]}
+            style={[
+              { paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) },
+              bodyStyle,
+            ]}
           >
             {title ? (
               <Text
