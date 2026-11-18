@@ -46,6 +46,12 @@ on conflict (id) do update set username = excluded.username, full_name = exclude
 insert into public.staff_roles (user_id, role)
 select id, role from seed_users where role is not null;
 
+-- Every seeded staff member has a verified authenticator with the same local-only TOTP secret,
+-- so tools (smoke-admin, parity --admin) can pass two-step: tools/totp.mjs makes the code.
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret)
+select gen_random_uuid(), id, 'Authenticator', 'totp', 'verified', now(), now(), 'ARPEDIALOCALTOTPSEEDSECRETXXXXXX'
+from seed_users where role is not null;
+
 -- ─── Books ──────────────────────────────────────────────────────────────────
 -- words → pages = ceil(words / 250) → price = ceil(pages / 2) (packages/core pricing).
 create temporary table seed_books (n int, title text, author uuid, genre text, words int, chapters int,
