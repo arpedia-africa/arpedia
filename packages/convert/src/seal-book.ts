@@ -81,21 +81,34 @@ export const BOOK_CSS = `body{margin:0}p{margin:0 0 .8em}h1{font-size:1.4em}h2,h
 .centered{text-align:center}.right{text-align:right}.small-caps{font-variant:small-caps}
 figure{margin:1em 0;text-align:center}img{max-width:100%;height:auto}`;
 
-export async function sealBook(input: SealInput): Promise<SealOutput> {
-  const uuid = input.random?.uuid ?? (() => crypto.randomUUID());
-  const paraId = input.random?.paraId ?? (() => newParaId());
-  const { chapters, preview, revisionId } = input;
+export interface BookAnchors {
+  /** chapter_uid per chapter. */
+  uids: string[];
+  /** Paragraph id per block, per chapter. */
+  ids: string[][];
+  /** Fingerprint per block, per chapter. */
+  fps: string[][];
+  migrations: SealOutput['anchor_migrations'];
+}
 
-  // ─── Fingerprints, chapter uids, paragraph ids ─────────────────────────────
+/**
+ * Chapter uids and paragraph ids (rule 16): matched chapters keep their uid, aligned paragraphs keep
+ * their id, the rest are new. Runs at verify time, so the ids are fixed before chapters are confirmed.
+ */
+export async function assignAnchors(
+  chapters: WorkChapter[],
+  base: BaseChapter[] = [],
+  random: SealInput['random'] = {},
+): Promise<BookAnchors> {
+  const uuid = random.uuid ?? (() => crypto.randomUUID());
+  const paraId = random.paraId ?? (() => newParaId());
   const fps = await Promise.all(
     chapters.map((c) => Promise.all(c.blocks.map((b) => fingerprint(b.text || b.html)))),
   );
-  const base = input.base ?? [];
   const matched = matchChapters(
     base.map((b) => ({ title: b.title, fps: b.paragraphs.map((p) => p.fp) })),
     chapters.map((c, i) => ({ title: c.title, fps: fps[i]! })),
   );
-  const uids = matched.map((m) => (m === null ? uuid() : base[m]!.chapter_uid));
   const migrations: SealOutput['anchor_migrations'] = [];
   const ids = chapters.map((c, i) => {
     const m = matched[i];
@@ -105,6 +118,13 @@ export async function sealBook(input: SealInput): Promise<SealOutput> {
     migrations.push(...a.migrations);
     return a.ids;
   });
+  return { uids: matched.map((m) => (m === null ? uuid() : base[m]!.chapter_uid)), ids, fps, migrations };
+}
+
+export async function sealBook(input: SealInput & { anchors?: BookAnchors }): Promise<SealOutput> {
+  const { chapters, preview, revisionId } = input;
+  const { uids, ids, fps, migrations } =
+    input.anchors ?? (await assignAnchors(chapters, input.base, input.random));
 
   // ─── Keys ─────────────────────────────────────────────────────────────────
   const kFree = newKey();

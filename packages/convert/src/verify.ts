@@ -207,21 +207,7 @@ export function verifyPackage(
     return ch;
   });
 
-  const words = wordsBefore;
-  const imagePages = chapters.reduce((a, c) => a + c.imagePages, 0);
-  const pages = standardPages(words, imagePages);
-  const price = bookPrice(pages);
-  const preview = previewCut(
-    chapters.map((c) => c.blocks.map((b) => (c.front ? 0 : b.words))),
-    opts.previewPercent,
-  );
-  const weights = chapterWeights(
-    chapters.map((c) => c.words),
-    chapters.map((c) => c.imagePages),
-    preview.freeThrough,
-  );
-  const prices = weights.some((w) => w > 0) ? chapterPrices(price, weights) : weights.map(() => 0);
-  chapters.forEach((c, i) => (c.priceCredits = prices[i]!));
+  const { words, pages, price, preview } = priceChapters(chapters, opts.previewPercent);
 
   // ─── Checks (rule 24). Plagiarism and policy run through provider adapters in the Worker. ───
   if (words < MIN_WORDS)
@@ -286,6 +272,36 @@ export function verifyPackage(
     });
 
   return { ok: true, chapters, images, words, pages, price, preview, flags };
+}
+
+/**
+ * Recount a chapter list in place (after verify, or after the author renames and merges):
+ * words before each chapter, exact pages, the book price, the preview cut and chapter prices.
+ */
+export function priceChapters(chapters: WorkChapter[], previewPercent?: number) {
+  let words = 0;
+  for (const c of chapters) {
+    c.words = c.front ? 0 : c.blocks.reduce((a, b) => a + b.words, 0);
+    c.imagePages = c.front ? 0 : c.blocks.flatMap((b) => b.images ?? []).filter(isFullPageImage).length;
+    c.pages = r2(c.words / 250 + c.imagePages);
+    c.wordsBefore = words;
+    words += c.words;
+  }
+  const imagePages = chapters.reduce((a, c) => a + c.imagePages, 0);
+  const pages = standardPages(words, imagePages);
+  const price = bookPrice(pages);
+  const preview = previewCut(
+    chapters.map((c) => c.blocks.map((b) => (c.front ? 0 : b.words))),
+    previewPercent,
+  );
+  const weights = chapterWeights(
+    chapters.map((c) => c.words),
+    chapters.map((c) => c.imagePages),
+    preview.freeThrough,
+  );
+  const prices = weights.some((w) => w > 0) ? chapterPrices(price, weights) : weights.map(() => 0);
+  chapters.forEach((c, i) => (c.priceCredits = prices[i]!));
+  return { words, pages, price, preview };
 }
 
 function findAll(el: Element, name: string, out: Element[] = []): Element[] {
