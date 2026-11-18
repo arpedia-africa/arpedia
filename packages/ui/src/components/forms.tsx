@@ -49,7 +49,9 @@ export function Field({
   const border = error ? c.err : c.org;
   const box = useAnimatedStyle(() => ({
     backgroundColor: error ? c.white : interpolateColor(f.value, [0, 1], [c.surface, c.white]),
-    borderColor: error ? c.err : interpolateColor(f.value, [0, 1], ['rgba(0,0,0,0)', border]),
+    // Idle border in the fill colour, not transparent: CSS paints the background under a transparent
+    // border, Android stops it ~1px short.
+    borderColor: error ? c.err : interpolateColor(f.value, [0, 1], [c.surface, border]),
   }));
   const halo = useAnimatedStyle(() => ({ opacity: f.value }));
   const fs = s(14);
