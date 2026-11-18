@@ -179,16 +179,7 @@ export interface CoverProps {
 }
 
 /** `.cv`: 2:3 book cover with a soft drop shadow and a spine highlight. */
-export function Cover({
-  title,
-  author,
-  size = 104,
-  uri,
-  tone = 'c1',
-  fluid,
-  center,
-  boxShadow,
-}: CoverProps) {
+export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid, center, boxShadow }: CoverProps) {
   const { s } = useTheme();
   const w = s(size);
   const h = s(coverH[size]);
