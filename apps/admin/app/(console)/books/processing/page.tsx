@@ -139,7 +139,9 @@ export default async function ProcessingPage({ searchParams }: { searchParams: P
                   1,
                   Math.round((estimate(r.source_type ?? '', r.file_bytes) - (now - new Date(started).getTime())) / 60_000),
                 );
-                const deskHours = Math.max(1, Math.floor((now - new Date(started).getTime()) / 3_600_000));
+                // "waiting 20 h" as the prototype; under an hour in minutes, so a new upload doesn't read "1 h".
+                const deskMin = Math.max(0, Math.floor((now - new Date(started).getTime()) / 60_000));
+                const deskWait = deskMin < 1 ? 'just now' : deskMin < 60 ? `${deskMin} min` : `${Math.floor(deskMin / 60)} h`;
                 return (
                   <div className="ct-job" key={r.id}>
                     <div className="who">
@@ -153,7 +155,7 @@ export default async function ProcessingPage({ searchParams }: { searchParams: P
                     <span className="ct-job__t">
                       <b>{`Step ${at + 1} of ${STEPS.length}`}</b>
                       <br />
-                      {desk ? `With the desk · waiting ${deskHours} h` : `${STEPS[at]!.doing} · about ${left} min left`}
+                      {desk ? `With the desk · waiting ${deskWait}` : `${STEPS[at]!.doing} · about ${left} min left`}
                     </span>
                   </div>
                 );
