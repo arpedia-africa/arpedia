@@ -1491,6 +1491,23 @@ begin
   return jsonb_build_object('status', 'unpublished', 'refunded_users', v_users, 'refunded_credits', v_credits);
 end $$;
 
+-- What Unpublish would affect (book-unpublish): readers holding access, and the credits Remove access
+-- would refund (the same net as unpublish_book).
+create function public.unpublish_preview(p_book uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_staff('publisher') then
+    raise exception 'unpublish_preview: publishers only' using errcode = 'insufficient_privilege';
+  end if;
+  return jsonb_build_object(
+    'readers', (select count(distinct e.user_id) from public.entitlements e
+                where e.book_id = p_book and e.revoked_at is null),
+    'credits', (select coalesce(sum(n.credits), 0) from (
+                  select -sum(l.delta)::int as credits from public.credit_ledger l
+                  where l.book_id = p_book and l.reason in ('unlock_all', 'chapter', 'undo', 'refund')
+                  group by l.user_id having -sum(l.delta) > 0) n));
+end $$;
+
 create function public.republish_book(p_book uuid, p_actor uuid default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -1820,7 +1837,7 @@ begin
         'complete_rescore', 'begin_reseal', 'record_fix', 'undo_fix', 'book_queue_read', 'book_queue_ack',
         'claim_revision', 'release_to_review', 'undo_release_to_review', 'send_back_revision', 'reject_revision',
         'publish_revision', 'revert_to_revision', 'unpublish_book', 'republish_book', 'remind_author',
-        'audit_fast_lane', 'revision_links', 'desk_claim', 'desk_heartbeat', 'desk_reject_unreadable', 'publish_due',
+        'audit_fast_lane', 'revision_links', 'unpublish_preview', 'desk_claim', 'desk_heartbeat', 'desk_reject_unreadable', 'publish_due',
         'pipeline_sla', 'sent_back_reminder', 'select_fast_lane_audits', 'desk_lease_reaper',
         '_is_revision_author')
   loop
@@ -1854,6 +1871,7 @@ grant execute on function
   public.remind_author(uuid, uuid),
   public.audit_fast_lane(uuid, public.fast_lane_result, text, uuid),
   public.revision_links(uuid),
+  public.unpublish_preview(uuid),
   public.desk_claim(uuid, uuid),
   public.desk_heartbeat(uuid, uuid),
   public.desk_reject_unreadable(uuid, text, uuid)

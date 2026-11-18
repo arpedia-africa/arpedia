@@ -21,6 +21,9 @@ interface Search {
   quiet?: string;
   /** Set after Approve update on Revisions, with the revision number. */
   update?: string;
+  /** Set after Unpublish (a book id), with the number of readers told (`told`). */
+  unpublished?: string;
+  told?: string;
 }
 
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
@@ -29,6 +32,20 @@ type Row = { id: string; book: { title: string; author: { full_name: string | nu
 
 /** The toast for a book that just left the queue (Mark fixed, Send back, or Approve). */
 async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
+  if (sp.unpublished) {
+    const { data: book } = await supabase
+      .from('books')
+      .select('id, title, author:profiles!books_author_id_fkey(full_name)')
+      .eq('id', sp.unpublished)
+      .maybeSingle();
+    if (!book) return null;
+    const first = book.author?.full_name?.split(' ')[0] || 'The author';
+    const told = Number(sp.told ?? 0);
+    return {
+      msg: `${book.title} is unpublished. ${first} gets a push and an email${told ? `; ${told.toLocaleString('en-NG')} reader${told === 1 ? ' is' : 's are'} told` : ''}.`,
+      republishId: book.id,
+    };
+  }
   const id = sp.released ?? sp.sent ?? sp.published;
   if (!id) return null;
   let row = rows.find(r => r.id === id);
@@ -197,7 +214,13 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </div>
-      {toast && <QueueToast msg={toast.msg} undoId={toast.undoId} />}
+      {toast && (
+        <QueueToast
+          msg={toast.msg}
+          undoId={'undoId' in toast ? toast.undoId : undefined}
+          republishId={'republishId' in toast ? toast.republishId : undefined}
+        />
+      )}
     </section>
   );
 }

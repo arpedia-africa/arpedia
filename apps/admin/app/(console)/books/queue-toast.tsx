@@ -3,13 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useToast } from '@/components/toast';
-import { undoRelease } from './actions';
+import { republish, undoRelease } from './actions';
 
 /**
  * The confirmation toast on return to the queue, shown once: after Mark fixed and send to review
- * (with Undo, `undoId`), or after Send back.
+ * (with Undo, `undoId`), after Unpublish (with Undo, `republishId`), or after Send back.
  */
-export function QueueToast({ msg, undoId }: { msg: string; undoId?: string }) {
+export function QueueToast({ msg, undoId, republishId }: { msg: string; undoId?: string; republishId?: string }) {
   const [toast, show] = useToast();
   const router = useRouter();
   const once = useRef(false);
@@ -18,7 +18,8 @@ export function QueueToast({ msg, undoId }: { msg: string; undoId?: string }) {
     once.current = true;
     // Drop ?released= / ?sent= without a server round trip, so a reload doesn't show the toast again.
     const url = new URL(window.location.href);
-    for (const k of ['released', 'sent', 'n', 'published', 'scheduled', 'quiet', 'update']) url.searchParams.delete(k);
+    for (const k of ['released', 'sent', 'n', 'published', 'scheduled', 'quiet', 'update', 'unpublished', 'told'])
+      url.searchParams.delete(k);
     window.history.replaceState(null, '', url);
     show(
       msg,
@@ -28,8 +29,14 @@ export function QueueToast({ msg, undoId }: { msg: string; undoId?: string }) {
             if (!r.ok) show(r.error!);
             else router.push(`/books/${undoId}/fix`);
           }
-        : undefined,
+        : republishId
+          ? async () => {
+              const r = await republish(republishId);
+              if (!r.ok) show(r.error!);
+              else router.refresh();
+            }
+          : undefined,
     );
-  }, [msg, undoId, router, show]);
+  }, [msg, undoId, republishId, router, show]);
   return toast;
 }

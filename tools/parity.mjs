@@ -517,13 +517,28 @@ try {
           { x: 248, y: 0, width: W - 248, height: 200 },
         ],
       },
+      // Unpublish over a live seeded book (Harmattan Letters), title typed as in the prototype. The
+      // page behind is the book's Details tab in the prototype (flow 03), so only the modal box is gated.
+      'book-unpublish': {
+        path: '/books/00000000-0000-4000-c000-000000000001/unpublish',
+        as: 'amaka@arpedia.africa',
+        // Wait for hydration, then type through React's value setter so the "Matches" hint updates.
+        fill: `const i=document.getElementById('unpublish-title');for(let k=0;k<50&&!Object.keys(i).some(x=>x.startsWith('__reactProps'));k++)await new Promise(r=>setTimeout(r,100));Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'Harmattan Letters');i.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,300));`,
+        regions: [{ x: 564, y: 135, width: 556, height: 711 }],
+      },
     };
     for (const id of ids) {
       const p = pages[id];
       if (!p) throw new Error(`no admin parity page "${id}" (have: ${Object.keys(pages).join(', ')})`);
       const ref = await adminRef(id);
+      // PARITY_MEASURE=<selector> prints the matching elements' top, height, line height and font in
+      // the reference and the build, to find where a layout drifts.
+      const M = process.env.PARITY_MEASURE;
+      const measure = `JSON.stringify([...document.querySelectorAll(${JSON.stringify(M)})].filter(e=>e.offsetParent).slice(0,60).map(e=>{const r=e.getBoundingClientRect();return e.tagName+'.'+e.className+' '+r.top.toFixed(2)+' '+r.height.toFixed(2)+' lh='+getComputedStyle(e).lineHeight+' ff='+getComputedStyle(e).fontFamily.slice(0,20)}))`;
+      if (M) console.log('REF', await b.eval(measure));
       await b.open(baseUrl + p.path, { width: W, height: H, cookies: p.as ? await cookies(p.as) : [] });
       await b.eval(`(async()=>{${p.fill ?? ''};await ${SETTLE};return true})()`);
+      if (M) console.log('BUILD', await b.eval(measure));
       const build = await b.shot();
       results.push({ name: `admin-${id}`, ...(await compare(`admin-${id}`, ref, build, W, H, p.regions)) });
     }

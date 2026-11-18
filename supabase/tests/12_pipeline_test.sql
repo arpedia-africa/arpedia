@@ -3,7 +3,7 @@
 -- anchor migration, unpublish refunds, RLS and the staff role matrix.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(71);
+select plan(72);
 
 -- ─── Actors ─────────────────────────────────────────────────────────────────
 insert into auth.users (id, email) values
@@ -331,6 +331,8 @@ insert into public.entitlements (user_id, book_id, scope, source)
 select '12000000-0000-4000-a000-000000000002', id, 'book', 'unlock_all' from public.books where title = 'Harmattan Test';
 
 select pg_temp.as_user('12000000-0000-4000-a000-000000000003');
+select is(public.unpublish_preview((select id from public.books where title = 'Harmattan Test')) ->> 'readers', '1',
+  'Unpublish shows how many readers hold access');
 select throws_ok($$select public.unpublish_book((select id from public.books where title = 'Harmattan Test'),
   'policy_violation', true, false, 'Harmattan Test')$$, '42501', null, 'only a Super admin removes access');
 select pg_temp.as_user('12000000-0000-4000-a000-000000000004');

@@ -1361,6 +1361,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      unpublish_preview: { Args: { p_book: string }; Returns: Json };
       write_audit: {
         Args: {
           p_action: string;

@@ -42,3 +42,41 @@ export async function undoRelease(revisionId: string): Promise<{ ok: boolean; er
   revalidatePath('/books');
   return { ok: true };
 }
+
+/** Unpublish (rule 52): reason, readers' access, notify readers, and the title typed to confirm. */
+export async function unpublish(
+  bookId: string,
+  reason: 'author_request' | 'policy_violation' | 'quality',
+  removeAccess: boolean,
+  notifyReaders: boolean,
+  confirmTitle: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('unpublish_book', {
+    p_book: bookId,
+    p_reason: reason,
+    p_remove_access: removeAccess,
+    p_notify_readers: notifyReaders,
+    p_confirm_title: confirmTitle,
+  });
+  if (error) {
+    const m = error.message;
+    if (m.includes('Super admin')) return { ok: false, error: 'Only a Super admin can remove access.' };
+    if (m.includes('policy violations')) return { ok: false, error: 'Remove access is for policy violations only.' };
+    if (m.includes('title')) return { ok: false, error: 'Type the book title exactly to confirm.' };
+    if (m.includes('not live')) return { ok: false, error: 'This book is not live.' };
+    if (error.code === '42501') return { ok: false, error: 'Only publishers can unpublish books.' };
+    return { ok: false, error: "Couldn't unpublish. Try again." };
+  }
+  revalidatePath('/books');
+  return { ok: true };
+}
+
+/** Undo Unpublish: the book goes back live on the same revision. */
+export async function republish(bookId: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('republish_book', { p_book: bookId });
+  if (error) return { ok: false, error: "Couldn't republish. Try again." };
+  revalidatePath('/books');
+  return { ok: true };
+}
