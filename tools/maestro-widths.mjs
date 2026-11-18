@@ -13,6 +13,8 @@ if (!flow) {
 const adb = (cmd) => execSync(`adb shell ${cmd}`, { encoding: 'utf8' }).trim();
 const px = Number(adb('wm size').match(/(\d+)x\d+/)?.[1]);
 if (!px) throw new Error('Could not read the emulator screen size');
+// Restore the device's own setting afterwards (the owner's phone keeps an override, 461 = 375dp).
+const saved = adb('wm density').match(/Override density: (\d+)/)?.[1];
 
 let failed = false;
 try {
@@ -28,6 +30,6 @@ try {
     }
   }
 } finally {
-  adb('wm density reset');
+  adb(saved ? `wm density ${saved}` : 'wm density reset');
 }
 process.exit(failed ? 1 : 0);
