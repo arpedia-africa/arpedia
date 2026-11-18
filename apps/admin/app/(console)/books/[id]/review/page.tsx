@@ -140,8 +140,9 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     else if (c.name === 'Paragraph links')
       detail = links ? `${n0(links)} set, so highlights and discussions survive updates` : 'not set yet';
     else if (c.name === 'File check') detail = 'opens correctly on every device';
-    else if (c.name === 'Plagiarism') detail = 'no close match found';
-    else detail = 'no explicit content, threats or personal data';
+    // The plagiarism and policy adapters may skip without blocking (Q39/Q52), so say only what was flagged.
+    else if (c.name === 'Plagiarism') detail = 'no close match flagged';
+    else detail = 'nothing flagged';
     const ok = !hit.length && !(c.name === 'Preview cut' && !rev.preview_cut_para_id) && !(c.name === 'Paragraph links' && !links);
     return { ...c, ok, detail };
   });
