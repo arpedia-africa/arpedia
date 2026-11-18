@@ -25,6 +25,6 @@ jobs:
               and any(.labels[].name; startswith("flow-") or . == "fix"))][0].number // empty')
           [ -n "$pr" ] || { echo "No open, ready flow-*/fix PR at $SHA"; exit 0; }
           bad=$(gh api "repos/$GH_REPO/commits/$SHA/check-runs?filter=latest&per_page=100" \
-            --jq '[.check_runs[] | select(.conclusion != "success")] | length')
+            --jq '[.check_runs[] | select(.conclusion != "success" and .conclusion != "skipped")] | length')
           [ "$bad" = 0 ] || { echo "$bad check(s) on $SHA not successful"; exit 0; }
           gh pr merge "$pr" --squash --delete-branch --match-head-commit "$SHA"
