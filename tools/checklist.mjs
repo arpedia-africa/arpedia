@@ -14,31 +14,65 @@ const gh = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 32 
 
 // status.json and flow files: read from origin/main so the checklist matches what builders see
 const show = (path) => {
-  try { return execFileSync('git', ['show', `origin/main:${path}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); }
-  catch { return readFileSync(join(root, path), 'utf8'); }
+  try {
+    return execFileSync('git', ['show', `origin/main:${path}`], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return readFileSync(join(root, path), 'utf8');
+  }
 };
-try { execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: root }); } catch {}
+try {
+  execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: root });
+} catch {}
 const status = JSON.parse(show('docs/prd/status.json'));
 
-const prs = JSON.parse(gh(['pr', 'list', '--repo', repo, '--state', 'all', '--limit', '200',
-  '--json', 'number,state,isDraft,labels,body,url,updatedAt,mergedAt,headRefName']));
-const prFor = (id) => prs.filter((p) => p.labels.some((l) => l.name === `flow-${id}`))
-  .sort((a, b) => (a.state === 'OPEN' ? -1 : 1) - (b.state === 'OPEN' ? -1 : 1))[0];
+const prs = JSON.parse(
+  gh([
+    'pr',
+    'list',
+    '--repo',
+    repo,
+    '--state',
+    'all',
+    '--limit',
+    '200',
+    '--json',
+    'number,state,isDraft,labels,body,url,updatedAt,mergedAt,headRefName',
+  ]),
+);
+const prFor = (id) =>
+  prs
+    .filter((p) => p.labels.some((l) => l.name === `flow-${id}`))
+    .sort((a, b) => (a.state === 'OPEN' ? -1 : 1) - (b.state === 'OPEN' ? -1 : 1))[0];
 
-const lagos = (iso) => new Date(iso).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const lagos = (iso) =>
+  new Date(iso).toLocaleString('en-GB', {
+    timeZone: 'Africa/Lagos',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 const laneOf = (id) => Object.entries(status.lanes).find(([, l]) => l.flows.includes(id))?.[0] ?? '';
 
 const order = Object.values(status.lanes).flatMap((l) => l.flows);
 const ids = Object.keys(status.flows).sort((a, b) => a.localeCompare(b));
 const merged = new Set(ids.filter((id) => prFor(id)?.state === 'MERGED'));
 
-let done = 0, active = 0;
+let done = 0,
+  active = 0;
 const rows = [];
 const details = [];
 for (const id of ids) {
   const f = status.flows[id];
   let md = '';
-  if (f.file) try { md = show(`docs/prd/${f.file}`); } catch {}
+  if (f.file)
+    try {
+      md = show(`docs/prd/${f.file}`);
+    } catch {}
   const goal = (md.split(/^## Goal\s*$/m)[1] ?? '').trim().split(/\n\n/)[0].replace(/\s+/g, ' ');
   const proto = md.match(/\*\*Prototype:\*\*([^\n]+)/)?.[1] ?? '';
   const app = (proto.split(/admin screens?/i)[0].match(/`s-[\w-]+`/g) ?? []).map((s) => s.slice(1, -1));
@@ -46,9 +80,13 @@ for (const id of ids) {
 
   const pr = prFor(id);
   const waiting = f.deps.filter((d) => !merged.has(d));
-  let state, steps = '', next = '';
-  if (pr?.state === 'MERGED') { state = '✅ Done'; done++; }
-  else if (pr?.state === 'OPEN') {
+  let state,
+    steps = '',
+    next = '';
+  if (pr?.state === 'MERGED') {
+    state = '✅ Done';
+    done++;
+  } else if (pr?.state === 'OPEN') {
     const all = [...pr.body.matchAll(/^- \[( |x)\] (.+)$/gm)];
     const ticked = all.filter((m) => m[1] === 'x').length;
     state = `🔨 Building ${ticked}/${all.length}${pr.labels.some((l) => l.name === 'needs-phone') ? ' · needs phone' : ''}${pr.isDraft ? '' : ' · in CI'}`;
@@ -59,18 +97,26 @@ for (const id of ids) {
   else state = '🟢 Ready to start';
 
   const prLink = pr ? `[#${pr.number}](${pr.url})` : '';
-  rows.push(`| ${id} | ${f.name} | ${state} | ${app.length} / ${admin.length} | ${laneOf(id).replace(/-.*/, '')} | ${prLink} |`);
+  rows.push(
+    `| ${id} | ${f.name} | ${state} | ${app.length} / ${admin.length} | ${laneOf(id).replace(/-.*/, '')} | ${prLink} |`,
+  );
 
-  details.push([
-    `### ${id} · ${f.name} — ${state}`,
-    goal && `${goal}`,
-    app.length ? `**App screens (${app.length}):** ${app.join(', ')}` : '',
-    admin.length ? `**Admin screens (${admin.length}):** ${admin.join(', ')}` : '',
-    f.deps.length ? `**Needs:** ${f.deps.map((d) => `${d}${merged.has(d) ? ' ✅' : ''}`).join(', ')}` : '',
-    pr ? `**PR:** ${pr.url}${pr.state === 'OPEN' ? ` · last update ${lagos(pr.updatedAt)}` : pr.mergedAt ? ` · merged ${lagos(pr.mergedAt)}` : ''}` : '',
-    steps && `<details><summary>Steps</summary>\n\n${steps}\n</details>`,
-    next && `**Next:** ${next}`,
-  ].filter(Boolean).join('\n\n'));
+  details.push(
+    [
+      `### ${id} · ${f.name} — ${state}`,
+      goal && `${goal}`,
+      app.length ? `**App screens (${app.length}):** ${app.join(', ')}` : '',
+      admin.length ? `**Admin screens (${admin.length}):** ${admin.join(', ')}` : '',
+      f.deps.length ? `**Needs:** ${f.deps.map((d) => `${d}${merged.has(d) ? ' ✅' : ''}`).join(', ')}` : '',
+      pr
+        ? `**PR:** ${pr.url}${pr.state === 'OPEN' ? ` · last update ${lagos(pr.updatedAt)}` : pr.mergedAt ? ` · merged ${lagos(pr.mergedAt)}` : ''}`
+        : '',
+      steps && `<details><summary>Steps</summary>\n\n${steps}\n</details>`,
+      next && `**Next:** ${next}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
+  );
 }
 
 const out = `# Arpedia build checklist
