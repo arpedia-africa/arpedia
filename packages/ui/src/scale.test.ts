@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MIN_SCALE, scaleFor, scaled } from './scale';
+import { MIN_SCALE, scaleFor, scaled, snapBorder } from './scale';
 
 describe('scaleFor', () => {
   it('is 1 at the design width and above', () => {
@@ -28,5 +28,14 @@ describe('scaled', () => {
     expect(scaled(48, 0.85)).toBe(40.8);
     expect(scaled(15, 0.96)).toBe(14.4);
     expect(scaled(999, 0.85)).toBe(999);
+  });
+});
+
+describe('snapBorder', () => {
+  it('floors to whole device pixels, at least one, like Chrome', () => {
+    expect(snapBorder(1, 2.88125) * 2.88125).toBeCloseTo(2);
+    expect(snapBorder(1.5, 2.88125) * 2.88125).toBeCloseTo(4);
+    expect(snapBorder(0.2, 2)).toBe(0.5);
+    expect(snapBorder(0, 3)).toBe(0);
   });
 });

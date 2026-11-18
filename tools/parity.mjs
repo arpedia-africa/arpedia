@@ -180,14 +180,14 @@ function referenceScript(id, theme) {
     d.innerHTML = '<div class="screen" style="position:relative;inset:auto;padding-top:0">' + ${JSON.stringify(frag)} + '</div>';
     document.body.appendChild(d);
     await ${SETTLE};
-    return Math.ceil(d.getBoundingClientRect().height);
+    return d.getBoundingClientRect().height; // exact: crops end at the last device px of the screen, not the page behind it
   })()`;
 }
 
 async function chromeReference(b, id, theme, dpr) {
   await b.open(standards('prototype/index.html'), { width: 375, height: 1400, dpr });
   const height = await b.eval(referenceScript(id, theme));
-  const png = await b.shot({ x: 0, y: 0, width: 375, height });
+  const png = await b.shot({ x: 0, y: 0, width: 375, height: Math.ceil(height) });
   return { png, height };
 }
 
@@ -246,7 +246,7 @@ async function capture(pkg, query, id, theme, kind, g, height) {
   for (let i = 0; i < 80 && !m; i++) {
     await sleep(250);
     const log = adb('logcat', '-d', '-s', 'ReactNativeJS:I').toString();
-    m = [...log.matchAll(/PARITY_READY page=(\S+) theme=(\S+) kind=(\S+) top=(\d+)(?: h=(\d+))?/g)]
+    m = [...log.matchAll(/PARITY_READY page=(\S+) theme=(\S+) kind=(\S+) top=(\d+)(?: h=([\d.]+))?/g)]
       .filter((x) => x[1] === id && x[2] === theme && x[3] === kind)
       .pop();
   }
@@ -258,7 +258,7 @@ async function capture(pkg, query, id, theme, kind, g, height) {
   height ??= Number(m[5]);
   await sleep(900); // arrive animations
   const raw = adb('exec-out', 'screencap', '-p');
-  const h = Math.min(Math.round(height * g.dpr), g.heightPx - top);
+  const h = Math.min(Math.floor(height * g.dpr), g.heightPx - top);
   return {
     png: await sharp(raw).extract({ left: 0, top, width: g.widthPx, height: h }).png().toBuffer(),
     height,

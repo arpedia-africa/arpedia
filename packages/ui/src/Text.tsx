@@ -155,6 +155,30 @@ export function androidFontSize(
   return { fontSize: (px - 0.01) / r, letterSpacing: (fontSize - px / r) * m[2] };
 }
 
+/**
+ * Vertical shift (dp, + = down) that puts a single-line TextInput's baseline where Chrome draws an
+ * input's. Chrome centres a `lineHeight` line box (whole-px ascent/descent, half-leading floored, as
+ * in lineBox); Android centres the font's whole-px ascent + descent (includeFontPadding off).
+ * Apply as paddingTop + shift / paddingBottom − shift.
+ */
+export function androidInputShift(fontSize: number, lineHeight: number, family: string): number {
+  const m = fontMetrics[family];
+  if (Platform.OS !== 'android' || !m) return 0;
+  const r = PixelRatio.get() * PixelRatio.getFontScale();
+  const px = Math.max(1, Math.round(fontSize * r));
+  const android = (Math.ceil(px * m[0]) - Math.ceil(px * m[1])) / 2;
+  const d = fontSize * r * m[1];
+  let ab = Math.round(fontSize * r * m[0]);
+  let db = Math.round(d);
+  if (db < d && ab >= 1) {
+    db++;
+    ab--;
+  }
+  const lh = lineHeight * r;
+  const chrome = ab + Math.floor((lh - ab - db) / 2) - lh / 2;
+  return (chrome - android) / PixelRatio.get();
+}
+
 /** The size RN's fit search ends at from `start` px when the text fits (float32, like the Kotlin). */
 function fitResult(start: number, min: number): number {
   let size = start;

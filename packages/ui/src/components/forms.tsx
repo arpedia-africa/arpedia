@@ -10,7 +10,7 @@ import { fontFamily } from '../fonts';
 import { Icon, type IconName } from '../Icon';
 import { ease } from '../motion';
 import { Press } from '../Pressable';
-import { Text, androidFontSize } from '../Text';
+import { Text, androidFontSize, androidInputShift } from '../Text';
 import { useTheme } from '../theme';
 import { motion, rgba } from '../tokens';
 
@@ -55,6 +55,7 @@ export function Field({
   }));
   const halo = useAnimatedStyle(() => ({ opacity: f.value }));
   const fs = s(14);
+  const inputShift = androidInputShift(fs, fs * 1.45, fontFamily('ui', 400));
   return (
     <View style={{ gap: s(6) }}>
       {label ? (
@@ -111,9 +112,10 @@ export function Field({
               flex: 1,
               minWidth: 0,
               // `padding: 12px 0`; Android's TextInput adds its own side padding otherwise
-              paddingVertical: s(12),
+              // (.device line-height 1.45 inherited through font:inherit); Chrome's baseline via inputShift
+              paddingTop: s(12) + inputShift,
+              paddingBottom: s(12) - inputShift,
               paddingHorizontal: 0,
-              // Chrome centres the font's ascent+descent; Android's extra font padding put the text ~1px low
               includeFontPadding: false,
               fontFamily: fontFamily('ui', 400),
               ...androidFontSize(fs, fontFamily('ui', 400)),
