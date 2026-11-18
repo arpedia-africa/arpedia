@@ -9,6 +9,13 @@ Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live st
    - Local gates include the flow's Maestro flows **on the phone** at 320, 360 and 375dp (`tools/maestro-widths.mjs`). Paste the result in the PR. GitHub CI no longer runs Android on PRs; it runs only nightly on main.
    - Then mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
 3. Otherwise start the next ready flow, taking lanes in this order: L1-critical, then L2-product, then L3-money-ops. A flow is ready when it isn't started, all its deps are merged, and its questions are in answeredQuestions or acceptDefaultsFor.
+   - **Stacked start (owner approved, 18 Nov):** a flow is also ready when every dependency is merged **except** ones whose open PR is labelled `needs-phone` (only on-device checks left).
+     - Branch from that dependency's branch, e.g. `git checkout -b flow/NN-name origin/flow/01-sign-in`.
+     - Open the PR against `main` and put "Stacked on #<dep PR>" in Notes.
+     - Do the database, Workers and admin first; app screens can follow.
+     - When the dependency merges, rebase: `git rebase --onto origin/main origin/<dep-branch>`, push with `--force-with-lease`, and remove the note.
+     - Never mark a stacked PR ready before its dependency has merged.
+     - Never edit the dependency's files to work around something; comment on its PR instead.
    - The first flow is 00 Foundation (docs/prd/00-foundation.md), which also sets up CI and branch protection.
    - Claim it: push branch flow/NN-name from main, then open a draft PR labelled flow-NN with the Progress checklist from CLOUD-RUN.md.
    - Build it with the kickoff prompt in docs/prd/BUILD-PLAN.md. Screens must match the prototype exactly (tools/screen.mjs, tools/shot.mjs). Check them at 320, 360 and 375dp in all four themes.
