@@ -23,15 +23,17 @@ appId: com.arpedia.reader
 - tapOn: 'Motion on'
 - assertVisible: 'Motion off'
 - tapOn: 'Sunflower'
+# The hosted CI emulator manages only ~2 swipes in 10 s, and the page is
+# ~1500dp to Lists at 375dp, so give each scroll a minute.
 - scrollUntilVisible:
     element: 'Lists'
     direction: DOWN
-    timeout: 10000
+    timeout: 60000
 - takeScreenshot: kit-${WIDTH}-lists
 - scrollUntilVisible:
     element: 'Open sheet'
     direction: DOWN
-    timeout: 10000
+    timeout: 60000
 - tapOn: 'Open sheet'
 - assertVisible: 'Unlock for 125 credits'
 - takeScreenshot: kit-${WIDTH}-sheet
