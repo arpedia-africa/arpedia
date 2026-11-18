@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { safeUnzip } from './sanitize';
 import { assignAnchors } from './seal-book';
 import { checkChapters, verifyPackage } from './verify';
-import { FixError, applyFix, carryCopyright, copyrightText, type WorkCopy } from './work';
+import { FixError, applyFix, carryCopyright, copyrightAnchors, copyrightText, type WorkCopy } from './work';
 
 const words = (n: number, w = 'word') => Array.from({ length: n }, () => w).join(' ');
 
@@ -121,6 +121,24 @@ describe('applyFix', () => {
     const r = await applyFix(w, { op: 'dismiss_flag', reason: 'Intended' });
     expect(r).toEqual({ work: w, touched: [], restructured: false });
     await expect(applyFix(w, { op: 'shrink_image', image: 'img/1.png' })).rejects.toBeInstanceOf(FixError);
+  });
+});
+
+describe('copyrightAnchors', () => {
+  it('gives a staff-added Copyright page the same uid and paragraph id in every revision of a book', async () => {
+    const a = await copyrightAnchors('00000000-0000-4000-c000-000000000001');
+    expect(await copyrightAnchors('00000000-0000-4000-c000-000000000001')).toEqual(a);
+    expect((await copyrightAnchors('00000000-0000-4000-c000-000000000002')).chapter_uid).not.toBe(
+      a.chapter_uid,
+    );
+    expect(a.chapter_uid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(a.para_id).toMatch(/^p_[a-z2-7]{10}$/);
+    const r = await applyFix(await work(), {
+      op: 'insert_copyright_page',
+      text: copyrightText('Ada', 2026),
+      ...a,
+    });
+    expect([r.work.anchors.uids[0], r.work.anchors.ids[0]]).toEqual([a.chapter_uid, [a.para_id]]);
   });
 });
 

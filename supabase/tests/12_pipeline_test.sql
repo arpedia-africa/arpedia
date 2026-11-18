@@ -3,7 +3,7 @@
 -- anchor migration, unpublish refunds, RLS and the staff role matrix.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(80);
+select plan(82);
 
 -- ─── Actors ─────────────────────────────────────────────────────────────────
 insert into auth.users (id, email) values
@@ -340,6 +340,33 @@ select is((select current_revision_id from public.books where title = 'Harmattan
   '12000000-0000-4000-e000-000000000003'::uuid, 'the fast-lane revision is live');
 select ok(exists (select 1 from public.audit_log where action = 'book.publish' and actor_id is null
   and object_id = '12000000-0000-4000-e000-000000000003'), 'the fast lane writes a system audit row');
+
+-- ─── Fast lane: an update whose only change is a staff-added Copyright page ──
+insert into public.book_revisions (id, book_id, revision_no, status, words, pages, price_credits, preview_percent,
+  preview_cut_para_id, free_through_ord, generation, base_revision_id, uploaded_by, submitted_at)
+select '12000000-0000-4000-e000-000000000009', b.id, 4, 'processing', 6000, 24, 12, 10, 'p_aaaaaaaaa2', -1, 1,
+  b.current_revision_id, '12000000-0000-4000-a000-000000000001', now()
+from public.books b where b.title = 'Harmattan Test';
+insert into public.chapters (revision_id, chapter_uid, ord, title, words, words_before, pages, front)
+values ('12000000-0000-4000-e000-000000000009', '12000000-0000-4000-c100-000000000009', 0, 'Copyright', 0, 0, 0,
+  'copyright');
+insert into public.chapters (revision_id, chapter_uid, ord, title, words, words_before, pages)
+select '12000000-0000-4000-e000-000000000009', (c.value ->> 'chapter_uid')::uuid, (c.value ->> 'ord')::int + 1,
+  c.value ->> 'title', (c.value ->> 'words')::int, (c.value ->> 'words_before')::int, (c.value ->> 'pages')::numeric
+from jsonb_array_elements(pg_temp.result() -> 'chapters') c;
+select pg_temp.as_service();
+select is(public.complete_seal('12000000-0000-4000-e000-000000000009', 1,
+  pg_temp.seal(array['p_aaaaaaaaa1', 'p_aaaaaaaaa2', 'p_aaaaaaaaa4', 'p_aaaaaaaaa5'], jsonb_build_object(
+    'chapters', (pg_temp.seal('{}') -> 'chapters')
+      || '[{"chapter_uid":"12000000-0000-4000-c100-000000000009","free_file":"cc.free","full_file":"cc.full"}]',
+    'keys', (pg_temp.seal('{}') -> 'keys')
+      || '[{"chapter_uid":"12000000-0000-4000-c100-000000000009","wrapped_key":"azk="}]',
+    'prices', pg_temp.prices(2, 6, 4) || '[{"chapter_uid":"12000000-0000-4000-c100-000000000009","price_credits":0}]',
+    'diff', '{"inserted_words":0,"deleted_words":0,"changed_pct":0,"chapters_added":1,
+              "added_chapter_uids":["12000000-0000-4000-c100-000000000009"],"removed_chapter_uids":[]}'::jsonb)))
+  ->> 'fast_lane', 'true', 'an update whose only change is a staff-added Copyright page takes the fast lane');
+select is((select chapters_added from public.revision_diffs where revision_id = '12000000-0000-4000-e000-000000000009'),
+  0, 'a Copyright page is not counted as a chapter added');
 
 -- ═══ 5. set_chapter_prices invariants ═══════════════════════════════════════
 update public.book_revisions set free_through_ord = 0 where id = '12000000-0000-4000-e000-000000000002';

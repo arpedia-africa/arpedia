@@ -593,6 +593,7 @@ export type Database = {
         Row: {
           chapter_uid: string;
           free_file: string | null;
+          front: string | null;
           full_file: string | null;
           id: string;
           kind: Database['public']['Enums']['chapter_kind'];
@@ -609,6 +610,7 @@ export type Database = {
         Insert: {
           chapter_uid?: string;
           free_file?: string | null;
+          front?: string | null;
           full_file?: string | null;
           id?: string;
           kind?: Database['public']['Enums']['chapter_kind'];
@@ -624,6 +626,7 @@ export type Database = {
         Update: {
           chapter_uid?: string;
           free_file?: string | null;
+          front?: string | null;
           full_file?: string | null;
           id?: string;
           kind?: Database['public']['Enums']['chapter_kind'];

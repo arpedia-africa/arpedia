@@ -78,6 +78,11 @@ alter table public.book_revisions
   add column notify_followers boolean not null default true,
   add column anchors_moved jsonb;
 
+-- Front matter (Default Q51): counted as 0 words; copyright and contents pages also sit outside the
+-- fast lane's "chapters added or removed" test (coordinator decision, 18 Nov).
+alter table public.chapters
+  add column front text check (front in ('copyright', 'contents', 'dedication', 'epigraph', 'title_page'));
+
 create unique index book_revisions_one_live_idx on public.book_revisions (book_id) where status = 'live';
 create index book_revisions_status_idx on public.book_revisions (status, due_at);
 create index book_revisions_schedule_idx on public.book_revisions (schedule_at) where status = 'scheduled';
@@ -373,6 +378,9 @@ declare
   v_score int := public.revision_score(p_rev);
 begin
   update public.book_revisions set readiness = v_score where id = p_rev;
+  -- "Why not the fast lane" lists only reasons that are still true: once staff fix the book up to
+  -- the ready score, readiness drops off the list (coordinator decision). The routing itself stands.
+  update public.revision_diffs set reasons = public._fast_lane_check(p_rev) where revision_id = p_rev;
   return v_score;
 end $$;
 
@@ -413,12 +421,12 @@ begin
   end if;
   delete from public.chapters where revision_id = p_rev;
   insert into public.chapters (revision_id, chapter_uid, ord, kind, parent_ord, title, words, words_before,
-                               pages, price_credits)
+                               pages, price_credits, front)
   select p_rev, coalesce(c.chapter_uid, gen_random_uuid()), c.ord, coalesce(c.kind, 'chapter'), c.parent_ord,
-         c.title, c.words, c.words_before, c.pages, coalesce(c.price_credits, 0)
+         c.title, c.words, c.words_before, c.pages, coalesce(c.price_credits, 0), c.front
   from jsonb_to_recordset(p_chapters) as c(chapter_uid uuid, ord int, kind public.chapter_kind, parent_ord int,
                                            title text, words int, words_before int, pages numeric,
-                                           price_credits int);
+                                           price_credits int, front text);
 end $$;
 
 -- Totals and preview from a Worker result (verify, confirm).
@@ -992,7 +1000,8 @@ end $$;
 -- p_seal: artifact_prefix, manifest_key, work_version, chapters[{chapter_uid, free_file, full_file}],
 -- keys[{chapter_uid|null, wrapped_key (base64), key_version}] (new keys only), anchors[], prices[],
 -- anchor_migrations[], diff{inserted_words, deleted_words, changed_pct, chapters_added,
--- chapters_removed, changed_chapter_uids, added_chapter_uids, cover_changed, metadata_changed, diff_key}.
+-- chapters_removed, changed_chapter_uids, added_chapter_uids, removed_chapter_uids, cover_changed,
+-- metadata_changed, diff_key}.
 create function public.complete_seal(p_rev uuid, p_generation int, p_seal jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -1053,15 +1062,31 @@ begin
     insert into public.revision_diffs (revision_id, base_revision_id, inserted_words, deleted_words, changed_pct,
                                        chapters_added, chapters_removed, changed_chapter_uids, added_chapter_uids,
                                        cover_changed, metadata_changed, author_in_good_standing, diff_key)
+    -- Chapters added or removed are counted here from the uids, leaving out copyright and contents
+    -- pages (Default Q51 front matter; coordinator decision): adding a Copyright page is no reason
+    -- to keep an update out of the fast lane.
     select p_rev, v_rev.base_revision_id, coalesce(d.inserted_words, 0), coalesce(d.deleted_words, 0),
-           coalesce(d.changed_pct, 0), coalesce(d.chapters_added, 0), coalesce(d.chapters_removed, 0),
-           coalesce(d.changed_chapter_uids, '{}'), coalesce(d.added_chapter_uids, '{}'),
+           coalesce(d.changed_pct, 0),
+           case when d.added_chapter_uids is null then coalesce(d.chapters_added, 0)
+                else cardinality(added.uids) end,
+           case when d.removed_chapter_uids is null then coalesce(d.chapters_removed, 0)
+                else (select count(*)::int from unnest(d.removed_chapter_uids) u
+                      where not exists (select 1 from public.chapters c
+                                         where c.revision_id = v_rev.base_revision_id and c.chapter_uid::text = u
+                                           and c.front in ('copyright', 'contents'))) end,
+           coalesce(d.changed_chapter_uids, '{}'), coalesce(added.uids, '{}'),
            coalesce(d.cover_changed, false), coalesce(d.metadata_changed, false),
            public.author_in_good_standing(v_author), d.diff_key
     from jsonb_to_record(p_seal -> 'diff') as d(inserted_words int, deleted_words int, changed_pct numeric,
                                                 chapters_added int, chapters_removed int,
                                                 changed_chapter_uids text[], added_chapter_uids text[],
+                                                removed_chapter_uids text[],
                                                 cover_changed boolean, metadata_changed boolean, diff_key text)
+    cross join lateral (
+      select array(select u from unnest(d.added_chapter_uids) u
+                    where not exists (select 1 from public.chapters c
+                                       where c.revision_id = p_rev and c.chapter_uid::text = u
+                                         and c.front in ('copyright', 'contents'))) as uids) added
     on conflict (revision_id) do update set
       inserted_words = excluded.inserted_words, deleted_words = excluded.deleted_words,
       changed_pct = excluded.changed_pct, chapters_added = excluded.chapters_added,
@@ -1072,7 +1097,8 @@ begin
   end if;
 
   if v_rev.status <> 'processing' then
-    -- A reseal after staff fixes: artefacts updated, stage unchanged.
+    -- A reseal after staff fixes: artefacts updated, stage unchanged; the reasons shown are refreshed.
+    update public.revision_diffs set reasons = public._fast_lane_check(p_rev) where revision_id = p_rev;
     return jsonb_build_object('applied', true, 'status', v_rev.status);
   end if;
 

@@ -110,6 +110,7 @@ export function countsPayload(work: WorkCopy) {
       words_before: c.wordsBefore,
       pages: c.pages,
       price_credits: c.priceCredits,
+      front: c.front,
     })),
   };
 }
@@ -216,13 +217,20 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   if (error) throw error;
 }
 
-/** Word-level change against the base revision (rule 42). */
+/** Copyright and contents pages (Default Q51 front matter) are left out of the change. */
+const outside = (c: WorkCopy['chapters'][number]) => c.front === 'copyright' || c.front === 'contents';
+
+/**
+ * Word-level change against the base revision (rule 42). complete_seal counts the chapters added
+ * and removed from the uids, leaving out copyright and contents pages (coordinator decision).
+ */
 function diff(base: WorkCopy, next: WorkCopy) {
   const words = (t: string) => t.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? [];
   const baseText = new Map<string, string>();
   const baseChapter = new Map<string, string>();
   base.chapters.forEach((c, i) =>
     c.blocks.forEach((b, j) => {
+      if (outside(c)) return;
       const id = base.anchors.ids[i]![j]!;
       baseText.set(id, b.text);
       baseChapter.set(id, base.anchors.uids[i]!);
@@ -234,6 +242,7 @@ function diff(base: WorkCopy, next: WorkCopy) {
   const changed = new Set<string>();
   next.chapters.forEach((c, i) =>
     c.blocks.forEach((b, j) => {
+      if (outside(c)) return;
       const id = next.anchors.ids[i]![j]!;
       const old = baseText.get(id);
       seen.add(id);
@@ -256,15 +265,17 @@ function diff(base: WorkCopy, next: WorkCopy) {
   const baseUids = new Set(base.anchors.uids);
   const nextUids = new Set(next.anchors.uids);
   const added = [...nextUids].filter((u) => !baseUids.has(u));
+  const removed = [...baseUids].filter((u) => !nextUids.has(u));
   return {
     inserted_words: inserted,
     deleted_words: deleted,
     changed_pct: base.words ? Math.round(((inserted + deleted) / base.words) * 100_000) / 1000 : 100,
     chapters_added: added.length,
-    chapters_removed: [...baseUids].filter((u) => !nextUids.has(u)).length,
+    chapters_removed: removed.length,
     // Changed chapters the new revision still has; added ones are listed apart.
     changed_chapter_uids: next.anchors.uids.filter((u) => changed.has(u) && baseUids.has(u)),
     added_chapter_uids: added,
+    removed_chapter_uids: removed,
   };
 }
 

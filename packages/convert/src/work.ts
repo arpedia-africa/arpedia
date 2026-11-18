@@ -26,7 +26,7 @@ export type FixOp =
   | { op: 'set_heading'; chapter_uid: string; para_id: string }
   | { op: 'merge_chapter_up'; chapter_uid: string }
   | { op: 'remove_paragraph'; chapter_uid: string; para_id: string }
-  | { op: 'insert_copyright_page'; text: string }
+  | { op: 'insert_copyright_page'; text: string; chapter_uid?: string; para_id?: string }
   | { op: 'dismiss_flag'; reason: string }
   | { op: 'shrink_image'; image: string };
 
@@ -171,9 +171,9 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
       });
       // parent_ord points at the chapter a part came from, which has moved down one
       for (const c of chapters.slice(1)) if (c.parentOrd !== null) c.parentOrd += 1;
-      const uid = crypto.randomUUID();
+      const uid = op.chapter_uid ?? crypto.randomUUID();
       anchors.uids.unshift(uid);
-      anchors.ids.unshift([newParaId()]);
+      anchors.ids.unshift([op.para_id ?? newParaId()]);
       anchors.fps.unshift([await fingerprint(text)]);
       const next: WorkCopy = { ...work, chapters, anchors };
       Object.assign(next, priceChapters(next.chapters));
@@ -204,6 +204,24 @@ export function carryCopyright(work: WorkCopy, base: WorkCopy): WorkCopy | null 
   // the default target, as verify and the fixes use (preview.percent is what the cut achieved)
   Object.assign(next, priceChapters(next.chapters));
   return next;
+}
+
+/**
+ * The chapter uid and paragraph id of a staff-added Copyright page, fixed by the book (coordinator
+ * decision): the same in every revision, so updates never count it as a chapter removed and added.
+ */
+export async function copyrightAnchors(bookId: string): Promise<{ chapter_uid: string; para_id: string }> {
+  const h = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${bookId}:copyright`)),
+  );
+  const b = h.slice(0, 16);
+  b[6] = (b[6]! & 0x0f) | 0x50; // name-based (version 5 layout)
+  b[8] = (b[8]! & 0x3f) | 0x80; // RFC 4122 variant
+  const x = Array.from(b, (n) => n.toString(16).padStart(2, '0')).join('');
+  return {
+    chapter_uid: `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`,
+    para_id: newParaId(() => h.slice(16, 26)),
+  };
 }
 
 /** The text of a copyright page made from the book's details. */

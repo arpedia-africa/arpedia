@@ -2,7 +2,15 @@
 // the rescore of touched chapters, Mark fixed and send to review (reseal first), and the signed
 // preview of the working copy (also for the revision's author).
 import type { Json } from '@arpedia/core';
-import { type FixOp, FixError, TEXT_CHECKS, applyFix, checkChapters, copyrightText } from '@arpedia/convert';
+import {
+  type FixOp,
+  FixError,
+  TEXT_CHECKS,
+  applyFix,
+  checkChapters,
+  copyrightAnchors,
+  copyrightText,
+} from '@arpedia/convert';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { serviceDb } from '../../db';
@@ -113,7 +121,11 @@ staff.post('/fix', async (c) => {
       .eq('id', rev.book_id)
       .single();
     const author = (book?.profiles as { full_name: string | null } | null)?.full_name ?? 'The author';
-    op = { op: 'insert_copyright_page', text: copyrightText(author, new Date().getUTCFullYear()) };
+    op = {
+      op: 'insert_copyright_page',
+      text: copyrightText(author, new Date().getUTCFullYear()),
+      ...(await copyrightAnchors(rev.book_id)),
+    };
   } else op = parsed!;
 
   const work = await loadWork(c.env, rev.id, rev.work_version);
