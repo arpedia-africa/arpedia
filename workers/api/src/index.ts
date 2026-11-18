@@ -1,11 +1,19 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { AppEnv } from './env';
+import type { AppEnv, Env } from './env';
 import { routes } from './routes';
+import { consumeQueue } from './routes/12/pipeline';
 
 const app = new Hono<AppEnv>();
 
-app.use('*', cors({ origin: '*', allowHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'] }));
+// X-Content-SHA256: the admin console uploads files from the browser straight to signed object URLs.
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Content-SHA256'],
+  }),
+);
 
 // Public liveness probe (no auth, no dependencies).
 app.get('/health', (c) => c.json({ ok: true, service: 'api', env: c.env.APP_ENV }));
@@ -18,4 +26,8 @@ app.onError((err, c) => {
   return c.json({ error: 'internal' }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // Every minute: the book pipeline's safety net (flow 12).
+  scheduled: (_event, env, ctx) => ctx.waitUntil(consumeQueue(env)),
+} satisfies ExportedHandler<Env>;

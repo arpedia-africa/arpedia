@@ -131,8 +131,9 @@ You should see both accounts, with **arpedia-africa** active. `gh auth switch` s
 
 ### 2.4 Security settings, both projects
 1. Authentication → **Sign In / Providers**: Email **on**, "Confirm email" **on**. Leave Google off; it's switched on in Part 8.
-2. Authentication → **Rate limits**: leave the defaults.
-3. Project Settings → **Database** → **Network restrictions**: leave open for now (Cloudflare Workers need access).
+2. Authentication → **Multi-Factor**: **TOTP (authenticator app)** on. Staff sign-in to the admin console needs it (flow 01).
+3. Authentication → **Rate limits**: leave the defaults.
+4. Project Settings → **Database** → **Network restrictions**: leave open for now (Cloudflare Workers need access).
 
 ---
 

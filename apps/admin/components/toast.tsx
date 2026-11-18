@@ -1,43 +1,49 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
-export interface ToastMessage {
-  text: string;
-  /** Shows "Undo" after the text (the prototype's data-undo). */
-  onUndo?: () => void;
+interface Shown {
+  msg: string;
+  undo?: () => void;
 }
 
-/** The prototype's single .toast at the bottom of the console: 4.5 seconds, optional Undo. */
-export function useToast() {
-  const [msg, setMsg] = useState<ToastMessage | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const show = useCallback((m: ToastMessage) => {
-    setMsg(m);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setMsg(null), 4500);
-  }, []);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const node = (
-    <div className="toast" role="status" aria-live="polite" hidden={!msg}>
-      {msg?.text}
-      {msg?.onUndo ? (
+/**
+ * The prototype's toast (`#toast`, 4.5 s, optional Undo link). Render `node` somewhere that stays
+ * mounted, and call `show` with the message.
+ */
+export function useToast(): [ReactNode, (msg: string, undo?: () => void) => void] {
+  const [shown, setShown] = useState<Shown | null>(null);
+  useEffect(() => {
+    if (!shown) return;
+    const t = setTimeout(() => setShown(null), 4500);
+    return () => clearTimeout(t);
+  }, [shown]);
+  const show = useCallback((msg: string, undo?: () => void) => setShown({ msg, undo }), []);
+  const node = shown && (
+    <div className="toast" role="status" aria-live="polite">
+      {shown.msg}
+      {shown.undo && (
         <>
           {' '}
           <a
-            href="#undo"
-            onClick={e => {
-              e.preventDefault();
-              const undo = msg.onUndo;
-              setMsg(null);
-              undo?.();
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              setShown(null);
+              shown.undo!();
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                setShown(null);
+                shown.undo!();
+              }
             }}
           >
             Undo
           </a>
         </>
-      ) : null}
+      )}
     </div>
   );
-  return { show, node };
+  return [node, show];
 }

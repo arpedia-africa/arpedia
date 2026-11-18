@@ -9,6 +9,13 @@ Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live st
    - Local gates include the flow's Maestro flows **on the phone** at 320, 360 and 375dp (`tools/maestro-widths.mjs`). Paste the result in the PR. GitHub CI no longer runs Android on PRs; it runs only nightly on main.
    - Then mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
 3. Otherwise start the next ready flow, taking lanes in this order: L1-critical, then L2-product, then L3-money-ops. A flow is ready when it isn't started, all its deps are merged, and its questions are in answeredQuestions or acceptDefaultsFor.
+   - **Stacked start (owner approved, 18 Nov):** a flow is also ready when every dependency is merged **except** ones whose open PR is labelled `needs-phone` (only on-device checks left).
+     - Branch from that dependency's branch, e.g. `git checkout -b flow/NN-name origin/flow/01-sign-in`.
+     - Open the PR against `main` and put "Stacked on #<dep PR>" in Notes.
+     - Do the database, Workers and admin first; app screens can follow.
+     - When the dependency merges, rebase: `git rebase --onto origin/main origin/<dep-branch>`, push with `--force-with-lease`, and remove the note.
+     - Never mark a stacked PR ready before its dependency has merged.
+     - Never edit the dependency's files to work around something; comment on its PR instead.
    - The first flow is 00 Foundation (docs/prd/00-foundation.md), which also sets up CI and branch protection.
    - Claim it: push branch flow/NN-name from main, then open a draft PR labelled flow-NN with the Progress checklist from CLOUD-RUN.md.
    - Build it with the kickoff prompt in docs/prd/BUILD-PLAN.md. Screens must match the prototype exactly (tools/screen.mjs, tools/shot.mjs). Check them at 320, 360 and 375dp in all four themes.
@@ -30,19 +37,32 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
 - **`c1212d5c`: the owner's phone** (Redmi Note 13, Android 15, exactly **375 dp wide**). It is the **main test device**, and the visual-parity captures at 375 dp are taken here.
   - The owner approved replacing v25 on it. If an install fails with a signature mismatch, run `adb -s c1212d5c uninstall com.arpedia.reader` once, then install.
   - Never touch any other app on this phone.
-- **`emulator-5554`:** for the 320 and 360 dp checks (`adb -s emulator-5554 shell wm size` / `wm density` to set the width, and reset afterwards) and for anything that may crash or wipe data.
+- **320 and 360 dp checks: on the phone.** The emulator can't start on this PC (not enough RAM). While holding the phone lock, set the width with `adb -s c1212d5c shell wm density <dpi>`: 1080 px ÷ (dpi/160) = dp, so 540 dpi gives 320 dp and 480 dpi gives 360 dp. Afterwards **always** restore the owner's setting, `wm density 461` (375 dp). Never change `wm size`.
+- **`emulator-5554`:** only if it is already running, for anything that may crash or wipe data.
 - If the phone isn't connected, use the emulator only and note it in the PR.
+- **Database lock (builders on one PC share one local Supabase stack, project_id `arpedia`):**
+  - Before `supabase start`, `db reset`, pgTAP, smoke tests or local Workers against it, take the lock with `mkdir ~/projects/arpedia-locks/db.lock`. The same 30-minute stale rule applies as for the phone.
+  - Run `supabase db reset` first, so the database matches **your** branch's migrations.
+  - Release the lock when you're done, and always before the run ends.
 - **Phone lock (two builders share the phone):**
-  - Before any adb install, Metro session or parity/Maestro run on `c1212d5c`, take the lock with `mkdir "$TEMP/arpedia-phone.lock"`.
+  - Before any adb install, Metro session or parity/Maestro run on `c1212d5c`, take the lock with `mkdir ~/projects/arpedia-locks/phone.lock`.
   - If that fails because the lock exists and is under 30 minutes old, another builder is using the phone: do non-phone work, or try again later in the run. If it's older than 30 minutes, it's stale; remove it and take it.
   - Remove the lock as soon as you're done with the phone, and always before the run ends.
   - Never uninstall or clear the app while another builder holds the lock.
+- **The owner may pick up the phone.** Before every capture, check that `adb -s c1212d5c shell dumpsys window | grep mCurrentFocus` shows `com.arpedia.reader` or `.dev`. If it doesn't, wait 30 s and check again (up to 10 minutes). Never open, close or screenshot another app. Throw away any capture where something else is showing.
+- **Leftover Metro:** if port 8081 is busy at the start of a run, it's a Metro left by an earlier run of this clone. Stop it with `npx kill-port 8081`.
 
 **Fast screen loop (use it for all app screen work):** never rebuild a release APK to try a visual fix.
 1. Once per run, install the dev build `com.arpedia.reader.dev` (debug, expo-dev-client) with `node tools/android-dev.mjs <serial>`. Skip this if it is already installed and no native dependency or app.json plugin changed.
 2. `adb -s <serial> reverse tcp:8081 tcp:8081`, then start Metro (`npx expo start --dev-client` in apps/mobile). Metro is the **only** process you may run in the background, and you must stop it before the run ends.
 3. Edit, and the phone reloads in seconds. Capture with `node tools/parity.mjs --dev <ids>` while you iterate.
-4. Only when the screens pass on the dev build: one release build (`tools/android-release.mjs`) and the final `node tools/parity.mjs <ids>`. That result is the gate.
+4. When nothing visible differs on the dev build: one release build (`tools/android-release.mjs`), a final `node tools/parity.mjs <ids>` for the side-by-side images, posted in the PR. **The percentage is advisory (owner decision): never spend time on 1–2 device-pixel text offsets or anti-aliasing. The owner says when a screen is wrong.**
+5. **Bar: very, very good, not perfectionist** (CLAUDE.md). Before marking the visual step done, review each side-by-side as a demanding designer would: hierarchy, spacing rhythm, alignment, real and long data, four themes, empty/loading/error/offline states, smooth motion. Fix what a person would notice; skip what only a pixel diff notices. Then list in the PR anything you judged "good enough", so the owner can decide.
+6. **Owner preview (every flow with app screens, before `gh pr ready`):** leave the owner a working app on `c1212d5c`:
+   - The **release** app `com.arpedia.reader` pointed at this PC's local stack with `127.0.0.1` URLs, plus `adb reverse` for the Supabase API and the api Worker ports (never `10.0.2.2` on the phone).
+   - The local stack and Worker left running, with a seeded demo reader account (and a demo author or staff account where the flow has one). These are local test logins only, not secrets.
+   - Post a PR comment "Owner preview" with the demo logins, what to tap through, and what is still a placeholder.
+   - Until staging exists, the preview only works while the phone is plugged into this PC.
 
 The dev build `com.arpedia.reader.dev` is ours: installing, clearing or uninstalling it on the phone is approved.
 

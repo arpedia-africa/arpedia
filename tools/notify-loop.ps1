@@ -5,9 +5,11 @@ param(
   [Parameter(Mandatory = $true)][string]$Topic,
   [int]$Minutes = 10,
   [string]$Repo = 'arpedia-africa/arpedia',
-  [string]$BuilderLog = ''
+  [int]$ChecklistIssue = 0,        # GitHub issue that holds the live build checklist
+  [string[]]$BuilderLog = @()   # one or more builder logs, comma-separated
 )
 $ErrorActionPreference = 'Continue'
+$BuilderLog = @($BuilderLog | ForEach-Object { $_ -split "," } | Where-Object { $_ })   # -File passes "a,b" as one string
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $lastSha = ''
 
@@ -42,14 +44,15 @@ while ($true) {
     $lines = @("MERGED: $($merged[0].title)") + $lines; $tags = 'tada'; $prio = 'high'
   }
   # builder stopped on a usage limit?
-  if ($BuilderLog -and (Test-Path $BuilderLog)) {
-    $tail = (Get-Content $BuilderLog -Tail 20 -ErrorAction SilentlyContinue) -join "`n"
+  $tail = ($BuilderLog | Where-Object { $_ -and (Test-Path $_) } | ForEach-Object { (Get-Content $_ -Tail 20 -ErrorAction SilentlyContinue) -join "`n" }) -join "`n"
+  if ($tail) {
     if ($tail -match 'hit its limit') { $lines = @('Builder STOPPED: Claude account hit its limit. Run claude /login with another account and restart.') + $lines; $tags = 'warning'; $prio = 'high' }
   }
   if (-not $prs) { $lines += 'No open flow PR right now (waiting or between flows).' }
   if ($newest -and $newest -eq $lastSha -and $prio -ne 'high') { $lines = @('No new commits in the last ' + $Minutes + ' min (still working).') + $lines; $tags = 'hourglass' }
   $lastSha = $newest
 
+  if ($ChecklistIssue) { try { node "$PSScriptRoot\checklist.mjs" --issue $ChecklistIssue | Out-Null } catch {} }   # live checklist issue
   Send-Ntfy -title 'Arpedia build' -body ($lines -join "`n") -tags $tags -prio $prio -click $click
   Write-Host "$(Get-Date -Format HH:mm) sent: $($lines[0])"
   Start-Sleep -Seconds ($Minutes * 60)

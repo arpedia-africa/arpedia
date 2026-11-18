@@ -15,7 +15,7 @@ export async function acceptInvite(_prev: AcceptState, form: FormData): Promise<
   if (password.length < STAFF_PASSWORD_MIN) return { error: `Use at least ${STAFF_PASSWORD_MIN} characters.` };
   let r: Response;
   try {
-    r = await fetch(`${process.env.API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-invites/${encodeURIComponent(token)}/accept`, {
+    r = await fetch(`${process.env.ARPEDIA_API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-invites/${encodeURIComponent(token)}/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),

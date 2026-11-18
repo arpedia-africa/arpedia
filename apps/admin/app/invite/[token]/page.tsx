@@ -24,7 +24,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   let invite: Invite | null = null;
   let offline = false;
   try {
-    const r = await fetch(`${process.env.API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-invites/${encodeURIComponent(token)}`, {
+    const r = await fetch(`${process.env.ARPEDIA_API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-invites/${encodeURIComponent(token)}`, {
       cache: 'no-store',
     });
     if (r.ok) invite = (await r.json()) as Invite;

@@ -25,7 +25,7 @@ export async function inviteStaff(email: string, fullName: string, role: StaffRo
   if (!session) return { error: 'Your session ended. Sign in again.' };
   let r: Response;
   try {
-    r = await fetch(`${process.env.API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-invites`, {
+    r = await fetch(`${process.env.ARPEDIA_API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-invites`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: clean, full_name: fullName.trim(), role }),

@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+// Builds the "Build checklist": every flow, what it builds, its screens, live status and steps.
+//   node tools/checklist.mjs                 print the markdown
+//   node tools/checklist.mjs --issue <n>     write it into GitHub issue <n> (notify-loop does this every 10 min)
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const repo = 'arpedia-africa/arpedia';
+const gh = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 32 << 20 });
+
+// status.json and flow files: read from origin/main so the checklist matches what builders see
+const show = (path) => {
+  try {
+    return execFileSync('git', ['show', `origin/main:${path}`], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return readFileSync(join(root, path), 'utf8');
+  }
+};
+try {
+  execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: root });
+} catch {}
+const status = JSON.parse(show('docs/prd/status.json'));
+
+const prs = JSON.parse(
+  gh([
+    'pr',
+    'list',
+    '--repo',
+    repo,
+    '--state',
+    'all',
+    '--limit',
+    '200',
+    '--json',
+    'number,state,isDraft,labels,body,url,updatedAt,mergedAt,headRefName',
+  ]),
+);
+const prFor = (id) =>
+  prs
+    .filter((p) => p.labels.some((l) => l.name === `flow-${id}`))
+    .sort((a, b) => (a.state === 'OPEN' ? -1 : 1) - (b.state === 'OPEN' ? -1 : 1))[0];
+
+const lagos = (iso) =>
+  new Date(iso).toLocaleString('en-GB', {
+    timeZone: 'Africa/Lagos',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+const laneOf = (id) => Object.entries(status.lanes).find(([, l]) => l.flows.includes(id))?.[0] ?? '';
+
+const order = Object.values(status.lanes).flatMap((l) => l.flows);
+const ids = Object.keys(status.flows).sort((a, b) => a.localeCompare(b));
+const merged = new Set(ids.filter((id) => prFor(id)?.state === 'MERGED'));
+
+let done = 0,
+  active = 0;
+const rows = [];
+const details = [];
+for (const id of ids) {
+  const f = status.flows[id];
+  let md = '';
+  if (f.file)
+    try {
+      md = show(`docs/prd/${f.file}`);
+    } catch {}
+  const goal = (md.split(/^## Goal\s*$/m)[1] ?? '').trim().split(/\n\n/)[0].replace(/\s+/g, ' ');
+  const proto = md.match(/\*\*Prototype:\*\*([^\n]+)/)?.[1] ?? '';
+  const app = (proto.split(/admin screens?/i)[0].match(/`s-[\w-]+`/g) ?? []).map((s) => s.slice(1, -1));
+  const admin = (proto.split(/admin screens?/i)[1]?.match(/`[\w-]+`/g) ?? []).map((s) => s.slice(1, -1));
+
+  const pr = prFor(id);
+  const waiting = f.deps.filter((d) => !merged.has(d));
+  let state,
+    steps = '',
+    next = '';
+  if (pr?.state === 'MERGED') {
+    state = '✅ Done';
+    done++;
+  } else if (pr?.state === 'OPEN') {
+    const all = [...pr.body.matchAll(/^- \[( |x)\] (.+)$/gm)];
+    const ticked = all.filter((m) => m[1] === 'x').length;
+    state = `🔨 Building ${ticked}/${all.length}${pr.labels.some((l) => l.name === 'needs-phone') ? ' · needs phone' : ''}${pr.isDraft ? '' : ' · in CI'}`;
+    active++;
+    steps = all.map((m) => `- [${m[1]}] ${m[2].split(/ — |: |\(|`/)[0].trim()}`).join('\n');
+    next = (pr.body.match(/\*\*Next step:\*\*\s*([^\n]+)/)?.[1] ?? '').replace(/`/g, '').slice(0, 300);
+  } else if (waiting.length) state = `⏳ Waits for ${waiting.join(', ')}`;
+  else state = '🟢 Ready to start';
+
+  const prLink = pr ? `[#${pr.number}](${pr.url})` : '';
+  rows.push(
+    `| ${id} | ${f.name} | ${state} | ${app.length} / ${admin.length} | ${laneOf(id).replace(/-.*/, '')} | ${prLink} |`,
+  );
+
+  details.push(
+    [
+      `### ${id} · ${f.name} — ${state}`,
+      goal && `${goal}`,
+      app.length ? `**App screens (${app.length}):** ${app.join(', ')}` : '',
+      admin.length ? `**Admin screens (${admin.length}):** ${admin.join(', ')}` : '',
+      f.deps.length ? `**Needs:** ${f.deps.map((d) => `${d}${merged.has(d) ? ' ✅' : ''}`).join(', ')}` : '',
+      pr
+        ? `**PR:** ${pr.url}${pr.state === 'OPEN' ? ` · last update ${lagos(pr.updatedAt)}` : pr.mergedAt ? ` · merged ${lagos(pr.mergedAt)}` : ''}`
+        : '',
+      steps && `<details><summary>Steps</summary>\n\n${steps}\n</details>`,
+      next && `**Next:** ${next}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
+  );
+}
+
+const out = `# Arpedia build checklist
+
+**${done} of ${ids.length} flows done** · ${active} building now · updated ${lagos(new Date().toISOString())} (Lagos), every 10 minutes.
+
+Every flow ships its database, server, app screens and admin screens, each matching the prototype (pixel check, 2% or less, 4 themes, 320/360/375 dp), with its tests and a code review. Screens column: app / admin.
+
+| # | Flow | Status | Screens | Lane | PR |
+|---|---|---|---|---|---|
+${rows.join('\n')}
+
+## Each flow
+${details.join('\n\n---\n\n')}
+
+---
+_Generated by \`tools/checklist.mjs\` from \`docs/prd/status.json\`, the flow files and the flow PRs. Don't edit by hand._
+`;
+
+const at = process.argv.indexOf('--issue');
+if (at > 0) {
+  const n = process.argv[at + 1];
+  const file = join(mkdtempSync(join(tmpdir(), 'checklist-')), 'body.md');
+  writeFileSync(file, out);
+  gh(['issue', 'edit', n, '--repo', repo, '--body-file', file]);
+  console.log(`checklist written to issue #${n}: ${done}/${ids.length} done, ${active} building`);
+} else process.stdout.write(out);

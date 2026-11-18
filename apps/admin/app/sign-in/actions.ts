@@ -25,7 +25,7 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
   // lock the email (flow 16 rule 8), staff or not.
   let r: Response;
   try {
-    r = await fetch(`${process.env.API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-sign-in`, {
+    r = await fetch(`${process.env.ARPEDIA_API_URL ?? 'http://127.0.0.1:8787'}/v1/staff-sign-in`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

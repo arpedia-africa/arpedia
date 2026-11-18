@@ -494,17 +494,120 @@ try {
         fill: `${typeInto}('#iv-e','adaora@arpedia.africa');${typeInto}('#iv-n','Adaora Nnadi');await new Promise(r=>setTimeout(r,300));document.activeElement.blur();`,
       },
       roles: { path: '/roles', as: 'amaka@arpedia.africa' },
+      // Flow 12. Shell, band, tabs, toolbar and table head; the rows hold real (seeded) data.
+      books: {
+        path: '/books',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 297 },
+        ],
+      },
+      // Shell, band and tabs; the jobs and rows below hold seeded data.
+      'book-processing': {
+        path: '/books/processing',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'books-sentback': {
+        path: '/books/sent-back',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // Shell and page header of the seeded Needs fixes book (Market Day in Onitsha).
+      'book-formatter': {
+        path: '/books/00000000-0000-4000-d100-000000000001/fix',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 150 },
+        ],
+      },
+      // The Send back modal over Fix flagged issues; issue wording comes from the seeded flags.
+      'book-changes': {
+        path: '/books/00000000-0000-4000-d100-000000000001/changes',
+        as: 'amaka@arpedia.africa',
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
+      // Quick review of the seeded Ready for review book (Garden of Small Mercies): shell and page
+      // header. Seeded books have no working copy, so the phone pages show their error state.
+      'book-preview': {
+        path: '/books/00000000-0000-4000-d100-000000000003/review',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // The two modals over Quick review: shell, topbar and the whole modal box. The dimmed page
+      // behind is Quick review itself (gated above), whose phone pages hold the book's own text.
+      'book-sendback': {
+        path: '/books/00000000-0000-4000-d100-000000000003/sendback',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+          { x: 444, y: 107, width: 800, height: 473 },
+        ],
+      },
+      'book-approve': {
+        path: '/books/00000000-0000-4000-d100-000000000003/approve',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+          { x: 544, y: 107, width: 600, height: 343 },
+        ],
+      },
+      // Revisions of the seeded update (The Alignment r4): shell, page header, tabs and the revisions
+      // table head. Rows, panels and the fast-lane list hold seeded data, compared by eye.
+      'book-revisions': {
+        path: '/books/00000000-0000-4000-d100-000000000099/revisions',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // Unpublish over a live seeded book (Harmattan Letters), title typed as in the prototype. The
+      // page behind is the book's Details tab in the prototype (flow 03), so only the modal box is gated.
+      'book-unpublish': {
+        path: '/books/00000000-0000-4000-c000-000000000001/unpublish',
+        as: 'amaka@arpedia.africa',
+        // Wait for hydration, then type through React's value setter so the "Matches" hint updates.
+        fill: `const i=document.getElementById('unpublish-title');for(let k=0;k<50&&!Object.keys(i).some(x=>x.startsWith('__reactProps'));k++)await new Promise(r=>setTimeout(r,100));Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'Harmattan Letters');i.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,300));`,
+        regions: [{ x: 564, y: 135, width: 556, height: 711 }],
+      },
+      // Upload a book, searching "Ifeoma" with the first author picked, as in the prototype.
+      'book-new': {
+        path: '/books/new?q=Ifeoma',
+        as: 'amaka@arpedia.africa',
+        fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();await new Promise(r=>setTimeout(r,300));`,
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
     };
     for (const id of ids) {
       const p = pages[id];
       if (!p) throw new Error(`no admin parity page "${id}" (have: ${Object.keys(pages).join(', ')})`);
       const ref = await adminRef(id);
+      // PARITY_MEASURE=<selector> prints the matching elements' top, height, line height and font in
+      // the reference and the build, to find where a layout drifts.
+      const M = process.env.PARITY_MEASURE;
+      const measure = `JSON.stringify([...document.querySelectorAll(${JSON.stringify(M)})].filter(e=>e.offsetParent).slice(0,60).map(e=>{const r=e.getBoundingClientRect();return e.tagName+'.'+e.className+' '+r.top.toFixed(2)+' '+r.height.toFixed(2)+' lh='+getComputedStyle(e).lineHeight+' ff='+getComputedStyle(e).fontFamily.slice(0,20)}))`;
+      if (M) console.log('REF', await b.eval(measure));
       await b.open(baseUrl + p.path, {
         width: W,
         height: H,
         cookies: p.as ? await cookies(p.as, p.aal1) : [],
       });
       await b.eval(`(async()=>{${p.fill ?? ''};await ${SETTLE};return true})()`);
+      if (M) console.log('BUILD', await b.eval(measure));
       const build = await b.shot();
       results.push({ name: `admin-${id}`, ...(await compare(`admin-${id}`, ref, build, W, H, p.regions)) });
     }

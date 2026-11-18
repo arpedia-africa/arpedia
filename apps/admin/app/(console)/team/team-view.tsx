@@ -89,7 +89,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
   const [menu, setMenu] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal>(openInvite ? { kind: 'invite' } : null);
   const [, start] = useTransition();
-  const toast = useToast();
+  const [toastNode, showToast] = useToast();
   const now = new Date();
 
   useEffect(() => {
@@ -126,7 +126,8 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
   const run = (p: Promise<{ ok?: boolean; error?: string }>, ok: string, undo?: () => void) =>
     start(async () => {
       const r = await p;
-      toast.show(r.ok ? { text: ok, onUndo: undo } : { text: r.error ?? "That didn't save. Try again." });
+      if (r.ok) showToast(ok, undo);
+      else showToast(r.error ?? "That didn't save. Try again.");
     });
 
   return (
@@ -335,7 +336,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
           onClose={() => setModal(null)}
           onSent={email => {
             setModal(null);
-            toast.show({ text: `Invite sent to ${email}. It expires in 72 hours.` });
+            showToast(`Invite sent to ${email}. It expires in 72 hours.`);
           }}
         />
       ) : null}
@@ -345,11 +346,11 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
           onClose={() => setModal(null)}
           onSaved={() => {
             setModal(null);
-            toast.show({ text: `Role changed for ${modal.row.name}. The audit log records it.` });
+            showToast(`Role changed for ${modal.row.name}. The audit log records it.`);
           }}
         />
       ) : null}
-      {toast.node}
+      {toastNode}
     </section>
   );
 }

@@ -24,6 +24,7 @@ const adminPort = process.env.ADMIN_PORT ?? '3000';
 const apiPort = process.env.API_PORT ?? '8787';
 process.env.ADMIN_URL = `http://127.0.0.1:${adminPort}`;
 process.env.API_URL = `http://127.0.0.1:${apiPort}`;
+process.env.ARPEDIA_API_URL = process.env.API_URL;
 const servers = [
   {
     name: 'admin',
