@@ -277,8 +277,8 @@ export function ThemeView({
         title="Pick your colour"
         sub="Make Arpedia feel like yours. You can change it later."
       />
-      {/* Spacing read off the reference (16 above the grid, 18 to the button, 24 below); confirm in parity */}
-      <OnbSheet style={{ paddingTop: s(16), paddingBottom: s(24), gap: s(18) }}>
+      {/* Prototype inline styles: sheet padding-top 20, gap 16; button wrapper padding 4 16 24 */}
+      <OnbSheet style={{ paddingTop: s(20), paddingBottom: s(24), gap: s(16) }}>
         <View accessibilityRole="radiogroup" style={{ gap: s(12), paddingHorizontal: s(16) }}>
           {rows.map((row, i) => (
             <View key={i} style={{ flexDirection: 'row', gap: s(12) }}>
@@ -288,7 +288,7 @@ export function ThemeView({
             </View>
           ))}
         </View>
-        <View style={{ paddingHorizontal: s(16) }}>
+        <View style={{ paddingHorizontal: s(16), paddingTop: s(4) }}>
           <Btn label="Continue" block onPress={onContinue} />
         </View>
       </OnbSheet>

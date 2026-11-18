@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BackHandler, View } from 'react-native';
+import { BackHandler } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { LAUNCH_PLANS, renewalDate, shortDate } from '@arpedia/core';
-import { Btn, Screen, useBottomInset, useTheme } from '@arpedia/ui';
+import { Screen } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import {
   AllSetBody,
+  AllSetFoot,
   AllSetHero,
   AllSetPending,
   BookLead,
@@ -30,11 +31,9 @@ const LATE_MS = 30_000;
 // s-all-set (rule 30): credits and renewal read from the ledger, never typed in. If the store
 // webhook is late, "Setting up your credits" polls every 3 s and offers Refresh after 30 s.
 export default function AllSet() {
-  const { c, s } = useTheme();
   const track = useTrack();
   const session = useSession();
   const profile = useMyProfile(session?.user.id);
-  const bottom = useBottomInset(26);
   const [late, setLate] = useState(false);
   const [round, setRound] = useState(0);
 
@@ -102,23 +101,7 @@ export default function AllSet() {
   }
 
   return (
-    <Screen
-      top="org"
-      contentStyle={{ flexGrow: 1 }}
-      footer={
-        // .foot.flat: no top rule
-        <View
-          style={{
-            paddingTop: s(12),
-            paddingHorizontal: s(16),
-            paddingBottom: bottom,
-            backgroundColor: c.white,
-          }}
-        >
-          <Btn label="Go to Home" icon="home" block onPress={toHome} />
-        </View>
-      }
-    >
+    <Screen top="org" contentStyle={{ flexGrow: 1 }} footer={<AllSetFoot onHome={toHome} />}>
       <AllSetHero credits={d?.credits ?? null} planLine={planLine} />
       {d && d.credits != null ? (
         <AllSetBody steps={steps} />

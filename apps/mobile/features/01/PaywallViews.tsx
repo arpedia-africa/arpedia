@@ -164,7 +164,7 @@ export function PaywallHero({
               justifyContent: 'center',
             }}
           >
-            <Icon name="x" color={c.onOrg} />
+            <Icon name="x" size="s" color={c.onOrg} />
           </Press>
           <View style={{ flex: 1 }} />
           {/* .pw-restore: 13/700, padding 8 10 */}
@@ -429,7 +429,8 @@ export function PaywallBody({
 }) {
   const { s } = useTheme();
   return (
-    <OnbSheet style={{ paddingBottom: s(20) }}>
+    // inline padding-bottom 18 on the prototype's .body
+    <OnbSheet style={{ paddingBottom: s(18) }}>
       {/* .pw-proof (rating and quote) is hidden until real figures exist (Q90). */}
       <View
         accessibilityRole="radiogroup"
@@ -630,6 +631,19 @@ export function AllSetBody({ steps }: { steps: AllSetStep[] }) {
         ))}
       </Group>
     </Section>
+  );
+}
+
+/** `.foot.flat`: padding 12 16 26, no top rule; Go to Home. */
+export function AllSetFoot({ onHome }: { onHome: () => void }) {
+  const { c, s } = useTheme();
+  const bottom = useBottomInset(26);
+  return (
+    <View
+      style={{ paddingTop: s(12), paddingHorizontal: s(16), paddingBottom: bottom, backgroundColor: c.white }}
+    >
+      <Btn label="Go to Home" icon="home" block onPress={onHome} />
+    </View>
   );
 }
 
