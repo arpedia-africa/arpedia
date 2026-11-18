@@ -13,7 +13,7 @@ const REACTION_LABELS: Record<Reaction, string> = {
   '🔥': 'Fire',
 };
 
-/** `.com-reacts`: six 48px emoji buttons, spread, line under. */
+/** `.com-reacts`: six 48px emoji buttons, spread, line under. Its sheet body is `.pb.pt8` (4px more on top). */
 export function ReactionRow({
   mine,
   disabled,
@@ -30,6 +30,7 @@ export function ReactionRow({
       style={{
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginTop: s(4),
         paddingTop: s(4),
         paddingHorizontal: s(2),
         paddingBottom: s(12),
@@ -72,11 +73,12 @@ export interface OptionItem {
   onPress: () => void;
 }
 
-/** `.option-list.option-list--flush` of `.option.option--compact` rows. */
+/** `.option-list.option-list--flush` of `.option.option--compact` rows (edge to edge in the sheet). */
 export function OptionList({ items }: { items: OptionItem[] }) {
   const { c, s, bw } = useTheme();
   return (
-    <View>
+    // .pb .option-list--flush: margin 0 -18px
+    <View style={{ marginHorizontal: -s(18) }}>
       {items.map((o, i) => (
         <Press
           key={o.key}
@@ -155,7 +157,7 @@ export function ReportBody({
       <Text size={13.5} color="ink2" style={{ lineHeight: s(13.5) * 1.45 }}>
         {`Moderators review reports within 24 hours for serious reports and within 3 days for others. ${first} won't know who reported.`}
       </Text>
-      <View accessibilityRole="radiogroup">
+      <View accessibilityRole="radiogroup" style={{ marginHorizontal: -s(18) }}>
         {REPORT_REASONS.map((r, i) => {
           const on = reason === r.key;
           return (

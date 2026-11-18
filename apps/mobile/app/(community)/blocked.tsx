@@ -1,19 +1,9 @@
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Avatar,
-  Btn,
-  EmptyState,
-  Hero,
-  IconButton,
-  Screen,
-  Skeleton,
-  Text,
-  useTheme,
-  useToast,
-} from '@arpedia/ui';
+import { EmptyState, Hero, IconButton, Screen, Skeleton, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
+import { BlockedRow } from '../../features/06/BlockedViews';
 import { toneFor } from '../../features/06/data';
 
 // s-blocked: who the user blocked, where, and one-tap Unblock with a 5 s Undo (rule 32).
@@ -27,7 +17,7 @@ const dayMonth = (at: string) => {
 };
 
 export default function Blocked() {
-  const { c, s, bw } = useTheme();
+  const { c, s } = useTheme();
   const toast = useToast();
   const qc = useQueryClient();
   const list = useQuery({
@@ -84,48 +74,29 @@ export default function Blocked() {
       ) : (
         <View style={{ paddingTop: s(8) }}>
           {(list.data ?? []).map((b, i) => (
-            <View
+            <BlockedRow
               key={b.user_id}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: s(12),
-                paddingVertical: s(12),
-                paddingHorizontal: s(16),
-                minHeight: s(56),
-                ...(i ? { borderTopWidth: bw(1), borderTopColor: c.line } : null),
-              }}
-            >
-              <Avatar name={b.full_name} uri={b.avatar_url ?? undefined} tone={toneFor(b.user_id)} />
-              <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
-                <Text size={14.5} weight={600} ellipsis style={{ lineHeight: s(14.5) * 1.3 }}>
-                  {b.full_name}
-                </Text>
-                <Text size={12.5} color="ink3" ellipsis style={{ lineHeight: s(12.5) * 1.35 }}>
-                  {`Blocked ${dayMonth(b.created_at)} · from ${
-                    b.source_kind === 'dm' || !b.source_name ? 'messages' : b.source_name
-                  }`}
-                </Text>
-              </View>
-              <Btn
-                label="Unblock"
-                variant="g"
-                size="sm"
-                onPress={() =>
-                  unblock.mutate(b.user_id, {
-                    onSuccess: () =>
-                      toast({
-                        message: `${b.full_name} unblocked`,
-                        duration: 5000,
-                        // Undo re-blocks with the original date and source.
-                        onUndo: () =>
-                          block.mutate({ user: b.user_id, group: b.source_group_id, at: b.created_at }),
-                      }),
-                    onError: () => toast({ message: "Couldn't unblock. Try again." }),
-                  })
-                }
-              />
-            </View>
+              name={b.full_name}
+              tone={toneFor(b.user_id)}
+              avatarUrl={b.avatar_url}
+              sub={`Blocked ${dayMonth(b.created_at)} · from ${
+                b.source_kind === 'dm' || !b.source_name ? 'messages' : b.source_name
+              }`}
+              divider={i > 0}
+              onUnblock={() =>
+                unblock.mutate(b.user_id, {
+                  onSuccess: () =>
+                    toast({
+                      message: `${b.full_name} unblocked`,
+                      duration: 5000,
+                      // Undo re-blocks with the original date and source.
+                      onUndo: () =>
+                        block.mutate({ user: b.user_id, group: b.source_group_id, at: b.created_at }),
+                    }),
+                  onError: () => toast({ message: "Couldn't unblock. Try again." }),
+                })
+              }
+            />
           ))}
         </View>
       )}
