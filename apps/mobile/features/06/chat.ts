@@ -60,11 +60,7 @@ export function useGroup(gid: string) {
 export function useHistory(gid: string) {
   return useQuery({
     queryKey: historyKey(gid),
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_messages', { p_group: gid, p_limit: 50 });
-      if (error) throw error;
-      return (data as unknown as ChatMessage[]).slice().reverse();
-    },
+    queryFn: () => fetchHistory(gid),
   });
 }
 
@@ -84,6 +80,21 @@ export type SocketState = 'connecting' | 'open' | 'closed' | 'forbidden';
 async function token() {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
+}
+
+async function fetchHistory(gid: string) {
+  const { data, error } = await supabase.rpc('get_messages', { p_group: gid, p_limit: 50 });
+  if (error) throw error;
+  return (data as unknown as ChatMessage[]).slice().reverse();
+}
+
+/** Ask the conversation DO to re-read this user's access (after join or leave). */
+async function refreshSelf(gid: string) {
+  await fetch(`${CHAT_URL}/c/${gid}/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
+    body: JSON.stringify({ self: true }),
+  }).catch(() => {});
 }
 
 /**
@@ -132,6 +143,7 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
     let retry: ReturnType<typeof setTimeout> | null = null;
     let ping: ReturnType<typeof setInterval> | null = null;
     let attempt = 0;
+    let hellos = 0;
 
     const onFrame = (f: ServerFrame) => {
       switch (f.type) {
@@ -139,6 +151,18 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
           setReadingNow(f.reading_now);
           setBlock({ reason: f.post_block, until: f.post_block_until });
           flush();
+          // Reconnected: catch up on what was sent while the socket was down. Merge rather than
+          // replace, so live messages not yet written to Postgres stay.
+          if (hellos++ > 0)
+            void fetchHistory(gid)
+              .then((fresh) =>
+                patchHistory((l) => {
+                  const byId = new Map(l.map((m) => [m.id, m]));
+                  for (const m of fresh) byId.set(m.id, m);
+                  return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+                }),
+              )
+              .catch(() => {});
           break;
         case 'presence':
           setReadingNow(f.reading_now);
@@ -336,10 +360,7 @@ export function useGroupMembership(gid: string) {
       const { error } = await supabase.rpc('join_group', { p_group: gid });
       if (error) throw error;
       // The DO re-reads access so the open socket may post at once.
-      await fetch(`${CHAT_URL}/c/${gid}/refresh`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${await token()}` },
-      }).catch(() => {});
+      await refreshSelf(gid);
     },
     onSuccess: refresh,
   });
@@ -347,6 +368,8 @@ export function useGroupMembership(gid: string) {
     mutationFn: async () => {
       const { error } = await supabase.rpc('leave_group', { p_group: gid });
       if (error) throw error;
+      // Stop live delivery and posting now, not when the DO's access cache expires.
+      await refreshSelf(gid);
     },
     onSuccess: refresh,
   });

@@ -192,6 +192,32 @@ describe('send path', () => {
     expect(t.stored[0]?.state).toBe('auto_hidden');
   });
 
+  it('drops frames with malformed ids so they never stall the write queue', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.conv.onFrame(ada, JSON.stringify({ type: 'send', client_id: '-'.repeat(36), body: 'x' }));
+    await t.conv.onFrame(
+      ada,
+      JSON.stringify({ type: 'send', client_id: cid(1), body: 'x', reply_to_id: 'nope' }),
+    );
+    expect(t.q.size).toBe(0);
+    expect(ada.frames).toHaveLength(0);
+  });
+
+  it('counts presence and filters blocks after hibernation emptied the cache', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('bola', access({ blocked: ['ada'] }));
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    // Woken from hibernation: sockets exist, connect() never ran in this instance.
+    await t.conv.presenceChanged();
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'presence', reading_now: 2 });
+    await t.send(ada, 1);
+    expect(bola.frames.some((f) => f.type === 'message')).toBe(false);
+  });
+
   it('asks to remove phone numbers and blocks links from new accounts', async () => {
     const t = setup();
     t.table.set('ada', access({ new_account: true }));

@@ -2,7 +2,7 @@
 -- idempotency; get_group_access (locked, muted, banned, non-member); reports and blocks.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(40);
+select plan(45);
 
 -- Ada (member), Bola (member), Cy (outsider), Dee (banned), Eve (DM partner of Ada), staff Sam.
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -166,6 +166,28 @@ reset role;
 select is((select r.body from public.message_retained r join public.messages m on m.id = r.message_id
     where m.client_id = '6c000000-0000-4000-8000-000000000002'), 'Welcome Bola',
   'a deleted message with an open report keeps its text for moderators');
+
+-- A sender can't turn a moderator's removal into their own delete.
+update public.messages set state = 'removed', state_changed_at = now()
+ where client_id = '6c000000-0000-4000-8000-000000000003';
+select set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'sub',
+  (select sender_id from public.messages where client_id = '6c000000-0000-4000-8000-000000000003'))::text, true);
+set local role authenticated;
+select throws_ok($$ select public.delete_message((select id from public.messages
+    where client_id = '6c000000-0000-4000-8000-000000000003')) $$,
+  '42501', 'not_allowed', 'a removed message can''t be deleted by its sender');
+reset role;
+select is((select state::text from public.messages where client_id = '6c000000-0000-4000-8000-000000000003'),
+  'removed', 'the removal stands');
+
+-- Helpers with a free user argument stay server-side; policies use the caller-bound ones.
+select ok(not has_function_privilege('authenticated', 'public.has_blocked(uuid, uuid)', 'execute'),
+  'readers can''t ask whether someone blocked them');
+select ok(not has_function_privilege('authenticated', 'public.is_group_member(uuid, uuid)', 'execute'),
+  'readers can''t probe other people''s memberships');
+select ok(has_function_privilege('authenticated', 'public.am_group_member(uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.i_blocked(uuid)', 'execute'),
+  'caller-bound helpers are available to policies');
 
 select * from finish();
 rollback;

@@ -244,6 +244,18 @@ language sql stable security definer set search_path = '' as $$
     select 1 from public.user_blocks b where b.blocker_id = p_viewer and b.blocked_id = p_user)
 $$;
 
+-- Caller-bound versions for RLS policies. Only these are granted to authenticated, so nobody
+-- can ask about another person's memberships or blocks.
+create function public.am_group_member(p_group uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.is_group_member(p_group, auth.uid())
+$$;
+
+create function public.i_blocked(p_user uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.has_blocked(auth.uid(), p_user)
+$$;
+
 -- Display name of a sender as readers see it.
 create function public.sender_name(p_user uuid) returns text
 language sql stable security definer set search_path = '' as $$
@@ -286,7 +298,7 @@ alter table public.reports enable row level security;
 create policy groups_select on public.groups for select to authenticated
   using (
     (visibility = 'public' and archived_at is null)
-    or (select public.is_group_member(id))
+    or (select public.am_group_member(id))
     or (kind <> 'dm' and (select public.is_community_staff()))
   );
 
@@ -294,7 +306,7 @@ create policy groups_select on public.groups for select to authenticated
 create policy group_members_select on public.group_members for select to authenticated
   using (
     user_id = (select auth.uid())
-    or (banned_at is null and (select public.is_group_member(group_id)))
+    or (banned_at is null and (select public.am_group_member(group_id)))
     or ((select public.is_community_staff())
         and exists (select 1 from public.groups g where g.id = group_id and g.kind <> 'dm'))
   );
@@ -307,9 +319,9 @@ create policy group_members_update_own on public.group_members for update to aut
 create policy messages_select on public.messages for select to authenticated
   using (
     (
-      ((select public.is_group_member(group_id))
+      ((select public.am_group_member(group_id))
        and state <> 'auto_hidden'
-       and not public.has_blocked((select auth.uid()), sender_id)
+       and not public.i_blocked(sender_id)
        and not exists (select 1 from public.reports r
                        where r.reporter_id = (select auth.uid()) and r.content_type = 'message'
                          and r.content_id = messages.id))
@@ -324,11 +336,11 @@ create policy message_retained_select on public.message_retained for select to a
 create policy message_reactions_select on public.message_reactions for select to authenticated
   using (
     exists (select 1 from public.messages m where m.id = message_id)
-    and not public.has_blocked((select auth.uid()), user_id)
+    and not public.i_blocked(user_id)
   );
 
 create policy message_pins_select on public.message_pins for select to authenticated
-  using ((select public.is_group_member(group_id)) or (select public.is_community_staff()));
+  using ((select public.am_group_member(group_id)) or (select public.is_community_staff()));
 
 -- user_blocks: only my own rows; the blocked person can't see that a row exists.
 create policy user_blocks_select on public.user_blocks for select to authenticated
@@ -719,6 +731,10 @@ begin
   end if;
   if x.state = 'deleted' then
     return jsonb_build_object('group_id', x.group_id, 'message_id', x.id);
+  end if;
+  -- Removed or auto-hidden messages belong to moderation; the sender can't overwrite that.
+  if x.state <> 'visible' then
+    raise exception 'not_allowed' using errcode = 'insufficient_privilege';
   end if;
   if x.body is not null and exists (select 1 from public.reports r where r.content_type = 'message'
                                       and r.content_id = x.id and r.status <> 'resolved') then
@@ -1198,7 +1214,8 @@ begin
     select p.oid::regprocedure from pg_proc p
     where p.pronamespace = 'public'::regnamespace and p.proname = any (array[
       'uuid7', 'group_members_count', 'is_group_member', 'is_group_mod', 'is_community_staff',
-      'community_admin', 'require_community_admin', 'has_blocked', 'sender_name', 'is_minor',
+      'community_admin', 'require_community_admin', 'has_blocked', 'am_group_member', 'i_blocked',
+      'sender_name', 'is_minor',
       'report_severity_for', 'inbox_rows_for', 'get_inbox', 'get_inbox_counts', 'mark_all_read',
       'mark_read', 'post_block_for', 'get_group', 'get_messages', 'join_group', 'leave_group',
       'set_group_mute', 'react', 'pin_message', 'unpin_message', 'delete_message', 'block_user',
@@ -1227,7 +1244,7 @@ grant execute on function
   public.admin_set_channel_state(uuid, timestamptz, timestamptz, text),
   public.admin_mute_member(uuid, uuid, timestamptz, text),
   -- used inside RLS policies
-  public.is_group_member(uuid, uuid), public.is_community_staff(), public.has_blocked(uuid, uuid)
+  public.am_group_member(uuid), public.is_community_staff(), public.i_blocked(uuid)
   to authenticated;
 
 -- Durable Object and Worker only.

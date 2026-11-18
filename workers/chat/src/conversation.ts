@@ -79,6 +79,7 @@ export class Conversation {
 
   /** After a socket opens or closes: push "reading now" when it changed. */
   async presenceChanged(closedUserId?: string): Promise<void> {
+    await this.warm();
     const n = this.countReading();
     if (closedUserId && !this.d.peers().some((p) => p.userId === closedUserId)) {
       await this.d.db.touchLastSeen(this.d.groupId, closedUserId).catch(() => undefined);
@@ -105,7 +106,9 @@ export class Conversation {
     const uid = peer.userId;
     const err = (error: SendError, extra: Partial<Extract<ServerFrame, { type: 'error' }>> = {}) =>
       peer.send(json({ type: 'error', client_id: f.client_id, error, ...extra }));
-    if (typeof f.client_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(f.client_id)) return;
+    // Malformed ids would fail the uuid cast in persist_messages and stall the whole queue.
+    if (!isUuid(f.client_id)) return;
+    if (f.reply_to_id != null && !isUuid(f.reply_to_id)) return;
 
     // A retry of something we already took: ack again, never post twice.
     const dup = this.recent.get(`${uid}:${f.client_id}`);
@@ -196,6 +199,7 @@ export class Conversation {
         my_reaction: null,
         pinned: false,
       };
+      await this.warm();
       this.broadcast({ type: 'message', message, client_id: f.client_id }, uid);
     }
 
@@ -287,6 +291,20 @@ export class Conversation {
     }
   }
 
+  /**
+   * After hibernation the cache is empty while sockets live on: load access for peers we don't
+   * know yet, so presence counts and block filtering see everyone.
+   */
+  private async warm(): Promise<void> {
+    const missing = new Set(
+      this.d
+        .peers()
+        .map((p) => p.userId)
+        .filter((u) => !this.access.has(u)),
+    );
+    await Promise.all([...missing].map((u) => this.accessFor(u).catch(() => undefined)));
+  }
+
   private countReading(): number {
     const users = new Set<string>();
     for (const p of this.d.peers()) {
@@ -299,6 +317,12 @@ export class Conversation {
   private anyAccess(): Access | undefined {
     return this.access.values().next().value?.a;
   }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(v: unknown): v is string {
+  return typeof v === 'string' && UUID.test(v);
 }
 
 function canRead(a: Access): boolean {
