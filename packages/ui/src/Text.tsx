@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   PixelRatio,
   Platform,
@@ -66,6 +67,10 @@ export function Text({
   const lines = oneLine || ellipsis ? { numberOfLines: 1 } : {};
   const shrink = oneLine && !ellipsis ? { adjustsFontSizeToFit: true, minimumFontScale: 0.85 } : {};
   const merged = StyleSheet.flatten([textStyle, style]) ?? {};
+  const maxScale = rest.maxFontSizeMultiplier ?? (oneLine ? 1.6 : undefined);
+  const [lineCount, setLineCount] = useState(1);
+  const countLines = Platform.OS === 'android' && !oneLine && !ellipsis && rest.numberOfLines !== 1;
+  const { onTextLayout } = rest;
   return (
     <RNText
       {...lines}
@@ -74,15 +79,38 @@ export function Text({
       maxFontSizeMultiplier={oneLine ? 1.6 : undefined}
       style={[
         merged,
-        androidLineBox(
-          merged,
-          !!((oneLine && !ellipsis) || rest.adjustsFontSizeToFit),
-          rest.maxFontSizeMultiplier ?? (oneLine ? 1.6 : undefined),
-        ),
+        androidLineBox(merged, !!((oneLine && !ellipsis) || rest.adjustsFontSizeToFit), maxScale),
+        androidHeightFix(merged, lineCount, maxScale),
       ]}
       {...rest}
+      onTextLayout={
+        countLines
+          ? (e) => {
+              setLineCount(e.nativeEvent.lines.length || 1);
+              onTextLayout?.(e);
+            }
+          : onTextLayout
+      }
     />
   );
+}
+
+/**
+ * Chrome stacks line boxes at their fractional height (2 × 21.025px = 42.05px) and snaps what follows
+ * to the nearest device pixel; Android draws every line a whole pixel tall (see androidLineBox), so a
+ * paragraph can come out a pixel taller and push everything below it down. Give the difference back
+ * as bottom margin.
+ */
+function androidHeightFix(style: TextStyle, lineCount: number, maxScale?: number): TextStyle | null {
+  const { lineHeight, marginBottom, marginVertical, margin } = style;
+  if (Platform.OS !== 'android' || lineHeight == null) return null;
+  const r = PixelRatio.get() * Math.min(PixelRatio.getFontScale(), maxScale ?? Infinity);
+  const drawn = lineCount * Math.max(1, Math.round(lineHeight * r));
+  const fix = (lineCount * lineHeight * r - drawn) / PixelRatio.get();
+  if (Math.abs(fix) < 0.001) return null;
+  const base = [marginBottom, marginVertical, margin].find((v) => v != null);
+  if (base != null && typeof base !== 'number') return null;
+  return { marginBottom: (base ?? 0) + fix };
 }
 
 /**
