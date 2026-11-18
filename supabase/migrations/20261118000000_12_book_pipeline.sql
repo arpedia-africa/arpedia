@@ -771,7 +771,9 @@ begin
   v_rev := public._lock_revision(p_rev);
   select author_id into v_author from public.books where id = v_rev.book_id;
 
-  if v_rev.status = 'processing' and v_rev.source_sha256 is not distinct from p_files ->> 'source_sha256'
+  -- A retry can land after verify already returned the draft to the author; that is a no-op too.
+  if (v_rev.status = 'processing' or (v_rev.status = 'draft' and v_rev.draft_step <> 'upload'))
+     and v_rev.source_sha256 is not distinct from p_files ->> 'source_sha256'
      and v_rev.converted_sha256 is not distinct from p_files ->> 'converted_sha256' then
     return jsonb_build_object('status', v_rev.status, 'generation', v_rev.generation, 'duplicate', true);
   end if;

@@ -3,7 +3,7 @@
 -- anchor migration, unpublish refunds, RLS and the staff role matrix.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(67);
+select plan(68);
 
 -- ─── Actors ─────────────────────────────────────────────────────────────────
 insert into auth.users (id, email) values
@@ -114,6 +114,9 @@ select is(public.complete_verify(pg_temp.rev('Harmattan Test'), 0, pg_temp.resul
   'verify result for an old generation is ignored');
 select is(public.complete_verify(pg_temp.rev('Harmattan Test'), 1, pg_temp.result()) ->> 'status', 'draft',
   'verify returns the book to the author for chapters');
+select is(public.finalize_revision(pg_temp.rev('Harmattan Test'), '12000000-0000-4000-a000-000000000001',
+  '{"source_sha256":"s1","converted_sha256":"c1","converted":true}') ->> 'duplicate', 'true',
+  'a finalize retry after verify is still a no-op');
 select is((select readiness from public.book_revisions where id = pg_temp.rev('Harmattan Test')), 92,
   'readiness = 100 − cover_too_small (8)');
 
