@@ -49,7 +49,7 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
 1. Once per run, install the dev build `com.arpedia.reader.dev` (debug, expo-dev-client) with `node tools/android-dev.mjs <serial>`. Skip this if it is already installed and no native dependency or app.json plugin changed.
 2. `adb -s <serial> reverse tcp:8081 tcp:8081`, then start Metro (`npx expo start --dev-client` in apps/mobile). Metro is the **only** process you may run in the background, and you must stop it before the run ends.
 3. Edit, and the phone reloads in seconds. Capture with `node tools/parity.mjs --dev <ids>` while you iterate.
-4. Only when the screens pass on the dev build: one release build (`tools/android-release.mjs`) and the final `node tools/parity.mjs <ids>`. That result is the gate.
+4. When nothing visible differs on the dev build: one release build (`tools/android-release.mjs`), a final `node tools/parity.mjs <ids>` for the side-by-side images, posted in the PR. **The percentage is advisory (owner decision): never spend time on 1–2 device-pixel text offsets or anti-aliasing. The owner says when a screen is wrong.**
 
 The dev build `com.arpedia.reader.dev` is ours: installing, clearing or uninstalling it on the phone is approved.
 

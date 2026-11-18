@@ -77,7 +77,7 @@ Automatic, run by CI on the branch:
 2. Migrations apply cleanly to a fresh database, and seed loads.
 3. The flow's unit tests (Vitest) and SQL tests (pgTAP) pass.
 4. The flow's Maestro happy path passes on the owner's phone at 320, 360 and 375dp (run by the builder before the PR is marked ready; GitHub runs it on an emulator nightly on main).
-5. **Visual parity:** `node tools/parity.mjs` passes on the owner's phone for each screen in the flow (2% or fewer differing pixels, four themes), with the side-by-side images in the PR, plus checks at 320dp and 360dp (no single-line text may wrap, nothing may clip).
+5. **Visual check:** side-by-side images of every screen in the flow (`node tools/parity.mjs`, four themes, on the owner's phone) in the PR, every visible difference fixed, 320dp and 360dp checked (no single-line text wraps, nothing clips). The owner reviews the screens; the percentage is advisory, not a merge gate.
 6. `/code-review` (medium) shows no correctness findings left open.
 
 Then the coordinator merges, regenerates types and ticks the status in [README.md](README.md).
