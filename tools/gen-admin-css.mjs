@@ -2,14 +2,25 @@
 // Copy the admin prototype's CSS verbatim into the admin console, so the console renders with the
 // prototype's own rules (exact-replica rule). Re-run after any prototype change:
 //   node tools/gen-admin-css.mjs
-// Source: the <style> blocks of admin/src/00-head.html, 00b-components.html, 00c-motion.html.
+// Source: the <style> blocks of admin/src/00-head.html, 00b-components.html, 00c-motion.html and
+// the area files (20-catalogue … 60-system, with their prefixed screen rules such as .ct-job).
+// The prototype's feedback chrome (95-feedback) is left out.
 // Output: apps/admin/app/prototype.css (generated, do not edit; console-only tweaks go in console.css).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const files = ['00-head.html', '00b-components.html', '00c-motion.html'];
+const files = [
+  '00-head.html',
+  '00b-components.html',
+  '00c-motion.html',
+  '20-catalogue.html',
+  '30-people.html',
+  '40-trust-support.html',
+  '50-money.html',
+  '60-system.html',
+];
 const blocks = files.flatMap((f) => {
   const src = readFileSync(join(root, 'admin/src', f), 'utf8');
   return [...src.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(

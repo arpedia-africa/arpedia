@@ -2,6 +2,7 @@
 // Write workers/*/.dev.vars from the running local Supabase stack (`pnpm dev:vars`).
 // Local CLI keys only; staging and production secrets live in Cloudflare, never on disk.
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,14 +24,19 @@ if (!env.SERVICE_ROLE_KEY || !env.JWT_SECRET) {
   console.error('Local Supabase is not running. Start it with `pnpm db:start`.');
   process.exit(1);
 }
+// Local-only book keys, derived from the local JWT secret so they stay the same across runs.
+const derive = (label) =>
+  createHash('sha256').update(`arpedia-local:${label}:${env.JWT_SECRET}`).digest('base64');
 writeFileSync(
   join(root, 'workers/api/.dev.vars'),
-  `SUPABASE_SERVICE_ROLE_KEY=${env.SERVICE_ROLE_KEY}\nSUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`,
+  `SUPABASE_SERVICE_ROLE_KEY=${env.SERVICE_ROLE_KEY}\nSUPABASE_JWT_SECRET=${env.JWT_SECRET}\n` +
+    `SUPABASE_ANON_KEY=${env.ANON_KEY}\nBOOK_MASTER_KEY=${derive('book-master')}\nUPLOAD_SIGNING_KEY=${derive('upload')}\n`,
 );
 writeFileSync(join(root, 'workers/chat/.dev.vars'), `SUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`);
 writeFileSync(
   join(root, 'apps/admin/.env.local'),
-  `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\n`,
+  `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\n` +
+    `ARPEDIA_API_URL=http://127.0.0.1:8787\n`,
 );
 // The Android emulator reaches the host at 10.0.2.2.
 const emu = env.API_URL.replace('127.0.0.1', '10.0.2.2');
