@@ -15,3 +15,4 @@ assets
 supabase/.temp
 **/database.types.ts
 expo-env.d.ts
+.impeccable
