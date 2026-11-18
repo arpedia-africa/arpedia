@@ -47,6 +47,7 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import { BookPageView, type BookPageModel } from '../features/03/BookViews';
 
 const PAGES = [
   'kit-a',
@@ -59,6 +60,7 @@ const PAGES = [
   's-profile-setup',
   's-plans-onboard',
   's-all-set',
+  's-book',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -139,7 +141,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          <Flow01 page={page} />
+          {page === 's-book' ? <Flow03 page={page} /> : <Flow01 page={page} />}
         </View>
       )}
     </View>
@@ -278,6 +280,66 @@ function Flow01({ page }: { page: Page }) {
           />
           <AllSetFoot onHome={noop} />
         </>
+      );
+    default:
+      return null;
+  }
+}
+
+// ─── Flow 03 screens with the prototype's values (tools/parity/s-*.html) ────
+const BOOK: BookPageModel = {
+  title: 'Harmattan Letters',
+  author: 'Ifeoma Nwachukwu',
+  tone: 'c1',
+  following: false,
+  meta: 'Christian & Faith · 250 pages · about 5 hr read',
+  rating: '4.7',
+  reads: '18K',
+  comments: '640',
+  mainLabel: 'Start reading · first 10% free',
+  buy: { kind: 'options', price: 125, perChapter: 9, balance: 840 },
+  owned: false,
+  description:
+    "A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage.",
+  tags: ['Family', 'Enugu', 'Kaduna', 'Letters'],
+  reviewCount: 1284,
+  bars: [0.8, 0.14, 0.04, 0.01, 0.01],
+  topReview: {
+    id: 'r1',
+    name: 'Chiamaka Obi',
+    stars: 5,
+    tone: 't',
+    body: 'I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.',
+  },
+  discussionOpen: false,
+  related: [
+    { id: 'b1', title: 'A House Called Grace', author: 'Kemi Ogunleye', tone: 'c6' },
+    { id: 'b2', title: 'Ruth of Ibadan', author: 'Tolu Adebayo', tone: 'c5' },
+    { id: 'b3', title: 'The Alignment', author: 'Adaeze R. Possible', tone: 'c3' },
+    { id: 'b4', title: 'Psalms for the Danfo', author: 'Emeka Obi', tone: 'c7' },
+  ],
+};
+
+function Flow03({ page }: { page: Page }) {
+  switch (page) {
+    case 's-book':
+      return (
+        <BookPageView
+          m={BOOK}
+          a={{
+            onBack: noop,
+            onMore: noop,
+            onFollow: noop,
+            onReviews: noop,
+            onDiscussion: noop,
+            onMain: noop,
+            onUnlockAll: noop,
+            onPayGo: noop,
+            onTopUp: noop,
+            onAbout: noop,
+            onWriteReview: noop,
+          }}
+        />
       );
     default:
       return null;

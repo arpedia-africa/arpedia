@@ -1,0 +1,60 @@
+<!-- Parity page s-book: the prototype screen, verbatim from prototype/src/03-book-reader.html.
+     apps/mobile/app/parity.tsx renders the flow 03 view with the same values. -->
+<div class="body">
+    <div class="hero bk-hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" aria-label="Save to library"><svg class="ico" aria-hidden="true"><use href="#i-bookmark"/></svg></button><button class="ib" aria-label="Share"><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg></button><button class="ib" data-go="book-more" aria-label="More options"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+      <div class="hero__body"><div class="cv c1 x128"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></div></div>
+    </div>
+    <div class="bk-sheet">
+      <div class="bk-head">
+        <h1 class="bk-title">Harmattan Letters</h1>
+        <div class="bk-byline"><a class="bk-author" data-go="author">Ifeoma Nwachukwu</a><button class="bk-follow" aria-pressed="false">Follow</button></div>
+        <span class="bk-meta">Christian &amp; Faith · 250 pages · about 5 hr read</span>
+      </div>
+      <div class="bk-stats">
+        <a class="bk-stat" data-go="reviews"><b><span class="star">★</span>4.7</b><span>rating</span></a>
+        <div class="bk-stat"><b>18K</b><span>reads</span></div>
+        <a class="bk-stat" data-go="book-discussion"><b>640</b><span>comments</span></a>
+      </div>
+      <div class="bk-actions">
+        <a class="btn btn-p block" data-go="reader">Start reading · first 10% free</a>
+        <div class="bk-buy">
+          <a class="bk-opt bk-opt--all" data-go="unlock"><span>Unlock all</span><b>125<small>credits</small></b><i class="bk-seg" aria-hidden="true"></i><em>Whole book, offline</em></a>
+          <a class="bk-opt bk-opt--go" data-go="unlock-paygo"><span>Pay as you read</span><b>≈ 9<small>a chapter</small></b><i class="bk-seg" aria-hidden="true"></i><em>Stop anytime</em></a>
+          <div class="bk-balance"><span>Your balance <b>840 credits</b></span><a data-go="credits">Top up</a></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section__head"><h2 class="section__title">About this book</h2><a class="bk-arrow" data-go="book-about" aria-label="More about this book"><svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <p class="inset t-body bk-clamp">A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage.</p>
+        <div class="bk-tags inset"><span class="pill grey">Family</span><span class="pill grey">Enugu</span><span class="pill grey">Kaduna</span><span class="pill grey">Letters</span></div>
+      </div>
+      <div class="section">
+        <div class="section__head"><h2 class="section__title">Ratings &amp; reviews</h2><a class="bk-arrow" data-go="reviews" aria-label="All reviews"><svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <div class="bk-rating">
+          <div class="bk-rating__big"><b>4.7</b><span class="stars"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg></span><span>1,284 reviews</span></div>
+          <div class="bk-bars">
+            <div class="h8"><span class="t-num">5</span><div class="bar fill"><i style="width:80%"></i></div></div>
+            <div class="h8"><span class="t-num">4</span><div class="bar fill"><i style="width:14%"></i></div></div>
+            <div class="h8"><span class="t-num">3</span><div class="bar fill"><i style="width:4%"></i></div></div>
+            <div class="h8"><span class="t-num">2</span><div class="bar fill"><i style="width:1%"></i></div></div>
+            <div class="h8"><span class="t-num">1</span><div class="bar fill"><i style="width:1%"></i></div></div>
+          </div>
+        </div>
+        <div class="bk-toprev"><div class="bk-review__head"><span class="av sm t">CO</span><b>Chiamaka Obi</b><span class="bk-starpill"><svg class="ico xs fill" aria-hidden="true"><use href="#i-star"/></svg>5</span></div><p>I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.</p></div>
+        <div class="bk-revlinks"><a class="btn btn-s sm" data-go="write-review"><svg class="ico xs" aria-hidden="true"><use href="#i-pen"/></svg>Write a review</a><a class="bk-seeall" data-go="reviews">See all reviews</a></div>
+      </div>
+      <div class="section">
+        <a class="bk-locked" data-go="book-discussion"><span class="bk-locked__body"><b>Discussion</b>Unlocks when you finish the book, so nothing spoils the story</span><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chev"/></svg></a>
+      </div>
+      <div class="band body-end">
+        <div class="section__head"><div class="v2"><h2 class="section__title">Readers also loved</h2><p class="section__sub">From readers who finished Harmattan Letters</p></div></div>
+        <div class="rail">
+          <a class="bk bk--author" data-go="book"><div class="cv c6 x104"><b>A House Called Grace</b><small>Kemi Ogunleye</small></div><b>A House Called Grace</b><span>Kemi Ogunleye</span></a>
+          <a class="bk bk--author" data-go="book"><div class="cv c5 x104"><b>Ruth of Ibadan</b><small>Tolu Adebayo</small></div><b>Ruth of Ibadan</b><span>Tolu Adebayo</span></a>
+          <a class="bk bk--author" data-go="book"><div class="cv c3 x104"><b>The Alignment</b><small>Adaeze R. Possible</small></div><b>The Alignment</b><span>Adaeze R. Possible</span></a>
+          <a class="bk bk--author" data-go="book"><div class="cv c7 x104"><b>Psalms for the Danfo</b><small>Emeka Obi</small></div><b>Psalms for the Danfo</b><span>Emeka Obi</span></a>
+        </div>
+      </div>
+    </div>
+</div>
