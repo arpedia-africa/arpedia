@@ -214,7 +214,7 @@ function PackOption({
           height: s(22),
           borderRadius: 999,
           borderWidth: selected ? s(7) : s(2),
-          borderColor: selected ? c.org : '#D1D5DB',
+          borderColor: selected ? c.org : c.control,
         }}
       />
       <View style={{ flex: 1, gap: s(2) }}>

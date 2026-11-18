@@ -26,7 +26,7 @@ function Radio({ on }: { on: boolean }) {
         height: s(22),
         borderRadius: 999,
         borderWidth: on ? s(7) : s(2),
-        borderColor: on ? c.org : '#D1D5DB',
+        borderColor: on ? c.org : c.control,
       }}
     />
   );
