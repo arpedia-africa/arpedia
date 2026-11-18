@@ -1,0 +1,65 @@
+# Flow 01: sign up with email, pick genres, pick a colour, choose reader,
+# skip the profile, tap ✕ on the paywall, land on Home.
+# Needs the local stack (Supabase + api Worker) behind the app.
+# Run: maestro test apps/mobile/.maestro/01-onboarding.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/01-onboarding.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- takeScreenshot: onb-${WIDTH}-login
+- tapOn: 'Create an account'
+- assertVisible: 'Create your account'
+- tapOn: 'Ada Writer'
+- inputText: 'Ada Writer'
+- tapOn: 'you@example.com'
+- inputRandomEmail
+- tapOn: 'At least 8 characters'
+- inputText: 'arpedia-e2e'
+- hideKeyboard
+- takeScreenshot: onb-${WIDTH}-signup
+- tapOn: 'Create account'
+
+# s-interests (step 1)
+- extendedWaitUntil:
+    visible: 'Choose the genres you love'
+    timeout: 30000
+- tapOn: 'Fiction'
+- takeScreenshot: onb-${WIDTH}-interests
+- tapOn: 'Continue'
+
+# s-theme
+- assertVisible: 'Pick your colour'
+- tapOn: 'Palm.*'
+- takeScreenshot: onb-${WIDTH}-theme
+- tapOn: 'Continue'
+
+# s-role (step 2): Continue stays off until one is picked
+- assertVisible: 'How will you use Arpedia?'
+- tapOn: 'I’m a reader'
+- takeScreenshot: onb-${WIDTH}-role
+- tapOn: 'Continue'
+
+# s-profile-setup (step 3)
+- assertVisible: 'Complete your profile'
+- takeScreenshot: onb-${WIDTH}-profile
+- tapOn: 'Skip for now'
+
+# s-plans-onboard: ✕ = browse first
+- extendedWaitUntil:
+    visible: 'Not now, browse first'
+    timeout: 30000
+- takeScreenshot: onb-${WIDTH}-plans
+- tapOn: 'Not now, browse first'
+# Q92: notification permission is asked when onboarding ends (Android 13+ dialog).
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+
+- extendedWaitUntil:
+    visible: 'Home'
+    timeout: 30000
+- takeScreenshot: onb-${WIDTH}-home
