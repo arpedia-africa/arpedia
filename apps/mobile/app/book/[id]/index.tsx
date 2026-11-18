@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { onlineManager, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FINISHED_PERCENT } from '@arpedia/core';
+import { FINISHED_PERCENT, TIP_PRESETS } from '@arpedia/core';
 import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { useTrack } from '../../../features/03/analytics';
@@ -164,12 +164,17 @@ export default function BookPage() {
               if (d.balance < d.price) return short(d.price);
               setOverlay('gift');
             },
-            onTip: () => online && setOverlay('tip'),
+            onTip: () => {
+              if (!online) return;
+              // Not even the smallest tip fits: straight to not-enough-credits / no-plan (rule 14).
+              if (d.balance < Math.min(...TIP_PRESETS)) return short(Math.min(...TIP_PRESETS));
+              setOverlay('tip');
+            },
             onReport: () => online && setOverlay('report'),
           })}
         />
       </Sheet>
-      <GiftSheet book={d} open={overlay === 'gift'} onClose={() => setOverlay(null)} />
+      <GiftSheet book={d} open={overlay === 'gift'} onClose={() => setOverlay(null)} onShort={short} />
       <TipSheet book={d} open={overlay === 'tip'} onClose={() => setOverlay(null)} onShort={short} />
       <ReportSheet bookId={d.book.id} open={overlay === 'report'} onClose={() => setOverlay(null)} />
     </Screen>

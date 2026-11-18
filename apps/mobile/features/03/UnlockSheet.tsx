@@ -153,14 +153,17 @@ export function UnlockSheet({
       }
       // A new key for a new tap: the old one may have been used by the failed attempt.
       setKey(Crypto.randomUUID());
-      const fresh = await qc.fetchQuery({
-        queryKey: bookKey(d.book.id),
-        queryFn: async () => {
-          const { data } = await supabase.rpc('get_book_page', { p_book: d.book.id });
-          return data as unknown as BookPageData | null;
-        },
-        staleTime: 0,
-      });
+      const fresh = await qc
+        .fetchQuery({
+          queryKey: bookKey(d.book.id),
+          queryFn: async () => {
+            const { data, error: fe } = await supabase.rpc('get_book_page', { p_book: d.book.id });
+            if (fe) throw fe;
+            return data as unknown as BookPageData | null;
+          },
+          staleTime: 0,
+        })
+        .catch(() => null);
       if (code === 'price_changed') {
         setError(`The price changed to ${n(detail.price ?? fresh?.price ?? d.price)} credits.`);
       } else if (code === 'insufficient_credits') {

@@ -37,10 +37,12 @@ export function GiftSheet({
   book: d,
   open,
   onClose,
+  onShort,
 }: {
   book: BookPageData;
   open: boolean;
   onClose: () => void;
+  onShort: (need: number) => void;
 }) {
   const qc = useQueryClient();
   const toast = useToast();
@@ -111,6 +113,10 @@ export function GiftSheet({
       if (code === 'price_changed') {
         setError(`The price changed to ${n(detail.price ?? d.price)} credits. Check it, then send again.`);
         void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
+      } else if (code === 'insufficient_credits') {
+        // Balance moved since the sheet opened: show not-enough-credits / no-plan (rule 14).
+        void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
+        onShort(d.price);
       } else {
         setError(spendMessage(code));
         if (code === 'already_has_it') void people.refetch();
