@@ -110,7 +110,15 @@ function Fan({ books }: { books: PaywallBook[] }) {
               ],
             }}
           >
-            <Cover title={b.title} author={b.author} size={at.w as 88 | 104} tone={FAN_TONES[slots[i]!]} />
+            {/* .pw-fan .cv: own drop shadow (no spine); text centred by .pw-hero */}
+            <Cover
+              title={b.title}
+              author={b.author}
+              size={at.w as 88 | 104}
+              tone={FAN_TONES[slots[i]!]}
+              center
+              boxShadow={`0 ${s(16)}px ${s(28)}px -${s(14)}px rgba(0,0,0,0.55)`}
+            />
           </View>
         );
       })}

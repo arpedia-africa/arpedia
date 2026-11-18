@@ -142,7 +142,7 @@ export function InterestsFoot({
 
 // ─── s-theme ────────────────────────────────────────────────────────────────
 // Each tile is drawn in its own theme: fill = main colour, text = on-main, dots = accent + star gold.
-const TILE_PETALS = 'rgba(255,214,90,0.55)';
+// Petals (--pc) use the current theme's petal colour: .8 × petal-k on Sunflower, .45 × petal-k on the rest.
 
 function tilePetals(size: number) {
   const c = size / 2;
@@ -192,7 +192,10 @@ function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boo
         }}
       >
         <Svg width={petal} height={petal} style={{ position: 'absolute', right: s(-38), top: s(-38) }}>
-          <Path d={tilePetals(petal)} fill={TILE_PETALS} />
+          <Path
+            d={tilePetals(petal)}
+            fill={`rgba(${cur.petalRgb},${(name === 'sunflower' ? 0.8 : 0.45) * cur.petalK})`}
+          />
         </Svg>
         {selected ? (
           // .th-check: 26 white disc, top-left 12, drawn tick
@@ -302,12 +305,12 @@ export type Intent = 'reader' | 'author';
 const ROLES: { id: Intent; title: string; sub: string }[] = [
   {
     id: 'reader',
-    title: 'I’m a reader',
+    title: "I'm a reader",
     sub: 'Discover, read, and follow authors. You can switch to author mode anytime.',
   },
   {
     id: 'author',
-    title: 'I’m an author',
+    title: "I'm an author",
     sub: 'Publish and manage your books in the Author Studio, and reach your readers.',
   },
 ];

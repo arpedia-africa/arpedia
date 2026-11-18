@@ -168,11 +168,16 @@ function OnbCount({ step }: { step: number }) {
   );
 }
 
-/** `.onb-skip` in the bar: 14/700, padding 6px 0 (44px touch target via hitSlop). */
+/** `.onb-skip` in the bar: 14/700, padding 8px 10px (the later rule wins; 44px target via hitSlop). */
 function OnbSkip({ onPress }: { onPress: () => void }) {
   const { s } = useTheme();
   return (
-    <Press onPress={onPress} accessibilityRole="button" hitSlop={s(10)} style={{ paddingVertical: s(6) }}>
+    <Press
+      onPress={onPress}
+      accessibilityRole="button"
+      hitSlop={s(6)}
+      style={{ paddingVertical: s(8), paddingHorizontal: s(10) }}
+    >
       <Text size={14} weight={700} color="onOrg" oneLine>
         Skip
       </Text>

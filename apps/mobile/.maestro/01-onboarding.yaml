@@ -39,7 +39,7 @@ appId: com.arpedia.reader
 
 # s-role (step 2): Continue stays off until one is picked
 - assertVisible: 'How will you use Arpedia?'
-- tapOn: 'I’m a reader'
+- tapOn: "I'm a reader"
 - takeScreenshot: onb-${WIDTH}-role
 - tapOn: 'Continue'
 

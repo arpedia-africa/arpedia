@@ -172,10 +172,23 @@ export interface CoverProps {
   tone?: CoverTone;
   /** Fill the parent's width (cover grids) instead of a fixed size. */
   fluid?: boolean;
+  /** Centred title and author (a parent with `text-align:center`, e.g. `.pw-hero`). */
+  center?: boolean;
+  /** CSS box-shadow that replaces `.cv`'s (drop shadow and the inset spine), e.g. `.pw-fan .cv`. */
+  boxShadow?: string;
 }
 
 /** `.cv`: 2:3 book cover with a soft drop shadow and a spine highlight. */
-export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: CoverProps) {
+export function Cover({
+  title,
+  author,
+  size = 104,
+  uri,
+  tone = 'c1',
+  fluid,
+  center,
+  boxShadow,
+}: CoverProps) {
   const { s } = useTheme();
   const w = s(size);
   const h = s(coverH[size]);
@@ -198,11 +211,15 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
       accessibilityLabel={author ? `${title} by ${author}` : title}
       style={{
         borderRadius: s(6),
-        shadowColor: '#000',
-        shadowOpacity: 0.5,
-        shadowRadius: s(8),
-        shadowOffset: { width: 0, height: s(8) },
-        elevation: 6,
+        ...(boxShadow
+          ? { boxShadow }
+          : {
+              shadowColor: '#000',
+              shadowOpacity: 0.5,
+              shadowRadius: s(8),
+              shadowOffset: { width: 0, height: s(8) },
+              elevation: 6,
+            }),
         width: fluid ? '100%' : w,
       }}
     >
@@ -225,19 +242,28 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
             style={{ position: 'absolute', inset: 0 }}
           />
           <CoverArt tone={tone} w={w} h={h} s={s} />
-          <View
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: s(3),
-              backgroundColor: 'rgba(255,255,255,0.18)',
-            }}
-          />
+          {boxShadow ? null : (
+            <View
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: s(3),
+                backgroundColor: 'rgba(255,255,255,0.18)',
+              }}
+            />
+          )}
           {/* Word by word, like the browser: lines break at spaces only, and a word wider than
               the cover is clipped (Android would otherwise split it, "Harm/attan"). */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: s(titleSize) * 0.25 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: center ? 'center' : undefined,
+              columnGap: s(titleSize) * 0.25,
+            }}
+          >
             {title.split(/\s+/).map((word, i) => (
               <Text
                 key={i}
@@ -257,6 +283,7 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid }: Co
             <Text
               size={7.5}
               color={tone === 'c3' ? '#222222' : fg}
+              center={center}
               style={{
                 opacity: 0.85,
                 letterSpacing: s(7.5) * 0.05,
