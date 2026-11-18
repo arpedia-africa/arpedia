@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { AppEnv } from './env';
+import type { AppEnv, Env } from './env';
 import { routes } from './routes';
+import { consumeQueue } from './routes/12/pipeline';
 
 const app = new Hono<AppEnv>();
 
@@ -18,4 +19,8 @@ app.onError((err, c) => {
   return c.json({ error: 'internal' }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // Every minute: the book pipeline's safety net (flow 12).
+  scheduled: (_event, env, ctx) => ctx.waitUntil(consumeQueue(env)),
+} satisfies ExportedHandler<Env>;

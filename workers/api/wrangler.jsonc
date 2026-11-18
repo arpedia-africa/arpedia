@@ -1,5 +1,6 @@
 // Arpedia API Worker. Top level = local (`wrangler dev`); env.staging and env.production deploy.
-// Secrets (never in this file): SUPABASE_SERVICE_ROLE_KEY. Local only, in .dev.vars: SUPABASE_JWT_SECRET.
+// Secrets (never in this file): SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, BOOK_MASTER_KEY,
+// UPLOAD_SIGNING_KEY. Local only, in .dev.vars (pnpm dev:vars): those plus SUPABASE_JWT_SECRET.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "arpedia-api",
@@ -7,6 +8,8 @@
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Book pipeline safety net: retries verify/seal messages that waitUntil did not finish (flow 12).
+  "triggers": { "crons": ["* * * * *"] },
   "vars": {
     "APP_ENV": "local",
     "SUPABASE_URL": "http://127.0.0.1:55321",
