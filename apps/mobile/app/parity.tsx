@@ -107,6 +107,9 @@ function Reference({ page, theme, port }: { page: string; theme: string; port: s
         key={`${page}-${theme}`}
         source={{ uri: `http://127.0.0.1:${Number(port)}/ref?page=${page}&theme=${theme}` }}
         textZoom={100}
+        // WebView draws anything under 8px at 8px by default (WebSettings.minimumFontSize); Chrome
+        // has no minimum, so the prototype's 7.5px cover authors would come out 7% too big.
+        minimumFontSize={1}
         scrollEnabled={false}
         overScrollMode="never"
         style={{ flex: 1, backgroundColor: c.white }}

@@ -2,9 +2,24 @@
   "max": 2,
   "results": [
     {
-      "name": "s-plans-onboard-sunflower",
-      "pct": 2.8906666666666667,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-plans-onboard-sunflower.png"
+      "name": "s-interests-plum",
+      "pct": 2.1609671848013816,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-interests-plum.png"
+    },
+    {
+      "name": "s-interests-night",
+      "pct": 2.380656303972366,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-interests-night.png"
+    },
+    {
+      "name": "s-all-set-plum",
+      "pct": 2.6789598108747046,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-all-set-plum.png"
+    },
+    {
+      "name": "s-all-set-night",
+      "pct": 2.691252955082742,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-all-set-night.png"
     }
   ]
 }

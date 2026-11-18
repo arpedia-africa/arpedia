@@ -269,8 +269,9 @@ async function loadDevBundle() {
 }
 
 /**
- * The owner may pick up the phone: never capture unless our app is in front. Checks every 30 s for up
- * to 10 minutes, then gives up (no screenshot of anything else is ever taken).
+ * The owner may pick up the phone: never capture unless our app is in front and no heads-up
+ * notification (someone's message) is showing over it. Checks every 30 s for up to 10 minutes, then
+ * gives up (no screenshot of anything else is ever taken).
  */
 async function waitForFocus(pkg) {
   for (let i = 0; i <= 20; i++) {
@@ -278,12 +279,29 @@ async function waitForFocus(pkg) {
       adb('shell', 'dumpsys', 'window')
         .toString()
         .match(/mCurrentFocus=.*/)?.[0] ?? '';
-    if (focus.includes(`${pkg}/`)) return;
+    const ok = focus.includes(`${pkg}/`);
+    const banner = ok && headsUp();
+    if (ok && !banner) return;
     if (i === 20) break;
-    console.warn(`${pkg} is not in front (${focus.trim()}); waiting 30 s`);
+    console.warn(
+      banner
+        ? 'a notification is showing; waiting 30 s'
+        : `${pkg} is not in front (${focus.trim()}); waiting 30 s`,
+    );
     await sleep(30_000);
   }
-  throw new Error(`${pkg} was not in front for 10 minutes; no capture taken`);
+  throw new Error(`${pkg} was not clear in front for 10 minutes; no capture taken`);
+}
+
+/** A heads-up notification is pinned over the screen (SystemUI's own state; only flags are read). */
+function headsUp() {
+  const n = adb(
+    'shell',
+    "dumpsys activity service com.android.systemui/.SystemUIService | grep -c 'isPinned()=true' || true",
+  )
+    .toString()
+    .trim();
+  return Number(n) > 0;
 }
 
 /** Open a parity page in an app, wait for its PARITY_READY line, capture below the status bar. */
@@ -316,8 +334,16 @@ async function capture(pkg, query, id, theme, kind, g, height) {
   const top = Number(m[4]);
   height ??= Number(m[5]);
   await sleep(900); // arrive animations
-  await waitForFocus(pkg);
-  const raw = adb('exec-out', 'screencap', '-p');
+  let raw;
+  for (let tries = 0; !raw; tries++) {
+    await waitForFocus(pkg);
+    raw = adb('exec-out', 'screencap', '-p');
+    // A notification that arrived during the capture: throw the capture away.
+    if (headsUp()) {
+      raw = null;
+      if (tries === 5) throw new Error('notifications kept arriving; no capture kept');
+    }
+  }
   const h = Math.min(Math.floor(height * g.dpr), g.heightPx - top);
   return {
     png: await sharp(raw).extract({ left: 0, top, width: g.widthPx, height: h }).png().toBuffer(),
