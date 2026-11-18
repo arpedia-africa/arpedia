@@ -436,6 +436,15 @@ try {
           { x: 248, y: 0, width: W - 248, height: 60 },
         ],
       },
+      // Flow 12. Shell, band, tabs, toolbar and table head; the rows hold real (seeded) data.
+      books: {
+        path: '/books',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 297 },
+        ],
+      },
     };
     for (const id of ids) {
       const p = pages[id];
