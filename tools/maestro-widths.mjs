@@ -3,6 +3,10 @@
 // by changing the display density, then restore it. Screenshots land in the current directory.
 //   node tools/maestro-widths.mjs apps/mobile/.maestro/00-kit.yaml [320,360,375]
 //   Device: --serial or ANDROID_SERIAL. CLI: MAESTRO, else .shots/maestro/bin (unzipped release), else `maestro` on PATH.
+//   Other --flags pass through to `maestro test`. MIUI (owner's phone): install the driver once (its
+//   "Install via USB" prompt needs a tap), allow it to start activities from the background
+//   (`appops set dev.mobile.maestro 10021 allow`, else launchApp silently opens nothing), then run
+//   with --no-reinstall-driver so Maestro keeps that driver.
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -10,8 +14,10 @@ import { resolve } from 'node:path';
 const args = process.argv.slice(2);
 const si = args.indexOf('--serial');
 const serial = si >= 0 ? args.splice(si, 2)[1] : process.env.ANDROID_SERIAL;
-const flow = args[0];
-const widths = (args[1] ?? '375,360,320').split(',').map(Number);
+// Other --flags go to `maestro test` (e.g. --no-reinstall-driver on MIUI, see the header).
+const extra = args.filter((a) => a.startsWith('--')).join(' ');
+const [flow, widthArg] = args.filter((a) => !a.startsWith('--'));
+const widths = (widthArg ?? '375,360,320').split(',').map(Number);
 if (!flow) {
   console.error('usage: node tools/maestro-widths.mjs <flow.yaml> [widths] [--serial <serial>]');
   process.exit(1);
@@ -32,7 +38,7 @@ try {
     adb(`wm density ${dpi}`);
     console.log(`\n▶ ${w}dp (density ${dpi})`);
     try {
-      execSync(`${maestro} ${serial ? `--device ${serial} ` : ''}test ${flow} -e WIDTH=${w}`, {
+      execSync(`${maestro} ${serial ? `--device ${serial} ` : ''}test ${extra} ${flow} -e WIDTH=${w}`, {
         stdio: 'inherit',
       });
     } catch {
