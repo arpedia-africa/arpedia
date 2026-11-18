@@ -2,24 +2,14 @@
   "max": 2,
   "results": [
     {
-      "name": "s-interests-plum",
-      "pct": 2.1609671848013816,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-interests-plum.png"
+      "name": "s-theme-palm",
+      "pct": 3.0958813838550245,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-theme-palm.png"
     },
     {
-      "name": "s-interests-night",
-      "pct": 2.380656303972366,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-interests-night.png"
-    },
-    {
-      "name": "s-all-set-plum",
-      "pct": 2.6789598108747046,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-all-set-plum.png"
-    },
-    {
-      "name": "s-all-set-night",
-      "pct": 2.691252955082742,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-all-set-night.png"
+      "name": "s-plans-onboard-palm",
+      "pct": 2.6493333333333333,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder\\.shots\\parity\\s-plans-onboard-palm.png"
     }
   ]
 }

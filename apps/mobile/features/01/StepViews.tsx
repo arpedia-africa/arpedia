@@ -161,7 +161,7 @@ function tilePetals(size: number) {
 
 /** `.th-tile`: square, radius 22, padding 16, name 19/800 display, feel 12.5/1.3 at 88%. */
 function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boolean; onPress: () => void }) {
-  const { c: cur, s } = useTheme();
+  const { c: cur, s, bw } = useTheme();
   const t = themes[name];
   const meta = themeMeta[name];
   const petal = s(110);
@@ -213,12 +213,13 @@ function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boo
               boxShadow: `0 ${s(2)}px ${s(6)}px rgba(0,0,0,0.25)`,
             }}
           >
+            {/* ::after isn't covered by the `*{box-sizing:border-box}` reset: 10×5 content + 2px borders */}
             <View
               style={{
-                width: s(10),
-                height: s(5),
-                borderLeftWidth: s(2),
-                borderBottomWidth: s(2),
+                width: s(10) + bw(2),
+                height: s(5) + bw(2),
+                borderLeftWidth: bw(2),
+                borderBottomWidth: bw(2),
                 borderColor: '#111827',
                 transform: [{ rotate: '-45deg' }, { translateX: s(1) }, { translateY: s(-1) }],
               }}

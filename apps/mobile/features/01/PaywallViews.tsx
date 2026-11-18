@@ -252,7 +252,7 @@ function Badge({ label, quiet }: { label: string; quiet?: boolean }) {
 
 /** `.pw-plan`: radius 18, padding 22 14 14; selected = 2.5 main-colour ring on tint 2. */
 function PlanCard({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () => void }) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
   const badge = BADGE[plan.id];
   const line = (size: number) => ({ lineHeight: s(size) * 1.45 });
   return (
@@ -292,7 +292,7 @@ function PlanCard({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () 
         {`${formatNaira(plan.priceNaira)} ${PERIOD[plan.id].every}`}
       </Text>
       {/* .gets: margin-top 10, padding-top 10, 1px dashed rule */}
-      <View style={{ marginTop: s(10), paddingTop: ruleWidth() + s(10) }}>
+      <View style={{ marginTop: s(10), paddingTop: bw(1) + s(10) }}>
         <DashedRule color={c.line} />
         <Text size={13.5} weight={700} style={{ lineHeight: s(13.5) * 1.35 }}>
           {`${n(plan.credits)} credits`}
@@ -311,9 +311,10 @@ function PlanCard({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () 
  * StrokeData::SelectBestDashGap). Android's own dashed border uses 3×/3× of the unrounded width.
  */
 function DashedRule({ color }: { color: string }) {
+  const { bw } = useTheme();
   const [width, setWidth] = useState(0);
   const dpr = PixelRatio.get();
-  const t = ruleWidth() * dpr;
+  const t = bw(1) * dpr;
   const len = width * dpr;
   const dash = 3 * t;
   const gap = 2 * t;
@@ -342,9 +343,6 @@ function DashedRule({ color }: { color: string }) {
     </View>
   );
 }
-
-/** A 1px CSS border's width in dp: Chrome floors it to whole device pixels (at least one). */
-const ruleWidth = () => Math.max(1, Math.floor(PixelRatio.get())) / PixelRatio.get();
 
 /** Skeleton price card while store prices load (never show a price before it loads). */
 function PlanSkeleton() {
