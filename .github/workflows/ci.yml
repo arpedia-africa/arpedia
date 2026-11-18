@@ -98,7 +98,7 @@ jobs:
     name: android
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       # The hosted runner has ~14 GB free; the RN build plus the emulator image needs more.
       - name: Free disk space
@@ -149,7 +149,10 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_6
-          disable-animations: false
+          # With animations on, the drifting petals never let Maestro settle (~8 min per step on
+          # the hosted emulator). Animator scales at 0 make the kit follow the OS reduce-motion
+          # setting; the flow's "Motion on" toggle still starts from its own state.
+          disable-animations: true
           script: |
             adb install -r "$RUNNER_TEMP/app-release.apk"
             mkdir -p .shots/emulator && cd .shots/emulator && node ../../tools/maestro-widths.mjs ../../apps/mobile/.maestro/00-kit.yaml
