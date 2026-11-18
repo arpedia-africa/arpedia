@@ -80,6 +80,9 @@ export function Text({
 
 /**
  * Android places text in its line box differently from Chrome (the prototype), so on Android:
+ * - Font size: RN rounds it UP to whole device pixels (TextAttributes), so 15px at 2.88x draws at
+ *   44px instead of 43.2 and labels come out ~2% wider. Snap to the nearest device pixel instead, and
+ *   give the remainder back as letter spacing (font size difference × the font's typical advance).
  * - Line height: RN rounds each line box UP to whole device pixels (CustomLineHeightSpan), so a
  *   30.6px line at 2.88x becomes 89px instead of 88.1 and everything below drifts. Snap to the
  *   nearest device pixel (a hair under it, so the ceil lands there).
@@ -88,19 +91,20 @@ export function Text({
  *   it. Shift the glyphs by the difference so they sit where the prototype draws them.
  */
 function androidLineBox(style: TextStyle): TextStyle | null {
-  const { lineHeight, fontSize, fontFamily: name, transform } = style;
+  const { lineHeight, fontSize, letterSpacing, fontFamily: name, transform } = style;
   if (Platform.OS !== 'android' || lineHeight == null) return null;
   const r = PixelRatio.get() * PixelRatio.getFontScale();
   const lhPx = Math.max(1, Math.round(lineHeight * r)) - 0.01;
   const m = name ? fontMetrics[name] : undefined;
   if (!m || fontSize == null) return { lineHeight: lhPx / r };
-  const a = fontSize * r * m[0];
-  const d = fontSize * r * m[1];
-  const ai = Math.round(a);
-  const di = Math.round(d);
+  const sizePx = Math.max(1, Math.round(fontSize * r));
+  const ai = Math.round(sizePx * m[0]);
+  const di = Math.round(sizePx * m[1]);
   const android = ai + Math.ceil((Math.ceil(lhPx) - ai - di) / 2);
-  let ab = ai;
-  let db = di;
+  // Chrome draws at the exact (fractional) size.
+  const d = fontSize * r * m[1];
+  let ab = Math.round(fontSize * r * m[0]);
+  let db = Math.round(d);
   if (db < d && ab >= 1) {
     db++;
     ab--;
@@ -108,6 +112,8 @@ function androidLineBox(style: TextStyle): TextStyle | null {
   const chrome = ab + Math.floor((lineHeight * r - ab - db) / 2);
   const shift = (chrome - android) / PixelRatio.get();
   return {
+    fontSize: (sizePx - 0.01) / r,
+    letterSpacing: (letterSpacing ?? 0) + (fontSize - sizePx / r) * m[2],
     lineHeight: lhPx / r,
     ...(shift ? { transform: [...(Array.isArray(transform) ? transform : []), { translateY: shift }] } : {}),
   };

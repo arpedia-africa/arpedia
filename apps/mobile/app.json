@@ -29,7 +29,6 @@
       "expo-dev-client",
       "./plugins/dev-variant",
       "./plugins/kit-localhost",
-      "./plugins/subpixel-text",
       [
         "expo-splash-screen",
         {
