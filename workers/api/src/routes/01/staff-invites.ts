@@ -13,7 +13,15 @@ import type { AppEnv, Env } from '../../env';
 // when RESEND_API_KEY is set; otherwise (local) the link is logged and returned in the response.
 
 const PASSWORD_MIN = 12;
-const ROLES: StaffRole[] = ['super_admin', 'operations_admin', 'publisher', 'moderator', 'finance', 'support', 'analyst'];
+const ROLES: StaffRole[] = [
+  'super_admin',
+  'operations_admin',
+  'publisher',
+  'moderator',
+  'finance',
+  'support',
+  'analyst',
+];
 const ROLE_LABEL: Record<StaffRole, string> = {
   super_admin: 'Super admin',
   operations_admin: 'Operations admin',
@@ -26,7 +34,11 @@ const ROLE_LABEL: Record<StaffRole, string> = {
 
 const invites = new Hono<AppEnv>();
 
-const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64url = (bytes: Uint8Array) =>
+  btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 const sha256 = async (s: string) =>
   [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
     .map((b) => b.toString(16).padStart(2, '0'))

@@ -87,6 +87,8 @@ jobs:
           (cd apps/admin && npx next start --port 3000 > /tmp/admin.log 2>&1 &)
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3000/sign-in && break; sleep 2; done
           node tools/smoke-admin.mjs
+      - name: Staff invites end to end (api Worker + local stack)
+        run: node tools/smoke-team.mjs
       - name: Visual parity references (admin)
         run: |
           mkdir -p .shots/admin

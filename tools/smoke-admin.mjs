@@ -5,7 +5,7 @@
 // secret), hands the session to the console as the @supabase/ssr cookie, and checks who gets what.
 import { localEnv, passwordSession, staffSession } from './staff-session.mjs';
 
-const admin = process.argv[2] ?? 'http://127.0.0.1:3000';
+const admin = process.argv[2] ?? process.env.ADMIN_URL ?? 'http://127.0.0.1:3000';
 const env = localEnv();
 const url = env.API_URL;
 const fail = (msg) => {

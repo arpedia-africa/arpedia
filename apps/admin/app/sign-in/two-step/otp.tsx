@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * The prototype's .otp row (six boxes, the next empty one ringed with .f), driven by one real
+ * The prototype's .otp row (six boxes, the last typed one ringed with .f), driven by one real
  * input laid over it so typing, pasting and one-time-code autofill all work.
  */
 export function OtpInput({ name = 'code', invalid }: { name?: string; invalid?: boolean }) {
@@ -12,7 +12,7 @@ export function OtpInput({ name = 'code', invalid }: { name?: string; invalid?: 
   return (
     <div className="otp" style={{ position: 'relative' }}>
       {Array.from({ length: 6 }, (_, i) => (
-        <span key={i} className={focused && i === Math.min(value.length, 5) ? 'f' : undefined} aria-hidden>
+        <span key={i} className={focused && i === Math.max(value.length - 1, 0) ? 'f' : undefined} aria-hidden>
           {value[i] ?? ''}
         </span>
       ))}

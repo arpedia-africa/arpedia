@@ -6,19 +6,47 @@
 //   node tools/with-admin.mjs node tools/parity.mjs --admin signin signin-2fa
 // Starts `next dev` on :3000 and `wrangler dev` on :8787 unless something already answers there,
 // waits until they respond, runs the command, and kills the process trees it started.
+// --prod serves the last `next build` with `next start` (stable for parity: no compile reloads).
+// ADMIN_PORT / API_PORT move both (run `pnpm dev:vars` with the same values first); the command
+// gets ADMIN_URL and API_URL in its environment.
 import { spawn, spawnSync } from 'node:child_process';
 
 let args = process.argv.slice(2);
-const withApi = args[0] === '--api';
-if (withApi) args = args.slice(1);
+const flags = new Set();
+while (args[0] === '--api' || args[0] === '--prod') flags.add(args.shift());
+const withApi = flags.has('--api');
 if (!args.length) {
-  console.error('usage: node tools/with-admin.mjs [--api] <command> [args…]');
+  console.error('usage: node tools/with-admin.mjs [--api] [--prod] <command> [args…]');
   process.exit(2);
 }
 
+const adminPort = process.env.ADMIN_PORT ?? '3000';
+const apiPort = process.env.API_PORT ?? '8787';
+process.env.ADMIN_URL = `http://127.0.0.1:${adminPort}`;
+process.env.API_URL = `http://127.0.0.1:${apiPort}`;
 const servers = [
-  { name: 'admin', probe: 'http://127.0.0.1:3000/sign-in', pkg: '@arpedia/admin' },
-  ...(withApi ? [{ name: 'api', probe: 'http://127.0.0.1:8787/health', pkg: '@arpedia/api' }] : []),
+  {
+    name: 'admin',
+    probe: `${process.env.ADMIN_URL}/sign-in`,
+    cmd: [
+      '--filter',
+      '@arpedia/admin',
+      'exec',
+      'next',
+      flags.has('--prod') ? 'start' : 'dev',
+      '--port',
+      adminPort,
+    ],
+  },
+  ...(withApi
+    ? [
+        {
+          name: 'api',
+          probe: `${process.env.API_URL}/health`,
+          cmd: ['--filter', '@arpedia/api', 'exec', 'wrangler', 'dev', '--port', apiPort],
+        },
+      ]
+    : []),
 ];
 
 const up = async (probe) => {
@@ -41,7 +69,7 @@ function stop() {
 
 for (const s of servers) {
   if (await up(s.probe)) continue;
-  started.push(spawn('pnpm', ['--filter', s.pkg, 'dev'], { stdio: 'ignore', shell: true }));
+  started.push(spawn('pnpm', s.cmd, { stdio: 'ignore', shell: true }));
   const until = Date.now() + 180_000;
   while (!(await up(s.probe))) {
     if (Date.now() > until) {

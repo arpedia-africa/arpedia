@@ -1,9 +1,15 @@
 // Local staff sessions for smoke tests: password sign-in, then two-step with the seeded TOTP secret.
 import { execSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { totp } from './totp.mjs';
 
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** API_URL, ANON_KEY… of the running local Supabase stack. */
 export function localEnv() {
   const out = execSync('pnpm -s exec supabase status -o env', {
+    cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });

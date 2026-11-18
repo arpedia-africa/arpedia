@@ -23,14 +23,17 @@ if (!env.SERVICE_ROLE_KEY || !env.JWT_SECRET) {
   console.error('Local Supabase is not running. Start it with `pnpm db:start`.');
   process.exit(1);
 }
+// ADMIN_PORT / API_PORT (default 3000 / 8787) let a second local stack run beside the first.
+const adminPort = process.env.ADMIN_PORT ?? '3000';
+const apiPort = process.env.API_PORT ?? '8787';
 writeFileSync(
   join(root, 'workers/api/.dev.vars'),
-  `SUPABASE_SERVICE_ROLE_KEY=${env.SERVICE_ROLE_KEY}\nSUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`,
+  `SUPABASE_URL=${env.API_URL}\nSUPABASE_SERVICE_ROLE_KEY=${env.SERVICE_ROLE_KEY}\nSUPABASE_JWT_SECRET=${env.JWT_SECRET}\nADMIN_URL=http://127.0.0.1:${adminPort}\n`,
 );
 writeFileSync(join(root, 'workers/chat/.dev.vars'), `SUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`);
 writeFileSync(
   join(root, 'apps/admin/.env.local'),
-  `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\nAPI_URL=http://127.0.0.1:8787\n`,
+  `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\nAPI_URL=http://127.0.0.1:${apiPort}\n`,
 );
 // The Android emulator reaches the host at 10.0.2.2.
 const emu = env.API_URL.replace('127.0.0.1', '10.0.2.2');

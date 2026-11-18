@@ -43,7 +43,7 @@ const buildPackage = dev ? DEV_PACKAGE : RELEASE_PACKAGE;
 const max = Number(opt('max', '2'));
 const themes = opt('themes', admin ? 'light' : 'sunflower,palm,plum,night').split(',');
 const serial = opt('serial', process.env.ANDROID_SERIAL || 'c1212d5c');
-const baseUrl = opt('url', 'http://127.0.0.1:3000');
+const baseUrl = opt('url', process.env.ADMIN_URL ?? 'http://127.0.0.1:3000');
 const ids = argv.filter((a) => !a.startsWith('--'));
 const outDir = resolve(root, '.shots/parity');
 mkdirSync(outDir, { recursive: true });
@@ -398,25 +398,13 @@ try {
       );
       return b.shot();
     };
-    const cookies = async (email) => {
-      const { execSync } = await import('node:child_process');
-      const st = execSync('pnpm -s exec supabase status -o env', {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      });
-      const env = Object.fromEntries(
-        st
-          .split(/\r?\n/)
-          .map((l) => l.match(/^([A-Z_]+)="?(.*?)"?$/))
-          .filter(Boolean)
-          .map((m) => [m[1], m[2]]),
-      );
-      const s = await fetch(`${env.API_URL}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: { apikey: env.ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'arpedia-local' }),
-      }).then((r) => r.json());
-      if (!s.access_token) throw new Error(`sign-in failed for ${email}`);
+    // Types into a React-controlled input (the native setter, then an input event).
+    const typeInto = `((s,v)=>{const el=document.querySelector(s);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))})`;
+    // `as` signs in a seeded staff member with two-step; `aal1` stops after the password.
+    const cookies = async (email, aal1 = false) => {
+      const { localEnv, passwordSession, staffSession } = await import('./staff-session.mjs');
+      const env = localEnv();
+      const s = aal1 ? await passwordSession(env, email) : await staffSession(env, email);
       const name = `sb-${new URL(env.API_URL).hostname.split('.')[0]}-auth-token`;
       const value = 'base64-' + Buffer.from(JSON.stringify(s)).toString('base64url');
       return value.length <= 3180
@@ -436,12 +424,41 @@ try {
           { x: 248, y: 0, width: W - 248, height: 60 },
         ],
       },
+      'signin-2fa': {
+        path: '/sign-in/two-step',
+        as: 'amaka@arpedia.africa',
+        aal1: true,
+        fill: `${typeInto}('input[name=code]','4812');document.querySelector('input[name=code]').focus();`,
+      },
+      'signin-reset': {
+        path: '/sign-in/reset',
+        // Wait for hydration first, or the click posts the form natively and navigates away.
+        fill: `await new Promise(r=>setTimeout(r,1500));${typeInto}('#rs-e','amaka@arpedia.africa');document.querySelector('button[type=submit]').click();await new Promise(r=>setTimeout(r,1500));`,
+      },
+      // Page content only: the prototype draws a Moderator with the full sidebar, but flow 16
+      // rule 11 hides links the role can't use (flow file wins).
+      'no-access': {
+        path: '/royalties',
+        as: 'zainab@arpedia.africa',
+        regions: [{ x: 248, y: 60, width: W - 248, height: H - 60 }],
+      },
+      team: { path: '/team', as: 'amaka@arpedia.africa' },
+      'team-invite': {
+        path: '/team?invite=1',
+        as: 'amaka@arpedia.africa',
+        fill: `${typeInto}('#iv-e','adaora@arpedia.africa');${typeInto}('#iv-n','Adaora Nnadi');await new Promise(r=>setTimeout(r,300));document.activeElement.blur();`,
+      },
+      roles: { path: '/roles', as: 'amaka@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];
       if (!p) throw new Error(`no admin parity page "${id}" (have: ${Object.keys(pages).join(', ')})`);
       const ref = await adminRef(id);
-      await b.open(baseUrl + p.path, { width: W, height: H, cookies: p.as ? await cookies(p.as) : [] });
+      await b.open(baseUrl + p.path, {
+        width: W,
+        height: H,
+        cookies: p.as ? await cookies(p.as, p.aal1) : [],
+      });
       await b.eval(`(async()=>{${p.fill ?? ''};await ${SETTLE};return true})()`);
       const build = await b.shot();
       results.push({ name: `admin-${id}`, ...(await compare(`admin-${id}`, ref, build, W, H, p.regions)) });

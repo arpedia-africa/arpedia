@@ -6,7 +6,7 @@
 // disables and re-enables them. Leaves the new staff row behind (db:reset clears it).
 import { localEnv, passwordSession, staffSession } from './staff-session.mjs';
 
-const api = process.argv[2] ?? 'http://127.0.0.1:8787';
+const api = process.argv[2] ?? process.env.API_URL ?? 'http://127.0.0.1:8787';
 const env = localEnv();
 const fail = (msg) => {
   console.error('FAIL', msg);

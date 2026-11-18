@@ -9,7 +9,7 @@ export function ResetForm({ expired }: { expired?: boolean }) {
   const [state, action, pending] = useActionState<ResetState, FormData>(sendReset, {});
   return (
     <form className="auth__card" action={action} noValidate>
-      <Link className="link" href="/sign-in">
+      <Link className="link" href="/sign-in" style={{ fontSize: 13.5 }}>
         Back to sign in
       </Link>
       <div className="stack s4">

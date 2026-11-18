@@ -45,7 +45,8 @@ const ROLE_SEES: Record<StaffRole, string> = {
 };
 
 const AVATAR = ['g', 'o', 'b', 't', 'm', 'k', 'r', 'n'];
-const avatarClass = (id: string) => AVATAR[parseInt(id.replace(/-/g, '').slice(-4), 16) % AVATAR.length];
+/** Avatar colours run down the list in a fixed order, as on s-team. */
+const avatarClass = (i: number) => AVATAR[i % AVATAR.length];
 const initials = (name: string) =>
   name
     .split(/\s+/)
@@ -217,12 +218,14 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
                   </tr>
                 </thead>
                 <tbody>
-                  {shown.map(r =>
+                  {shown.map((r, i) =>
                     r.kind === 'invite' ? (
                       <tr key={r.id}>
                         <td>
                           <div className="who">
-                            <span className="av sm">?</span>
+                            <span className="av sm" style={{ background: '#C7CBD1', color: 'var(--ink-2)' }}>
+                              ?
+                            </span>
                             <span>
                               <b>{r.name}</b>
                               <small>
@@ -258,14 +261,14 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
                       <tr key={r.id}>
                         <td>
                           <div className="who">
-                            <span className={`av sm ${avatarClass(r.id)}`}>{initials(r.name)}</span>
+                            <span className={`av sm ${avatarClass(i)}`}>{initials(r.name)}</span>
                             <span>
                               <b>
                                 {r.name}
                                 {r.isSelf ? (
                                   <>
                                     {' '}
-                                    <small>(you)</small>
+                                    <small style={{ display: 'inline' }}>(you)</small>
                                   </>
                                 ) : null}
                               </b>
