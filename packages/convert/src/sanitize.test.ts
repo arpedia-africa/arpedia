@@ -77,5 +77,5 @@ describe('safeUnzip', () => {
     const many: Record<string, Uint8Array> = {};
     for (let i = 0; i <= 5_000; i++) many[`f${i}.txt`] = new Uint8Array(0);
     expect(reason(() => safeUnzip(zipSync(many)))).toBe('too_many_entries');
-  });
+  }, 30_000); // zipping 5,001 files takes ~6 s when the whole repo's tests run at once
 });
