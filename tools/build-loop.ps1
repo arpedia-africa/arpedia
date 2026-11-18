@@ -18,6 +18,8 @@ param(
 if ($Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-$Lane" }
 if ($NoPhone -and -not $Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-nophone" }
 $ErrorActionPreference = 'Continue'
+$LockDir = "$env:USERPROFILE\projectsrpedia-locks"   # phone and database locks shared by builders on this PC
+New-Item -ItemType Directory -Force $LockDir | Out-Null
 
 # Build in a separate clone so your own working copy is never touched.
 if (-not (Test-Path "$WorkDir\.git")) {
@@ -56,7 +58,7 @@ while ($true) {
   Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' }) ===" -ForegroundColor Yellow
 
   $before = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
-  $prompt | claude -p --model $Model --permission-mode acceptEdits --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
+  $prompt | claude -p --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
   $text = ($lines | Out-String)
   $after = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
   if ($Topic -and $text -notmatch 'NOTHING-TO-DO|WAITING-FOR-CI') {
