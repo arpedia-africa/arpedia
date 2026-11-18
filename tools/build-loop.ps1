@@ -12,7 +12,7 @@ param(
   [string]$WorkDir = "$env:USERPROFILE\projects\arpedia-builder",
   [string]$Repo = 'arpedia-africa/arpedia',
   [string]$Topic = '',             # ntfy topic: each run's final report is pushed to your phone
-  [string]$Lane = '',              # e.g. L2-product: only work that lane (for running several loops, one per machine)
+  [string]$Lane = '',              # e.g. L2-product, or 'L1-critical,L3-money-ops': only those lanes (one loop per lane set)
   [switch]$NoPhone                 # second builder on a PC without the owner's phone: hands on-device checks back (label needs-phone)
 )
 if ($Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-$Lane" }
@@ -50,7 +50,7 @@ while ($true) {
   $run++
   git checkout -q main 2>$null; git pull -q --ff-only 2>$null
   $prompt = Get-Content -Raw "$WorkDir\docs\prd\BUILDER-PROMPT.md"
-  if ($Lane) { $prompt = "Your lane is $Lane. Only continue or start flows listed in lanes.$Lane.`n`n" + $prompt }
+  if ($Lane) { $prompt = "Your lanes: $Lane. Only continue or start flows listed in those lanes of status.json. Never touch another lane's PR, even if it looks stalled.`n`n" + $prompt }
   if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below.`n`n" + $prompt }
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
   Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' }) ===" -ForegroundColor Yellow

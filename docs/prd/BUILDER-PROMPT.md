@@ -32,6 +32,10 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - Never touch any other app on this phone.
 - **`emulator-5554`:** for the 320 and 360 dp checks (`adb -s emulator-5554 shell wm size` / `wm density` to set the width, and reset afterwards) and for anything that may crash or wipe data.
 - If the phone isn't connected, use the emulator only and note it in the PR.
+- **Database lock (builders on one PC share one local Supabase stack, project_id `arpedia`):**
+  - Before `supabase start`, `db reset`, pgTAP, smoke tests or local Workers against it, take the lock with `mkdir "$TEMP/arpedia-db.lock"`. The same 30-minute stale rule applies as for the phone.
+  - Run `supabase db reset` first, so the database matches **your** branch's migrations.
+  - Release the lock when you're done, and always before the run ends.
 - **Phone lock (two builders share the phone):**
   - Before any adb install, Metro session or parity/Maestro run on `c1212d5c`, take the lock with `mkdir "$TEMP/arpedia-phone.lock"`.
   - If that fails because the lock exists and is under 30 minutes old, another builder is using the phone: do non-phone work, or try again later in the run. If it's older than 30 minutes, it's stale; remove it and take it.
