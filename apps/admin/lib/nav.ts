@@ -1,0 +1,104 @@
+import type { IconName } from '@/components/icon';
+
+export interface NavSection {
+  key: string;
+  label: string;
+  icon: IconName;
+  href: string;
+  sub: { key: string; label: string }[];
+}
+
+/** The 10 sidebar sections and their sub-pages, exactly as admin/src/02-shell.html. */
+export const nav: NavSection[] = [
+  { key: 'home', label: 'Home', icon: 'layout', href: '/', sub: [] },
+  {
+    key: 'books', label: 'Books', icon: 'lib', href: '/books',
+    sub: [
+      { key: 'books', label: 'Pipeline' },
+      { key: 'curation', label: 'Discover curation' },
+      { key: 'genres', label: 'Genres and tags' },
+    ],
+  },
+  {
+    key: 'people', label: 'People', icon: 'users', href: '/users',
+    sub: [
+      { key: 'users', label: 'Readers' },
+      { key: 'applications', label: 'Authors and applications' },
+      { key: 'data-requests', label: 'Privacy requests' },
+    ],
+  },
+  {
+    key: 'safety', label: 'Safety', icon: 'flag', href: '/reports',
+    sub: [
+      { key: 'reports', label: 'Reports' },
+      { key: 'community', label: 'Community' },
+      { key: 'claims', label: 'Copyright claims' },
+      { key: 'appeals', label: 'Appeals' },
+      { key: 'automod', label: 'Safety rules' },
+    ],
+  },
+  {
+    key: 'support', label: 'Support', icon: 'inbox', href: '/support',
+    sub: [
+      { key: 'support', label: 'Inbox' },
+      { key: 'help', label: 'Help articles' },
+    ],
+  },
+  {
+    key: 'money', label: 'Money', icon: 'chart', href: '/revenue',
+    sub: [
+      { key: 'revenue', label: 'Revenue' },
+      { key: 'subscriptions', label: 'Subscriptions' },
+      { key: 'transactions', label: 'Transactions' },
+      { key: 'refunds', label: 'Refunds' },
+      { key: 'credits', label: 'Credits' },
+      { key: 'pricing', label: 'Plans and pricing' },
+      { key: 'promos', label: 'Promo codes' },
+    ],
+  },
+  {
+    key: 'payouts', label: 'Payouts', icon: 'bank', href: '/royalties',
+    sub: [
+      { key: 'royalties', label: 'Author earnings' },
+      { key: 'payouts', label: 'Transfers' },
+      { key: 'bank-accounts', label: 'Bank accounts' },
+    ],
+  },
+  {
+    key: 'messages', label: 'Messages', icon: 'bell', href: '/campaigns',
+    sub: [
+      { key: 'campaigns', label: 'Push notifications' },
+      { key: 'banners', label: 'In-app announcements' },
+      { key: 'emails', label: 'Emails' },
+    ],
+  },
+  {
+    key: 'insights', label: 'Insights', icon: 'line', href: '/analytics',
+    sub: [
+      { key: 'analytics', label: 'Analytics' },
+      { key: 'exports', label: 'Exports' },
+    ],
+  },
+  {
+    key: 'settings', label: 'Settings', icon: 'cog', href: '/team',
+    sub: [
+      { key: 'team', label: 'Team and roles' },
+      { key: 'audit', label: 'Audit log' },
+      { key: 'config', label: 'App config' },
+      { key: 'pricing-rules', label: 'Pricing rules' },
+      { key: 'policies', label: 'Policies' },
+      { key: 'integrations', label: 'Integrations' },
+    ],
+  },
+];
+
+/** Find the section and page for a path like "/curation". */
+export function locate(pathname: string) {
+  const page = pathname.split('/')[1] ?? '';
+  if (!page) return { section: nav[0]!, page: undefined };
+  for (const section of nav) {
+    const sub = section.sub.find(s => s.key === page);
+    if (sub) return { section, page: sub };
+  }
+  return { section: undefined, page: undefined };
+}

@@ -65,4 +65,16 @@ African subscription reading community: Android app (Expo), web admin console (N
 - Keep reports short: what shipped, gate results, open items.
 
 ## Commands
-Filled in by flow 00: install, dev (mobile, admin, workers), test (vitest, pgTAP), e2e (Maestro), db reset, generate types, deploy.
+Node 24, pnpm 12, Docker (for Supabase), JDK 17+ and the Android SDK (for the app).
+- **Install:** `pnpm i`
+- **Database:** `pnpm db:start` (local Supabase on ports 553xx: API 55321, DB 55322, Studio 55323) · `pnpm db:reset` (migrations + seed) · `pnpm db:test` (pgTAP) · `pnpm gen:types` (writes `packages/core/src/database.types.ts`; commit it)
+- **Local env:** `pnpm dev:vars` writes `workers/*/.dev.vars`, `apps/admin/.env.local` and `apps/mobile/.env.local` from the running stack. Seed logins use password `arpedia-local` (ngozi@example.com reader, amaka@arpedia.africa Super admin, one staff per role).
+- **Dev:** `pnpm dev` (admin on :3000 + api Worker on :8787 + chat Worker on :8788) · `pnpm dev:admin` · `pnpm dev:workers`
+- **Fast screen loop (app):** `node tools/android-dev.mjs <serial>` once (prebuild + debug build + install **Arpedia Dev** `com.arpedia.reader.dev` beside the release app, and `adb reverse tcp:8081`) · `pnpm dev:mobile` (Metro; stop it before the run ends) · `node tools/android-dev.mjs <serial> --no-build --route /kit` (open a route on Metro) · edits reload in seconds · `node tools/parity.mjs --dev <ids>` while iterating
+- **Release APK:** `node tools/android-release.mjs --arch arm64-v8a --serial c1212d5c` (kit on, as CI) · then the gate `node tools/parity.mjs <ids>`
+- **Checks:** `pnpm typecheck` · `pnpm lint` · `pnpm format:check` · `pnpm test` (Vitest)
+- **Smoke:** `node tools/smoke-api.mjs` (api health with a seeded JWT) · `node tools/smoke-admin.mjs` (staff gate)
+- **E2E (Maestro):** `maestro test apps/mobile/.maestro/<flow>.yaml -e WIDTH=375` · all widths: `node tools/maestro-widths.mjs apps/mobile/.maestro/<flow>.yaml`
+- **Parity:** `node tools/parity.mjs kit-a kit-b` (app gate: reference drawn in the dev build's WebView on the same phone, build from the release app; `--dev` builds from Metro; `--ref chrome` for a desktop-Chrome reference) · `node tools/parity.mjs --admin signin overview [--url http://127.0.0.1:3000]` · `node tools/shot.mjs …` (prototype) · `node tools/shot-url.mjs <url> <out.png> [w h] [--as email]` (built admin)
+- **Icons:** `node tools/gen-icons.mjs` after a prototype sprite changes
+- **Deploy:** Workers `pnpm --filter @arpedia/api deploy:staging` (and `@arpedia/chat`); admin on Vercel per PR; app: Actions → Release Android (fastlane `android internal`); production only from tagged releases

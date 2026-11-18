@@ -1,0 +1,16 @@
+{
+  "name": "@arpedia/convert",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DOCX/EPUB to normalised EPUB3 + manifest (flows 11, 12)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@arpedia/core": "workspace:*"
+  }
+}

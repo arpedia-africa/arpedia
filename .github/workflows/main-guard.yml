@@ -1,0 +1,25 @@
+# Free-plan stand-in for branch protection: alert when a commit lands on main without a merged PR.
+name: Main guard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MESSAGE: ${{ github.event.head_commit.message }}
+      TOPIC: ${{ secrets.NTFY_TOPIC }}
+    steps:
+      - run: |
+          merged=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq '[.[] | select(.merged_at != null)] | length')
+          [ "$merged" != 0 ] && exit 0
+          curl -sf -H "Priority: high" -H "Title: Direct push to main" \
+            --data-binary "$GITHUB_SHA $MESSAGE" "https://ntfy.sh/$TOPIC"

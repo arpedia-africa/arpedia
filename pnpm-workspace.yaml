@@ -1,0 +1,69 @@
+packages:
+  - apps/*
+  - packages/*
+  - workers/*
+  - tools/desk
+
+allowBuilds:
+  '@sentry/cli': true
+  esbuild: true
+  supabase: true
+  workerd: true
+
+minimumReleaseAgeExclude:
+  - '@supabase/cli-darwin-arm64@3.2.0'
+  - '@supabase/cli-darwin-x64@3.2.0'
+  - '@supabase/cli-linux-arm64-musl@3.2.0'
+  - '@supabase/cli-linux-arm64@3.2.0'
+  - '@supabase/cli-linux-x64-musl@3.2.0'
+  - '@supabase/cli-linux-x64@3.2.0'
+  - '@supabase/cli-windows-arm64@3.2.0'
+  - '@supabase/cli-windows-x64@3.2.0'
+  - '@typescript-eslint/eslint-plugin@8.73.0'
+  - '@typescript-eslint/parser@8.73.0'
+  - '@typescript-eslint/project-service@8.73.0'
+  - '@typescript-eslint/scope-manager@8.73.0'
+  - '@typescript-eslint/tsconfig-utils@8.73.0'
+  - '@typescript-eslint/type-utils@8.73.0'
+  - '@typescript-eslint/types@8.73.0'
+  - '@typescript-eslint/typescript-estree@8.73.0'
+  - '@typescript-eslint/utils@8.73.0'
+  - '@typescript-eslint/visitor-keys@8.73.0'
+  - supabase@3.2.0
+  - typescript-eslint@8.73.0
+  - '@cloudflare/workerd-darwin-64@1.20261117.1'
+  - '@cloudflare/workerd-darwin-arm64@1.20261117.1'
+  - '@cloudflare/workerd-linux-64@1.20261117.1'
+  - '@cloudflare/workerd-linux-arm64@1.20261117.1'
+  - '@cloudflare/workerd-windows-64@1.20261117.1'
+  - '@cloudflare/workers-types@5.20261117.1'
+  - hono@4.13.19
+  - miniflare@5.20261117.0-beta
+  - workerd@1.20261117.1
+  - wrangler@4.164.0
+  - '@expo/cli@58.1.21'
+  - '@expo/metro-config@58.0.23'
+  - '@expo/router-server@58.0.23'
+  - '@noxcturnal/noxcturnal-darwin-arm64@0.1.14'
+  - '@noxcturnal/noxcturnal-darwin-x64@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-arm64-gnu@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-arm64-musl@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-x64-gnu@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-x64-musl@0.1.14'
+  - '@noxcturnal/noxcturnal-win32-arm64-msvc@0.1.14'
+  - '@noxcturnal/noxcturnal-win32-x64-msvc@0.1.14'
+  - babel-preset-expo@58.0.26
+  - expo-file-system@58.0.14
+  - expo@58.0.26
+  - noxcturnal@0.1.14
+  - expo-dev-client@58.0.21
+  - expo-dev-launcher@58.0.21
+  - expo-router@58.0.32
+  - '@tanstack/query-async-storage-persister@5.107.2'
+  - '@tanstack/query-core@5.107.2'
+  - '@tanstack/query-persist-client-core@5.107.2'
+  - '@tanstack/react-query-persist-client@5.107.2'
+  - '@tanstack/react-query@5.107.2'
+
+# React Native and Metro expect a flat node_modules.
+nodeLinker: hoisted

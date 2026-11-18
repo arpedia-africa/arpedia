@@ -1,0 +1,15 @@
+{
+  "name": "@arpedia/desk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Staff desk CLI: pulls book_desk jobs, converts with pandoc, runs epubcheck (flow 12)",
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@arpedia/core": "workspace:*"
+  }
+}

@@ -1,0 +1,33 @@
+// Arpedia API Worker. Top level = local (`wrangler dev`); env.staging and env.production deploy.
+// Secrets (never in this file): SUPABASE_SERVICE_ROLE_KEY. Local only, in .dev.vars: SUPABASE_JWT_SECRET.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "arpedia-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "vars": {
+    "APP_ENV": "local",
+    "SUPABASE_URL": "http://127.0.0.1:55321",
+  },
+  "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-local" }],
+  "env": {
+    "staging": {
+      "name": "arpedia-api-staging",
+      "vars": {
+        "APP_ENV": "staging",
+        "SUPABASE_URL": "https://arpedia-staging.supabase.co",
+      },
+      "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-staging" }],
+    },
+    "production": {
+      "name": "arpedia-api",
+      "vars": {
+        "APP_ENV": "production",
+        "SUPABASE_URL": "https://arpedia.supabase.co",
+      },
+      "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books" }],
+    },
+  },
+}

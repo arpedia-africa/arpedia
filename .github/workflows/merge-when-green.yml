@@ -1,0 +1,30 @@
+# Free-plan stand-in for auto-merge: squash-merge a ready flow-*/fix PR once every check on its head is green.
+name: Merge when green
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - run: |
+          pr=$(gh api "repos/$GH_REPO/commits/$SHA/pulls" \
+            --jq '[.[] | select(.state == "open" and .draft == false and .head.sha == env.SHA
+              and any(.labels[].name; startswith("flow-") or . == "fix"))][0].number // empty')
+          [ -n "$pr" ] || { echo "No open, ready flow-*/fix PR at $SHA"; exit 0; }
+          bad=$(gh api "repos/$GH_REPO/commits/$SHA/check-runs?filter=latest&per_page=100" \
+            --jq '[.check_runs[] | select(.conclusion != "success" and .conclusion != "skipped")] | length')
+          [ "$bad" = 0 ] || { echo "$bad check(s) on $SHA not successful"; exit 0; }
+          gh pr merge "$pr" --squash --delete-branch --match-head-commit "$SHA"

@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Arpedia",
+    "slug": "arpedia",
+    "scheme": "arpedia",
+    "version": "26.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFFFFF",
+    "ios": {
+      "bundleIdentifier": "africa.arpedia.reader",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.arpedia.reader",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5931F",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-dev-client",
+      "./plugins/dev-variant",
+      "./plugins/kit-localhost",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "backgroundColor": "#F5931F"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

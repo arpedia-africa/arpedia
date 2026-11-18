@@ -1,0 +1,42 @@
+# Flow 00 smoke: the kit gallery opens and renders in all four themes.
+# Run: maestro test apps/mobile/.maestro/00-kit.yaml -e WIDTH=375
+# CI runs it at 375, 360 and 320dp (tools/maestro-widths.mjs sets the emulator density first).
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: kit-gallery
+    timeout: 30000
+- assertVisible: 'Good evening, Ngozi'
+- assertVisible: 'Start reading · first 10% free'
+- takeScreenshot: kit-${WIDTH}-sunflower
+- tapOn: 'Palm'
+- assertVisible: 'Unlock all · 125 credits'
+- takeScreenshot: kit-${WIDTH}-palm
+- tapOn: 'Plum'
+- takeScreenshot: kit-${WIDTH}-plum
+- tapOn: 'Night'
+- takeScreenshot: kit-${WIDTH}-night
+# Reduced motion switch: petals stop drifting and lists stop rising.
+- tapOn: 'Motion on'
+- assertVisible: 'Motion off'
+- tapOn: 'Sunflower'
+# The hosted CI emulator manages only ~2 swipes in 10 s, and the page is
+# ~1500dp to Lists at 375dp, so give each scroll a minute.
+- scrollUntilVisible:
+    element: 'Lists'
+    direction: DOWN
+    timeout: 60000
+- takeScreenshot: kit-${WIDTH}-lists
+- scrollUntilVisible:
+    element: 'Open sheet'
+    direction: DOWN
+    timeout: 60000
+- tapOn: 'Open sheet'
+- assertVisible: 'Unlock for 125 credits'
+- takeScreenshot: kit-${WIDTH}-sheet
+- tapOn: 'Close'
+- tapOn: 'Show toast'
+- assertVisible: 'Chapter 8 unlocked · 9 credits'

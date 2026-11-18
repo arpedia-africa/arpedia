@@ -1,0 +1,33 @@
+// Arpedia chat Worker: one Durable Object per conversation (group, club, DM thread, reading room).
+// Top level = local (`wrangler dev`); env.staging and env.production deploy. Flow 06 fills it in.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "arpedia-chat",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "vars": {
+    "APP_ENV": "local",
+    "SUPABASE_URL": "http://127.0.0.1:55321",
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatRoom"] }],
+  "env": {
+    "staging": {
+      "name": "arpedia-chat-staging",
+      "vars": { "APP_ENV": "staging", "SUPABASE_URL": "https://arpedia-staging.supabase.co" },
+      "durable_objects": {
+        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+      },
+    },
+    "production": {
+      "name": "arpedia-chat",
+      "vars": { "APP_ENV": "production", "SUPABASE_URL": "https://arpedia.supabase.co" },
+      "durable_objects": {
+        "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }],
+      },
+    },
+  },
+}
