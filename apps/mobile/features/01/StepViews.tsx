@@ -65,7 +65,8 @@ function OnbChip({ label, on, onPress }: { label: string; on: boolean; onPress: 
         ...(on ? { borderWidth: bw(1.5), borderColor: c.org, paddingHorizontal: s(16) - bw(1.5) } : null),
       }}
     >
-      {on ? <Icon name="check" size="s" color={c.orgInk} /> : null}
+      {/* .ico.xs.onb-chip__tick: 15px, shown only when picked */}
+      {on ? <Icon name="check" size="xs" color={c.orgInk} /> : null}
       <Text size={14} weight={600} color={on ? 'orgInk' : 'ink'} oneLine>
         {label}
       </Text>
@@ -336,11 +337,28 @@ function RoleOption({
         minHeight: s(56),
         borderRadius: s(14),
         backgroundColor: on ? c.orgTint2 : c.white,
-        ...(on
-          ? { borderWidth: s(2), borderColor: c.org, padding: s(16) - s(2) }
-          : { borderWidth: bw(1), borderColor: c.line, padding: s(16) - bw(1) }),
+        // border 1px (transparent when picked) + padding 16
+        borderWidth: bw(1),
+        borderColor: on ? 'transparent' : c.line,
+        padding: s(16),
       }}
     >
+      {/* picked: box-shadow inset 0 0 0 2px org, inside the border */}
+      {on ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: s(14) - bw(1),
+            borderWidth: s(2),
+            borderColor: c.org,
+          }}
+        />
+      ) : null}
       <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
         <Text size={15.5} weight={700}>
           {title}

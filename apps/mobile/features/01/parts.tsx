@@ -4,11 +4,17 @@ import { AppIcon, IconButton, OnHero, Petals, Press, Text, useTheme } from '@arp
 
 // Flow 01 pieces that mirror prototype elements one to one (`node tools/screen.mjs s-login --css`).
 
-/** `.hero__title` (Bricolage 800, 1.02) and `.hero__sub` (14.5/1.45, max 32ch). */
+/** `.hero__title` (Bricolage 800, 1.02, text-wrap balance) and `.hero__sub` (14.5/1.45, max 32ch). */
 export function HeroTitle({ children, size = 30 }: { children: string; size?: number }) {
   const { s } = useTheme();
   return (
-    <Text variant="display" size={size} color="onOrg" style={{ lineHeight: s(size) * 1.02 }}>
+    <Text
+      variant="display"
+      size={size}
+      color="onOrg"
+      textBreakStrategy="balanced"
+      style={{ lineHeight: s(size) * 1.02 }}
+    >
       {children}
     </Text>
   );
@@ -23,13 +29,13 @@ export function HeroSub({
   center?: boolean;
 }) {
   const { s } = useTheme();
-  // 32ch: Inter "0" ≈ 0.56em
+  // 32ch: Inter "0" advance is 1292/2048 = 0.631em
   return (
     <Text
       size={size}
       color="onOrg"
       center={center}
-      style={{ lineHeight: s(size) * 1.45, maxWidth: s(size * 0.56 * 32) }}
+      style={{ lineHeight: s(size) * 1.45, maxWidth: s(size * 0.631 * 32) }}
     >
       {children}
     </Text>

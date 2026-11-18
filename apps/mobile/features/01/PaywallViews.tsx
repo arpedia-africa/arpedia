@@ -197,16 +197,17 @@ export function PaywallHero({
             color="onOrg"
             center
             accessibilityRole="header"
+            textBreakStrategy="balanced"
             style={{ lineHeight: s(28) * 1.02 }}
           >
             {title}
           </Text>
-          {/* max-width 32ch: Inter "0" ≈ 0.56em */}
+          {/* max-width 32ch: Inter "0" advance is 0.631em */}
           <Text
             size={14}
             color="onOrg"
             center
-            style={{ lineHeight: s(14) * 1.45, maxWidth: s(14 * 0.56 * 32) }}
+            style={{ lineHeight: s(14) * 1.45, maxWidth: s(14 * 0.631 * 32) }}
           >
             {sub}
           </Text>
