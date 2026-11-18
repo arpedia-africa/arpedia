@@ -27,7 +27,13 @@ const elements = (nodes: ChildNode[], name: string, out: Element[] = []): Elemen
 
 /** Resolve `href` relative to directory `dir` inside the package; null if it leaves the package. */
 export function resolvePath(dir: string, href: string): string | null {
-  const parts = (dir ? dir.split('/') : []).concat(decodeURIComponent(href.split('#')[0]!).split('/'));
+  let path: string;
+  try {
+    path = decodeURIComponent(href.split('#')[0]!);
+  } catch {
+    return null; // a malformed %-escape points at nothing
+  }
+  const parts = (dir ? dir.split('/') : []).concat(path.split('/'));
   const out: string[] = [];
   for (const p of parts) {
     if (p === '' || p === '.') continue;

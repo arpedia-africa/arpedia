@@ -2,13 +2,13 @@
 // path (upload, finalize, confirm chapters, submit, status). Staff fixes, release and previews are in
 // staff.ts and the desk CLI's endpoints in desk.ts.
 import type { Json } from '@arpedia/core';
-import { applyEdits } from '@arpedia/convert';
+import { TEXT_CHECKS, applyEdits, checkChapters } from '@arpedia/convert';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv } from '../../env';
-import { countsPayload, loadWork, runStage, type WorkCopy } from './pipeline';
+import { countsPayload, loadWork, locateFlags, runStage, type WorkCopy } from './pipeline';
 import desk from './desk';
 import { rpcError, signedUrl, userDb } from './http';
 import staff from './staff';
@@ -207,11 +207,13 @@ books.post('/confirm', async (c) => {
   } catch {
     return c.json({ error: 'invalid_request' }, 400);
   }
+  // The text checks run again on the edited chapters, so a renamed chapter loses its title flag.
+  const flags = locateFlags(checkChapters(next.chapters, { untitledBook: next.untitledBook }), next.anchors);
   // The author's confirm RPC checks ownership before anything is stored.
   const { data, error } = await db.rpc('confirm_chapters', {
     p_rev: rev.id,
     p_actor: c.var.user.sub,
-    p_result: countsPayload(next) as unknown as Json,
+    p_result: { ...countsPayload(next), flags, check_keys: TEXT_CHECKS } as unknown as Json,
   });
   if (error) return rpcError(c, error);
   await c.env.BOOKS.put(`work/${rev.id}/v${rev.work_version}/book.json`, JSON.stringify(next));

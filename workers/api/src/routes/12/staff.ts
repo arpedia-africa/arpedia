@@ -35,12 +35,13 @@ async function isPublisher(db: Db, uid: string) {
 const notStaff = (c: Context<AppEnv>) => c.json({ error: 'Only Publishers can do this.' }, 403);
 
 /**
- * Re-run the text checks on the chapters a change touched and store the new counts (rule 31).
- * Flags elsewhere, and flags staff dismissed, are left as they are.
+ * Re-run the text checks and store the new counts (rule 31). Replaced: the touched chapters' flags
+ * and book-level ones (too short, no copyright page). Flags on other chapters, and flags staff
+ * dismissed, are left as they are.
  */
 async function rescore(db: Db, revId: string, version: number, work: WorkCopy, touched: string[]) {
-  const all = locateFlags(checkChapters(work.chapters), work.anchors);
-  const flags = all.filter((f) => f.location.chapter_uid && touched.includes(f.location.chapter_uid));
+  const all = locateFlags(checkChapters(work.chapters, { untitledBook: work.untitledBook }), work.anchors);
+  const flags = all.filter((f) => !f.location.chapter_uid || touched.includes(f.location.chapter_uid));
   const { data, error } = await db.rpc('complete_rescore', {
     p_rev: revId,
     p_work_version: version,
@@ -125,7 +126,11 @@ staff.post('/fix', async (c) => {
     throw e;
   }
 
-  // The RPC takes the version lock; only the winner writes the next version's file.
+  // The next version's file is written before the RPC takes the version lock, so the database never
+  // points at a missing file. The winner writes it again afterwards: if two staff raced, the loser's
+  // copy may have landed first.
+  const nextWork: WorkCopy = { ...result.work, imagesFrom: work.imagesFrom ?? rev.work_version };
+  await saveWork(c.env, rev.id, rev.work_version + 1, nextWork, {});
   const { data: fix, error } = await db.rpc('record_fix', {
     p_rev: rev.id,
     // null when the op is not for a flag (generated types do not mark SQL args nullable)
@@ -137,13 +142,7 @@ staff.post('/fix', async (c) => {
   });
   if (error) return rpcError(c, error);
   const rec = fix as { fix_id: string; work_version: number; readiness: number; blocking: boolean };
-  await saveWork(
-    c.env,
-    rev.id,
-    rec.work_version,
-    { ...result.work, imagesFrom: work.imagesFrom ?? rev.work_version },
-    {},
-  );
+  await saveWork(c.env, rev.id, rec.work_version, nextWork, {});
   const scored = result.restructured
     ? await rescore(db, rev.id, rec.work_version, result.work, result.touched)
     : rec;
@@ -176,6 +175,9 @@ staff.post('/fix/undo', async (c) => {
   ]);
   if (!restored || !current) return c.json({ error: 'This change can no longer be undone.' }, 409);
 
+  // Written before and after the version lock, as in /fix.
+  const back: WorkCopy = { ...restored, imagesFrom: restored.imagesFrom ?? from };
+  await saveWork(c.env, fix.revision_id, body.data.expected_version + 1, back, {});
   const { data, error } = await db.rpc('undo_fix', {
     p_fix: body.data.fix_id,
     p_expected_version: body.data.expected_version,
@@ -183,13 +185,7 @@ staff.post('/fix/undo', async (c) => {
   });
   if (error) return rpcError(c, error);
   const res = data as { work_version: number; readiness: number; blocking: boolean };
-  await saveWork(
-    c.env,
-    fix.revision_id,
-    res.work_version,
-    { ...restored, imagesFrom: restored.imagesFrom ?? from },
-    {},
-  );
+  await saveWork(c.env, fix.revision_id, res.work_version, back, {});
   const touched = [...new Set([...restored.anchors.uids, ...current.anchors.uids])];
   const scored = await rescore(db, fix.revision_id, res.work_version, restored, touched);
   return c.json({
@@ -209,6 +205,14 @@ staff.post('/release', async (c) => {
   let rev = await revision(db, body.data.revision_id).catch(() => null);
   if (!rev) return c.json({ error: 'not_found' }, 404);
   if (rev.status !== 'needs_fixes') return c.json({ error: 'This book is not in Needs fixes.' }, 409);
+  // Chapters, prices and flags rechecked from the working copy first, in case a fix's rescore
+  // did not finish, so the reseal and the blocking check see what the copy holds.
+  const work = await loadWork(c.env, rev.id, rev.work_version);
+  if (work) {
+    const synced = await rescore(db, rev.id, rev.work_version, work, work.anchors.uids);
+    if (!synced.applied)
+      return c.json({ error: 'Someone else changed this book. Reload to see their changes.' }, 409);
+  }
   const { data: blocking } = await db.rpc('has_blocking_flag', { p_rev: rev.id });
   if (blocking) return c.json({ error: 'Fix the issues that block publishing first.' }, 409);
 

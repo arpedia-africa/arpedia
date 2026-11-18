@@ -823,7 +823,9 @@ begin
       delete from public.book_flags where revision_id = p_rev and source = 'desk' and status = 'open';
       perform public._insert_flags(p_rev, p_files -> 'flags', 'desk');
     end if;
-    perform pgmq.send('book_verify', jsonb_build_object('revision_id', p_rev, 'stage', 'verify', 'generation', v_gen));
+    -- Hidden from the cron for 120 s: the Worker runs the stage at once (waitUntil, which lives at
+    -- most 30 s), so the cron only retries what that run did not finish, never at the same time.
+    perform pgmq.send('book_verify', jsonb_build_object('revision_id', p_rev, 'stage', 'verify', 'generation', v_gen), 120);
     return jsonb_build_object('status', 'processing', 'generation', v_gen);
   end if;
 
@@ -892,8 +894,11 @@ begin
   perform public._require_service('confirm_chapters');
   v_rev := public._lock_revision(p_rev);
   select author_id into v_author from public.books where id = v_rev.book_id;
+  -- Staff uploads (uploaded_by is not the author) are confirmed by a Publisher. created_via is not
+  -- used: a desk push rewrites it to 'desk'.
   if p_actor is distinct from v_author
-     and not (v_rev.created_via = 'staff' and public._has_staff_role(p_actor, array['publisher']::public.staff_role[])) then
+     and not (coalesce(v_rev.uploaded_by <> v_author, false)
+              and public._has_staff_role(p_actor, array['publisher']::public.staff_role[])) then
     raise exception 'confirm_chapters: not your book' using errcode = 'insufficient_privilege';
   end if;
   if v_rev.status <> 'draft' or v_rev.draft_step not in ('chapters', 'preview') then
@@ -901,8 +906,12 @@ begin
   end if;
   perform public._apply_counts(p_rev, p_result);
   perform public._replace_chapters(p_rev, p_result -> 'chapters');
+  -- The author's renames and merges rechecked: the Worker sends the text checks' flags again
+  -- (`check_keys` says which); other flags (cover, PDF, desk) stay.
   if p_result ? 'flags' then
-    delete from public.book_flags where revision_id = p_rev and source = 'worker' and status = 'open';
+    delete from public.book_flags f where f.revision_id = p_rev and f.source = 'worker' and f.status = 'open'
+      and (not p_result ? 'check_keys'
+           or f.check_key in (select jsonb_array_elements_text(p_result -> 'check_keys')));
     perform public._insert_flags(p_rev, p_result -> 'flags', 'worker');
   end if;
   update public.book_revisions set chapters_confirmed_at = now(), draft_step = 'preview' where id = p_rev;
@@ -925,7 +934,8 @@ begin
   v_rev := public._lock_revision(p_rev);
   select author_id into v_author from public.books where id = v_rev.book_id;
   if v_uid <> v_author
-     and not (v_rev.created_via = 'staff' and public._has_staff_role(v_uid, array['publisher']::public.staff_role[])) then
+     and not (coalesce(v_rev.uploaded_by <> v_author, false)
+              and public._has_staff_role(v_uid, array['publisher']::public.staff_role[])) then
     raise exception 'submit_revision: not your book' using errcode = 'insufficient_privilege';
   end if;
   if v_rev.status <> 'draft' then
@@ -943,7 +953,7 @@ begin
   returning * into v_rev;
   perform public._step(p_rev, 'author_confirms');
   perform pgmq.send('book_verify', jsonb_build_object('revision_id', p_rev, 'stage', 'seal',
-                                                      'generation', v_rev.generation));
+                                                      'generation', v_rev.generation), 120); -- as in finalize
   return jsonb_build_object('status', 'processing', 'generation', v_rev.generation);
 end $$;
 
@@ -1110,11 +1120,27 @@ begin
     perform public._apply_counts(p_rev, p_result);
     perform public._replace_chapters(p_rev, p_result -> 'chapters');
   end if;
-  delete from public.book_flags
-   where revision_id = p_rev and source = 'worker' and status = 'open'
-     and (location ->> 'chapter_uid')::uuid = any (p_chapter_uids)
-     and (p_check_keys is null or check_key = any (p_check_keys));
-  perform public._insert_flags(p_rev, p_flags, 'worker');
+  -- Replaced: the touched chapters' flags, book-level flags (no chapter: too short, no copyright
+  -- page) and flags on chapters that are gone. The Worker sends the new ones for the same set. A flag
+  -- found again unchanged (same check, place and message) keeps its row, so screens holding its id
+  -- still work; only the ones that went away are closed and only new ones are added.
+  delete from public.book_flags f
+   where f.revision_id = p_rev and f.source = 'worker' and f.status = 'open'
+     and (p_check_keys is null or f.check_key = any (p_check_keys))
+     and ((f.location ->> 'chapter_uid') is null
+          or (f.location ->> 'chapter_uid')::uuid = any (p_chapter_uids)
+          or not exists (select 1 from public.chapters c
+                          where c.revision_id = p_rev and c.chapter_uid = (f.location ->> 'chapter_uid')::uuid))
+     and not exists (select 1 from jsonb_array_elements(coalesce(p_flags, '[]')) n
+                      where n ->> 'check_key' = f.check_key and coalesce(n -> 'location', '{}') = f.location
+                        and n ->> 'message' = f.message);
+  perform public._insert_flags(p_rev, (
+    select coalesce(jsonb_agg(n.v order by n.ord), '[]')
+      from jsonb_array_elements(coalesce(p_flags, '[]')) with ordinality as n(v, ord)
+     where not exists (select 1 from public.book_flags f
+                        where f.revision_id = p_rev and f.source = 'worker' and f.status = 'open'
+                          and f.check_key = n.v ->> 'check_key' and f.location = coalesce(n.v -> 'location', '{}')
+                          and f.message = n.v ->> 'message')), 'worker');
   return jsonb_build_object('applied', true, 'readiness', public._rescore(p_rev),
                             'blocking', public.has_blocking_flag(p_rev));
 end $$;
@@ -1234,6 +1260,32 @@ begin
     raise exception 'book_queue_ack: unknown queue' using errcode = 'invalid_parameter_value';
   end if;
   return case when p_archive then pgmq.archive(p_queue, p_msg_id) else pgmq.delete(p_queue, p_msg_id) end;
+end $$;
+
+-- Sealing failed three times in a row (R2 or key trouble, never the author's file): the author's
+-- confirmed chapters stay, the revision stays processing, the seal is tried again in an hour, and
+-- the Publisher is alerted once. Returns false when the revision no longer wants this seal.
+create function public.seal_failed(p_rev uuid, p_generation int) returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_rev public.book_revisions;
+begin
+  perform public._require_service('seal_failed');
+  v_rev := public._lock_revision(p_rev);
+  if v_rev.status <> 'processing' or v_rev.generation <> p_generation or v_rev.draft_step is not null
+     or v_rev.sealed_generation = p_generation then
+    return false;
+  end if;
+  perform pgmq.send('book_verify', jsonb_build_object('revision_id', p_rev, 'stage', 'seal',
+                                                      'generation', p_generation), 3600);
+  if not exists (select 1 from public.audit_log a
+                  where a.action = 'book.seal_failed' and a.object_id = p_rev::text) then
+    perform public._notify('pipeline_late', jsonb_build_object('revision_id', p_rev, 'status', 'processing',
+      'role', 'publisher', 'reason', 'seal_failed'));
+    perform public._audit(null, 'books', 'book.seal_failed', 'book_revision', p_rev::text, null,
+      'Sealing failed three times; retrying hourly');
+  end if;
+  return true;
 end $$;
 
 -- ─── Staff RPCs ─────────────────────────────────────────────────────────────
@@ -1835,7 +1887,7 @@ begin
         '_publish_now', '_fast_lane_check', 'create_revision', 'finalize_revision', 'complete_verify',
         'confirm_chapters', 'submit_revision', 'get_revision_status', 'complete_seal', 'set_chapter_prices',
         'complete_rescore', 'begin_reseal', 'record_fix', 'undo_fix', 'book_queue_read', 'book_queue_ack',
-        'claim_revision', 'release_to_review', 'undo_release_to_review', 'send_back_revision', 'reject_revision',
+        'seal_failed', 'claim_revision', 'release_to_review', 'undo_release_to_review', 'send_back_revision', 'reject_revision',
         'publish_revision', 'revert_to_revision', 'unpublish_book', 'republish_book', 'remind_author',
         'audit_fast_lane', 'revision_links', 'unpublish_preview', 'desk_claim', 'desk_heartbeat', 'desk_reject_unreadable', 'publish_due',
         'pipeline_sla', 'sent_back_reminder', 'select_fast_lane_audits', 'desk_lease_reaper',
@@ -1890,6 +1942,7 @@ grant execute on function
   public.undo_fix(uuid, int, uuid),
   public.book_queue_read(text, int, int),
   public.book_queue_ack(text, bigint, boolean),
+  public.seal_failed(uuid, int),
   public.author_in_good_standing(uuid)
   to service_role;
 

@@ -182,6 +182,7 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
     words: v.words,
     pages: v.pages,
     price: v.price,
+    untitledBook: v.untitledBook,
   };
   // An update keeps the live revision's copyright page when the new file has none; the text checks
   // run again on the chapter list it was added to.
@@ -273,11 +274,19 @@ export async function sealStage(env: Env, db: Db, rev: Revision) {
   const work = await loadWork(env, rev.id, rev.work_version);
   if (!work) throw new Error(`working copy v${rev.work_version} missing for ${rev.id}`);
   const prefix = workPrefix(rev.id, work.imagesFrom ?? rev.work_version);
-  const images: Record<string, Uint8Array> = {};
-  for (const c of work.chapters)
-    for (const b of c.blocks)
-      for (const img of b.images ?? [])
-        images[img.path] ??= (await bytesOf(env, prefix + img.path)) ?? new Uint8Array();
+  const paths = [
+    ...new Set(work.chapters.flatMap((c) => c.blocks.flatMap((b) => (b.images ?? []).map((i) => i.path)))),
+  ];
+  const images: Record<string, Uint8Array> = Object.fromEntries(
+    await Promise.all(
+      paths.map(async (path) => {
+        const bytes = await bytesOf(env, prefix + path);
+        // never seal a blank picture: a missing image fails the attempt, and the queue retries it
+        if (!bytes) throw new Error(`image ${prefix + path} missing for ${rev.id}`);
+        return [path, bytes] as const;
+      }),
+    ),
+  );
 
   const out = await sealBook({
     bookId: rev.book_id,
@@ -340,7 +349,14 @@ export async function consumeQueue(env: Env): Promise<void> {
   if (error) throw error;
   for (const m of (data ?? []) as unknown as { msg_id: number; read_ct: number; message: StageMsg }[]) {
     try {
-      if (m.read_ct > 3) {
+      if (m.read_ct > 3 && m.message.stage === 'seal') {
+        // Not the author's file: keep their confirmed chapters, retry hourly, alert the Publisher.
+        const { error: sf } = await db.rpc('seal_failed', {
+          p_rev: m.message.revision_id,
+          p_generation: m.message.generation,
+        });
+        if (sf) throw sf;
+      } else if (m.read_ct > 3) {
         const rev = await revision(db, m.message.revision_id);
         if (rev.status === 'processing' && rev.generation === m.message.generation)
           await db.rpc('complete_verify', {

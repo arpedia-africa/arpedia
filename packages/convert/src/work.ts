@@ -15,6 +15,8 @@ export interface WorkCopy {
   price: number;
   /** Version whose prefix holds the images, when this version did not write them itself. */
   imagesFrom?: number;
+  /** One untitled body at verify: rechecks raise no chapter-title flags (see `checkChapters`). */
+  untitledBook?: boolean;
 }
 
 export type ChapterEdit = { op: 'rename'; ord: number; title: string } | { op: 'merge_up'; ord: number };
@@ -199,7 +201,8 @@ export function carryCopyright(work: WorkCopy, base: WorkCopy): WorkCopy | null 
   anchors.ids.unshift([...base.anchors.ids[at]!]);
   anchors.fps.unshift([...base.anchors.fps[at]!]);
   const next: WorkCopy = { ...work, chapters, anchors };
-  Object.assign(next, priceChapters(next.chapters, work.preview.percent));
+  // the default target, as verify and the fixes use (preview.percent is what the cut achieved)
+  Object.assign(next, priceChapters(next.chapters));
   return next;
 }
 

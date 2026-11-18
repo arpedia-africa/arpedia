@@ -3,7 +3,7 @@
 -- anchor migration, unpublish refunds, RLS and the staff role matrix.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(73);
+select plan(80);
 
 -- ─── Actors ─────────────────────────────────────────────────────────────────
 insert into auth.users (id, email) values
@@ -108,8 +108,13 @@ select is(public.finalize_revision(pg_temp.rev('Harmattan Test'), '12000000-0000
 select is(public.finalize_revision(pg_temp.rev('Harmattan Test'), '12000000-0000-4000-a000-000000000001',
   '{"source_sha256":"s1","converted_sha256":"c1","converted":true}') ->> 'duplicate', 'true',
   'a duplicate finalize is a no-op');
-select is((select count(*)::int from public.book_queue_read('book_verify', 0, 10)
+select pg_temp.as_owner();
+select is((select count(*)::int from pgmq.q_book_verify
   where message ->> 'revision_id' = pg_temp.rev('Harmattan Test')::text), 1, 'one verify message queued');
+select ok((select bool_and(vt > now() + interval '100 seconds') from pgmq.q_book_verify
+  where message ->> 'revision_id' = pg_temp.rev('Harmattan Test')::text),
+  'the cron cannot read it while the immediate run has it (120 s delay)');
+select pg_temp.as_service();
 select is(public.complete_verify(pg_temp.rev('Harmattan Test'), 0, pg_temp.result()) ->> 'applied', 'false',
   'verify result for an old generation is ignored');
 select is(public.complete_verify(pg_temp.rev('Harmattan Test'), 1, pg_temp.result()) ->> 'status', 'draft',
@@ -134,6 +139,13 @@ select is(public.submit_revision(pg_temp.rev('Harmattan Test')) ->> 'generation'
 select pg_temp.as_service();
 select is(public.complete_seal(pg_temp.rev('Harmattan Test'), 1, pg_temp.seal(array['p_aaaaaaaaa1'])) ->> 'applied',
   'false', 'complete_seal ignores an old generation');
+select is(public.seal_failed(pg_temp.rev('Harmattan Test'), 1), false, 'seal_failed ignores an old generation');
+select is(public.seal_failed(pg_temp.rev('Harmattan Test'), 2), true, 'a seal that failed three times is retried');
+select is((select status::text || coalesce(desk_reason, '') from public.book_revisions
+  where id = pg_temp.rev('Harmattan Test')), 'processing',
+  'a failed seal never sends the confirmed book to the desk');
+select is((select count(*)::int from public.audit_log where action = 'book.seal_failed'
+  and object_id = pg_temp.rev('Harmattan Test')::text), 1, 'staff are alerted once');
 select throws_ok($$select public.complete_seal(pg_temp.rev('Harmattan Test'), 2,
   pg_temp.seal(array['p_aaaaaaaaa1'], jsonb_build_object('prices', pg_temp.prices(2, 6, 5))))$$, '23514', null,
   'complete_seal rejects prices that do not sum to the book price');
@@ -193,6 +205,25 @@ values ('12000000-0000-4000-e000-000000000007', '12000000-0000-4000-c100-0000000
 select pg_temp.as_user('12000000-0000-4000-a000-000000000007');
 select throws_ok($$select public.publish_revision('12000000-0000-4000-e000-000000000007')$$, '42501', null,
   'a Publisher cannot publish their own book');
+
+-- ─── A staff upload that went through the desk: a Publisher still confirms it ──
+select pg_temp.as_owner();
+insert into public.books (id, author_id, title) values
+  ('12000000-0000-4000-b000-000000000008', '12000000-0000-4000-a000-000000000001', 'Desk Upload');
+insert into public.book_revisions (id, book_id, revision_no, status, draft_step, created_via, uploaded_by, generation)
+values ('12000000-0000-4000-e000-000000000008', '12000000-0000-4000-b000-000000000008', 1, 'draft', 'chapters',
+  'desk', '12000000-0000-4000-a000-000000000003', 2);
+select pg_temp.as_service();
+select lives_ok($$select public.confirm_chapters('12000000-0000-4000-e000-000000000008',
+  '12000000-0000-4000-a000-000000000007', pg_temp.result())$$,
+  'any Publisher confirms chapters of a staff upload after a desk push');
+select pg_temp.as_owner();
+update public.book_revisions set draft_step = 'chapters', uploaded_by = '12000000-0000-4000-a000-000000000001'
+  where id = '12000000-0000-4000-e000-000000000008';
+select pg_temp.as_service();
+select throws_ok($$select public.confirm_chapters('12000000-0000-4000-e000-000000000008',
+  '12000000-0000-4000-a000-000000000003', pg_temp.result())$$, '42501', null,
+  'a Publisher cannot confirm an author''s own upload');
 
 -- ─── Blocking flag guard ────────────────────────────────────────────────────
 select pg_temp.as_owner();

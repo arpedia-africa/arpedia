@@ -40,6 +40,18 @@ function epub(chapters: Record<string, string>, extra: Record<string, Uint8Array
 }
 
 describe('verifyPackage', () => {
+  it('keeps escaped markup in bare text escaped, and drops an image with a broken %-escape', () => {
+    const r = verifyPackage(
+      epub({ 'c.xhtml': `&lt;img src=x onerror=alert(1)&gt; ${words(1200)}<p><img src="pic%zz.png"/></p>` }),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const html = r.chapters.flatMap((c) => c.blocks.map((b) => b.html)).join('');
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(Object.keys(r.images)).toEqual([]);
+  });
+
   it('rebuilds chapters, counts words, prices and places the preview', () => {
     const r = verifyPackage(
       epub({

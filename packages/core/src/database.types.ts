@@ -1334,6 +1334,7 @@ export type Database = {
       revert_to_revision: { Args: { p_actor?: string; p_reason: string; p_rev: string }; Returns: Json };
       revision_links: { Args: { p_rev: string }; Returns: Json };
       revision_score: { Args: { p_rev: string }; Returns: number };
+      seal_failed: { Args: { p_generation: number; p_rev: string }; Returns: boolean };
       select_fast_lane_audits: { Args: Record<PropertyKey, never>; Returns: number };
       send_back_revision: {
         Args: {

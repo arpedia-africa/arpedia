@@ -91,6 +91,7 @@ const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const IMAGE_MAX_PX = 1600;
 const MIN_WORDS = 1000;
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const escText = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 interface RawChapter {
   title: string | null;
@@ -146,7 +147,8 @@ export function verifyPackage(
       const el = node instanceof Element ? node : null;
       const text = el ? textOf([el]) : node instanceof Text ? node.data.trim() : '';
       if (!el && !text) continue;
-      const html = el ? clean.slice(el.startIndex ?? 0, (el.endIndex ?? 0) + 1) : `<p>${text}</p>`;
+      // A bare text node's data is entity-decoded, so it is escaped again before it becomes markup.
+      const html = el ? clean.slice(el.startIndex ?? 0, (el.endIndex ?? 0) + 1) : `<p>${escText(text)}</p>`;
       const heading = el && /^h[12]$/.test(el.name);
       if ((heading && text) || (el?.name === 'p' && CHAPTER_LINE.test(text))) {
         if (!current || (current as RawChapter).blocks.some((b) => b.words > 0)) start(text);
