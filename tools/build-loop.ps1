@@ -12,12 +12,14 @@ param(
   [string]$WorkDir = "$env:USERPROFILE\projects\arpedia-builder",
   [string]$Repo = 'arpedia-africa/arpedia',
   [string]$Topic = '',             # ntfy topic: each run's final report is pushed to your phone
-  [string]$Lane = '',              # e.g. L2-product: only work that lane (for running several loops, one per machine)
+  [string]$Lane = '',              # e.g. L2-product, or 'L1-critical,L3-money-ops': only those lanes (one loop per lane set)
   [switch]$NoPhone                 # second builder on a PC without the owner's phone: hands on-device checks back (label needs-phone)
 )
 if ($Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-$Lane" }
 if ($NoPhone -and -not $Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-nophone" }
 $ErrorActionPreference = 'Continue'
+$LockDir = "$env:USERPROFILE\projects\arpedia-locks"   # phone and database locks shared by builders on this PC
+New-Item -ItemType Directory -Force $LockDir | Out-Null
 
 # Build in a separate clone so your own working copy is never touched.
 if (-not (Test-Path "$WorkDir\.git")) {
@@ -35,18 +37,28 @@ $allowed = @(
   'Bash(cp:*)','Bash(mv:*)','Bash(rm:*)','Bash(touch:*)','Bash(echo:*)','Bash(sed:*)','Bash(jq:*)','Bash(curl:*)'
 )
 
+function Test-Online {
+  try { $c = New-Object Net.Sockets.TcpClient; $ok = $c.ConnectAsync('api.anthropic.com', 443).Wait(5000); $c.Close(); return $ok } catch { return $false }
+}
+
 $run = 0
 while ($true) {
+  # Offline: wait here, checking every minute, instead of letting a run hang on API retries.
+  if (-not (Test-Online)) {
+    Write-Host "$(Get-Date -Format HH:mm) Offline. Checking again every minute ..." -ForegroundColor DarkYellow
+    while (-not (Test-Online)) { Start-Sleep -Seconds 60 }
+    Write-Host "$(Get-Date -Format HH:mm) Back online." -ForegroundColor DarkYellow
+  }
   $run++
   git checkout -q main 2>$null; git pull -q --ff-only 2>$null
   $prompt = Get-Content -Raw "$WorkDir\docs\prd\BUILDER-PROMPT.md"
-  if ($Lane) { $prompt = "Your lane is $Lane. Only continue or start flows listed in lanes.$Lane.`n`n" + $prompt }
+  if ($Lane) { $prompt = "Your lanes: $Lane. Only continue or start flows listed in those lanes of status.json. Never touch another lane's PR, even if it looks stalled.`n`n" + $prompt }
   if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below.`n`n" + $prompt }
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
   Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' }) ===" -ForegroundColor Yellow
 
   $before = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
-  $prompt | claude -p --model $Model --permission-mode acceptEdits --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
+  $prompt | claude -p --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
   $text = ($lines | Out-String)
   $after = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
   if ($Topic -and $text -notmatch 'NOTHING-TO-DO|WAITING-FOR-CI') {
@@ -61,7 +73,11 @@ while ($true) {
     Write-Host "Switch account with:  claude /login   then run this script again. Work continues from GitHub." -ForegroundColor Red
     break
   }
-  if ($text -match 'NOTHING-TO-DO') {
+  if ($text -match "Can't reach the API server|ENOTFOUND|ECONNRESET|ETIMEDOUT") {
+    # the connection dropped mid-run: go straight back to the offline check, no 8-minute wait
+    Write-Host "Connection dropped during the run. Retrying when online ..." -ForegroundColor DarkYellow
+    Start-Sleep -Seconds 30
+  } elseif ($text -match 'NOTHING-TO-DO') {
     Write-Host "Nothing ready. Waiting $IdleMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($IdleMinutes * 60)
   } elseif ($text -match 'WAITING-FOR-CI' -or $before -eq $after) {
