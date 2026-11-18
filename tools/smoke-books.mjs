@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Smoke test the book pipeline end to end against the local stack (flow 12):
-// author upload → signed PUTs → finalize → verify → confirm → submit → seal → Publisher publishes,
-// then the sealed files in R2: the manifest is there, the preview opens with K_free, a locked
-// chapter does not.
+// author upload → signed PUTs → finalize → verify → confirm → submit → seal → Needs fixes → staff
+// preview, fixes with Undo, release (reseal) → Publisher publishes; then the sealed files in R2: the
+// manifest is there, the preview opens with K_free, a locked chapter does not. Last, a PDF goes
+// through the desk endpoints back to chapter confirmation.
 //   node tools/smoke-books.mjs   (needs `pnpm db:start`, `pnpm db:reset` and `pnpm dev:vars`)
 // Starts the api Worker in-process (wrangler unstable_startWorker) and stops it at the end.
 import { execSync } from 'node:child_process';
@@ -69,9 +70,9 @@ const sentence = () => {
   return w[0][0].toUpperCase() + w.join(' ').slice(1) + '.';
 };
 const paragraph = () => `<p>${Array.from({ length: 6 }, sentence).join(' ')}</p>`;
-const chapter = (title, paras) =>
+const chapter = (title, paras, heading = true) =>
   `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>${title}</title></head>` +
-  `<body><h1>${title}</h1>${Array.from({ length: paras }, paragraph).join('')}</body></html>`;
+  `<body>${heading ? `<h1>${title}</h1>` : ''}${Array.from({ length: paras }, paragraph).join('')}</body></html>`;
 const titles = ['The Market', 'The River', 'The Lamps', 'The Road'];
 const opf = `<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:uuid:smoke</dc:identifier><dc:title>Smoke Test</dc:title><dc:language>en</dc:language></metadata>
@@ -83,13 +84,15 @@ const epub = zipSync({
     '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
   ),
   'OEBPS/content.opf': strToU8(opf),
-  ...Object.fromEntries(titles.map((t, i) => [`OEBPS/c${i}.xhtml`, strToU8(chapter(t, 14))])),
+  // the second chapter has no heading, so it gets a chapter_title flag
+  ...Object.fromEntries(titles.map((t, i) => [`OEBPS/c${i}.xhtml`, strToU8(chapter(t, 14, i !== 1))])),
 });
-// A PNG header is all the cover checks read (magic bytes and IHDR size).
+// A PNG header is all the cover checks read (magic bytes and IHDR size). 600 px wide is too small
+// (cover_too_small), so with the missing copyright page and the untitled chapter the book scores 82.
 const cover = new Uint8Array(33);
 cover.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
-new DataView(cover.buffer).setUint32(16, 1600);
-new DataView(cover.buffer).setUint32(20, 2560);
+new DataView(cover.buffer).setUint32(16, 600);
+new DataView(cover.buffer).setUint32(20, 900);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 const signIn = async (email) => {
@@ -102,15 +105,18 @@ const signIn = async (email) => {
   return tok.access_token;
 };
 let api;
-const call = async (jwt, method, path, body) => {
+const send = async (jwt, method, path, body) => {
   const res = await fetch(`${api}/v1/books${path}`, {
     method,
     headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const json = await res.json().catch(() => null);
-  if (!res.ok) await fail(`${method} ${path} ${res.status} ${JSON.stringify(json)}`);
-  return json;
+  return { status: res.status, ok: res.ok, json: await res.json().catch(() => null) };
+};
+const call = async (jwt, method, path, body) => {
+  const res = await send(jwt, method, path, body);
+  if (!res.ok) await fail(`${method} ${path} ${res.status} ${JSON.stringify(res.json)}`);
+  return res.json;
 };
 const rest = async (path, { jwt, method = 'GET', body } = {}) => {
   const key = jwt ? sb.ANON_KEY : sb.SERVICE_ROLE_KEY;
@@ -134,11 +140,11 @@ const put = async (url, bytes) => {
   });
   if (!res.ok) await fail(`PUT ${new URL(url).pathname.slice(0, 40)}… ${res.status} ${await res.text()}`);
 };
-const waitFor = async (jwt, rev, want, label) => {
+const waitFor = async (jwt, rev, want, label, stops = ['sent_back', 'with_desk', 'rejected']) => {
   for (let i = 0; i < 60; i++) {
     const s = await call(jwt, 'GET', `/status/${rev}`);
     if (want(s)) return s;
-    if (['sent_back', 'with_desk', 'rejected'].includes(s.status))
+    if (stops.includes(s.status))
       await fail(`${label}: revision went to ${s.status} (${s.desk_reason ?? s.sent_back_note ?? ''})`);
     await new Promise((r) => setTimeout(r, 1000));
   }
@@ -165,6 +171,8 @@ ok(`api Worker on ${api}`);
 
 const author = await signIn('ifeoma@example.com');
 const publisher = await signIn('tunde@arpedia.africa');
+const ops = await signIn('femi@arpedia.africa');
+const tolu = await signIn('tolu@example.com');
 
 const up = await call(author, 'POST', '/upload', {
   meta: {
@@ -218,11 +226,77 @@ const routed = await waitFor(
   (s) => s.status === 'ready_for_review' || s.status === 'needs_fixes',
   'seal',
 );
-if (routed.status !== 'ready_for_review')
+if (routed.status !== 'needs_fixes')
   await fail(
     `routed to ${routed.status}, readiness ${routed.readiness}, flags ${JSON.stringify(routed.flags)}`,
   );
-ok(`seal + route: ready_for_review at readiness ${routed.readiness}`);
+ok(`seal + route: needs_fixes at readiness ${routed.readiness}`);
+
+// ─── Staff: preview, fixes, Undo, release ──────────────────────────────────
+const preview = await call(publisher, 'POST', '/preview-url', { revision_id: rev });
+const copy = await fetch(preview.book_url).then((r) => r.json());
+if (copy.chapters?.length !== 4) await fail(`preview working copy ${JSON.stringify(copy).slice(0, 200)}`);
+const stranger = await send(tolu, 'POST', '/preview-url', { revision_id: rev });
+if (stranger.status !== 403) await fail(`another author got a preview link (${stranger.status})`);
+const tampered = await fetch(preview.book_url.replace(/\/objects\/[^.]+/, '/objects/eyJrIjoid29yay8ifQ'));
+if (tampered.ok) await fail('a tampered read link worked');
+ok('preview-url: staff read the working copy; another author and a tampered link cannot');
+
+const flag = (s, key) => s.flags.find((f) => f.check_key === key);
+const version = async () =>
+  (await rest(`book_revisions?id=eq.${rev}&select=work_version`, { jwt: publisher })).json[0].work_version;
+const notStaff = await send(author, 'POST', '/fix', {
+  revision_id: rev,
+  flag_id: flag(routed, 'chapter_title').id,
+  expected_version: await version(),
+});
+if (notStaff.status !== 403) await fail(`an author applied a staff fix (${notStaff.status})`);
+const stale = await send(publisher, 'POST', '/fix', {
+  revision_id: rev,
+  flag_id: flag(routed, 'chapter_title').id,
+  expected_version: (await version()) + 1,
+});
+if (stale.status !== 409) await fail(`a fix on an old version was accepted (${stale.status})`);
+
+let fixed = await call(publisher, 'POST', '/fix', {
+  revision_id: rev,
+  flag_id: flag(routed, 'chapter_title').id,
+  expected_version: await version(),
+});
+fixed = await call(publisher, 'POST', '/fix', {
+  revision_id: rev,
+  flag_id: flag(routed, 'copyright_missing').id,
+  expected_version: fixed.work_version,
+});
+if (fixed.readiness !== 92) await fail(`after two fixes readiness is ${fixed.readiness}, want 92`);
+ok(`fix: chapter title and copyright page accepted, readiness ${fixed.readiness}`);
+
+const dismissed = await call(publisher, 'POST', '/fix', {
+  revision_id: rev,
+  flag_id: flag(routed, 'cover_too_small').id,
+  op: { op: 'dismiss_flag', reason: 'Smoke test' },
+  expected_version: fixed.work_version,
+});
+if (dismissed.readiness !== 100) await fail(`dismiss left readiness at ${dismissed.readiness}`);
+const undone = await call(publisher, 'POST', '/fix/undo', {
+  fix_id: dismissed.fix_id,
+  expected_version: dismissed.work_version,
+});
+if (undone.readiness !== 92) await fail(`undo left readiness at ${undone.readiness}`);
+const afterFixes = await call(publisher, 'GET', `/status/${rev}`);
+if (afterFixes.flags.map((f) => f.check_key).join() !== 'cover_too_small')
+  await fail(`open flags after fixes: ${afterFixes.flags.map((f) => f.check_key)}`);
+ok('fix: dismiss then Undo puts the cover flag back (readiness 100 → 92)');
+
+const released = await call(publisher, 'POST', '/release', { revision_id: rev });
+if (released.status !== 'ready_for_review') await fail(`release ${JSON.stringify(released)}`);
+const { json: chapterRows } = await rest(
+  `chapters?revision_id=eq.${rev}&select=ord,title,price_credits,full_file&order=ord`,
+);
+if (chapterRows[0].title !== 'Copyright' || chapterRows[0].price_credits !== 0 || !chapterRows[0].full_file)
+  await fail(`chapters after release ${JSON.stringify(chapterRows)}`);
+if (chapterRows[2].title !== 'Chapter 2') await fail(`renamed chapter is "${chapterRows[2].title}"`);
+ok(`release: resealed, ready_for_review; ${chapterRows.length} chapters, Copyright first at 0 credits`);
 
 const self = await rest('rpc/publish_revision', { jwt: author, method: 'POST', body: { p_rev: rev } });
 if (self.status < 400) await fail('an author published their own book');
@@ -300,5 +374,42 @@ try {
 } finally {
   await proxy.dispose();
 }
+// ─── Desk: a PDF goes to the desk and back to chapter confirmation ──────────
+worker = await unstable_startWorker({
+  config,
+  dev: { server: { hostname: '127.0.0.1', port: 0 }, inspector: false, watch: false, persist },
+});
+api = (await worker.url).origin;
+const pdf = strToU8('%PDF-1.4\n% smoke test source\n');
+const pdfUp = await call(tolu, 'POST', '/upload', {
+  meta: { source_type: 'pdf', title: 'Desk Smoke', description: 'A PDF for the desk.', language: 'en' },
+});
+if (pdfUp.uploads.converted) await fail('a PDF upload got a converted link');
+await put(pdfUp.uploads.source, pdf);
+const toDesk = await call(tolu, 'POST', '/finalize', { revision_id: pdfUp.revision_id, converted: false });
+if (toDesk.status !== 'with_desk') await fail(`PDF finalize ${JSON.stringify(toDesk)}`);
+const notDesk = await send(tolu, 'POST', '/desk/claim', {});
+if (notDesk.status !== 403) await fail(`an author claimed a desk job (${notDesk.status})`);
+const { job } = await call(ops, 'POST', '/desk/claim', { revision_id: pdfUp.revision_id });
+if (job?.revision_id !== pdfUp.revision_id) await fail(`desk claim ${JSON.stringify(job)}`);
+const src = await call(ops, 'POST', '/desk/source', { revision_id: job.revision_id });
+const got = new Uint8Array(await fetch(src.url).then((r) => r.arrayBuffer()));
+if (Buffer.compare(got, pdf) !== 0) await fail('desk source download differs from the upload');
+const stolen = await send(publisher, 'POST', '/desk/source', { revision_id: job.revision_id });
+if (stolen.status !== 409) await fail(`someone without the lease got the source (${stolen.status})`);
+await call(ops, 'POST', '/desk/heartbeat', { revision_id: job.revision_id });
+const deskUp = await call(ops, 'POST', '/desk/upload', { revision_id: job.revision_id });
+await put(deskUp.url, epub);
+const pushed = await call(ops, 'POST', '/finalize', { revision_id: job.revision_id, converted: true });
+if (pushed.status !== 'processing') await fail(`desk push ${JSON.stringify(pushed)}`);
+const deskChecked = await waitFor(tolu, job.revision_id, (s) => s.draft_step === 'chapters', 'desk verify', [
+  'sent_back',
+  'rejected',
+]);
+const keysFound = deskChecked.flags.map((f) => f.check_key);
+if (!keysFound.includes('pdf_source') || !keysFound.includes('low_structure_confidence'))
+  await fail(`PDF flags missing: ${keysFound}`);
+ok(`desk: claim, source, heartbeat, upload, push → chapters ready (${keysFound.join(', ')})`);
+
 console.log('PASS smoke-books');
 await done(0);

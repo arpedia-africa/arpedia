@@ -178,6 +178,16 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   };
   await saveWork(env, rev.id, rev.work_version, work, v.images);
 
+  // A book the desk made from a PDF says so (rule 22).
+  if (rev.source_type === 'pdf')
+    v.flags.push(
+      { check_key: 'pdf_source', message: 'This book was made from a PDF.' },
+      {
+        check_key: 'low_structure_confidence',
+        message: 'Chapters and paragraphs came from a PDF, so check where they start and end.',
+        suggestion: 'Ask the author for the Word file if the chapters look wrong.',
+      },
+    );
   const flags = locateFlags(v.flags, anchors);
   const { error } = await db.rpc('complete_verify', {
     p_rev: rev.id,
