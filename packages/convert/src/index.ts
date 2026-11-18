@@ -4,3 +4,5 @@ export * from './epub';
 export * from './verify';
 export * from './seal-book';
 export * from './work';
+export * from './normalize';
+export * from './epub-write';
