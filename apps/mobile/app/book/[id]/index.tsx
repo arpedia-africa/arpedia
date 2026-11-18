@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { onlineManager, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FINISHED_PERCENT } from '@arpedia/core';
 import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
-import { useTrack } from '../../features/03/analytics';
-import { BookPageSkeleton, BookPageView } from '../../features/03/BookViews';
-import { bookKey, toModel, useBookPage, type BookPageData } from '../../features/03/book';
-import { GiftSheet, TipSheet } from '../../features/03/GiftSheet';
-import { MenuBody, ReportSheet, moreItems } from '../../features/03/MoreSheet';
-import { UnlockSheet } from '../../features/03/UnlockSheet';
-import type { UnlockMode } from '../../features/03/UnlockViews';
+import { useTrack } from '../../../features/03/analytics';
+import { BookPageSkeleton, BookPageView } from '../../../features/03/BookViews';
+import { bookKey, toModel, useBookPage, type BookPageData } from '../../../features/03/book';
+import { GiftSheet, TipSheet } from '../../../features/03/GiftSheet';
+import { MenuBody, ReportSheet, moreItems } from '../../../features/03/MoreSheet';
+import { UnlockSheet } from '../../../features/03/UnlockSheet';
+import type { UnlockMode } from '../../../features/03/UnlockViews';
 
 export default function BookPage() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
@@ -59,8 +60,10 @@ export default function BookPage() {
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  // Sheets and the screens behind them land in the next steps of flow 03.
+  // The reader, plans, top-up packs, author pages and downloads belong to flows 04, 09 and 08.
   const soon = () => toast({ message: 'Coming soon' });
+  const go = (screen: 'about' | 'reviews' | 'discussion' | 'write-review') =>
+    router.push({ pathname: `/book/[id]/${screen}`, params: { id } });
 
   if (!d) {
     if (page.isPending && !page.isError) {
@@ -96,6 +99,7 @@ export default function BookPage() {
   }
 
   const m = toModel(d);
+  const finished = (d.progress?.max_percent ?? 0) >= FINISHED_PERCENT;
   return (
     <Screen top="org" contentStyle={{ backgroundColor: c.white }}>
       <BookPageView
@@ -114,15 +118,22 @@ export default function BookPage() {
           onMore: () => setOverlay('more'),
           onAuthor: soon,
           onFollow: d.is_author ? undefined : () => follow.mutate(!d.following),
-          onReviews: soon,
-          onDiscussion: soon,
+          onReviews: () => go('reviews'),
+          onDiscussion: () => {
+            if (!finished) track('discussion_locked_tapped', { percent: d.progress?.max_percent ?? 0 });
+            go('discussion');
+          },
           onMain: soon,
           onUnlockAll: () => openSheet('all'),
           onPayGo: () => openSheet('paygo'),
           onPayRest: () => openSheet('all'),
           onTopUp: soon,
-          onAbout: soon,
-          onWriteReview: soon,
+          onAbout: () => go('about'),
+          onWriteReview: () => {
+            if (!online) return toast({ message: 'Connect to continue' });
+            if (!finished) return toast({ message: 'Finish the book to review it' });
+            go('write-review');
+          },
           onBook: (b) => router.push({ pathname: '/book/[id]', params: { id: b, source: 'related' } }),
           spendOff: !online,
         }}
