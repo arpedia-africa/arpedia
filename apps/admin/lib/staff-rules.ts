@@ -16,6 +16,17 @@ export const roleLabel: Record<StaffRole, string> = {
   analyst: 'Analyst',
 };
 
+/** Roles in the order the console lists them (matrix columns, invite cards, Team sort). */
+export const ROLE_ORDER: StaffRole[] = [
+  'super_admin',
+  'operations_admin',
+  'publisher',
+  'moderator',
+  'finance',
+  'support',
+  'analyst',
+];
+
 /** Plural role names for sentences such as "open to Finance and Super admins". */
 export const rolePlural: Record<StaffRole, string> = {
   super_admin: 'Super admins',

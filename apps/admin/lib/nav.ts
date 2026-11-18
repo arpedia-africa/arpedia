@@ -147,7 +147,9 @@ export function navFor(permissions: readonly string[]): NavSection[] {
 
 /** Find the section and page for a path like "/curation". */
 export function locate(pathname: string) {
-  const page = pathname.split('/')[1] ?? '';
+  const first = pathname.split('/')[1] ?? '';
+  // Pages that live under another page's sidebar link (s-roles is a tab of Team and roles).
+  const page = ({ roles: 'team' } as Record<string, string>)[first] ?? first;
   if (!page) return { section: nav[0]!, page: undefined };
   for (const section of nav) {
     const sub = section.sub.find(s => s.key === page);

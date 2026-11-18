@@ -30,7 +30,7 @@ writeFileSync(
 writeFileSync(join(root, 'workers/chat/.dev.vars'), `SUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`);
 writeFileSync(
   join(root, 'apps/admin/.env.local'),
-  `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\n`,
+  `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\nAPI_URL=http://127.0.0.1:8787\n`,
 );
 // The Android emulator reaches the host at 10.0.2.2.
 const emu = env.API_URL.replace('127.0.0.1', '10.0.2.2');
