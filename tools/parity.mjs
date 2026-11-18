@@ -3,7 +3,7 @@
 // --max percent (default 2) of pixels differ in any theme.
 //
 // App (Android, owner's phone c1212d5c at 375 dp, or --serial):
-//   node tools/parity.mjs kit-a kit-b [--dev] [--themes sunflower,palm] [--serial <id>] [--max 2] [--ref chrome]
+//   node tools/parity.mjs kit-a kit-b [--dev] [--themes sunflower,palm] [--serial <id>] [--max 2] [--ref chrome] [--raw]
 //   - reference: tools/parity/<id>.html (prototype elements, verbatim) with the prototype's CSS inside
 //     a 375-wide .device. By default it is drawn on the same phone, in the dev build's WebView (or the
 //     release kit build's when no dev build is installed)
@@ -35,6 +35,7 @@ const opt = (name, def) => {
 };
 const admin = argv.includes('--admin');
 const dev = argv.includes('--dev');
+const keepRaw = argv.includes('--raw'); // also save the full-resolution captures (<name>-ref/-build.png in raw/)
 const refOn = opt('ref', 'phone');
 const RELEASE_PACKAGE = 'com.arpedia.reader';
 const DEV_PACKAGE = 'com.arpedia.reader.dev';
@@ -330,6 +331,11 @@ try {
         const px = Math.min(buildH, refH);
         const crop = (png) =>
           sharp(png).extract({ left: 0, top: 0, width: g.widthPx, height: px }).toBuffer();
+        if (keepRaw) {
+          mkdirSync(join(outDir, 'raw'), { recursive: true });
+          writeFileSync(join(outDir, 'raw', `${id}-${theme}-ref.png`), await crop(ref.png));
+          writeFileSync(join(outDir, 'raw', `${id}-${theme}-build.png`), await crop(build.png));
+        }
         results.push({
           name: `${id}-${theme}`,
           ...(await compare(
