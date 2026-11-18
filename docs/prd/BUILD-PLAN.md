@@ -76,8 +76,8 @@ Automatic, run by CI on the branch:
 1. Install, typecheck and lint pass.
 2. Migrations apply cleanly to a fresh database, and seed loads.
 3. The flow's unit tests (Vitest) and SQL tests (pgTAP) pass.
-4. The flow's Maestro happy path passes on an Android emulator.
-5. **Visual parity:** for each screen in the flow, CI saves the prototype reference (`tools/shot.mjs --full`) and the emulator capture (Maestro `takeScreenshot`) side by side in all four themes as artifacts, plus emulator captures at 320dp and 360dp (no single-line text may wrap, nothing may clip); the reviewing agent compares them and any difference blocks the merge.
+4. The flow's Maestro happy path passes on the owner's phone at 320, 360 and 375dp (run by the builder before the PR is marked ready; GitHub runs it on an emulator nightly on main).
+5. **Visual parity:** `node tools/parity.mjs` passes on the owner's phone for each screen in the flow (2% or fewer differing pixels, four themes), with the side-by-side images in the PR, plus checks at 320dp and 360dp (no single-line text may wrap, nothing may clip).
 6. `/code-review` (medium) shows no correctness findings left open.
 
 Then the coordinator merges, regenerates types and ticks the status in [README.md](README.md).
