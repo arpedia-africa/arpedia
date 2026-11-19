@@ -83,9 +83,13 @@ const nextId = () => `w${++seq}`;
 function post(m: WebToNative & { id?: string }) {
   window.ReactNativeWebView?.postMessage(JSON.stringify({ v: BRIDGE_VERSION, ...m }));
 }
-const log = (message: string, level: 'info' | 'warn' = 'info') => post({ type: 'log', payload: { level, message } });
+const log = (message: string, level: 'info' | 'warn' = 'info') =>
+  post({ type: 'log', payload: { level, message } });
 
-const pendingFiles = new Map<string, { resolve: (b: Uint8Array | null) => void; reject: (e: Error) => void }>();
+const pendingFiles = new Map<
+  string,
+  { resolve: (b: Uint8Array | null) => void; reject: (e: Error) => void }
+>();
 const pendingAdvance = new Map<string, (d: { allow: boolean; reason?: string }) => void>();
 
 function requestFile(path: string): Promise<Uint8Array | null> {
@@ -272,7 +276,11 @@ async function forward() {
   const id = nextId();
   const decision = await new Promise<{ allow: boolean; reason?: string }>((resolve) => {
     pendingAdvance.set(id, resolve);
-    post({ type: 'advance.request', id, payload: { from_chapter_uid: gate.chapter_uid, gate_kind: gate.kind } });
+    post({
+      type: 'advance.request',
+      id,
+      payload: { from_chapter_uid: gate.chapter_uid, gate_kind: gate.kind },
+    });
   });
   advanceInFlight = false;
   // On allow, native has already sent access.update (the section is reloaded with its full file).
@@ -280,7 +288,8 @@ async function forward() {
 }
 
 // ─── Section setup ───────────────────────────────────────────────────────────
-const fontFaces = () => (document.head.querySelector('style')?.textContent ?? '').replace(/html,body\{[\s\S]*$/, '');
+const fontFaces = () =>
+  (document.head.querySelector('style')?.textContent ?? '').replace(/html,body\{[\s\S]*$/, '');
 
 function decorate(doc: Document, index: number) {
   // Fonts declared on the page don't reach blob: section documents; give each its own copy.
@@ -461,7 +470,8 @@ function remember(doc: Document, key: string, range: Range) {
 // ─── Highlights and markers (rules 36, 46) ───────────────────────────────────
 function drawHighlights() {
   if (!view) return;
-  for (const a of annotations.values()) if (a.kind !== 'bookmark') void view.addAnnotation({ value: a.cfi_range });
+  for (const a of annotations.values())
+    if (a.kind !== 'bookmark') void view.addAnnotation({ value: a.cfi_range });
 }
 
 function onDrawAnnotation(e: Event) {
@@ -671,7 +681,10 @@ async function open(p: Extract<NativeToWeb, { type: 'open' }>['payload']) {
     applySettings(p.settings);
     post({
       type: 'opened',
-      payload: { toc: (book.toc ?? []).map((t) => ({ label: t.label, href: t.href })), sections: book.sections.length },
+      payload: {
+        toc: (book.toc ?? []).map((t) => ({ label: t.label, href: t.href })),
+        sections: book.sections.length,
+      },
     });
     await startAt(p.start);
   } catch (e) {
@@ -707,7 +720,11 @@ async function search(query: string) {
       const hit = r as { cfi?: string; excerpt?: { pre: string; match: string; post: string } } | 'done';
       if (hit === 'done' || !hit.cfi) continue;
       const ex = hit.excerpt;
-      items.push({ cfi: hit.cfi, excerpt: ex ? `${ex.pre}${ex.match}${ex.post}` : '', chapter_uid: c.chapter_uid });
+      items.push({
+        cfi: hit.cfi,
+        excerpt: ex ? `${ex.pre}${ex.match}${ex.post}` : '',
+        chapter_uid: c.chapter_uid,
+      });
       if (items.length >= 200) break;
     }
   }
@@ -823,5 +840,9 @@ window.addEventListener('error', (e) =>
   post({ type: 'error', payload: { code: 'render_failed', detail: String(e.message) } }),
 );
 // Keep lastRelocate referenced for debugging hooks in dev builds.
-(window as unknown as { __arp?: unknown }).__arp = { get last() { return lastRelocate; } };
+(window as unknown as { __arp?: unknown }).__arp = {
+  get last() {
+    return lastRelocate;
+  },
+};
 post({ type: 'ready', payload: { bundle_version: __BUNDLE_VERSION__ } });

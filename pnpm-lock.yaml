@@ -248,6 +248,9 @@ importers:
       '@arpedia/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@arpedia/reader':
+        specifier: workspace:*
+        version: link:../../packages/reader
       '@arpedia/ui':
         specifier: workspace:*
         version: link:../../packages/ui

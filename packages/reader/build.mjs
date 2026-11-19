@@ -12,7 +12,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 // foliate formats we never open (our books are EPUB built by flow 12). Left as dead dynamic imports.
-const unused = ['./vendor/zip.js', './vendor/fflate.js', './comic-book.js', './fb2.js', './mobi.js', './tts.js'];
+const unused = [
+  './vendor/zip.js',
+  './vendor/fflate.js',
+  './comic-book.js',
+  './fb2.js',
+  './mobi.js',
+  './tts.js',
+];
 
 const js = await build({
   entryPoints: [join(here, 'src/web/main.ts')],
@@ -48,9 +55,17 @@ const faces = [
   ['Literata', 700, 'normal', font('literata', '700Bold/Literata_700Bold.ttf')],
   ['Inter', 400, 'normal', font('inter', '400Regular/Inter_400Regular.ttf')],
   ['Inter', 700, 'normal', font('inter', '700Bold/Inter_700Bold.ttf')],
-  ['Bricolage Grotesque', 800, 'normal', font('bricolage-grotesque', '800ExtraBold/BricolageGrotesque_800ExtraBold.ttf')],
+  [
+    'Bricolage Grotesque',
+    800,
+    'normal',
+    font('bricolage-grotesque', '800ExtraBold/BricolageGrotesque_800ExtraBold.ttf'),
+  ],
 ]
-  .map(([f, w, s, src]) => `@font-face{font-family:'${f}';font-weight:${w};font-style:${s};src:${src};font-display:block}`)
+  .map(
+    ([f, w, s, src]) =>
+      `@font-face{font-family:'${f}';font-weight:${w};font-style:${s};src:${src};font-display:block}`,
+  )
   .join('');
 
 // Section documents are blob: iframes; fonts are declared there too by the bridge (it injects this

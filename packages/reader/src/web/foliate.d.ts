@@ -12,7 +12,12 @@ declare module 'foliate-js/epub.js' {
 declare module 'foliate-js/view.js';
 declare module 'foliate-js/overlayer.js' {
   export class Overlayer {
-    add(key: string, range: Range, draw: (rects: DOMRect[], options?: unknown) => Element, options?: unknown): void;
+    add(
+      key: string,
+      range: Range,
+      draw: (rects: DOMRect[], options?: unknown) => Element,
+      options?: unknown,
+    ): void;
     remove(key: string): void;
     static highlight: (rects: DOMRect[], options?: unknown) => Element;
     static underline: (rects: DOMRect[], options?: unknown) => Element;

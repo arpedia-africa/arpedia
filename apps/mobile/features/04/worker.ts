@@ -68,8 +68,12 @@ export async function deviceId(): Promise<string> {
   return r.device_id;
 }
 
-export const fetchKeys = (b: { book_id: string; revision_id: string; device_id: string; chapter_uids?: string[] }) =>
-  call<KeysResponse>('/keys', b);
+export const fetchKeys = (b: {
+  book_id: string;
+  revision_id: string;
+  device_id: string;
+  chapter_uids?: string[];
+}) => call<KeysResponse>('/keys', b);
 
 export const fetchDownload = (b: {
   book_id: string;

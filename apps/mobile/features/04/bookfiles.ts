@@ -82,7 +82,12 @@ export class BookFiles {
   /** Keys for chapters the reader just became entitled to (after an unlock). */
   async refreshKeys(chapterUids?: string[]): Promise<void> {
     const device_id = await deviceId();
-    const r = await fetchKeys({ book_id: this.bookId, revision_id: this.revisionId, device_id, chapter_uids: chapterUids });
+    const r = await fetchKeys({
+      book_id: this.bookId,
+      revision_id: this.revisionId,
+      device_id,
+      chapter_uids: chapterUids,
+    });
     await this.storeKeys(r, !!chapterUids);
   }
 
@@ -116,8 +121,14 @@ export class BookFiles {
     if (!f.exists) return false;
     try {
       const s = JSON.parse(dec.decode(await openLocal(await f.bytes(), this.label()))) as StoredKeys;
-      this.keys = new Map(Object.entries(s.keys).map(([k, v]) => [k, Uint8Array.from(atob(v), (c) => c.charCodeAt(0))]));
-      this.licence = { issued_at: s.issued_at, valid_until: s.valid_until, device_received_at: s.device_received_at };
+      this.keys = new Map(
+        Object.entries(s.keys).map(([k, v]) => [k, Uint8Array.from(atob(v), (c) => c.charCodeAt(0))]),
+      );
+      this.licence = {
+        issued_at: s.issued_at,
+        valid_until: s.valid_until,
+        device_received_at: s.device_received_at,
+      };
       return true;
     } catch {
       return false;
@@ -165,7 +176,10 @@ export class BookFiles {
     if (res.status === 404) return null;
     if (!res.ok) throw new WorkerError('download_failed', res.status);
     const bytes = new Uint8Array(await res.arrayBuffer());
-    new Directory(this.dir, 'f', ...path.split('/').slice(0, -1)).create({ intermediates: true, idempotent: true });
+    new Directory(this.dir, 'f', ...path.split('/').slice(0, -1)).create({
+      intermediates: true,
+      idempotent: true,
+    });
     await f.write(bytes);
     return bytes;
   }

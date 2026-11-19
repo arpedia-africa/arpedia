@@ -123,7 +123,7 @@ export default function BookPage() {
             if (!finished) track('discussion_locked_tapped', { percent: d.progress?.max_percent ?? 0 });
             go('discussion');
           },
-          onMain: soon,
+          onMain: () => router.push({ pathname: '/read/[id]', params: { id } }),
           onUnlockAll: () => openSheet('all'),
           onPayGo: () => openSheet('paygo'),
           onPayRest: () => openSheet('all'),
@@ -143,7 +143,7 @@ export default function BookPage() {
         open={sheet}
         need={need}
         onClose={() => setSheet(null)}
-        onRead={soon}
+        onRead={() => router.push({ pathname: '/read/[id]', params: { id } })}
         onPlans={soon}
         onBuyPack={soon}
       />

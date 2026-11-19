@@ -120,7 +120,11 @@ export type NativeToWeb =
   | { type: 'resource.response'; reply_to: string; payload: { bytes_b64?: string; error?: string } }
   | {
       type: 'goTo';
-      payload: { cfi: string } | { para_id: string; offset?: number } | { percent: number } | { chapter_uid: string };
+      payload:
+        | { cfi: string }
+        | { para_id: string; offset?: number }
+        | { percent: number }
+        | { chapter_uid: string };
     }
   | { type: 'next' | 'prev'; payload: { unit: 'page' | 'chapter' } }
   | { type: 'settings.apply'; payload: ReaderSettings }
@@ -147,12 +151,20 @@ export type WebToNative =
   | { type: 'marker.tap'; payload: { para_id: string } }
   | {
       type: 'search.result';
-      payload: { items: { cfi: string; excerpt: string; chapter_uid: string | null }[]; locked_left: boolean; done: boolean };
+      payload: {
+        items: { cfi: string; excerpt: string; chapter_uid: string | null }[];
+        locked_left: boolean;
+        done: boolean;
+      };
     }
   | { type: 'log'; payload: { level: 'info' | 'warn'; message: string } }
   | {
       type: 'error';
-      payload: { code: 'parse_failed' | 'resource_missing' | 'decrypt_failed' | 'render_failed'; detail: string; chapter_uid?: string };
+      payload: {
+        code: 'parse_failed' | 'resource_missing' | 'decrypt_failed' | 'render_failed';
+        detail: string;
+        chapter_uid?: string;
+      };
     };
 
 export type Envelope<T> = T & { v: number; id?: string; reply_to?: string };
