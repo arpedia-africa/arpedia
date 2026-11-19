@@ -3,7 +3,7 @@
 -- forward only, banners (one modal a day, dismiss, end date), email variables, export rules.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(53);
 
 insert into auth.users (id, email) values
   ('15000000-0000-4000-a000-000000000001', 'ops15@arpedia.africa'),
@@ -196,6 +196,37 @@ select lives_ok($$select public.staff_create_export('readers', '{}', '{email,joi
   'Super admin with a reason can export emails');
 select pg_temp.as_user('15000000-0000-4000-a000-000000000001');
 select is((select count(*)::int from public.exports), 0, 'exports are visible to their creator and Super admin only');
+
+-- ─── Worker helpers (service role) ──────────────────────────────────────────
+reset role;
+create temp table q15 on commit drop as
+  select unnest(public.log_pushes(jsonb_build_array(jsonb_build_object('user_id', '15000000-0000-4000-a000-000000000013',
+    'type', 'author_new_post', 'status', 'queued', 'author_id', '15000000-0000-4000-a000-000000000003')))) id;
+select ok((select author_pushed_today from public.push_recipients(array['15000000-0000-4000-a000-000000000013']::uuid[],
+    'author_new_post', null, '15000000-0000-4000-a000-000000000003')),
+  'a queued author push counts for one per author per day');
+select is(public.mark_pushes_sent(jsonb_build_array(jsonb_build_object('id', (select id from q15), 'status', 'sent',
+    'ticket_ids', jsonb_build_array('tk-q'), 'ticket_tokens', jsonb_build_object('tk-q', 'tok')))), 1,
+  'a queued push moves to sent with its tickets');
+select is(public.mark_pushes_sent(jsonb_build_array(jsonb_build_object('id', (select id from q15), 'status', 'failed'))),
+  0, 'a sent push is never marked again');
+
+select is((select count(*)::int from public.campaign_audience((select id from c15)) where user_id =
+    '15000000-0000-4000-a000-000000000011'), 1, 'the campaign audience lists a reader before any push');
+insert into public.push_log (user_id, type, category, campaign_id, status)
+values ('15000000-0000-4000-a000-000000000011', 'campaign', 'marketing', (select id from c15), 'skipped_cap');
+select is((select count(*)::int from public.campaign_audience((select id from c15)) where user_id =
+    '15000000-0000-4000-a000-000000000011'), 0, 'a reader already logged for the campaign is not pushed again');
+
+select ok((select bool_and(r ? 'email') from jsonb_array_elements(public.export_rows(
+    (select id from public.exports where includes_pii), 0, 50)) r), 'a cleared personal export carries emails');
+insert into public.exports (kind, columns, created_by, status, file_key, expires_at)
+values ('readers', '{reader_id,email}', '15000000-0000-4000-a000-000000000001', 'ready', 'exports/x/readers.csv',
+        now() - interval '1 minute');
+select ok((select bool_and(not r ? 'email') from jsonb_array_elements(public.export_rows(
+    (select id from public.exports where file_key = 'exports/x/readers.csv'), 0, 50)) r),
+  'an export not cleared for personal details never carries emails');
+select ok('exports/x/readers.csv' = any (public.expire_exports()), 'expiry hands back the file key to delete');
 
 select * from finish();
 rollback;

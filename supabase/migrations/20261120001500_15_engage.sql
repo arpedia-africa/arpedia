@@ -490,6 +490,7 @@ language sql stable security definer set search_path = '' as $$
   select r.user_id from public.campaigns c,
     public.campaign_recipients(c.audience, c.is_service, c.skip_capped) r
   where c.id = p_campaign and r.reason is null
+    and not exists (select 1 from public.push_log l where l.campaign_id = c.id and l.user_id = r.user_id)
     and (not c.resend_unopened or not exists (
       select 1 from public.push_log l where l.campaign_id = c.source_campaign_id and l.user_id = r.user_id
         and l.status = 'opened'))
@@ -876,13 +877,15 @@ begin
     from public.push_types t where t.key = r ->> 'type'
     returning id into v_id;
     v_ids := v_ids || v_id;
-    if v_status = 'sent' and (r ->> 'author_id') is not null then
+    if v_status in ('queued', 'sent') and (r ->> 'author_id') is not null then
       insert into public.push_author_daily (user_id, author_id, day)
       values ((r ->> 'user_id')::uuid, (r ->> 'author_id')::uuid, (now() at time zone 'Africa/Lagos')::date)
       on conflict do nothing;
     end if;
+    -- The dispatcher adds `feed` only when the reader should see the item (not muted, blocked,
+    -- batched or a campaign they haven't opened), also when push is off on the phone (edge cases).
     -- Flow 02's feed takes books, authors and community; Account rows wait for it to allow them.
-    if r ? 'feed' and v_status in ('sent', 'skipped_quiet')
+    if r ? 'feed' and v_status not in ('failed', 'skipped_cap')
        and r -> 'feed' ->> 'category' in ('books', 'authors', 'community')
        and to_regprocedure('public._create_notification(uuid, text, text, text, text, text, text, uuid, uuid)') is not null then
       execute 'select public._create_notification($1, $2, $3, $4, $5, $6, $7, $8, $9)'
@@ -893,6 +896,25 @@ begin
   end loop;
   return v_ids;
 end $$;
+
+-- After the send: rows logged as queued (so the push carries its push_log id for push_opened)
+-- move to sent or failed. Rows: {id, status: sent | failed, ticket_ids?, ticket_tokens?, error?}.
+-- ticket_tokens ({ticket: token}) lets a later DeviceNotRegistered receipt disable the token.
+create function public.mark_pushes_sent(p_rows jsonb) returns int
+language sql security definer set search_path = '' as $$
+  with u as (
+    update public.push_log l set
+      status = (r ->> 'status')::public.push_status,
+      ticket_ids = coalesce(array(select jsonb_array_elements_text(r -> 'ticket_ids')), '{}'),
+      data = case when r ? 'ticket_tokens' then l.data || jsonb_build_object('ticket_tokens', r -> 'ticket_tokens')
+                  else l.data end,
+      skip_reason = coalesce(r ->> 'error', l.skip_reason),
+      sent_at = case when r ->> 'status' = 'sent' then now() end
+    from jsonb_array_elements(p_rows) r
+    where l.id = (r ->> 'id')::bigint and l.status = 'queued' and r ->> 'status' in ('sent', 'failed')
+    returning 1)
+  select count(*)::int from u
+$$;
 
 create function public.hold_push(p_user uuid, p_type text, p_payload jsonb, p_release_at timestamptz,
   p_drop_if_older boolean default true) returns bigint
@@ -1445,8 +1467,11 @@ $$;
 -- Daily: personal files deleted after 7 days (NDPA 2023). Returns R2 keys to delete.
 create function public.expire_exports() returns text[]
 language sql security definer set search_path = '' as $$
-  with x as (update public.exports set status = 'expired', file_key = null
-             where expires_at <= now() and status <> 'expired' returning file_key)
+  -- RETURNING sees the new row, so the old key comes from the joined snapshot.
+  with x as (update public.exports e set status = 'expired', file_key = null
+             from (select id, file_key from public.exports where expires_at <= now() and status <> 'expired'
+                   for update) o
+             where e.id = o.id returning o.file_key)
   select coalesce(array_agg(file_key) filter (where file_key is not null), '{}') from x
 $$;
 
@@ -1518,6 +1543,100 @@ begin
   return n;
 end $$;
 
+-- ─── Worker: campaign-runner helpers ────────────────────────────────────────
+-- The whole audience with the reason each reader is left out (null = gets it), minus readers
+-- this campaign already logged (an A/B second phase or a re-run). Ordered for paging (.range()).
+create function public.campaign_audience(p_campaign uuid)
+returns table (user_id uuid, reason text)
+language sql stable security definer set search_path = '' as $$
+  select r.user_id, r.reason from public.campaigns c,
+    public.campaign_recipients(c.audience, c.is_service, c.skip_capped) r
+  where c.id = p_campaign
+    and not exists (select 1 from public.push_log l where l.campaign_id = c.id and l.user_id = r.user_id)
+    and (not c.resend_unopened or not exists (
+      select 1 from public.push_log l where l.campaign_id = c.source_campaign_id and l.user_id = r.user_id
+        and l.status = 'opened'))
+  order by r.user_id
+$$;
+
+-- A/B test phase one done: back to scheduled for the winner run 2 hours later.
+create function public.campaign_ab_wait(p_id uuid, p_ab jsonb, p_counts jsonb) returns void
+language sql security definer set search_path = '' as $$
+  update public.campaigns set status = 'scheduled', send_at = now() + interval '2 hours',
+    ab_test = coalesce(ab_test, '{}') || p_ab, counts = counts || p_counts
+  where id = p_id and status = 'sending'
+$$;
+
+create function public.campaign_set_ab(p_id uuid, p_ab jsonb) returns void
+language sql security definer set search_path = '' as $$
+  update public.campaigns set ab_test = coalesce(ab_test, '{}') || p_ab where id = p_id and status = 'sending'
+$$;
+
+-- Sent and opened per title variant (rule 16).
+create function public.campaign_variant_stats(p_id uuid) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'a', jsonb_build_object('sent', count(*) filter (where variant = 'a' and status in ('sent', 'delivered', 'opened')),
+                            'opened', count(*) filter (where variant = 'a' and status = 'opened')),
+    'b', jsonb_build_object('sent', count(*) filter (where variant = 'b' and status in ('sent', 'delivered', 'opened')),
+                            'opened', count(*) filter (where variant = 'b' and status = 'opened')))
+  from public.push_log where campaign_id = p_id
+$$;
+
+-- ─── Worker: export-builder rows ────────────────────────────────────────────
+-- One page of an export as JSON objects holding only the chosen columns. Personal columns come
+-- from auth.users and were cleared by staff_create_export (Super admin + reason). Sources that
+-- another flow builds (subscriptions, reports, payouts) raise until that flow has merged.
+create function public.export_rows(p_id uuid, p_offset int, p_limit int) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  e public.exports;
+  v_from timestamptz;
+  v_to timestamptz;
+  v_rows jsonb;
+begin
+  select * into e from public.exports where id = p_id;
+  if not found then raise exception 'Unknown export' using errcode = 'P0002'; end if;
+  v_from := coalesce((e.params ->> 'from')::date, '2000-01-01'::date)::timestamp at time zone 'Africa/Lagos';
+  v_to := (coalesce((e.params ->> 'to')::date, current_date) + 1)::timestamp at time zone 'Africa/Lagos';
+  if e.kind = 'readers' then
+    select jsonb_agg(x) into v_rows from (
+      select jsonb_build_object('reader_id', p.id, 'joined_at', p.created_at,
+        'state', case when p.deleted_at is not null then 'deleted' else 'active' end,
+        'credits_balance', (select coalesce(sum(l.delta), 0) from public.credit_ledger l where l.user_id = p.id),
+        'last_active', (select max(d.last_seen_at) from public.user_devices d where d.user_id = p.id),
+        'email', u.email, 'phone', u.phone) x
+      from public.profiles p join auth.users u on u.id = p.id
+      where p.is_reader and p.created_at >= v_from and p.created_at < v_to
+      order by p.created_at, p.id offset p_offset limit p_limit) s;
+  elsif e.kind = 'books' then
+    select jsonb_agg(x) into v_rows from (
+      select jsonb_build_object('book_id', b.id, 'title', b.title, 'author_id', b.author_id,
+        'author', (select a.full_name from public.profiles a where a.id = b.author_id), 'status', b.status,
+        'genres', array_to_string(b.genres, '; '), 'created_at', b.created_at) x
+      from public.books b where b.created_at < v_to
+        and (b.created_at >= v_from or b.status::text = 'live')
+      order by b.created_at, b.id offset p_offset limit p_limit) s;
+  elsif e.kind in ('transactions', 'author_earnings') then
+    select jsonb_agg(x) into v_rows from (
+      select jsonb_build_object('entry_id', l.id, 'txn_id', l.txn_id, 'created_at', l.created_at,
+        'reader_id', l.user_id, 'credits', l.delta, 'reason', l.reason, 'bucket', l.bucket, 'book_id', l.book_id,
+        'author_id', l.author_id, 'author_earning_naira', round(l.author_earning_kobo / 100.0, 2)) x
+      from public.credit_ledger l
+      where l.created_at >= v_from and l.created_at < v_to
+        and (e.kind = 'transactions' or l.author_earning_kobo <> 0)
+      order by l.id offset p_offset limit p_limit) s;
+  else
+    raise exception 'This export needs a flow that hasn''t shipped yet' using errcode = '0A000';
+  end if;
+  -- Keep only the chosen columns (all when none were chosen); personal ones only when allowed.
+  return coalesce((select jsonb_agg((select coalesce(jsonb_object_agg(k, r -> k), '{}')
+      from jsonb_object_keys(r) k
+      where (cardinality(e.columns) = 0 or k = any (e.columns))
+        and (e.includes_pii or k <> all (public.export_pii_columns()))))
+    from jsonb_array_elements(v_rows) r), '[]');
+end $$;
+
 create function public.purge_push_log() returns void
 language sql security definer set search_path = '' as $$
   delete from public.push_log where created_at < now() - interval '90 days';
@@ -1532,7 +1651,7 @@ begin
     perform cron.schedule('analytics_rollup_hourly', '5 * * * *', 'select public.analytics_rollup_recent(0)');
     perform cron.schedule('analytics_rollup_nightly', '30 23 * * *', 'select public.analytics_rollup_recent(3)');
     perform cron.schedule('reading_reminders', '0 17 * * *', 'select public.enqueue_reading_reminders()');
-    perform cron.schedule('expire_exports', '0 1 * * *', 'select public.expire_exports()');
+    -- expire_exports runs from the api Worker (01:00 UTC), which deletes the R2 files it returns.
     perform cron.schedule('purge_push_log', '45 2 * * *', 'select public.purge_push_log()');
     perform cron.schedule('end_banners', '*/15 * * * *',
       $c$update public.banners set state = 'ended' where state in ('live', 'scheduled') and ends_at <= now()$c$);
@@ -1598,7 +1717,8 @@ begin
       'email_template_latest', 'record_email_event', 'analytics_rollup', 'analytics_rollup_recent',
       'staff_analytics', 'export_pii_columns', 'staff_create_export', 'staff_list_exports', 'export_job',
       'set_export_status', 'expire_exports', 'export_download_key', 'engage_queue_read', 'engage_queue_done',
-      'enqueue_push', 'enqueue_reading_reminders', 'purge_push_log'])
+      'enqueue_push', 'enqueue_reading_reminders', 'purge_push_log', 'campaign_audience', 'campaign_ab_wait',
+      'campaign_variant_stats', 'export_rows', 'mark_pushes_sent', 'campaign_set_ab'])
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f);
   end loop;
@@ -1633,5 +1753,7 @@ grant execute on function
   public.record_email_event(text, text), public.analytics_rollup(date, date), public.analytics_rollup_recent(int),
   public.export_job(uuid), public.set_export_status(uuid, public.export_status, int, text, text),
   public.expire_exports(), public.engage_queue_read(text, int, int), public.engage_queue_done(text, bigint),
-  public.enqueue_push(text, uuid[], jsonb), public.enqueue_reading_reminders(), public.purge_push_log()
+  public.enqueue_push(text, uuid[], jsonb), public.enqueue_reading_reminders(), public.purge_push_log(),
+  public.campaign_audience(uuid), public.campaign_ab_wait(uuid, jsonb, jsonb), public.campaign_variant_stats(uuid),
+  public.export_rows(uuid, int, int), public.mark_pushes_sent(jsonb), public.campaign_set_ab(uuid, jsonb)
   to service_role;

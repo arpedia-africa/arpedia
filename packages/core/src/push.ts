@@ -136,7 +136,8 @@ function prefAllows(type: PushTypeRule, p: PushPrefs, ctx: PushContext): string 
       if (type.key === 'note_reply') return p.note_replies ? null : 'pref_off';
       if (!MESSAGE_TYPES.has(type.key)) return null; // author_reply: a DM, always wanted
       if (p.messages_level === 'off') return 'pref_off';
-      if (p.messages_level === 'mentions' && type.key === 'club_message' && !ctx.mentioned) return 'pref_mentions';
+      if (p.messages_level === 'mentions' && type.key === 'club_message' && !ctx.mentioned)
+        return 'pref_mentions';
       return null;
     case 'authors':
       return p.authors_new ? null : 'pref_off';
@@ -170,7 +171,8 @@ export function decidePush(type: PushTypeRule, r: PushRecipient, ctx: PushContex
   if (ctx.respectQuiet === false) return { action: 'send' };
   if (marketing && inMarketingBlock(ctx.at)) return skip('skipped_quiet', 'marketing_block');
   const p = r.prefs;
-  if (!p.quiet_hours_on || !inQuietWindow(ctx.at, p.timezone, p.quiet_start, p.quiet_end)) return { action: 'send' };
+  if (!p.quiet_hours_on || !inQuietWindow(ctx.at, p.timezone, p.quiet_start, p.quiet_end))
+    return { action: 'send' };
   // Service campaigns are never dropped: they wait for morning like Account pushes.
   const action: QuietAction = ctx.isService && type.category === 'marketing' ? 'deliver' : type.quiet_action;
   if (action === 'none') return { action: 'send' };
@@ -182,11 +184,15 @@ export function decidePush(type: PushTypeRule, r: PushRecipient, ctx: PushContex
   };
 }
 
-/** `{{name}}` placeholders; unknown ones become empty. */
-export function renderTemplate(tpl: string, vars: Record<string, string | number | null | undefined>): string {
+/** `{{name}}` placeholders; unknown ones become empty. Line breaks are kept (emails). */
+export function renderTemplate(
+  tpl: string,
+  vars: Record<string, string | number | null | undefined>,
+): string {
   return tpl
     .replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, k: string) => String(vars[k] ?? ''))
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ +\n/g, '\n')
     .trim();
 }
 
@@ -254,8 +260,10 @@ export function abWinner(a: VariantStats, b: VariantStats): 'a' | 'b' {
 
 export const MIN_GROUP = 5;
 /** Never show a number for groups under 5 people (rule 28). */
-export const groupFigure = (n: number, fmt: (n: number) => string = (x) => Math.round(x).toLocaleString('en-NG')) =>
-  n < MIN_GROUP ? 'Fewer than 5' : fmt(n);
+export const groupFigure = (
+  n: number,
+  fmt: (n: number) => string = (x) => Math.round(x).toLocaleString('en-NG'),
+) => (n < MIN_GROUP ? 'Fewer than 5' : fmt(n));
 
 /** Change against the previous period in percent (1 decimal), or null when there was nothing before. */
 export function periodChange(current: number, previous: number): number | null {
@@ -281,9 +289,7 @@ export const minutesPerSession = (seconds: number, sessions: number) =>
   sessions > 0 ? Math.round(seconds / 60 / sessions) : 0;
 
 export type CohortCell =
-  | { state: 'ready'; pct: number }
-  | { state: 'young'; label: string }
-  | { state: 'small' };
+  { state: 'ready'; pct: number } | { state: 'young'; label: string } | { state: 'small' };
 
 const SHORT_MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -301,7 +307,10 @@ export function cohortCell(
   if (size < MIN_GROUP) return { state: 'small' };
   const ready = new Date(Date.parse(`${weekStart}T00:00:00Z`) + (6 + day) * 86_400_000);
   if (Date.parse(`${today}T00:00:00Z`) < ready.getTime())
-    return { state: 'young', label: `Day ${day} on ${ready.getUTCDate()} ${SHORT_MONTH[ready.getUTCMonth()]}` };
+    return {
+      state: 'young',
+      label: `Day ${day} on ${ready.getUTCDate()} ${SHORT_MONTH[ready.getUTCMonth()]}`,
+    };
   return { state: 'ready', pct: Math.round((Math.min(retained, size) / size) * 100) };
 }
 

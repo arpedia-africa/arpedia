@@ -84,15 +84,15 @@ describe('quiet hours across time zones', () => {
     expect(inQuietWindow(new Date('2026-11-19T21:30:00Z'), 'Mars/Base', '22:00', '06:00')).toBe(true);
   });
   it('finds the end of the window, before and after midnight', () => {
-    expect(quietWindowEnd(new Date('2026-11-19T21:30:00Z'), 'Africa/Lagos', '22:00', '06:00').toISOString()).toBe(
-      '2026-11-20T05:00:00.000Z',
-    );
-    expect(quietWindowEnd(new Date('2026-11-20T02:15:30Z'), 'Africa/Lagos', '22:00', '06:00').toISOString()).toBe(
-      '2026-11-20T05:00:00.000Z',
-    );
-    expect(quietWindowEnd(new Date('2026-11-19T20:00:00Z'), 'Africa/Nairobi', '22:00', '06:00').toISOString()).toBe(
-      '2026-11-20T03:00:00.000Z',
-    );
+    expect(
+      quietWindowEnd(new Date('2026-11-19T21:30:00Z'), 'Africa/Lagos', '22:00', '06:00').toISOString(),
+    ).toBe('2026-11-20T05:00:00.000Z');
+    expect(
+      quietWindowEnd(new Date('2026-11-20T02:15:30Z'), 'Africa/Lagos', '22:00', '06:00').toISOString(),
+    ).toBe('2026-11-20T05:00:00.000Z');
+    expect(
+      quietWindowEnd(new Date('2026-11-19T20:00:00Z'), 'Africa/Nairobi', '22:00', '06:00').toISOString(),
+    ).toBe('2026-11-20T03:00:00.000Z');
     expect(quietWindowEnd(NOON, 'Africa/Lagos', '22:00', '06:00')).toBe(NOON);
   });
   it('blocks marketing 22:00 to 07:00 WAT', () => {
@@ -106,18 +106,27 @@ describe('decidePush', () => {
     expect(decidePush(type(), reader(), { at: NOON })).toEqual({ action: 'send' });
   });
   it('honours staff switch, blocks, mutes, open chat and devices', () => {
-    expect(decidePush(type({ enabled: false }), reader(), { at: NOON })).toMatchObject({ reason: 'type_off' });
+    expect(decidePush(type({ enabled: false }), reader(), { at: NOON })).toMatchObject({
+      reason: 'type_off',
+    });
     expect(decidePush(type(), reader({ blocked: true }), { at: NOON })).toMatchObject({ reason: 'blocked' });
-    expect(decidePush(type(), reader({ group_muted: true }), { at: NOON })).toMatchObject({ reason: 'muted' });
+    expect(decidePush(type(), reader({ group_muted: true }), { at: NOON })).toMatchObject({
+      reason: 'muted',
+    });
     expect(decidePush(type(), reader(), { at: NOON, chatOpen: true })).toMatchObject({ reason: 'chat_open' });
     expect(decidePush(type(), reader({ tokens: [] }), { at: NOON })).toMatchObject({ reason: 'no_token' });
   });
   it('applies the message level', () => {
     const m = reader({ prefs: prefs({ messages_level: 'mentions' }) });
-    expect(decidePush(type(), m, { at: NOON })).toMatchObject({ status: 'skipped_pref', reason: 'pref_mentions' });
+    expect(decidePush(type(), m, { at: NOON })).toMatchObject({
+      status: 'skipped_pref',
+      reason: 'pref_mentions',
+    });
     expect(decidePush(type(), m, { at: NOON, mentioned: true })).toEqual({ action: 'send' });
     const off = reader({ prefs: prefs({ messages_level: 'off' }) });
-    expect(decidePush(type({ key: 'room_starting' }), off, { at: NOON })).toMatchObject({ reason: 'pref_off' });
+    expect(decidePush(type({ key: 'room_starting' }), off, { at: NOON })).toMatchObject({
+      reason: 'pref_off',
+    });
     // A DM reply from an author is not a group message.
     expect(decidePush(type({ key: 'author_reply' }), off, { at: NOON })).toEqual({ action: 'send' });
   });
@@ -125,18 +134,25 @@ describe('decidePush', () => {
     const none = reader({
       prefs: prefs({ authors_new: false, note_replies: false, reading_reminders: false, marketing: false }),
     });
-    expect(decidePush(type({ key: 'author_new_post', category: 'authors' }), none, at('2026-11-19T11:00:00Z')))
-      .toMatchObject({ reason: 'pref_off' });
+    expect(
+      decidePush(type({ key: 'author_new_post', category: 'authors' }), none, at('2026-11-19T11:00:00Z')),
+    ).toMatchObject({ reason: 'pref_off' });
     expect(decidePush(type({ key: 'note_reply' }), none, { at: NOON })).toMatchObject({ reason: 'pref_off' });
-    expect(decidePush(type({ key: 'reading_reminder', category: 'reminders' }), none, { at: NOON }))
-      .toMatchObject({ reason: 'pref_off' });
+    expect(
+      decidePush(type({ key: 'reading_reminder', category: 'reminders' }), none, { at: NOON }),
+    ).toMatchObject({ reason: 'pref_off' });
     expect(decidePush(MARKETING, none, { at: NOON })).toMatchObject({ reason: 'pref_off' });
     expect(decidePush(MARKETING, none, { at: NOON, isService: true })).toEqual({ action: 'send' });
-    expect(decidePush(type({ key: 'renewal_failed', category: 'account', quiet_action: 'deliver' }), none, { at: NOON }))
-      .toEqual({ action: 'send' });
+    expect(
+      decidePush(type({ key: 'renewal_failed', category: 'account', quiet_action: 'deliver' }), none, {
+        at: NOON,
+      }),
+    ).toEqual({ action: 'send' });
   });
   it('sends no marketing to minors', () => {
-    expect(decidePush(MARKETING, reader({ is_minor: true }), { at: NOON })).toMatchObject({ reason: 'minor' });
+    expect(decidePush(MARKETING, reader({ is_minor: true }), { at: NOON })).toMatchObject({
+      reason: 'minor',
+    });
   });
   it('batches author pushes to one per author per day', () => {
     const t = type({ key: 'author_new_post', category: 'authors' });
@@ -146,7 +162,11 @@ describe('decidePush', () => {
   });
   it('caps marketing at 2 per 7 days, unless switched off or service', () => {
     const r = reader({ marketing_7d: 2 });
-    expect(decidePush(MARKETING, r, { at: NOON })).toEqual({ action: 'skip', status: 'skipped_cap', reason: 'cap' });
+    expect(decidePush(MARKETING, r, { at: NOON })).toEqual({
+      action: 'skip',
+      status: 'skipped_cap',
+      reason: 'cap',
+    });
     expect(decidePush(MARKETING, reader({ marketing_7d: 1 }), { at: NOON })).toEqual({ action: 'send' });
     expect(decidePush(MARKETING, r, { at: NOON, skipCapped: false })).toEqual({ action: 'send' });
     expect(decidePush(MARKETING, r, { at: NOON, isService: true })).toEqual({ action: 'send' });
@@ -159,7 +179,9 @@ describe('decidePush', () => {
     expect(held.action === 'hold' && held.releaseAt.toISOString()).toBe(morning);
     const acct = decidePush(type({ category: 'account', quiet_action: 'deliver' }), reader(), { at: night });
     expect(acct).toMatchObject({ action: 'hold', dropIfOlder: false });
-    expect(decidePush(type({ key: 'room_starting', quiet_action: 'drop' }), reader(), { at: night })).toMatchObject({
+    expect(
+      decidePush(type({ key: 'room_starting', quiet_action: 'drop' }), reader(), { at: night }),
+    ).toMatchObject({
       status: 'skipped_quiet',
     });
     // Reader turned quiet hours off: messages go.
@@ -171,8 +193,9 @@ describe('decidePush', () => {
     const r = reader({ prefs: prefs({ quiet_hours_on: false }) });
     expect(decidePush(MARKETING, r, at('2026-11-19T05:30:00Z'))).toMatchObject({ reason: 'marketing_block' });
     // A Super admin override sends urgent service pushes at any time.
-    expect(decidePush(MARKETING, r, { ...at('2026-11-19T05:30:00Z'), isService: true, respectQuiet: false }))
-      .toEqual({ action: 'send' });
+    expect(
+      decidePush(MARKETING, r, { ...at('2026-11-19T05:30:00Z'), isService: true, respectQuiet: false }),
+    ).toEqual({ action: 'send' });
   });
 });
 
@@ -189,7 +212,14 @@ describe('releasePlan', () => {
   });
   it('folds more than 3 into one summary and drops ones held over 12 hours', () => {
     const p = releasePlan(
-      [h('messages', 1), h('messages', 2), h('messages', 3), h('messages', 4), h('messages', 13), h('account', 13)],
+      [
+        h('messages', 1),
+        h('messages', 2),
+        h('messages', 3),
+        h('messages', 4),
+        h('messages', 13),
+        h('account', 13),
+      ],
       now,
     );
     expect(p.summary).toHaveLength(4);
@@ -205,7 +235,10 @@ describe('A/B title test', () => {
     expect(abWinner({ sent: 0, opened: 0 }, { sent: 0, opened: 0 })).toBe('a');
   });
   it('puts about 20% in the test, split evenly, stable per reader', () => {
-    const ids = Array.from({ length: 10000 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
+    const ids = Array.from(
+      { length: 10000 },
+      (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+    );
     const counts = { a: 0, b: 0, rest: 0 };
     for (const id of ids) counts[abBucket(id)]++;
     expect(counts.a + counts.b).toBeGreaterThan(1800);
@@ -249,7 +282,10 @@ describe('insights maths', () => {
   });
   it('builds retention cohorts, young ones labelled', () => {
     // Week of Mon 2 Nov: day 30 is known from 8 Dec.
-    expect(cohortCell('2026-11-02', 30, '2026-11-19', 200, 50)).toEqual({ state: 'young', label: 'Day 30 on 8 Dec' });
+    expect(cohortCell('2026-11-02', 30, '2026-11-19', 200, 50)).toEqual({
+      state: 'young',
+      label: 'Day 30 on 8 Dec',
+    });
     expect(cohortCell('2026-11-02', 7, '2026-11-19', 200, 90)).toEqual({ state: 'ready', pct: 45 });
     expect(cohortCell('2026-11-02', 1, '2026-11-19', 4, 3)).toEqual({ state: 'small' });
   });

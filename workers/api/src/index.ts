@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import type { AppEnv, Env } from './env';
 import { routes } from './routes';
 import { consumeQueue } from './routes/12/pipeline';
+import { engageCron } from './routes/15/engage';
 
 const app = new Hono<AppEnv>();
 
@@ -28,6 +29,9 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  // Every minute: the book pipeline's safety net (flow 12).
-  scheduled: (_event, env, ctx) => ctx.waitUntil(consumeQueue(env)),
+  // Every minute: the book pipeline's safety net (flow 12); pushes, campaigns, exports (flow 15).
+  scheduled: (event, env, ctx) => {
+    ctx.waitUntil(consumeQueue(env));
+    ctx.waitUntil(engageCron(env, event.scheduledTime));
+  },
 } satisfies ExportedHandler<Env>;
