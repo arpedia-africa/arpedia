@@ -121,7 +121,6 @@ export function ReaderHeader({
         </div>
         <div className="ph__row">
           {r.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img className={`av ${big ? 'xl' : 'lg'}`} src={r.avatar_url} alt="" />
           ) : (
             <span className={`av ${big ? 'xl' : 'lg'} ${tone(r.id)}`}>{initials(r.name)}</span>

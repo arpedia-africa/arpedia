@@ -165,7 +165,6 @@ export default async function ReadersPage({ searchParams }: { searchParams: Prom
                       <td>
                         <div className="who">
                           {r.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img className="av sm" src={r.avatar_url} alt="" />
                           ) : (
                             <span className={`av sm ${tone(r.id)}`}>{initials(r.name)}</span>
