@@ -548,7 +548,8 @@ declare
   v_roll int;
 begin
   select * into v_sub from public.subscriptions where id = p_sub for update;
-  if v_sub.status in ('expired', 'refunded') and p_status = v_sub.status then
+  -- Refunded is final; an expired subscription can still be marked refunded (its credits are gone).
+  if v_sub.status = 'refunded' or (v_sub.status = 'expired' and p_status = 'expired') then
     return 0;
   end if;
   perform pg_advisory_xact_lock(hashtext(v_sub.user_id::text));
@@ -569,8 +570,9 @@ begin
   return v_plan + v_roll;
 end $$;
 
--- Refund, web refund or chargeback: remove up to p_credits (default: all granted) from the buckets
--- the purchase filled, never below zero. Plan purchases may have rolled over, so plan then rollover.
+-- Refund, web refund or chargeback: bring what this purchase has had clawed back up to p_credits in
+-- total (default: all granted; callers pass the share of the price refunded so far, not of this one
+-- refund), from the buckets the purchase filled, never below zero. Plan purchases may have rolled over, so plan then rollover.
 -- Ends the subscription when p_end_sub. Returns {removed, unrecoverable}.
 create function public.clawback_purchase(p_transaction uuid, p_reason text, p_end_sub boolean default true,
                                          p_credits integer default null)
@@ -682,12 +684,20 @@ begin
     if not found then
       perform public._raise('unknown_transaction');
     end if;
-    update public.transactions set status = case v_type when 'chargeback' then 'disputed' else 'refunded' end,
-      refunded_kobo = least(gross_kobo, refunded_kobo + coalesce((n ->> 'refund_kobo')::bigint, gross_kobo))
-    where id = v_tx.id;
-    v_outcome := (public.clawback_purchase(v_tx.id, v_type, v_tx.kind = 'plan',
-      case when n ? 'refund_kobo' and v_tx.gross_kobo > 0
-           then ceil(v_tx.credits_granted * least((n ->> 'refund_kobo')::numeric / v_tx.gross_kobo, 1))::int end))::text;
+    -- A partial refund leaves the purchase succeeded (refunded_kobo shows the part), so the reader
+    -- can still ask for the rest.
+    update public.transactions set
+      refunded_kobo = least(gross_kobo, refunded_kobo + coalesce((n ->> 'refund_kobo')::bigint, gross_kobo)),
+      status = case
+        when v_type = 'chargeback' then 'disputed'
+        when least(gross_kobo, refunded_kobo + coalesce((n ->> 'refund_kobo')::bigint, gross_kobo)) >= gross_kobo
+          then 'refunded'
+        else status end
+    where id = v_tx.id
+    returning * into v_tx;
+    v_outcome := (public.clawback_purchase(v_tx.id, v_type, v_tx.kind = 'plan' and v_tx.status <> 'succeeded',
+      case when v_tx.gross_kobo > 0 and v_tx.refunded_kobo < v_tx.gross_kobo and v_type = 'refund'
+           then ceil(v_tx.credits_granted * v_tx.refunded_kobo::numeric / v_tx.gross_kobo)::int end))::text;
     if v_type = 'chargeback' then
       insert into public.credit_alerts (user_id, kind, detail)
       values (v_user, 'chargeback', jsonb_build_object('transaction_id', v_tx.id, 'store_txn_id', n ->> 'txn_id'));
@@ -742,6 +752,11 @@ begin
 
     elsif v_stale then
       v_outcome := 'stale: recorded, not applied';
+
+    elsif v_sub.status in ('expired', 'refunded') then
+      -- An ended subscription only comes back with a new purchase or renewal (above); a late
+      -- cancellation, uncancellation or expiration must not reopen or relabel it.
+      v_outcome := 'ended: recorded, not applied';
 
     else
       case v_type
@@ -960,11 +975,10 @@ begin
     perform public._raise('not_paused');
   end if;
   update public.subscriptions set status = 'active', auto_renew = true, pause_until = null where id = s.id;
-  -- Inside the paid period nothing is charged; after it, the Worker charges and the webhook grants.
-  if s.period_end <= now() then
-    perform pgmq.send('payments_out', jsonb_build_object('kind', 'flutterwave_resume_charge',
-      'subscription_id', s.id));
-  end if;
+  -- Pausing cancelled the Flutterwave plan, so always switch it back on: inside the paid period the
+  -- next renewal then arrives on time; after it, Flutterwave charges and the webhook grants.
+  perform pgmq.send('payments_out', jsonb_build_object('kind', 'flutterwave_resume_charge',
+    'subscription_id', s.id));
   return jsonb_build_object('status', 'active');
 end $$;
 
@@ -1139,6 +1153,8 @@ begin
   if not found or c.reason <> 'chapter' or c.delta >= 0 then
     perform public._raise('not_a_chapter_charge');
   end if;
+  -- Lock before the check, so two staff returning the same charge at once credit it once.
+  perform pg_advisory_xact_lock(hashtext(c.user_id::text));
   if exists (select 1 from public.credit_ledger u
              join public.credit_ledger x on x.id = u.ref_ledger_id
              where x.txn_id = c.txn_id and u.reason = 'undo') then
@@ -1147,13 +1163,12 @@ begin
   if c.created_at > now() - make_interval(mins => (public._rules() ->> 'undo_minutes')::int) then
     perform public._raise('undo_window_open');
   end if;
-  perform pg_advisory_xact_lock(hashtext(c.user_id::text));
   for r in select * from public.credit_ledger where txn_id = c.txn_id and reason = 'chapter' and delta < 0 loop
     insert into public.credit_ledger (user_id, delta, reason, bucket, txn_id, ref_type, ref_id, book_id, chapter_uid,
-      chapter_id, author_id, author_earning_kobo, ref_ledger_id, actor_id, note, meta, rate_version)
+      chapter_id, author_id, author_earning_kobo, ref_ledger_id, actor_id, note, meta, rate_version, idempotency_key)
     values (r.user_id, -r.delta, 'undo', r.bucket, v_txn, 'ledger', r.id::text, r.book_id, r.chapter_uid, r.chapter_id, r.author_id, -r.author_earning_kobo, r.id,
       v_actor, coalesce(nullif(trim(p_note), ''), p_reason_code), jsonb_build_object('reason_code', p_reason_code),
-      r.rate_version);
+      r.rate_version, 'return:' || r.id);
     v_returned := v_returned - r.delta;
   end loop;
   update public.entitlements set revoked_at = now(), revoked_reason = 'staff_return'
@@ -1227,10 +1242,12 @@ begin
   select * into t from public.transactions where id = r.transaction_id for update;
   update public.transactions set refunded_kobo = least(gross_kobo, refunded_kobo + r.amount_kobo),
     status = case when r.type = 'full' then 'refunded' else status end
-  where id = t.id;
+  where id = t.id
+  returning * into t;
+  -- Partial: the share of the price refunded so far (clawback_purchase takes a running total).
   v_res := public.clawback_purchase(t.id, 'web refund', r.type = 'full' and t.kind = 'plan',
     case when r.type = 'full' then null
-         else ceil(t.credits_granted * r.amount_kobo::numeric / greatest(t.gross_kobo, 1))::int end);
+         else ceil(t.credits_granted * t.refunded_kobo::numeric / greatest(t.gross_kobo, 1))::int end);
   update public.refund_requests set status = 'refunded', flutterwave_refund_id = p_flutterwave_refund_id
   where id = r.id;
   perform pgmq.send('user_notify', jsonb_build_object('kind', 'refund_done', 'user_id', r.user_id,

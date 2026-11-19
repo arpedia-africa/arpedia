@@ -2,7 +2,7 @@
 -- Flutterwave duplicate and chargeback, grace then recovery, grace then expiry with top-ups kept.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(30);
 
 insert into auth.users (id, email)
 select ('90900000-0000-4000-a000-0000000000' || n)::uuid, 'w' || n || '@flow09.test'
@@ -120,6 +120,33 @@ select is((select status from public.subscriptions where store_original_txn_id =
   'status is expired after grace');
 select is(pg_temp.bal('90900000-0000-4000-a000-000000000024'), array[0, 0, 200, 0],
   'plan credits expire, top-up credits stay');
+
+-- ─── Ended subscriptions stay ended (reader 21, refunded above) ──────────────
+select is(pg_temp.ev('revenuecat', 'w21-3', interval '30 minutes',
+  jsonb_build_object('type', 'uncancellation', 'user_id', '90900000-0000-4000-a000-000000000021', 'store', 'play',
+                     'original_txn_id', 'GPA.21')) ->> 'outcome',
+  'ended: recorded, not applied', 'a late uncancellation does not reopen a refunded subscription');
+select pg_temp.ev('revenuecat', 'w21-4', interval '20 minutes',
+  jsonb_build_object('type', 'expiration', 'user_id', '90900000-0000-4000-a000-000000000021', 'store', 'play',
+                     'original_txn_id', 'GPA.21'));
+select is((select status from public.subscriptions where store_original_txn_id = 'GPA.21'), 'refunded',
+  'a late expiration keeps it refunded');
+
+-- ─── Two partial store refunds claw back twice (reader 23, 300 plan credits unspent) ───
+select pg_temp.ev('revenuecat', 'w23-4', interval '50 minutes',
+  jsonb_build_object('type', 'refund', 'user_id', '90900000-0000-4000-a000-000000000023', 'store', 'play',
+                     'txn_id', 'GPA.23-1', 'refund_kobo', 30000));
+select is((select status from public.transactions where store_txn_id = 'GPA.23-1'), 'succeeded',
+  'a partial refund leaves the purchase open for the rest');
+select pg_temp.ev('revenuecat', 'w23-5', interval '40 minutes',
+  jsonb_build_object('type', 'refund', 'user_id', '90900000-0000-4000-a000-000000000023', 'store', 'play',
+                     'txn_id', 'GPA.23-1', 'refund_kobo', 30000));
+select is((select -sum(delta)::int from public.credit_ledger l join public.transactions t
+             on l.ref_type = 'transaction' and l.ref_id = t.id::text
+           where t.store_txn_id = 'GPA.23-1' and l.reason = 'refund'), 200,
+  'each third of the price refunded removes a third of the credits (100 + 100)');
+select is((select status from public.subscriptions where store_original_txn_id = 'GPA.23'), 'active',
+  'a partial refund does not end the subscription');
 
 select * from finish();
 rollback;
