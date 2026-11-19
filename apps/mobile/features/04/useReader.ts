@@ -878,6 +878,8 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       type: 'access.update',
       payload: { access: a, reload_section: true, gate_room: gateRoom.current },
     });
+    // The whole book downloads for offline reading (s-pay-rest); a failure retries on next open.
+    void files.current.downloadAll().catch(() => undefined);
   }, [refresh, send]);
 
   // ─── Report a problem (rule 26) ────────────────────────────────────────────

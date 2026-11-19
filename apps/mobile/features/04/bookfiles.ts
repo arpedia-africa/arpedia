@@ -232,6 +232,20 @@ export class BookFiles {
     throw new Error('decrypt_failed');
   }
 
+  /**
+   * Download (rule 70): every file in scope, saved as received (ciphertext). Files already on disk
+   * are skipped, so an interrupted download resumes where it stopped.
+   */
+  async downloadAll(onProgress?: (done: number, total: number) => void): Promise<void> {
+    await this.refreshLinks();
+    const paths = [...this.urls.keys()];
+    let done = 0;
+    for (const p of paths) {
+      await this.sealed(p);
+      onProgress?.(++done, paths.length);
+    }
+  }
+
   /** Drop a cached file so the next read fetches it again (resource_missing / decrypt_failed). */
   evict(path: string) {
     const f = this.file(path);
