@@ -12,7 +12,9 @@ export function SubHero({ title, sub, onBack }: { title: string; sub: string; on
     <OnHero.Provider value>
       <View style={{ backgroundColor: c.org, overflow: 'hidden' }}>
         <Petals size={s(260)} style={{ right: s(-110), top: s(-90) }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: s(52), paddingHorizontal: s(6) }}>
+        <View
+          style={{ flexDirection: 'row', alignItems: 'center', minHeight: s(52), paddingHorizontal: s(6) }}
+        >
           {onBack ? <IconButton icon="back" label="Back" onPress={onBack} color={c.onOrg} /> : null}
         </View>
         <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(44), gap: s(12) }}>
@@ -97,7 +99,12 @@ export function StepHero({
             }}
           >
             <View
-              style={{ width: `${(step / 4) * 100}%`, height: '100%', borderRadius: s(6), backgroundColor: c.night }}
+              style={{
+                width: `${(step / 4) * 100}%`,
+                height: '100%',
+                borderRadius: s(6),
+                backgroundColor: c.night,
+              }}
             />
           </View>
           <Text

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Href } from 'expo-router';
 import type { Database, Json } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { isNetworkError } from '../01/session';
@@ -36,6 +37,9 @@ export const CATEGORIES = [
   'Short stories',
 ] as const;
 
+/** Author Studio home (flow 11 app screens, next step of this flow). */
+export const STUDIO = '/studio' as Href;
+
 /** Admin promise (open question 2): the reply-by date is 5 days after sending. */
 export const REVIEW_DAYS = 5;
 
@@ -59,6 +63,19 @@ export function useLatestApplication(uid: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+/** Whether the signed-in user is an approved author (`profiles.is_author`, server-only). */
+export function useIsAuthor(uid: string | undefined) {
+  return useQuery({
+    queryKey: ['is-author', uid],
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('is_author').eq('id', uid!).single();
+      if (error) throw error;
+      return data.is_author;
     },
   });
 }
@@ -219,9 +236,18 @@ export async function pickAndUploadSample(): Promise<PickedSample | null> {
     headers: { ...auth, 'Content-Type': 'application/json' },
     body: JSON.stringify({ file_name: file.name, content_type: contentType, size: blob.size }),
   });
-  const t = (await ticket.json().catch(() => ({}))) as { upload_url?: string; key?: string; message?: string };
-  if (!ticket.ok || !t.upload_url || !t.key) throw new SampleError(t.message ?? 'Upload didn’t start. Try again.');
-  const put = await fetch(t.upload_url, { method: 'PUT', headers: { ...auth, 'Content-Type': contentType }, body: blob });
+  const t = (await ticket.json().catch(() => ({}))) as {
+    upload_url?: string;
+    key?: string;
+    message?: string;
+  };
+  if (!ticket.ok || !t.upload_url || !t.key)
+    throw new SampleError(t.message ?? 'Upload didn’t start. Try again.');
+  const put = await fetch(t.upload_url, {
+    method: 'PUT',
+    headers: { ...auth, 'Content-Type': contentType },
+    body: blob,
+  });
   if (!put.ok) throw new SampleError('Upload didn’t finish. Try again.');
   const done = await fetch(`${api}/v1/author-applications/sample/complete`, {
     method: 'POST',
@@ -235,15 +261,26 @@ export async function pickAndUploadSample(): Promise<PickedSample | null> {
 
 /** "220 KB", "1.4 MB". */
 export function fileSize(bytes: number) {
-  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 /** "Monday 16 November" in Lagos time. */
 export function longDate(iso: string, addDays = 0) {
   const d = new Date(new Date(iso).getTime() + addDays * 86_400_000);
-  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Africa/Lagos' });
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Africa/Lagos',
+  });
 }
 
 export function shortDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'Africa/Lagos' });
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Africa/Lagos',
+  });
 }
