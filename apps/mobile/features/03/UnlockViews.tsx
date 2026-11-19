@@ -56,6 +56,7 @@ export function UnlockAllBody({
   balance,
   price,
   paid,
+  remaining,
   author,
   onMode,
   onUnlock,
@@ -67,6 +68,8 @@ export function UnlockAllBody({
   price: number;
   /** Credits already paid for chapters (rule 18). */
   paid: number;
+  /** What unlock_book charges for the rest (capped at the pay-as-you-read snapshot); defaults to price − paid. */
+  remaining?: number;
   author: string;
   onMode: (m: UnlockMode) => void;
   onUnlock: () => void;
@@ -74,11 +77,11 @@ export function UnlockAllBody({
   error?: string | null;
   showSwitch?: boolean;
 }) {
-  const left = Math.max(0, price - paid);
+  const left = Math.max(0, remaining ?? price - paid);
   const rows =
     paid > 0
       ? [
-          { k: 'Price', v: `${n(price)} credits` },
+          { k: 'Price', v: `${n(paid + left)} credits` },
           { k: 'Already paid', v: `− ${n(paid)}` },
           { k: 'Left to pay', v: `${n(left)} credits`, total: true },
         ]

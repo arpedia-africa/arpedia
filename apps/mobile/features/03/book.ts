@@ -1,4 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { AppState } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { onlineManager, useQuery } from '@tanstack/react-query';
 import {
   compactCount,
   mainButton,
@@ -72,17 +75,43 @@ export interface BookPageData {
 
 export const bookKey = (id: string) => ['book-page', id] as const;
 
-/** The book page; refetches on focus so a purchase on another device shows (edge cases). */
+/**
+ * The book page. React Native has no window focus, so it refetches when the screen regains focus
+ * (back from the reader) and when the app returns to the foreground, so a purchase on another
+ * device shows (edge cases).
+ */
 export function useBookPage(id: string) {
-  return useQuery({
+  const q = useQuery({
     queryKey: bookKey(id),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_book_page', { p_book: id });
       if (error) throw error;
       return data as unknown as BookPageData | null;
     },
-    refetchOnWindowFocus: true,
   });
+  const { refetch } = q;
+  const first = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (first.current) first.current = false;
+      else void refetch();
+    }, [refetch]),
+  );
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') void refetch();
+    });
+    return () => sub.remove();
+  }, [refetch]);
+  return q;
+}
+
+/** Live connection state (re-renders when it changes; `onlineManager.isOnline()` alone doesn't). */
+export function useOnline() {
+  return useSyncExternalStore(
+    (cb) => onlineManager.subscribe(cb),
+    () => onlineManager.isOnline(),
+  );
 }
 
 export function toModel(d: BookPageData): BookPageModel {

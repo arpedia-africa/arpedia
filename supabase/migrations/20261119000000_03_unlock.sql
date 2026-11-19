@@ -221,7 +221,7 @@ create table public.book_related (
 create view public.book_effective with (security_invoker) as
   select b.id as book_id, b.current_revision_id as revision_id,
          coalesce(b.price_override_credits, r.price_credits) as effective_price,
-         coalesce(r.preview_percent, 10) as effective_preview_percent
+         coalesce(b.preview_override_percent, r.preview_percent, 10) as effective_preview_percent
   from public.books b
   left join public.book_revisions r on r.id = b.current_revision_id;
 
@@ -740,12 +740,17 @@ declare
   b public.books;
   r public.book_revisions;
 begin
-  select * into b from public.books where id = p_book
-    and (status in ('live', 'scheduled') or public._owns_book(v_user, id));
-  if not found then
+  -- Same visibility and revision as get_book_page.
+  select * into b from public.books where id = p_book;
+  if not found or (b.status not in ('live', 'scheduled')
+                   and not (public._owns_book(v_user, p_book) and b.access_removed_at is null)) then
     return null;
   end if;
   select * into r from public.book_revisions where id = b.current_revision_id;
+  if b.status = 'scheduled' then
+    select * into r from public.book_revisions where book_id = p_book and status = 'scheduled'
+    order by revision_no desc limit 1;
+  end if;
   return jsonb_build_object(
     'title', b.title, 'description', b.description, 'genre', b.genres[1],
     'author', jsonb_build_object('id', b.author_id, 'name', (select full_name from public.profiles where id = b.author_id)),

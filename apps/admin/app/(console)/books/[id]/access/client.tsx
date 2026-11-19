@@ -55,24 +55,34 @@ export function AccessOverrides({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    // Check both edits first, so a form with a new price and a new preview saves both.
     if (priceChanged) {
       if (!canPrice) return show('Only Super admins and Finance can change prices.');
       if (!priceReason.trim()) return show('Add a reason for the new price. It goes in the price history.');
-      setCode('');
-      return setConfirm(parsed === null || parsed === computed ? 'clear' : 'price');
     }
     if (pctChanged) {
       if (!canPreview) return show('Only Publishers and Super admins can change the preview.');
       if (!pctReason.trim()) return show('Add a reason for the new preview. It goes in the audit log.');
+    }
+    if (priceChanged) {
+      setCode('');
+      return setConfirm(parsed === null || parsed === computed ? 'clear' : 'price');
+    }
+    if (pctChanged) {
       return start(async () => {
-        const r = await setPreview(bookId, pctNum === 10 ? null : pctNum, pctReason);
+        const r = await savePreview();
         if (!r.ok) return show(r.error);
-        setPctReason('');
         show(r.message);
         router.refresh();
       });
     }
     show('Nothing to save. Change the price or the preview first.');
+  };
+
+  const savePreview = async () => {
+    const r = await setPreview(bookId, pctNum === 10 ? null : pctNum, pctReason);
+    if (r.ok) setPctReason('');
+    return r;
   };
 
   const save = () =>
@@ -88,7 +98,10 @@ export function AccessOverrides({
       if (!r.ok) return setError(r.error);
       setConfirm(null);
       setPriceReason('');
-      show(r.message);
+      if (pctChanged) {
+        const p = await savePreview();
+        show(p.ok ? `${r.message} ${p.message}` : `${r.message} The preview didn't save: ${p.error}`);
+      } else show(r.message);
       router.refresh();
     });
 

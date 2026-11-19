@@ -20,6 +20,8 @@ function spendMessage(code: string): string {
   switch (code) {
     case 'network':
       return 'No connection. Nothing was charged. Try again.';
+    case 'signed_out':
+      return 'You’re signed out. Sign in again, then try. Nothing was charged.';
     case 'insufficient_credits':
       return 'You don’t have enough credits for this any more. Nothing was charged.';
     case 'already_has_it':
@@ -107,15 +109,16 @@ export function GiftSheet({
       toast({ message: `Gift sent to ${name} · ${n(r.balance)} credits left` });
       void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
     },
-    onError: (e) => {
+    onError: async (e) => {
       const { code, detail } = rpcError(e);
       if (code !== 'network') setKey(Crypto.randomUUID());
       if (code === 'price_changed') {
         setError(`The price changed to ${n(detail.price ?? d.price)} credits. Check it, then send again.`);
         void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
       } else if (code === 'insufficient_credits') {
-        // Balance moved since the sheet opened: show not-enough-credits / no-plan (rule 14).
-        void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
+        // Balance moved since the sheet opened: refresh it, then show not-enough-credits / no-plan
+        // (rule 14) for the real shortfall.
+        await qc.refetchQueries({ queryKey: bookKey(d.book.id) }).catch(() => undefined);
         onShort(d.price);
       } else {
         setError(spendMessage(code));

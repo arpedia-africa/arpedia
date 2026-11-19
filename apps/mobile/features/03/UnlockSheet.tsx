@@ -26,10 +26,16 @@ type Variant = UnlockMode | 'low' | 'nosub';
 const n = (v: number) => v.toLocaleString('en-NG');
 const DATE = new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'long' });
 
-/** Postgres raises `P0001` with the code as the message and JSON detail (03 migration). */
+/**
+ * Postgres raises `P0001` with the code as the message and JSON detail (03 migration). A fetch
+ * failure has no code ('network'); 42501 / PGRST30x is an ended session ('signed_out'); any other
+ * server error is 'unknown'.
+ */
 export function rpcError(e: unknown): { code: string; detail: Record<string, number> } {
   const err = e as { code?: string; message?: string; details?: string };
-  if (err?.code !== 'P0001') return { code: 'network', detail: {} };
+  if (!err?.code) return { code: 'network', detail: {} };
+  if (err.code === '42501' || err.code.startsWith('PGRST30')) return { code: 'signed_out', detail: {} };
+  if (err.code !== 'P0001') return { code: 'unknown', detail: {} };
   let detail = {};
   try {
     detail = JSON.parse(err.details ?? '{}');
@@ -78,15 +84,14 @@ export function UnlockSheet({
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<UnlockMode>('all');
   const short = open === 'short';
+  // A gift or tip shortfall follows the live balance, so a refetch after `insufficient_credits`
+  // lands in the sheet.
+  const shortVariant: Variant = spendSheet(shortNeed, d.balance, d.plan.state) === 'nosub' ? 'nosub' : 'low';
+  const shown = short ? shortVariant : variant;
 
   useEffect(() => {
     if (!open) return;
-    const v: Variant =
-      open === 'short'
-        ? spendSheet(shortNeed, d.balance, d.plan.state) === 'nosub'
-          ? 'nosub'
-          : 'low'
-        : variantFor(d, open);
+    const v: Variant = open === 'short' ? shortVariant : variantFor(d, open);
     if (open !== 'short') setMode(open);
     setVariant(v);
     setKey(Crypto.randomUUID());
@@ -134,21 +139,30 @@ export function UnlockSheet({
       return data as { balance: number; spent: number; status: string };
     },
     onSuccess: (r) => {
+      onClose();
+      void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
+      if (r.status === 'already_unlocked') {
+        // Unlocked or gifted elsewhere while this page was stale: nothing was spent.
+        toast({ message: 'You already have this book. Nothing was charged.' });
+        return;
+      }
       track('book_unlocked', {
         book_id: d.book.id,
         price: d.price,
         remaining: d.remaining,
         mode: d.paid_credits > 0 ? 'rest' : 'upfront',
       });
-      onClose();
       toast({ message: `Unlocked · ${n(r.balance)} credits left` });
-      void qc.invalidateQueries({ queryKey: bookKey(d.book.id) });
     },
     onError: async (e) => {
       const { code, detail } = rpcError(e);
       track('unlock_failed', { reason: code });
       if (code === 'network') {
         setError('No connection. Nothing was charged. Try again.');
+        return;
+      }
+      if (code === 'signed_out') {
+        setError('You’re signed out. Sign in again, then try. Nothing was charged.');
         return;
       }
       // A new key for a new tap: the old one may have been used by the failed attempt.
@@ -169,7 +183,7 @@ export function UnlockSheet({
       } else if (code === 'insufficient_credits') {
         setError(null);
         setVariant(fresh ? variantFor(fresh, 'all') : 'low');
-      } else if (code === 'already_unlocked' || fresh?.owns_book) {
+      } else if (fresh?.owns_book) {
         onClose();
       } else if (code === 'rate_limited') {
         setError('That’s a lot of taps. Wait a minute, then try again.');
@@ -234,14 +248,15 @@ export function UnlockSheet({
       onClose={onClose}
       locked={unlock.isPending}
       bold
-      title={head[variant].title}
-      sub={head[variant].sub}
+      title={head[shown].title}
+      sub={head[shown].sub}
     >
-      {variant === 'all' ? (
+      {shown === 'all' ? (
         <UnlockAllBody
           balance={d.balance}
           price={d.price}
           paid={paid}
+          remaining={d.remaining}
           author={d.book.author.name ?? 'The author'}
           onMode={switchMode}
           onUnlock={() => unlock.mutate()}
@@ -249,7 +264,7 @@ export function UnlockSheet({
           error={error}
           showSwitch={d.chargeable_chapters > 0}
         />
-      ) : variant === 'paygo' ? (
+      ) : shown === 'paygo' ? (
         <PayGoBody
           previewPercent={preview}
           previewPages={previewPages(d.pages ?? 0, preview)}
@@ -264,7 +279,7 @@ export function UnlockSheet({
             onRead();
           }}
         />
-      ) : variant === 'low' ? (
+      ) : shown === 'low' ? (
         <LowBody
           bookLine={short ? 'You’re sending' : `${d.book.title} · ${n(d.pages ?? 0)} pages`}
           price={short ? shortNeed : d.price}

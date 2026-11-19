@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { onlineManager, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FINISHED_PERCENT, TIP_PRESETS } from '@arpedia/core';
 import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { useTrack } from '../../../features/03/analytics';
 import { BookPageSkeleton, BookPageView } from '../../../features/03/BookViews';
-import { bookKey, toModel, useBookPage, type BookPageData } from '../../../features/03/book';
+import { bookKey, toModel, useBookPage, useOnline, type BookPageData } from '../../../features/03/book';
 import { GiftSheet, TipSheet } from '../../../features/03/GiftSheet';
 import { MenuBody, ReportSheet, moreItems } from '../../../features/03/MoreSheet';
 import { UnlockSheet } from '../../../features/03/UnlockSheet';
@@ -21,7 +21,7 @@ export default function BookPage() {
   const qc = useQueryClient();
   const page = useBookPage(id);
   const d = page.data;
-  const online = onlineManager.isOnline();
+  const online = useOnline();
 
   const viewed = useRef(false);
   useEffect(() => {

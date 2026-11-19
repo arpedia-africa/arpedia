@@ -64,7 +64,9 @@ export default function WriteReview() {
           ? 'Finish the book to review it.'
           : code === 'network'
             ? 'No connection. Your review wasn’t posted. Try again.'
-            : 'Something went wrong. Try again.',
+            : code === 'signed_out'
+              ? 'You’re signed out. Sign in again to post your review.'
+              : 'Something went wrong. Try again.',
       );
     },
   });
