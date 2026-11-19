@@ -5,6 +5,10 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(57);
 
+-- Start from no announcements and exports (the local demo seed adds some; rolled back at the end).
+delete from public.banners;
+delete from public.exports;
+
 insert into auth.users (id, email) values
   ('15000000-0000-4000-a000-000000000001', 'ops15@arpedia.africa'),
   ('15000000-0000-4000-a000-000000000002', 'ops15b@arpedia.africa'),
