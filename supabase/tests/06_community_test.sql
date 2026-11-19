@@ -216,9 +216,10 @@ select is((select count(*)::int from public.messages where group_id = '60000000-
 reset role;
 update public.group_members set last_read_at = now() - interval '1 day'
  where group_id = '60000000-0000-4000-d000-000000000001' and user_id = '60000000-0000-4000-a000-000000000001';
+select set_config('t.live', public.uuid7(now() - interval '1 hour')::text, true) is not null as remembered;
 set local role authenticated;
 select lives_ok($$ select public.mark_read('60000000-0000-4000-d000-000000000001',
-    public.uuid7(now() - interval '1 hour')) $$, 'mark_read takes a message not yet in Postgres');
+    current_setting('t.live')::uuid) $$, 'mark_read takes a message not yet in Postgres');
 reset role;
 select ok((select last_read_at between now() - interval '61 minutes' and now() - interval '59 minutes'
     from public.group_members where group_id = '60000000-0000-4000-d000-000000000001'
