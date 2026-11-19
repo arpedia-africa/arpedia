@@ -9,12 +9,9 @@ import { serverSupabase } from '@/lib/supabase/server';
 export const metadata: Metadata = { title: 'Revenue · Arpedia Admin' };
 
 const HOUR = 3_600_000;
-const DAY = 86_400_000;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-/** Lagos calendar day of an instant, YYYY-MM-DD. */
-const lagosDay = (ms: number) => new Date(ms + HOUR).toISOString().slice(0, 10);
 /** First instant of a Lagos month (month may be out of range; Date.UTC rolls the year). */
 const monthStart = (year: number, month: number) => Date.UTC(year, month, 1) - HOUR;
 
@@ -48,22 +45,30 @@ function range(period: Period, now: number) {
   return { start, end, prevStart, prevEnd, label: text(start, end), prevLabel: text(prevStart, prevEnd) };
 }
 
-interface Tx {
-  kind: string;
-  plan_code: string | null;
-  store: string;
-  status: string;
-  gross_kobo: number;
-  fee_kobo: number;
-  refunded_kobo: number;
-  credits_granted: number;
-  created_at: string;
+/** What admin_revenue_summary returns (money in kobo, credits as counts). */
+interface Summary {
+  totals: {
+    gross_kobo: number;
+    fee_kobo: number;
+    refunded_kobo: number;
+    refund_count: number;
+    net_kobo: number;
+    sales: number;
+    credits_plans: number;
+    credits_topups: number;
+  };
+  by_product: { kind: string; plan_code: string | null; web: boolean; units: number; gross_kobo: number; fee_kobo: number }[];
+  by_store: { store: string; gross_kobo: number; fee_kobo: number }[];
+  by_month: { month: string; plan_kobo: number; topup_kobo: number; net_kobo: number }[];
+  daily: { day: string; plan_kobo: number; topup_kobo: number }[];
+  mrr: { plan_code: string; name: string; months: number; subs: number; mrr_kobo: number; per_month_kobo: number }[];
+  credits: { spent: number; expired: number };
+  unspent: number;
+  deferred_kobo: number;
+  cancelled_running: number;
+  at_risk: number;
 }
 
-/** Money in, kept as kobo. A pending or failed payment is not a sale. */
-const sale = (t: Tx) => t.status === 'succeeded' || t.status === 'refunded' || t.status === 'disputed';
-const net = (t: Tx) => t.gross_kobo - t.fee_kobo - t.refunded_kobo;
-const sum = (list: Tx[], f: (t: Tx) => number) => list.reduce((n, t) => n + f(t), 0);
 const compact = (kobo: number) => {
   const v = kobo / 100;
   return v >= 1_000_000 ? `₦${(v / 1_000_000).toFixed(1)}M` : naira(kobo);
@@ -82,125 +87,60 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   const now = Date.now();
   const r = range(period, now);
   const supabase = await serverSupabase();
-  const l = new Date(now + HOUR);
-  const sevenBack = monthStart(l.getUTCFullYear(), l.getUTCMonth() - 6);
-  const since = Math.min(sevenBack, r.prevStart, now - 14 * DAY);
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const thisMo = thisMonth();
 
-  // One pass over every payment since the earliest date any panel needs.
-  const txns: Tx[] = [];
-  for (let from = 0; from < 100_000; from += 1000) {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('kind, plan_code, store, status, gross_kobo, fee_kobo, refunded_kobo, credits_granted, created_at')
-      .gte('created_at', new Date(since).toISOString())
-      .order('created_at')
-      .range(from, from + 999);
-    if (error) throw error;
-    txns.push(...data);
-    if (data.length < 1000) break;
-  }
-
-  const activeCount = (plan: 'monthly' | 'quarterly' | 'yearly', web: boolean) => {
-    const q = supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('plan_code', plan);
-    return web ? q.eq('store', 'web') : q.neq('store', 'web');
-  };
-  const [snaps, plans, topups, ...active] = await Promise.all([
-    supabase
-      .from('credit_daily_snapshot')
-      .select('day, issued, spent, expired, unspent_total')
-      .gte('day', lagosDay(r.start))
-      .order('day', { ascending: false }),
-    supabase.from('plans').select('code, name, months, credits, bonus_credits, price_play_kobo, price_web_kobo').order('sort'),
-    supabase.from('topup_products').select('credits').order('credits'),
-    ...(['monthly', 'quarterly', 'yearly'] as const).flatMap(p => [activeCount(p, false), activeCount(p, true)]),
-    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'cancelled'),
-    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).in('status', ['grace', 'billing_retry']),
+  // The period itself, the period before it (for the change), and "right now" for the 14-day chart,
+  // the months and MRR (the same call when the period is this month).
+  const summary = (from: number, to: number) => supabase.rpc('admin_revenue_summary', { p_from: iso(from), p_to: iso(to) });
+  const [cur, prev, live] = await Promise.all([
+    summary(r.start, r.end),
+    summary(r.prevStart, r.prevEnd),
+    period === 'month' ? null : summary(Date.parse(thisMo.iso), now),
   ]);
-  if (snaps.error) throw snaps.error;
-  const latest = await supabase.from('credit_daily_snapshot').select('unspent_total').order('day', { ascending: false }).limit(1).maybeSingle();
+  if (cur.error) throw cur.error;
+  if (prev.error) throw prev.error;
+  if (live?.error) throw live.error;
+  const s = cur.data as unknown as Summary;
+  const p = prev.data as unknown as Summary;
+  const lv = (live ? live.data : cur.data) as unknown as Summary;
 
-  const inRange = (t: Tx, from: number, to: number) => {
-    const at = new Date(t.created_at).getTime();
-    return sale(t) && at >= from && at < to;
-  };
-  const cur = txns.filter(t => inRange(t, r.start, r.end));
-  const prev = txns.filter(t => inRange(t, r.prevStart, r.prevEnd));
-  const gross = sum(cur, t => t.gross_kobo);
-  const fees = sum(cur, t => t.fee_kobo);
-  const refunded = sum(cur, t => t.refunded_kobo);
-  const refundCount = cur.filter(t => t.refunded_kobo > 0).length;
-  const netNow = gross - fees - refunded;
-  const netPrev = sum(prev, net);
+  const t = s.totals;
+  const netNow = t.net_kobo;
+  const netPrev = p.totals.net_kobo;
   const change = netPrev > 0 ? ((netNow - netPrev) / netPrev) * 100 : null;
-
-  const credits = (kind: string) => sum(cur.filter(t => t.kind === kind), t => t.credits_granted);
-  const spent = snaps.data.reduce((n, s) => n + s.spent, 0);
-  const expired = snaps.data.reduce((n, s) => n + s.expired, 0);
-  const unspent = Number(latest.data?.unspent_total ?? 0);
+  const spent = s.credits.spent;
   const toAuthors = Math.round(spent * AUTHOR_RATE * 100);
 
   // Net revenue for the last 14 days, subscriptions under top-ups.
-  const days = Array.from({ length: 14 }, (_, i) => lagosDay(now - (13 - i) * DAY));
-  const perDay = days.map(d => {
-    const ofDay = txns.filter(t => sale(t) && lagosDay(new Date(t.created_at).getTime()) === d);
-    return { d, plan: sum(ofDay.filter(t => t.kind === 'plan'), net), topup: sum(ofDay.filter(t => t.kind === 'topup'), net) };
-  });
-  const peak = Math.max(1, ...perDay.map(x => x.plan + x.topup));
-  const thisMo = thisMonth();
-  const monthNet = sum(txns.filter(t => inRange(t, Date.parse(thisMo.iso), now)), net);
+  const perDay = lv.daily;
+  const peak = Math.max(1, ...perDay.map(x => x.plan_kobo + x.topup_kobo));
+  const monthNet = lv.by_month.at(-1)?.net_kobo ?? 0;
   const avgDay = monthNet / Math.max(1, new Date(now + HOUR).getUTCDate());
+  const dayLabel = (d: string) => `${Number(d.slice(8))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
 
-  // By product: plan or top-up, in-app or web.
-  const planRows = plans.data ?? [];
+  const plans = lv.mrr;
   const products = [
-    ...planRows.flatMap(p => [false, true].map(web => ({ key: `${p.code}:${web}`, title: p.name, sub: `${web ? 'Web' : 'In-app'} · ${n0(p.credits + p.bonus_credits)} credits`, kind: 'plan', code: p.code as string | null, web }))),
-    ...[false, true].map(web => ({
-      key: `topup:${web}`,
-      title: 'Top-ups',
-      sub: `${web ? 'Web' : 'In-app'} · ${(topups.data ?? []).map(t => n0(t.credits)).join(', ')} credits`,
-      kind: 'topup',
-      code: null as string | null,
-      web,
-    })),
-  ].map(p => {
-    const list = cur.filter(t => t.kind === p.kind && t.plan_code === p.code && (t.store === 'web') === p.web);
-    return { ...p, units: list.length, gross: sum(list, t => t.gross_kobo), fees: sum(list, t => t.fee_kobo) };
+    ...plans.flatMap(pl => [false, true].map(web => ({ key: `${pl.plan_code}:${web}`, kind: 'plan', code: pl.plan_code as string | null, web, title: pl.name }))),
+    ...[false, true].map(web => ({ key: `topup:${web}`, kind: 'topup', code: null as string | null, web, title: 'Top-ups' })),
+  ]
+    .map(pr => {
+      const row = s.by_product.find(x => x.kind === pr.kind && x.plan_code === pr.code && x.web === pr.web);
+      return { ...pr, sub: pr.web ? 'Web' : 'In-app', units: row?.units ?? 0, gross: row?.gross_kobo ?? 0, fees: row?.fee_kobo ?? 0 };
+    })
+    .filter(pr => pr.units > 0);
+
+  const monthLabel = (m: string) => LONG[Number(m.slice(5, 7)) - 1]!;
+  const platforms = (['play', 'app_store', 'web'] as const).map(st => {
+    const row = s.by_store.find(x => x.store === st);
+    return { st, gross: row?.gross_kobo ?? 0, fees: row?.fee_kobo ?? 0 };
   });
 
-  const byMonth = Array.from({ length: 7 }, (_, i) => {
-    const a = monthStart(l.getUTCFullYear(), l.getUTCMonth() - 6 + i);
-    const b = monthStart(l.getUTCFullYear(), l.getUTCMonth() - 5 + i);
-    const list = txns.filter(t => inRange(t, a, Math.min(b, now)));
-    const d = new Date(a + HOUR);
-    return {
-      name: LONG[d.getUTCMonth()]!,
-      last: i === 5,
-      current: i === 6,
-      plan: sum(list.filter(t => t.kind === 'plan'), net),
-      topup: sum(list.filter(t => t.kind === 'topup'), net),
-      net: sum(list, net),
-    };
-  });
+  const subscribers = lv.mrr.reduce((n, x) => n + x.subs, 0);
+  const mrr = lv.mrr.reduce((n, x) => n + x.mrr_kobo, 0);
 
-  const platforms = (['play', 'app_store', 'web'] as const).map(s => {
-    const list = cur.filter(t => t.store === s);
-    return { s, gross: sum(list, t => t.gross_kobo), net: sum(list, t => t.gross_kobo - t.fee_kobo), fees: sum(list, t => t.fee_kobo) };
-  });
-
-  // Monthly recurring revenue before fees: every active subscriber at their per-month price.
-  const perMonth = (p: (typeof planRows)[number], web: boolean) => (web ? p.price_web_kobo : p.price_play_kobo) / p.months;
-  const mrrRows = planRows.map((p, i) => {
-    const inApp = active[i * 2]?.count ?? 0;
-    const web = active[i * 2 + 1]?.count ?? 0;
-    return { p, subs: inApp + web, mrr: Math.round(inApp * perMonth(p, false) + web * perMonth(p, true)) };
-  });
-  const subscribers = mrrRows.reduce((n, x) => n + x.subs, 0);
-  const mrr = mrrRows.reduce((n, x) => n + x.mrr, 0);
-  const waitingToEnd = active[6]?.count ?? 0;
-  const atRisk = active[7]?.count ?? 0;
-
-  const href = (p: Period) => (p === 'month' ? '/revenue' : `/revenue?period=${p}`);
-  const empty = cur.length === 0;
+  const href = (pe: Period) => (pe === 'month' ? '/revenue' : `/revenue?period=${pe}`);
+  const empty = t.sales === 0;
 
   return (
     <section className="screen enter">
@@ -244,8 +184,8 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
         <div className="kpis">
           <div className="kpi">
             <span className="kpi__l">Credits sold</span>
-            <span className="kpi__v">{n0(credits('plan') + credits('topup'))}</span>
-            <span className="kpi__d">{`Plans ${n0(credits('plan'))} · top-ups ${n0(credits('topup'))}`}</span>
+            <span className="kpi__v">{n0(t.credits_plans + t.credits_topups)}</span>
+            <span className="kpi__d">{`Plans ${n0(t.credits_plans)} · top-ups ${n0(t.credits_topups)}`}</span>
           </div>
           <div className="kpi">
             <span className="kpi__l">Credits spent</span>
@@ -254,12 +194,12 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
           </div>
           <div className="kpi">
             <span className="kpi__l">Unspent credits</span>
-            <span className="kpi__v">{n0(unspent)}</span>
-            <span className="kpi__d">{`Owed to readers · about ${compact(unspent * 300)} deferred`}</span>
+            <span className="kpi__v">{n0(s.unspent)}</span>
+            <span className="kpi__d">{`Owed to readers · about ${compact(s.deferred_kobo)} deferred`}</span>
           </div>
           <div className="kpi">
             <span className="kpi__l">Expired credits</span>
-            <span className="kpi__v">{n0(expired)}</span>
+            <span className="kpi__v">{n0(s.credits.expired)}</span>
             <span className="kpi__d">Over the rollover cap, this period</span>
           </div>
         </div>
@@ -268,21 +208,21 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
             <div className="panel">
               <div className="panel__head">
                 <h2>Net revenue, last 14 days</h2>
-                <span className="sub">{`${perDay[0]!.d.slice(8).replace(/^0/, '')} ${MONTHS[Number(perDay[0]!.d.slice(5, 7)) - 1]} to ${perDay[13]!.d.slice(8).replace(/^0/, '')} ${MONTHS[Number(perDay[13]!.d.slice(5, 7)) - 1]}`}</span>
+                <span className="sub">{perDay.length ? `${dayLabel(perDay[0]!.day)} to ${dayLabel(perDay.at(-1)!.day)}` : ''}</span>
               </div>
               <div className="panel__body">
                 <div className="chart">
                   <div className="cols">
                     {perDay.map((x, i) => (
-                      <div className={`col${i === 13 ? ' now' : ''}`} key={x.d} title={`${x.d}: ${naira(x.plan + x.topup)}`}>
-                        <i className="t" style={{ '--v': `${(x.topup / peak) * 100}%` } as CSSProperties}></i>
-                        <i style={{ '--v': `${(x.plan / peak) * 100}%` } as CSSProperties}></i>
+                      <div className={`col${i === perDay.length - 1 ? ' now' : ''}`} key={x.day} title={`${x.day}: ${naira(x.plan_kobo + x.topup_kobo)}`}>
+                        <i className="t" style={{ '--v': `${(x.topup_kobo / peak) * 100}%` } as CSSProperties}></i>
+                        <i style={{ '--v': `${(x.plan_kobo / peak) * 100}%` } as CSSProperties}></i>
                       </div>
                     ))}
                   </div>
                   <div className="axis">
                     {perDay.map(x => (
-                      <span key={x.d}>{Number(x.d.slice(8))}</span>
+                      <span key={x.day}>{Number(x.day.slice(8))}</span>
                     ))}
                   </div>
                   <div className="legend">
@@ -316,30 +256,28 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                       </tr>
                     </thead>
                     <tbody>
-                      {products
-                        .filter(p => p.units > 0)
-                        .map(p => (
-                          <tr key={p.key}>
-                            <td>
-                              <div className="who">
-                                <span>
-                                  <b>{p.title}</b>
-                                  <small>{p.sub}</small>
-                                </span>
-                              </div>
-                            </td>
-                            <td className="n">{n0(p.units)}</td>
-                            <td className="n">{naira(p.gross)}</td>
-                            <td className="n">{naira(p.fees)}</td>
-                            <td className="n">{naira(p.gross - p.fees)}</td>
-                          </tr>
-                        ))}
+                      {products.map(pr => (
+                        <tr key={pr.key}>
+                          <td>
+                            <div className="who">
+                              <span>
+                                <b>{pr.title}</b>
+                                <small>{pr.sub}</small>
+                              </span>
+                            </div>
+                          </td>
+                          <td className="n">{n0(pr.units)}</td>
+                          <td className="n">{naira(pr.gross)}</td>
+                          <td className="n">{naira(pr.fees)}</td>
+                          <td className="n">{naira(pr.gross - pr.fees)}</td>
+                        </tr>
+                      ))}
                       <tr className="mn-sub">
                         <td>Total before refunds</td>
-                        <td className="n">{n0(cur.length)}</td>
-                        <td className="n">{naira(gross)}</td>
-                        <td className="n">{naira(fees)}</td>
-                        <td className="n">{naira(gross - fees)}</td>
+                        <td className="n">{n0(t.sales)}</td>
+                        <td className="n">{naira(t.gross_kobo)}</td>
+                        <td className="n">{naira(t.fee_kobo)}</td>
+                        <td className="n">{naira(t.gross_kobo - t.fee_kobo)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -356,15 +294,15 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
               <div className="panel__body">
                 <div className="kv-row">
                   <span>Gross sales</span>
-                  <b>{naira(gross)}</b>
+                  <b>{naira(t.gross_kobo)}</b>
                 </div>
                 <div className="kv-row">
-                  <span>{`Store fees (${gross ? ((fees / gross) * 100).toFixed(1) : '0'}%)`}</span>
-                  <b>{`−${naira(fees)}`}</b>
+                  <span>{`Store fees (${t.gross_kobo ? ((t.fee_kobo / t.gross_kobo) * 100).toFixed(1) : '0'}%)`}</span>
+                  <b>{`−${naira(t.fee_kobo)}`}</b>
                 </div>
                 <div className="kv-row">
-                  <span>{`Refunds (${n0(refundCount)})`}</span>
-                  <b>{`−${naira(refunded)}`}</b>
+                  <span>{`Refunds (${n0(t.refund_count)})`}</span>
+                  <b>{`−${naira(t.refunded_kobo)}`}</b>
                 </div>
                 <div className="kv-row total">
                   <span>Net revenue</span>
@@ -379,7 +317,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                   <b>{naira(netNow - toAuthors)}</b>
                 </div>
                 <div className="kv-row">
-                  <span>{`Subscribers (${mrrRows.map(x => `${x.p.name} ${n0(x.subs)}`).join(' · ')})`}</span>
+                  <span>{`Subscribers (${lv.mrr.map(x => `${x.name} ${n0(x.subs)}`).join(' · ')})`}</span>
                   <b>{n0(subscribers)}</b>
                 </div>
               </div>
@@ -399,18 +337,18 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                       </tr>
                     </thead>
                     <tbody>
-                      {byMonth.map(m => (
-                        <tr key={m.name}>
+                      {lv.by_month.map((m, i) => (
+                        <tr key={m.month}>
                           <td>
-                            {m.current ? `${m.name} so far` : m.name}
-                            {m.last && m.net > 0 && (
+                            {i === lv.by_month.length - 1 ? `${monthLabel(m.month)} so far` : monthLabel(m.month)}
+                            {i === lv.by_month.length - 2 && m.net_kobo > 0 && (
                               <>
                                 {' '}
-                                <span className="muted">{`subscriptions ${naira(m.plan)}, top-ups ${naira(m.topup)}`}</span>
+                                <span className="muted">{`subscriptions ${naira(m.plan_kobo)}, top-ups ${naira(m.topup_kobo)}`}</span>
                               </>
                             )}
                           </td>
-                          <td className="n">{naira(m.net)}</td>
+                          <td className="n">{naira(m.net_kobo)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -428,15 +366,15 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                       </tr>
                     </thead>
                     <tbody>
-                      {platforms.map(p => (
-                        <tr key={p.s}>
+                      {platforms.map(pf => (
+                        <tr key={pf.st}>
                           <td>
-                            <b>{PLATFORM[p.s]}</b>
-                            {gross > 0 && <span className="muted">{` ${Math.round((p.gross / gross) * 100)}%`}</span>}
+                            <b>{PLATFORM[pf.st]}</b>
+                            {t.gross_kobo > 0 && <span className="muted">{` ${Math.round((pf.gross / t.gross_kobo) * 100)}%`}</span>}
                           </td>
-                          <td className="n">{p.gross ? `${((p.fees / p.gross) * 100).toFixed(1).replace(/\.0$/, '')}%` : '—'}</td>
-                          <td className="n">{naira(p.gross)}</td>
-                          <td className="n">{naira(p.net)}</td>
+                          <td className="n">{pf.gross ? `${((pf.fees / pf.gross) * 100).toFixed(1).replace(/\.0$/, '')}%` : '—'}</td>
+                          <td className="n">{naira(pf.gross)}</td>
+                          <td className="n">{naira(pf.gross - pf.fees)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -454,23 +392,23 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                   </div>
                   <div className="kv-row">
                     <span>Cancelled, still running to the end of the period</span>
-                    <b>{n0(waitingToEnd)}</b>
+                    <b>{n0(lv.cancelled_running)}</b>
                   </div>
                   <div className="kv-row">
                     <span>In grace period or billing retry</span>
-                    <b>{n0(atRisk)}</b>
+                    <b>{n0(lv.at_risk)}</b>
                   </div>
                 </div>
                 <span className="mn-fold-h">MRR by plan</span>
                 {mrr > 0 ? (
                   <div className="hbars">
-                    {mrrRows.map(x => (
-                      <div className="hb" key={x.p.code}>
-                        <span>{`${planName(x.p.code)} · ${n0(x.subs)} · ${naira(Math.round(perMonth(x.p, false)))} a month`}</span>
+                    {lv.mrr.map(x => (
+                      <div className="hb" key={x.plan_code}>
+                        <span>{`${planName(x.plan_code)} · ${n0(x.subs)} · ${naira(x.per_month_kobo)} a month`}</span>
                         <span className="track">
-                          <i style={{ '--v': `${(x.mrr / mrr) * 100}%` } as CSSProperties}></i>
+                          <i style={{ '--v': `${(x.mrr_kobo / mrr) * 100}%` } as CSSProperties}></i>
                         </span>
-                        <b>{naira(x.mrr)}</b>
+                        <b>{naira(x.mrr_kobo)}</b>
                       </div>
                     ))}
                   </div>

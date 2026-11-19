@@ -76,7 +76,7 @@ export async function grantCredits(userId: string, credits: number, reason: stri
       ),
     };
   }
-  const r = data as { status: 'applied' | 'pending' };
+  const r = data as unknown as { status: 'applied' | 'pending' };
   revalidatePath(`/credits/${userId}`);
   revalidatePath('/credits');
   return r.status === 'pending'

@@ -1651,6 +1651,150 @@ revoke insert, update, delete, truncate on public.transactions, public.refund_re
   public.plan_price_versions
   from service_role;
 
+-- ─── Admin read RPCs (aggregates the money screens would otherwise page through) ───
+-- Credits overview for s-credits: issued, spent, expired, owed, top books. Finance, Analyst, Support.
+create function public.admin_credits_overview(p_from timestamptz, p_to timestamptz) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v jsonb;
+  v_expired bigint;
+  v_unspent bigint;
+  v_rollover bigint;
+  v_books jsonb;
+  v_value int := coalesce((public._rules() ->> 'credit_value_kobo')::int, 300);
+begin
+  if not public.is_staff_any(array['finance', 'analyst', 'support']::public.staff_role[]) then
+    perform public._raise('forbidden');
+  end if;
+  select jsonb_build_object(
+    'issued', coalesce(sum(delta) filter (where delta > 0 and reason in ('plan_grant', 'top_up', 'promo', 'staff_adjust')), 0),
+    'issued_plans', coalesce(sum(delta) filter (where delta > 0 and reason = 'plan_grant'), 0),
+    'issued_topups', coalesce(sum(delta) filter (where delta > 0 and reason = 'top_up'), 0),
+    'issued_staff', coalesce(sum(delta) filter (where delta > 0 and reason = 'staff_adjust'), 0),
+    'staff_grants', count(*) filter (where delta > 0 and reason = 'staff_adjust'),
+    'spent', -coalesce(sum(delta) filter (where reason in ('unlock_all', 'chapter', 'undo', 'tip', 'message', 'gift_out')), 0),
+    'spent_unlock_all', -coalesce(sum(delta) filter (where reason = 'unlock_all'), 0),
+    'spent_chapter', -coalesce(sum(delta) filter (where reason in ('chapter', 'undo')), 0),
+    'spent_message', -coalesce(sum(delta) filter (where reason = 'message'), 0),
+    'spent_gift', -coalesce(sum(delta) filter (where reason = 'gift_out'), 0),
+    'spent_tip', -coalesce(sum(delta) filter (where reason = 'tip'), 0),
+    'author_earning_kobo', coalesce(sum(author_earning_kobo), 0)
+  ) into v
+  from public.credit_ledger where created_at >= p_from and created_at < p_to;
+
+  select coalesce(sum(expired), 0) into v_expired from public.credit_daily_snapshot
+  where day >= (p_from at time zone 'Africa/Lagos')::date and day < (p_to at time zone 'Africa/Lagos')::date + 1;
+  select coalesce(sum(plan + rollover + topup + promo), 0), coalesce(sum(rollover), 0)
+  into v_unspent, v_rollover from public.credit_balances;
+
+  select coalesce(jsonb_agg(to_jsonb(t) order by t.credits desc), '[]'::jsonb) into v_books from (
+    select l.book_id, b.title, a.full_name as author, rev.pages,
+           coalesce(b.price_override_credits, rev.price_credits) as price,
+           -sum(l.delta) as credits,
+           count(distinct l.user_id) filter (where l.delta < 0) as readers
+    from public.credit_ledger l
+    join public.books b on b.id = l.book_id
+    left join public.profiles a on a.id = b.author_id
+    left join public.book_revisions rev on rev.id = b.current_revision_id
+    where l.reason in ('unlock_all', 'chapter', 'undo') and l.created_at >= p_from and l.created_at < p_to
+    group by l.book_id, b.title, a.full_name, rev.pages, b.price_override_credits, rev.price_credits
+    order by -sum(l.delta) desc
+    limit 5
+  ) t;
+
+  return v || jsonb_build_object('expired', v_expired, 'unspent', v_unspent, 'owed_kobo', v_unspent * v_value,
+    'expiring', v_rollover, 'expiring_kobo', v_rollover * v_value, 'top_books', v_books);
+end $$;
+
+-- Revenue summary for s-revenue: sales in the window by product, store and month, a 14-day series,
+-- MRR from active subscriptions, deferred revenue. Sales are succeeded, refunded or disputed payments.
+create function public.admin_revenue_summary(p_from timestamptz, p_to timestamptz) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_value int := coalesce((public._rules() ->> 'credit_value_kobo')::int, 300);
+  v_totals jsonb;
+  v_product jsonb;
+  v_store jsonb;
+  v_month jsonb;
+  v_daily jsonb;
+  v_mrr jsonb;
+  v_snap jsonb;
+  v_unspent bigint;
+  v_end date := (p_to at time zone 'Africa/Lagos')::date;
+begin
+  if not public.is_staff_any(array['finance', 'analyst']::public.staff_role[]) then
+    perform public._raise('forbidden');
+  end if;
+
+  select jsonb_build_object(
+    'gross_kobo', coalesce(sum(gross_kobo), 0), 'fee_kobo', coalesce(sum(fee_kobo), 0),
+    'refunded_kobo', coalesce(sum(refunded_kobo), 0), 'refund_count', count(*) filter (where refunded_kobo > 0),
+    'net_kobo', coalesce(sum(gross_kobo - fee_kobo - refunded_kobo), 0), 'sales', count(*),
+    'credits_plans', coalesce(sum(credits_granted) filter (where kind = 'plan'), 0),
+    'credits_topups', coalesce(sum(credits_granted) filter (where kind = 'topup'), 0))
+  into v_totals from public.transactions
+  where status in ('succeeded', 'refunded', 'disputed') and created_at >= p_from and created_at < p_to;
+
+  select coalesce(jsonb_agg(to_jsonb(x)), '[]'::jsonb) into v_product from (
+    select kind, plan_code, (store = 'web') as web, count(*) as units, sum(gross_kobo) as gross_kobo, sum(fee_kobo) as fee_kobo
+    from public.transactions
+    where status in ('succeeded', 'refunded', 'disputed') and created_at >= p_from and created_at < p_to
+    group by kind, plan_code, (store = 'web')
+  ) x;
+
+  select coalesce(jsonb_agg(to_jsonb(x)), '[]'::jsonb) into v_store from (
+    select store, sum(gross_kobo) as gross_kobo, sum(fee_kobo) as fee_kobo
+    from public.transactions
+    where status in ('succeeded', 'refunded', 'disputed') and created_at >= p_from and created_at < p_to
+    group by store
+  ) x;
+
+  -- Net by Lagos month, the six months before p_to's month and that month so far.
+  select coalesce(jsonb_agg(to_jsonb(x) order by x.month), '[]'::jsonb) into v_month from (
+    select to_char(ms, 'YYYY-MM') as month,
+           coalesce(sum(t.gross_kobo - t.fee_kobo - t.refunded_kobo) filter (where t.kind = 'plan'), 0) as plan_kobo,
+           coalesce(sum(t.gross_kobo - t.fee_kobo - t.refunded_kobo) filter (where t.kind = 'topup'), 0) as topup_kobo,
+           coalesce(sum(t.gross_kobo - t.fee_kobo - t.refunded_kobo), 0) as net_kobo
+    from generate_series(date_trunc('month', p_to at time zone 'Africa/Lagos') - interval '6 months',
+                         date_trunc('month', p_to at time zone 'Africa/Lagos'), interval '1 month') ms
+    left join public.transactions t
+      on t.status in ('succeeded', 'refunded', 'disputed') and t.created_at < p_to
+     and (t.created_at at time zone 'Africa/Lagos') >= ms and (t.created_at at time zone 'Africa/Lagos') < ms + interval '1 month'
+    group by ms
+  ) x;
+
+  select coalesce(jsonb_agg(to_jsonb(x) order by x.day), '[]'::jsonb) into v_daily from (
+    select (v_end - 13 + g) as day,
+           coalesce(sum(t.gross_kobo - t.fee_kobo - t.refunded_kobo) filter (where t.kind = 'plan'), 0) as plan_kobo,
+           coalesce(sum(t.gross_kobo - t.fee_kobo - t.refunded_kobo) filter (where t.kind = 'topup'), 0) as topup_kobo
+    from generate_series(0, 13) g
+    left join public.transactions t
+      on t.status in ('succeeded', 'refunded', 'disputed') and (t.created_at at time zone 'Africa/Lagos')::date = v_end - 13 + g
+    group by g
+  ) x;
+
+  -- MRR before fees: every active subscriber at their per-month price (web or store).
+  select coalesce(jsonb_agg(to_jsonb(x) order by x.sort), '[]'::jsonb) into v_mrr from (
+    select p.code as plan_code, p.name, p.months, p.sort,
+           count(s.id) as subs,
+           coalesce(round(sum(case when s.store = 'web' then p.price_web_kobo else p.price_play_kobo end::numeric / p.months)), 0) as mrr_kobo,
+           round(p.price_play_kobo::numeric / p.months) as per_month_kobo
+    from public.plans p
+    left join public.subscriptions s on s.plan_code = p.code and s.status = 'active'
+    group by p.code, p.name, p.months, p.sort, p.price_play_kobo
+  ) x;
+
+  select jsonb_build_object('spent', coalesce(sum(spent), 0), 'expired', coalesce(sum(expired), 0))
+  into v_snap from public.credit_daily_snapshot
+  where day >= (p_from at time zone 'Africa/Lagos')::date and day < v_end + 1;
+  select coalesce(sum(plan + rollover + topup + promo), 0) into v_unspent from public.credit_balances;
+
+  return jsonb_build_object('totals', v_totals, 'by_product', v_product, 'by_store', v_store, 'by_month', v_month,
+    'daily', v_daily, 'mrr', v_mrr, 'credits', v_snap, 'unspent', v_unspent, 'deferred_kobo', v_unspent * v_value,
+    'cancelled_running', (select count(*) from public.subscriptions where status = 'cancelled'),
+    'at_risk', (select count(*) from public.subscriptions where status in ('grace', 'billing_retry')));
+end $$;
+
 do $$
 declare
   f record;
@@ -1659,6 +1803,7 @@ begin
     select p.oid::regprocedure as sig from pg_proc p
     where p.pronamespace = 'public'::regnamespace
       and p.proname in (
+        'admin_credits_overview', 'admin_revenue_summary',
         '_rules', '_rules_version', '_plan', '_bucket', '_next_wat_midnight', '_plan_check', '_ledger_add',
         '_ledger_balance_trigger', 'spend_credits', 'roll_over', 'grant_plan_credits', 'grant_topup',
         '_expire_subscription', 'clawback_purchase', '_event_plan_code', '_event_topup_code', 'apply_payment_event',
@@ -1702,7 +1847,9 @@ grant execute on function
   public.preview_pricing_rules(jsonb),
   public.save_pricing_rules(jsonb, text),
   public.create_promo(text, text, integer, integer, integer, boolean, boolean, timestamptz, timestamptz, text),
-  public.set_promo_status(text, text)
+  public.set_promo_status(text, text),
+  public.admin_credits_overview(timestamptz, timestamptz),
+  public.admin_revenue_summary(timestamptz, timestamptz)
   to authenticated;
 
 -- Workers (service key).

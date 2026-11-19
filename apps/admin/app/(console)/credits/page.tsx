@@ -3,43 +3,32 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { AUTHOR_RATE, ledgerDate, naira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
-import { Empty, type Supa, dayMonth, guard, n0, thisMonth } from '@/lib/money';
+import { Empty, dayMonth, guard, n0, thisMonth } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
 import { ApprovalButtons, FreezeGifting } from './client';
 
 export const metadata: Metadata = { title: 'Credits · Arpedia Admin' };
 
-const ISSUED = ['plan_grant', 'top_up', 'promo', 'staff_adjust'] as const;
-const SPENT = ['unlock_all', 'chapter', 'undo', 'tip', 'message', 'gift_out'] as const;
-
-interface Row {
-  id: number;
-  reason: string;
-  delta: number;
-  book_id: string | null;
-  user_id: string;
-  actor_id: string | null;
+/** What admin_credits_overview returns for the month (all counts in credits, money in kobo). */
+interface Overview {
+  issued: number;
+  issued_plans: number;
+  issued_topups: number;
+  issued_staff: number;
+  staff_grants: number;
+  spent: number;
+  spent_unlock_all: number;
+  spent_chapter: number;
+  spent_message: number;
+  spent_gift: number;
+  spent_tip: number;
   author_earning_kobo: number;
-  created_at: string;
-  meta: unknown;
-}
-
-/** Every ledger row of the month for these reasons, a thousand at a time (the API's page size). */
-async function monthRows(supabase: Supa, since: string): Promise<Row[]> {
-  const out: Row[] = [];
-  for (let from = 0; from < 100_000; from += 1000) {
-    const { data, error } = await supabase
-      .from('credit_ledger')
-      .select('id, reason, delta, book_id, user_id, actor_id, author_earning_kobo, created_at, meta')
-      .in('reason', [...ISSUED, ...SPENT])
-      .gte('created_at', since)
-      .order('id')
-      .range(from, from + 999);
-    if (error) throw error;
-    out.push(...data);
-    if (data.length < 1000) break;
-  }
-  return out;
+  expired: number;
+  unspent: number;
+  owed_kobo: number;
+  expiring: number;
+  expiring_kobo: number;
+  top_books: { book_id: string; title: string; author: string | null; pages: number | null; price: number | null; credits: number; readers: number }[];
 }
 
 const ALERT_TITLE: Record<string, (who: string) => string> = {
@@ -62,13 +51,16 @@ export default async function CreditsPage() {
 
   const supabase = await serverSupabase();
   const month = thisMonth();
-  const [rows, snap, alerts, requests, config] = await Promise.all([
-    monthRows(supabase, month.iso),
+  const [overview, grantRows, alerts, requests, config] = await Promise.all([
+    supabase.rpc('admin_credits_overview', { p_from: month.iso, p_to: new Date().toISOString() }),
     supabase
-      .from('credit_daily_snapshot')
-      .select('day, expired, unspent_total, unspent_by_bucket')
-      .order('day', { ascending: false })
-      .limit(40),
+      .from('credit_ledger')
+      .select('id, user_id, actor_id, delta, note, meta, created_at')
+      .eq('reason', 'staff_adjust')
+      .gt('delta', 0)
+      .gte('created_at', month.iso)
+      .order('created_at', { ascending: false })
+      .limit(50),
     supabase
       .from('credit_alerts')
       .select('id, user_id, kind, detail, created_at, user:profiles!credit_alerts_user_id_fkey(full_name, username)')
@@ -86,57 +78,26 @@ export default async function CreditsPage() {
       .order('created_at'),
     supabase.from('app_config').select('value').eq('key', 'gifting_frozen').maybeSingle(),
   ]);
-  if (snap.error) throw snap.error;
+  if (overview.error) throw overview.error;
+  if (grantRows.error) throw grantRows.error;
   if (alerts.error) throw alerts.error;
   if (requests.error) throw requests.error;
 
+  const o = overview.data as unknown as Overview;
   const frozen = config.data?.value === true;
-  const latest = snap.data[0];
-  const unspent = Number(latest?.unspent_total ?? 0);
-  const rollover = Number((latest?.unspent_by_bucket as { rollover?: number } | null)?.rollover ?? 0);
-  const expired = snap.data.filter(s => s.day >= month.day).reduce((n, s) => n + s.expired, 0);
-
-  // Issued and spent, from the ledger rows of the month.
-  const issuedRows = rows.filter(r => r.delta > 0 && (ISSUED as readonly string[]).includes(r.reason));
-  const spentRows = rows.filter(r => (SPENT as readonly string[]).includes(r.reason));
-  const sum = (list: Row[], reason: string) => list.filter(r => r.reason === reason).reduce((n, r) => n + r.delta, 0);
-  const issued = issuedRows.reduce((n, r) => n + r.delta, 0);
-  const spent = -spentRows.reduce((n, r) => n + r.delta, 0);
-  const toAuthors = spentRows.reduce((n, r) => n + r.author_earning_kobo, 0);
+  const issued = o.issued;
+  const spent = o.spent;
+  const toAuthors = o.author_earning_kobo;
   const bySpend = [
-    ['Books, paid upfront', -sum(spentRows, 'unlock_all')],
-    ['Books, pay as you read', -(sum(spentRows, 'chapter') + sum(spentRows, 'undo'))],
-    ['Messages to authors', -sum(spentRows, 'message')],
-    ['Gifts', -sum(spentRows, 'gift_out')],
-    ['Tips', -sum(spentRows, 'tip')],
+    ['Books, paid upfront', o.spent_unlock_all],
+    ['Books, pay as you read', o.spent_chapter],
+    ['Messages to authors', o.spent_message],
+    ['Gifts', o.spent_gift],
+    ['Tips', o.spent_tip],
   ] as const;
-  const plans = sum(issuedRows, 'plan_grant');
-  const topups = sum(issuedRows, 'top_up');
-  const grants = issuedRows.filter(r => r.reason === 'staff_adjust');
-  const grantTotal = grants.reduce((n, r) => n + r.delta, 0);
-
-  // Most unlocked books: credits paid net of returns, and how many readers paid.
-  const books = new Map<string, { credits: number; readers: Set<string> }>();
-  for (const r of spentRows) {
-    if (!r.book_id || !['unlock_all', 'chapter', 'undo'].includes(r.reason)) continue;
-    const b = books.get(r.book_id) ?? { credits: 0, readers: new Set<string>() };
-    b.credits -= r.delta;
-    if (r.delta < 0) b.readers.add(r.user_id);
-    books.set(r.book_id, b);
-  }
-  const top = [...books.entries()].sort((a, b) => b[1].credits - a[1].credits).slice(0, 5);
-  const topIds = top.map(t => t[0]);
-  const { data: topBooks, error: topError } = topIds.length
-    ? await supabase
-        .from('books')
-        .select('id, title, price_override_credits, current_revision_id, author:profiles!books_author_id_fkey(full_name)')
-        .in('id', topIds)
-    : { data: [], error: null };
-  if (topError) throw topError;
-  const revIds = (topBooks ?? []).flatMap(b => (b.current_revision_id ? [b.current_revision_id] : []));
-  const { data: revs } = revIds.length
-    ? await supabase.from('book_revisions').select('id, pages, price_credits').in('id', revIds)
-    : { data: [] };
+  const grants = grantRows.data;
+  const grantTotal = o.issued_staff;
+  const top = o.top_books;
 
   // Names for the grants table.
   const people = [...new Set(grants.flatMap(g => [g.user_id, g.actor_id, (g.meta as { approved_by?: string } | null)?.approved_by ?? null]))].filter(
@@ -146,14 +107,6 @@ export default async function CreditsPage() {
     ? await supabase.from('profiles').select('id, full_name').in('id', people)
     : { data: [] };
   const nameOf = (id: string | null | undefined) => (names ?? []).find(p => p.id === id)?.full_name || '—';
-  const reasonOf = new Map<number, string>();
-  if (grants.length) {
-    const { data: notes } = await supabase
-      .from('credit_ledger')
-      .select('id, note')
-      .in('id', grants.map(g => g.id));
-    for (const n of notes ?? []) reasonOf.set(n.id, n.note ?? '');
-  }
   const canApprove = staff.role === 'finance' || staff.role === 'super_admin';
   const pendingGrants = requests.data ?? [];
 
@@ -188,13 +141,13 @@ export default async function CreditsPage() {
           </div>
           <div className="kpi">
             <span className="kpi__l">Unspent balance</span>
-            <span className="kpi__v">{n0(unspent)}</span>
-            <span className="kpi__d">{`Owed to readers · ${naira(unspent * 300)} at ₦3`}</span>
+            <span className="kpi__v">{n0(o.unspent)}</span>
+            <span className="kpi__d">{`Owed to readers · ${naira(o.owed_kobo)} at ₦3`}</span>
           </div>
           <div className="kpi">
             <span className="kpi__l">Expiring this month</span>
-            <span className="kpi__v">{n0(rollover)}</span>
-            <span className="kpi__d">{`Rolled over, ends at renewal · ${naira(rollover * 300)}`}</span>
+            <span className="kpi__v">{n0(o.expiring)}</span>
+            <span className="kpi__d">{`Rolled over, ends at renewal · ${naira(o.expiring_kobo)}`}</span>
           </div>
         </div>
         <div className="split split--wide">
@@ -239,29 +192,22 @@ export default async function CreditsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {top.map(([id, t], i) => {
-                        const b = (topBooks ?? []).find(x => x.id === id);
-                        const rev = (revs ?? []).find(r => r.id === b?.current_revision_id);
-                        const price = b?.price_override_credits ?? rev?.price_credits;
-                        return (
-                          <tr key={id}>
-                            <td>
-                              <div className="who">
-                                <span className={`cv c${[1, 3, 2, 4, 6][i]} x32`}></span>
-                                <span>
-                                  <b>{b?.title ?? 'A book'}</b>
-                                  <small>
-                                    {[b?.author?.full_name, rev?.pages ? `${n0(rev.pages)} pages` : ''].filter(Boolean).join(' · ')}
-                                  </small>
-                                </span>
-                              </div>
-                            </td>
-                            <td className="n">{price ? n0(price) : '—'}</td>
-                            <td className="n">{n0(t.readers.size)}</td>
-                            <td className="n">{n0(t.credits)}</td>
-                          </tr>
-                        );
-                      })}
+                      {top.map((b, i) => (
+                        <tr key={b.book_id}>
+                          <td>
+                            <div className="who">
+                              <span className={`cv c${[1, 3, 2, 4, 6][i]} x32`}></span>
+                              <span>
+                                <b>{b.title}</b>
+                                <small>{[b.author, b.pages ? `${n0(b.pages)} pages` : ''].filter(Boolean).join(' · ')}</small>
+                              </span>
+                            </div>
+                          </td>
+                          <td className="n">{b.price ? n0(b.price) : '—'}</td>
+                          <td className="n">{n0(b.readers)}</td>
+                          <td className="n">{n0(b.credits)}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -382,14 +328,14 @@ export default async function CreditsPage() {
                 <div>
                   <div className="kv-row">
                     <span>Issued by plans</span>
-                    <b>{n0(plans)}</b>
+                    <b>{n0(o.issued_plans)}</b>
                   </div>
                   <div className="kv-row">
                     <span>Issued by top-ups</span>
-                    <b>{n0(topups)}</b>
+                    <b>{n0(o.issued_topups)}</b>
                   </div>
                   <div className="kv-row">
-                    <span>{`Staff grants (${grants.length})`}</span>
+                    <span>{`Staff grants (${n0(o.staff_grants)})`}</span>
                     <b>{n0(grantTotal)}</b>
                   </div>
                   <div className="kv-row">
@@ -398,7 +344,7 @@ export default async function CreditsPage() {
                   </div>
                   <div className="kv-row">
                     <span>Credits in all balances</span>
-                    <b>{n0(unspent)}</b>
+                    <b>{n0(o.unspent)}</b>
                   </div>
                 </div>
                 <span className="mn-fold-h">Staff grants (over 500 needs a second approver)</span>
@@ -416,7 +362,7 @@ export default async function CreditsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {[...grants].reverse().slice(0, 50).map(g => {
+                        {grants.map(g => {
                           const by = (g.meta as { approved_by?: string } | null)?.approved_by;
                           return (
                             <tr key={g.id}>
@@ -425,7 +371,7 @@ export default async function CreditsPage() {
                                 <b>{nameOf(g.user_id)}</b>
                               </td>
                               <td className="n">{`+${n0(g.delta)}`}</td>
-                              <td className="mn-wrap">{reasonOf.get(g.id) ?? ''}</td>
+                              <td className="mn-wrap">{g.note ?? ''}</td>
                               <td>{nameOf(g.actor_id)}</td>
                               <td className={by ? undefined : 'muted'}>{by ? nameOf(by) : 'Not needed'}</td>
                             </tr>
@@ -442,7 +388,7 @@ export default async function CreditsPage() {
                 ) : (
                   <span className="muted">No staff grants this month.</span>
                 )}
-                {expired > 0 && <span className="muted">{`${n0(expired)} credits expired so far in ${month.name}.`}</span>}
+                {o.expired > 0 && <span className="muted">{`${n0(o.expired)} credits expired so far in ${month.name}.`}</span>}
               </div>
             </details>
           </div>
