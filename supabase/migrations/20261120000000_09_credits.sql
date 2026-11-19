@@ -1539,6 +1539,50 @@ begin
 end $$;
 
 select pgmq.create('payments_out');
+
+-- ─── Worker: outbound provider calls ────────────────────────────────────────
+create function public.payments_queue_read(p_vt int default 300, p_qty int default 10)
+returns setof pgmq.message_record
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public._require_service('payments_queue_read');
+  return query select * from pgmq.read('payments_out', p_vt, least(greatest(p_qty, 1), 50));
+end $$;
+
+create function public.payments_queue_ack(p_msg_id bigint) returns boolean
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public._require_service('payments_queue_ack');
+  return pgmq.archive('payments_out', p_msg_id);
+end $$;
+
+-- What the Worker needs to cancel, resume or extend a subscription at the provider.
+create function public.worker_payment_subscription(p_sub uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v jsonb;
+begin
+  perform public._require_service('worker_payment_subscription');
+  select jsonb_build_object('id', s.id, 'user_id', s.user_id, 'email', u.email, 'plan_code', s.plan_code,
+           'store', s.store, 'status', s.status, 'flutterwave_plan_id', s.flutterwave_plan_id,
+           'store_original_txn_id', s.store_original_txn_id, 'period_end', s.period_end,
+           'price_web_kobo', p.price_web_kobo, 'months', p.months)
+    into v
+  from public.subscriptions s
+  join auth.users u on u.id = s.user_id
+  join public.plans p on p.code = coalesce(s.pending_plan_code, s.plan_code)
+  where s.id = p_sub;
+  return v;
+end $$;
+
+-- Flutterwave subscription webhooks name the customer by email only.
+create function public.worker_user_by_email(p_email text) returns uuid
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform public._require_service('worker_user_by_email');
+  return (select id from auth.users where lower(email) = lower(trim(p_email)) limit 1);
+end $$;
+
 select cron.schedule('renewal_reminders', '0 8 * * *', 'select public.job_renewal_reminders()');
 select cron.schedule('expire_ended_subscriptions', '*/15 * * * *', 'select public.job_expire_ended_subscriptions()');
 select cron.schedule('resume_paused_web', '5 * * * *', 'select public.job_resume_paused_web()');
@@ -1624,7 +1668,8 @@ begin
         'decide_refund', 'complete_refund', 'staff_extend_subscription', 'set_gifting_frozen', 'save_plan',
         '_validate_rules', 'preview_pricing_rules', 'save_pricing_rules', 'create_promo', 'set_promo_status',
         'job_renewal_reminders', 'job_expire_ended_subscriptions', 'job_resume_paused_web',
-        'job_credit_daily_snapshot', 'job_ledger_reconcile')
+        'job_credit_daily_snapshot', 'job_ledger_reconcile', 'payments_queue_read', 'payments_queue_ack',
+        'worker_payment_subscription', 'worker_user_by_email')
   loop
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f.sig);
   end loop;
@@ -1664,7 +1709,11 @@ grant execute on function
 grant execute on function
   public.ingest_payment_event(text, text, text, timestamptz, jsonb, jsonb),
   public.complete_refund(uuid, boolean, text),
-  public.get_plans()
+  public.get_plans(),
+  public.payments_queue_read(int, int),
+  public.payments_queue_ack(bigint),
+  public.worker_payment_subscription(uuid),
+  public.worker_user_by_email(text)
   to service_role;
 
 -- Flow 03's config packs/plans now mirror these tables.

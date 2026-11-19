@@ -167,6 +167,9 @@ export function parseTxRef(txRef: string) {
   return { kind, code, userId } as const;
 }
 
+/** subscriptions.store_original_txn_id for a reader on a Flutterwave payment plan. */
+export const fwSubscriptionKey = (planId: string | number, userId: string) => `fwplan:${planId}:${userId}`;
+
 export function normalizeFlutterwaveCharge(
   tx: FlutterwaveTx,
   opts: { renewal: boolean; months?: number },
@@ -201,8 +204,9 @@ export function normalizeFlutterwaveCharge(
       type: opts.renewal ? 'renewal' : 'initial_purchase',
       ...base,
       plan_code: ref.code,
-      // One subscription per Flutterwave payment plan; a one-off first charge keys on its tx_ref.
-      original_txn_id: planId ? `fwplan:${planId}` : `fwref:${tx.tx_ref}`,
+      // One subscription per reader on a Flutterwave payment plan (a payment plan is shared by every
+      // reader on that price); a one-off first charge keys on its tx_ref.
+      original_txn_id: planId ? fwSubscriptionKey(planId, ref.userId) : `fwref:${tx.tx_ref}`,
       flutterwave_plan_id: planId,
       period_start: start.toISOString(),
       period_end: end.toISOString(),

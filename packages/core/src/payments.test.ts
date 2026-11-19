@@ -97,13 +97,13 @@ describe('Flutterwave', () => {
       type: 'initial_purchase',
       store: 'web',
       plan_code: 'monthly',
-      original_txn_id: 'fwplan:77',
+      original_txn_id: `fwplan:77:${USER}`,
       period_end: '2026-12-19T10:00:00.000Z',
       gross_kobo: 80000,
       fee_kobo: 1120,
     });
     const renewal = normalizeFlutterwaveCharge({ ...tx, id: 9002 }, { renewal: true, months: 1 }) as IngestInput;
-    expect(renewal.normalized).toMatchObject({ type: 'renewal', original_txn_id: 'fwplan:77' });
+    expect(renewal.normalized).toMatchObject({ type: 'renewal', original_txn_id: `fwplan:77:${USER}` });
   });
 
   it('maps a top-up and ignores failed or foreign-currency charges', () => {
