@@ -59,7 +59,16 @@ export function expoSender(token?: string): PushSender {
     async send(messages) {
       const out: Ticket[] = [];
       for (const batch of chunks(messages, EXPO_BATCH)) {
-        const res = (await postJson(`${EXPO}/send`, batch, token)) as { data: ExpoTicket[] };
+        // A batch that still fails after 3 tries fails only its own messages: earlier batches
+        // were accepted and keep their tickets.
+        let res: { data: ExpoTicket[] };
+        try {
+          res = (await postJson(`${EXPO}/send`, batch, token)) as { data: ExpoTicket[] };
+        } catch (e) {
+          console.error('expo batch failed', e);
+          for (const _ of batch) out.push({ ok: false, error: 'send_failed' });
+          continue;
+        }
         for (const t of res.data)
           out.push(
             t.status === 'ok' ? { ok: true, id: t.id } : { ok: false, error: t.details?.error ?? t.message },

@@ -170,8 +170,19 @@ export async function sendAll(
   return { sent, failed };
 }
 
-/** Decide, hold and send one queue message. Returns counts for the campaign runner's numbers. */
-export async function fanOut(db: Db, sender: PushSender, msg: FanoutMsg, at = new Date()) {
+/**
+ * Decide, hold and send one queue message. Returns counts for the campaign runner's numbers.
+ * `key` marks every log row of this message; on a retry (`retry`) readers already logged under it
+ * are skipped, so a chunk that failed half way never sends the earlier chunks twice.
+ */
+export async function fanOut(
+  db: Db,
+  sender: PushSender,
+  msg: FanoutMsg,
+  at = new Date(),
+  key?: string,
+  retry = false,
+) {
   const types = await pushTypes(db);
   const type = types.get(msg.type);
   if (!type) throw new Error(`unknown push type ${msg.type}`);
@@ -201,7 +212,20 @@ export async function fanOut(db: Db, sender: PushSender, msg: FanoutMsg, at = ne
         book_id: d.book_id ?? null,
       };
 
-  for (const ids of chunks([...new Set(msg.user_ids)], CAMPAIGN_CHUNK)) {
+  for (let ids of chunks([...new Set(msg.user_ids)], CAMPAIGN_CHUNK)) {
+    if (key && retry) {
+      const { data: done, error: de } = await db
+        .from('push_log')
+        .select('user_id')
+        .in('user_id', ids)
+        .eq('type', type.key)
+        .eq('data->>fanout', key)
+        .gte('created_at', new Date(at.getTime() - 86_400_000).toISOString());
+      if (de) throw de;
+      const skip = new Set(done.map((r) => r.user_id));
+      ids = ids.filter((id) => !skip.has(id));
+      if (!ids.length) continue;
+    }
     const { data: recips, error } = await db.rpc('push_recipients', {
       p_user_ids: ids,
       p_type: type.key,
@@ -227,7 +251,7 @@ export async function fanOut(db: Db, sender: PushSender, msg: FanoutMsg, at = ne
         campaign_id: d.campaign_id,
         variant: d.variant,
         collapse_key: c.collapse,
-        data: baseData,
+        data: key ? { ...baseData, fanout: key } : baseData,
         author_id: authorId,
       };
       if (decision.action === 'send') {
@@ -289,7 +313,8 @@ export async function dispatchPushes(env: Env, budgetMs = 40_000): Promise<void>
     if (!msgs.length) return;
     for (const m of msgs) {
       try {
-        if (m.read_ct <= 5) await fanOut(db, sender, m.message);
+        if (m.read_ct <= 5)
+          await fanOut(db, sender, m.message, new Date(), `fanout:${m.msg_id}`, m.read_ct > 1);
         else console.error('push message dropped after 5 tries', m.message.type);
         await db.rpc('engage_queue_done', { p_queue: 'push_fanout', p_msg_id: m.msg_id });
       } catch (e) {
@@ -317,9 +342,15 @@ export async function releaseHeld(env: Env, now = new Date()): Promise<void> {
     string,
     { type: PushTypeRule; payload: HeldPayload; category: PushCategory; held_at: Date }[]
   >();
+  // Held rows are already in push_log as skipped_quiet/held. A type removed since, or a reader with
+  // no live device left, has nothing to deliver to: those are dropped on purpose and counted here.
+  let dropped = 0;
   for (const h of data) {
     const type = types.get(h.type);
-    if (!type) continue;
+    if (!type) {
+      dropped++;
+      continue;
+    }
     const list = byUser.get(h.user_id) ?? [];
     list.push({
       type,
@@ -343,7 +374,10 @@ export async function releaseHeld(env: Env, now = new Date()): Promise<void> {
   const out: Outgoing[] = [];
   for (const [user, held] of byUser) {
     const t = tokens.get(user) ?? [];
-    if (!t.length) continue;
+    if (!t.length) {
+      dropped += held.length;
+      continue;
+    }
     const plan = releasePlan(held, now);
     for (const h of plan.send)
       out.push({ user_id: user, tokens: t, type: h.type, ...h.payload, log: h.payload.log });
@@ -370,5 +404,6 @@ export async function releaseHeld(env: Env, now = new Date()): Promise<void> {
       });
     }
   }
+  if (dropped) console.warn('held pushes dropped (no live device or type removed)', dropped);
   await sendAll(db, pushSender(env), out);
 }

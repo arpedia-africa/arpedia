@@ -22,8 +22,9 @@ export async function buildExport(env: Env, db: Db, id: string): Promise<void> {
     status: string;
     created_at: string;
   } | null;
-  if (!e || e.status !== 'counting') return;
-  await db.rpc('set_export_status', { p_id: id, p_status: 'building' });
+  // A retry after a crash mid-build finds it `building`: build again (the file key is the same).
+  if (!e || (e.status !== 'counting' && e.status !== 'building')) return;
+  if (e.status === 'counting') await db.rpc('set_export_status', { p_id: id, p_status: 'building' });
   const parts: string[] = [];
   let header: string[] | null = e.columns.length ? e.columns : null;
   let count = 0;
