@@ -1037,7 +1037,7 @@ begin
             coalesce(p_fields -> 'audience', '{"kind": "all"}'), (p_fields ->> 'starts_at')::timestamptz,
             (p_fields ->> 'ends_at')::timestamptz, coalesce((p_fields ->> 'priority')::int, 0),
             coalesce((p_fields ->> 'dismissible')::boolean, true),
-            case when v_publish then 'live' else 'draft' end, auth.uid(), auth.uid())
+            (case when v_publish then 'live' else 'draft' end)::public.banner_state, auth.uid(), auth.uid())
     returning id into v_id;
   else
     update public.banners set
@@ -1052,7 +1052,7 @@ begin
       ends_at = case when p_fields ? 'ends_at' then (p_fields ->> 'ends_at')::timestamptz else ends_at end,
       priority = coalesce((p_fields ->> 'priority')::int, priority),
       dismissible = coalesce((p_fields ->> 'dismissible')::boolean, dismissible),
-      state = case when v_publish then 'live' when p_fields ? 'publish' then 'draft' else state end,
+      state = case when v_publish then 'live'::public.banner_state when p_fields ? 'publish' then 'draft' else state end,
       updated_by = auth.uid()
     where id = p_id;
     v_id := p_id;
