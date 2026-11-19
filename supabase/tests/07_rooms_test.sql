@@ -4,7 +4,7 @@
 -- actions, leave hand-over and lifecycle.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(56);
+select plan(59);
 
 -- Hana (host), Mo (member), Obi (outsider, author of the book), Kemi (17, minor), Sam (moderator).
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -141,6 +141,21 @@ select is((select spoiler_chapter from public.messages where client_id = '7c0000
 select is((select spoiler_chapter from public.messages where client_id = '7c000000-0000-4000-8000-000000000002'), 0,
   'no progress yet counts as chapter 0');
 reset role;
+-- New accounts (under 7 days) read and react but don't post in rooms; the host is never blocked.
+update auth.users set created_at = now() - interval '2 days' where id in
+  ('70000000-0000-4000-a000-000000000001', '70000000-0000-4000-a000-000000000002');
+select is((select reason from public.post_block_for((select id from t_room where k = 'a'),
+  '70000000-0000-4000-a000-000000000002')), 'new_account', 'a new account cannot post in a room');
+select is((select reason from public.post_block_for((select id from t_room where k = 'a'),
+  '70000000-0000-4000-a000-000000000001')), null, 'a new host can post in their room');
+set local role service_role;
+select is((select e ->> 'reason' from jsonb_array_elements(public.persist_messages(jsonb_build_array(
+    jsonb_build_object('group_id', (select id from t_room where k = 'a'), 'sender_id', '70000000-0000-4000-a000-000000000002',
+      'client_id', '7c000000-0000-4000-8000-000000000003', 'body', 'Too new')))) e),
+  'new_account', 'persist_messages rejects a new account''s room message');
+reset role;
+update auth.users set created_at = now() - interval '30 days' where id in
+  ('70000000-0000-4000-a000-000000000001', '70000000-0000-4000-a000-000000000002');
 set local role authenticated;
 select pg_temp.as_user('70000000-0000-4000-a000-000000000002');
 select is((select spoiler_chapter from public.get_room_messages((select id from t_room where k = 'a'))

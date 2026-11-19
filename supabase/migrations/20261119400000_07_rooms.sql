@@ -931,3 +931,32 @@ grant execute on function
 grant execute on function public.update_room_progress(uuid, numeric, int),
   public.room_lifecycle(), public.purge_room_transcripts()
   to service_role;
+
+-- ─── Room chat extra: new accounts read and react but don't post ────────────
+-- Flow 06's post_block_for is the one place both the Durable Object (get_group_access) and
+-- persist_messages ask "may this person post?". Rooms wrap it rather than copy it, so 06's rules
+-- stay in one body: everything 06 blocks comes first, then accounts under 7 days in a room
+-- ('new_account'; the composer says "New accounts can post after 7 days.").
+alter function public.post_block_for(uuid, uuid) rename to _post_block_for_base;
+
+create function public.post_block_for(p_group uuid, p_user uuid)
+returns table (reason text, until timestamptz)
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v record;
+begin
+  select * into v from public._post_block_for_base(p_group, p_user) limit 1;
+  if v.reason is not null then
+    return query select v.reason, v.until;
+  elsif exists (select 1 from public.groups g where g.id = p_group and g.kind = 'room')
+        and not exists (select 1 from public.group_members m
+                        where m.group_id = p_group and m.user_id = p_user and m.role = 'owner')
+        and coalesce((select u.created_at > now() - interval '7 days' from auth.users u where u.id = p_user), true)
+  then
+    return query select 'new_account'::text, (select u.created_at + interval '7 days' from auth.users u
+                                               where u.id = p_user);
+  end if;
+end $$;
+
+revoke execute on function public.post_block_for(uuid, uuid), public._post_block_for_base(uuid, uuid)
+  from public, anon, authenticated;

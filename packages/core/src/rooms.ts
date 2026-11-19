@@ -115,6 +115,37 @@ export function isSpoiler(
   return (senderChapter ?? 0) > (viewerChapter ?? 0);
 }
 
+/**
+ * The chapter a message counts as for spoilers: the stamp from Postgres for history, and for live
+ * messages (not stamped yet) the sender's room progress. A quote from a later chapter wins.
+ */
+export function messageSpoilerChapter(m: {
+  spoiler_chapter?: number | null;
+  quote?: { chapter: number } | null;
+  senderChapter?: number | null;
+}): number {
+  return Math.max(m.spoiler_chapter ?? m.senderChapter ?? 0, m.quote?.chapter ?? 0);
+}
+
+/**
+ * Room extra on the chat socket: a member's progress changed (sent by the api Worker's
+ * progress-sync through the room's Durable Object).
+ */
+export interface RoomProgressFrame {
+  type: 'progress';
+  user_id: string;
+  percent: number;
+  chapter: number;
+  finished: boolean;
+}
+
+/** Rooms add one composer block to flow 06's: accounts under 7 days can't post (rule: new accounts). */
+export const ROOM_NEW_ACCOUNT_BLOCK = 'new_account';
+export const ROOM_NEW_ACCOUNT_COPY = 'New accounts can post after 7 days.';
+
+/** Progress-sync runs at most this often while the room's book is open (rule 24). */
+export const ROOM_PROGRESS_SYNC_MS = 15_000;
+
 /** Rule 2: "Active today" / "Active yesterday" / "Active 3 days ago", never a raw date. */
 export function activeLabel(at: string | Date, now: Date = new Date()): string {
   const days = lagosDayIndex(now) - lagosDayIndex(new Date(at));
