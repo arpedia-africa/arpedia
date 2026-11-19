@@ -246,6 +246,11 @@ export class BookFiles {
     }
   }
 
+  /** The licence end (ms) of the stored key bundle, or null when none is stored. */
+  licenceUntil(): number | null {
+    return this.licence?.valid_until ?? null;
+  }
+
   /** Drop a cached file so the next read fetches it again (resource_missing / decrypt_failed). */
   evict(path: string) {
     const f = this.file(path);
@@ -254,3 +259,64 @@ export class BookFiles {
 }
 
 export const decodeText = (b: Uint8Array) => dec.decode(b);
+
+/** A book with chapter files on this phone (Library › Offline, flow 05 rule 5). */
+export interface OfflineBook {
+  bookId: string;
+  revisionId: string;
+  /** Sealed bytes on disk (rule 26). */
+  bytes: number;
+  /** Chapter files on disk (`c{n}.full.xhtml` / free files), not counting package files. */
+  chapterFiles: number;
+  /** Licence end in ms, null without a stored key bundle. */
+  validUntil: number | null;
+  /** Newest file write, as the download date (Offline sorts by it). */
+  downloadedAt: number;
+}
+
+const root = () => new Directory(Paths.document, 'reader');
+
+function walk(d: Directory, out: { bytes: number; chapters: number; newest: number }) {
+  for (const e of d.list()) {
+    if (e instanceof Directory) walk(e, out);
+    else {
+      out.bytes += e.size ?? 0;
+      out.newest = Math.max(out.newest, e.modificationTime ?? 0);
+      if (/^c\d+\.(full|free)\.xhtml$/.test(e.name)) out.chapters += 1;
+    }
+  }
+}
+
+/** Every book on this phone with at least one downloaded chapter file. */
+export async function offlineBooks(): Promise<OfflineBook[]> {
+  const r = root();
+  if (!r.exists) return [];
+  const out: OfflineBook[] = [];
+  for (const b of r.list()) {
+    if (!(b instanceof Directory)) continue;
+    for (const rev of b.list()) {
+      if (!(rev instanceof Directory)) continue;
+      const files = new Directory(rev, 'f');
+      const t = { bytes: 0, chapters: 0, newest: 0 };
+      if (files.exists) walk(files, t);
+      if (t.chapters === 0) continue;
+      const bf = new BookFiles(b.name, rev.name, false);
+      await bf.loadStoredKeys();
+      out.push({
+        bookId: b.name,
+        revisionId: rev.name,
+        bytes: t.bytes,
+        chapterFiles: t.chapters,
+        validUntil: bf.licenceUntil(),
+        downloadedAt: t.newest,
+      });
+    }
+  }
+  return out;
+}
+
+/** Remove download (flow 05 rule 14): files and keys of this book on this phone; unlocks stay. */
+export function removeDownload(bookId: string) {
+  const d = new Directory(root(), bookId);
+  if (d.exists) d.delete();
+}
