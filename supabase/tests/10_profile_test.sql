@@ -103,7 +103,9 @@ select throws_ok($$select public.remove_device('10000000-0000-4000-d000-00000000
 select throws_ok($$select public.remove_device('10000000-0000-4000-d000-000000000002', 'other-phone-key-0002')$$, '22023', 'this_device',
   'cannot remove the device by its own key');
 select lives_ok($$select public.remove_device('10000000-0000-4000-d000-000000000002')$$, 'removes the other device');
+reset role;
 select is((select count(*)::int from auth.sessions where id = '10000000-0000-4000-e000-000000000002'), 0, 'its session ended');
+set local role authenticated;
 select is((public.list_my_devices() ->> 'enabled')::int, 1, 'slot freed');
 select pg_temp.as_user('10000000-0000-4000-a000-000000000002');
 select throws_ok($$select public.remove_device('10000000-0000-4000-d000-000000000001')$$, 'P0002', null,
