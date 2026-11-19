@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ledgerDate, ledgerDay, naira } from '@arpedia/core';
+import { ledgerDate, ledgerDay, ledgerStamp, naira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
-import { Empty, avClass, guard, initials, n0, planName } from '@/lib/money';
+import { Chips, Empty, avClass, guard, initials, n0, planName } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
 import { Flash } from './flash';
 import { FILTERS, filterOf, refOf, typeLabel, userCode, type Filter } from './labels';
@@ -179,18 +179,14 @@ export async function LedgerScreen({ userId, type, done }: { userId: string; typ
         </Link>
       </div>
       <div className="page">
-        <div className="row">
-          {FILTERS.map(([key, label]) => (
-            <Link
-              key={key}
-              className={`fchip${current === key ? ' is-selected' : ''}`}
-              href={key === 'all' ? `/credits/${userId}` : `/credits/${userId}?type=${key}`}
-            >
-              {label}
-              <span className="c">{n0(key === 'all' ? withFilter.length : withFilter.filter(x => x.f === key).length)}</span>
-            </Link>
-          ))}
-        </div>
+        <Chips
+          items={FILTERS.map(([key, label]) => ({
+            label,
+            count: key === 'all' ? withFilter.length : withFilter.filter(x => x.f === key).length,
+            href: key === 'all' ? `/credits/${userId}` : `/credits/${userId}?type=${key}`,
+            on: current === key,
+          }))}
+        />
         <div className="panel panel--flush">
           {shown.length === 0 ? (
             <Empty
@@ -217,7 +213,7 @@ export async function LedgerScreen({ userId, type, done }: { userId: string; typ
                 <tbody>
                   {shown.map(({ r }) => (
                     <tr key={r.id}>
-                      <td className="nw">{ledgerDate(r.created_at)}</td>
+                      <td className="nw" title={ledgerDate(r.created_at)}>{ledgerStamp(r.created_at)}</td>
                       <td>
                         {r.reason === 'refund' ? (
                           <span className="st st-err">{typeLabel(r.reason, false)}</span>

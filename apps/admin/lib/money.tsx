@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { FChips } from '@/components/fchips';
 import { NoAccess } from '@/components/no-access';
 import { canOpen } from '@/lib/nav';
 import { requireStaff, type Staff } from '@/lib/staff';
@@ -10,6 +11,9 @@ import type { serverSupabase } from '@/lib/supabase/server';
 export type Supa = Awaited<ReturnType<typeof serverSupabase>>;
 
 export const n0 = (n: number) => n.toLocaleString('en-NG');
+
+/** A store reference short enough for a table cell; web refs carry a user id ("arp:plan:monthly:…0030:1"). */
+export const shortRef = (ref: string) => (ref.length > 28 ? `${ref.slice(0, 17)}…${ref.slice(-8)}` : ref);
 export const PAGE_SIZE = 25;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -136,16 +140,7 @@ export function Pager({
 
 /** The prototype's quick filter chips as links, so a filter is a URL and survives a reload. */
 export function Chips({ items }: { items: { href: string; label: string; count?: number; on: boolean }[] }) {
-  return (
-    <div className="row">
-      {items.map(i => (
-        <Link key={i.label} className={`fchip${i.on ? ' is-selected' : ''}`} href={i.href} aria-current={i.on || undefined}>
-          {i.label}
-          {i.count !== undefined && <span className="c">{n0(i.count)}</span>}
-        </Link>
-      ))}
-    </div>
-  );
+  return <FChips items={items.map(i => ({ ...i, count: i.count === undefined ? undefined : n0(i.count) }))} />;
 }
 
 /** Table row and search values safe to drop into a PostgREST `or(...)` filter. */

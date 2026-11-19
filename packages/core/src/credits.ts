@@ -156,6 +156,16 @@ export function ledgerDate(iso: string | Date): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${hh}:${mm}`;
 }
 
+/** Ledger row time in Lagos time, as the admin tables show it: "Today, 08:12", "12 Nov, 21:14", "4 Dec 2025, 09:30". */
+export function ledgerStamp(iso: string | Date, now: Date = new Date()): string {
+  const d = new Date(new Date(iso).getTime() + 3_600_000);
+  const n = new Date(now.getTime() + 3_600_000);
+  const time = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  if (d.getUTCFullYear() !== n.getUTCFullYear()) return ledgerDate(iso);
+  if (d.getUTCMonth() === n.getUTCMonth() && d.getUTCDate() === n.getUTCDate()) return `Today, ${time}`;
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${time}`;
+}
+
 /** Short date in Lagos time: "12 Nov 2026". */
 export function ledgerDay(iso: string | Date): string {
   const d = new Date(new Date(iso).getTime() + 3_600_000);

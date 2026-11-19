@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { ledgerDate } from '@arpedia/core';
+import { ledgerStamp } from '@arpedia/core';
 import { guard } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
 import { LedgerScreen } from '../../ledger';
@@ -56,7 +56,7 @@ export default async function ReturnPage({ params }: { params: Promise<{ userId:
         chargeId={id}
         name={name}
         what={[book.data?.title, chapter.data?.title].filter(Boolean).join(', ') || 'A chapter'}
-        chargedAt={ledgerDate(charge.created_at)}
+        chargedAt={ledgerStamp(charge.created_at).replace(/^Today/, 'today')}
         credits={credits}
         windowEnd={clock(windowEnds)}
         windowOpen={Date.now() < windowEnds}

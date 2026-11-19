@@ -6,6 +6,7 @@ import {
   clawback,
   isPromoCode,
   ledgerDate,
+  ledgerStamp,
   ledgerDay,
   naira,
   netPerCreditKobo,
@@ -137,6 +138,10 @@ describe('dates', () => {
     expect(ledgerDate('2026-11-12T08:14:00Z')).toBe('12 Nov 2026, 09:14');
     expect(ledgerDate('2026-12-31T23:30:00Z')).toBe('1 Jan 2027, 00:30');
     expect(ledgerDay('2026-11-12T08:14:00Z')).toBe('12 Nov 2026');
+    const now = new Date('2026-11-19T22:30:00Z'); // 23:30 in Lagos
+    expect(ledgerStamp('2026-11-19T07:12:00Z', now)).toBe('Today, 08:12');
+    expect(ledgerStamp('2026-11-12T20:14:00Z', now)).toBe('12 Nov, 21:14');
+    expect(ledgerStamp('2025-12-04T08:30:00Z', now)).toBe('4 Dec 2025, 09:30');
   });
 });
 

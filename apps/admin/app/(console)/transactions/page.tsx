@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ledgerDate, naira } from '@arpedia/core';
 import { ChipRemove } from '@/components/chip-remove';
 import { Icon } from '@/components/icon';
-import { Chips, Empty, PAGE_SIZE, PLATFORM, Pager, dayMonth, guard, n0, pageNo, planName, safeTerm, thisMonth } from '@/lib/money';
+import { Chips, Empty, PAGE_SIZE, PLATFORM, Pager, dayMonth, guard, n0, pageNo, planName, safeTerm, shortRef, thisMonth } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
 import { Menu } from '../books/menu';
 
@@ -61,7 +61,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     .from('transactions')
     .select(
       `id, created_at, kind, plan_code, topup_code, store, store_txn_id, gross_kobo, net_kobo, refunded_kobo,
-       status, credits_granted, user:profiles!transactions_user_id_fkey(full_name, username)`,
+       status, credits_granted, topup:topup_products(credits), user:profiles!transactions_user_id_fkey(full_name, username)`,
       { count: 'exact' },
     )
     .order('created_at', { ascending: false })
@@ -185,7 +185,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                           <div className="who">
                             <span>
                               <b>{t.user?.full_name || (t.user?.username ? `@${t.user.username}` : 'Reader')}</b>
-                              <small className="mn-id">{t.store_txn_id}</small>
+                              <small className="mn-id" title={t.store_txn_id}>{shortRef(t.store_txn_id)}</small>
                             </span>
                           </div>
                         </td>
@@ -194,7 +194,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                             <span>
                               {t.kind === 'topup' ? (
                                 <>
-                                  <b>{`${n0(t.credits_granted)} credits`}</b>
+                                  <b>{`${n0(t.topup?.credits ?? t.credits_granted)} credits`}</b>
                                   <small>{`${platform} top-up`}</small>
                                 </>
                               ) : (
