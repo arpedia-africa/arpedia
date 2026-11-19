@@ -3,6 +3,10 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(35);
 
+-- The local seed (supabase/seeds/11_authors.sql) holds applications and author profiles; start empty.
+-- Rolled back with the rest of the test.
+truncate public.author_application_events, public.author_applications, public.author_profiles cascade;
+
 -- Applicant, second applicant, publisher, moderator (not a reviewer), a reader.
 insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data) values
   ('31000000-0000-4000-a000-000000000001', 'tola@test.local', now(), '{"full_name":"Tola Writer"}'),
