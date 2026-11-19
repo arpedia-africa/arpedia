@@ -42,6 +42,17 @@ async function ingest(db: Db, input: IngestInput, payload: unknown) {
 
 const isIgnored = (r: IngestInput | Ignored): r is Ignored => 'ignore' in r;
 
+/** The lowest web price (kobo) a plan has had, or a top-up's price; null when the code is unknown. */
+async function lowestPriceKobo(db: Db, kind: 'plan' | 'topup', code: string): Promise<number | null> {
+  if (kind === 'topup') {
+    const { data } = await db.from('topup_products').select('price_kobo').eq('code', code).maybeSingle();
+    return data?.price_kobo ?? null;
+  }
+  const { data } = await db.from('plan_price_versions').select('price_web_kobo').eq('plan_code', code);
+  const prices = (data ?? []).map((r) => r.price_web_kobo).filter((p): p is number => p != null);
+  return prices.length ? Math.min(...prices) : null;
+}
+
 payments.post('/revenuecat', async (c) => {
   const secret = c.env.REVENUECAT_WEBHOOK_AUTH;
   if (!secret) return c.json({ error: 'not_configured' }, 503);
@@ -57,6 +68,16 @@ payments.post('/revenuecat', async (c) => {
   return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
 });
 
+/** A Flutterwave answer that wasn't a success; 4xx is final, 5xx may pass on a retry. */
+class FlwError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 async function flw<T>(env: Env, path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${FLW}${path}`, {
     ...init,
@@ -68,7 +89,7 @@ async function flw<T>(env: Env, path: string, init: RequestInit = {}): Promise<T
   });
   const json = (await res.json().catch(() => null)) as { status?: string; message?: string; data?: T } | null;
   if (!res.ok || json?.status !== 'success') {
-    throw new Error(`flutterwave ${path}: ${res.status} ${json?.message ?? ''}`);
+    throw new FlwError(res.status, `flutterwave ${path}: ${res.status} ${json?.message ?? ''}`);
   }
   return json.data as T;
 }
@@ -97,6 +118,18 @@ payments.post('/flutterwave', async (c) => {
     );
     const mapped = normalizeFlutterwaveCharge(tx, { renewal: tx.payment_plan != null, months: plan?.months });
     if (isIgnored(mapped)) return c.json({ ok: true, ignored: mapped.ignore });
+    // tx_ref is written by the checkout, so never grant more than was paid for: the charge must
+    // cover the lowest web price this plan or top-up has had (older prices cover readers who keep
+    // their price until renewal).
+    const floor = await lowestPriceKobo(
+      db,
+      mapped.normalized.topup_code ? 'topup' : 'plan',
+      mapped.normalized.topup_code ?? code ?? '',
+    );
+    if (floor == null || (mapped.normalized.gross_kobo ?? 0) < floor) {
+      console.warn('flutterwave charge below price', tx.id, tx.tx_ref, mapped.normalized.gross_kobo, floor);
+      return c.json({ ok: true, ignored: 'amount below price' });
+    }
     const res = await ingest(db, mapped, { webhook: body, verified: tx });
     if (res.error) return c.json({ error: 'apply_failed', id: res.id }, 500);
     return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
@@ -133,7 +166,9 @@ payments.post('/flutterwave', async (c) => {
       db,
       {
         provider: 'flutterwave',
-        eventId: `subcancel:${body.data.id ?? body.data.plan}:${userId}`,
+        // Without a subscription id, key on arrival time: a later cancellation on the same plan must
+        // not be dropped as a duplicate (applying a cancellation twice changes nothing).
+        eventId: `subcancel:${body.data.id ?? `${body.data.plan}:${Date.now()}`}:${userId}`,
         eventType: body.event,
         occurredAt: new Date().toISOString(),
         normalized: {
@@ -192,6 +227,14 @@ async function handle(env: Env, db: Db, msg: OutMsg): Promise<boolean> {
   switch (msg.kind) {
     case 'flutterwave_refund': {
       if (!env.FLUTTERWAVE_SECRET_KEY) return false;
+      // A redelivered message must never refund twice: only a request still marked refunding is sent.
+      const { data: req, error: readErr } = await db
+        .from('refund_requests')
+        .select('status, flutterwave_refund_id')
+        .eq('id', msg.refund_request_id)
+        .maybeSingle();
+      if (readErr) throw new Error(`refund_requests: ${readErr.message}`);
+      if (!req || req.status !== 'refunding' || req.flutterwave_refund_id) return true;
       let ok = true;
       let refundId: string | null = null;
       try {
@@ -202,14 +245,22 @@ async function handle(env: Env, db: Db, msg: OutMsg): Promise<boolean> {
         refundId = String(r.id);
       } catch (e) {
         console.error(e);
+        // Network errors and 5xx: try again after the visibility timeout. 4xx: Flutterwave said no.
+        if (!(e instanceof FlwError) || e.status >= 500) return false;
         ok = false;
       }
-      const { error } = await db.rpc('complete_refund', {
-        p_request: msg.refund_request_id,
-        p_ok: ok,
-        p_flutterwave_refund_id: refundId ?? undefined,
-      });
-      if (error) throw new Error(`complete_refund: ${error.message}`);
+      // The money has moved (or was refused): record it, retrying here rather than redelivering the
+      // message, which would send the refund again. If it still fails, the request stays
+      // "refunding" in admin for Finance to complete by hand.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await db.rpc('complete_refund', {
+          p_request: msg.refund_request_id,
+          p_ok: ok,
+          p_flutterwave_refund_id: refundId ?? undefined,
+        });
+        if (!error) return true;
+        console.error('complete_refund', msg.refund_request_id, refundId, error.message);
+      }
       return true;
     }
     case 'flutterwave_cancel_plan':
