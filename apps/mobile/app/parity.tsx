@@ -47,6 +47,7 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import { StudioBooksView, StudioEarningsView, StudioHomeView } from '../features/11/StudioViews';
 
 const PAGES = [
   'kit-a',
@@ -59,6 +60,9 @@ const PAGES = [
   's-profile-setup',
   's-plans-onboard',
   's-all-set',
+  's-studio',
+  's-studio-books',
+  's-studio-royalties',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -278,6 +282,123 @@ function Flow01({ page }: { page: Page }) {
           />
           <AllSetFoot onHome={noop} />
         </>
+      );
+    default:
+      return <Flow11 page={page} />;
+  }
+}
+
+// ─── Flow 11 screens with the prototype's values (tools/parity/s-studio*.html) ─
+function Flow11({ page }: { page: Page }) {
+  switch (page) {
+    case 's-studio':
+      return (
+        <StudioHomeView
+          go={noop}
+          onDismissBanner={noop}
+          m={{
+            name: 'Ifeoma',
+            stats: { books: '2', minutes: '41.2k', followers: '3.4k', earned: '₦184,304' },
+            banner: true,
+            suspended: null,
+            noBooks: false,
+            books: [
+              { id: 'b1', title: 'Harmattan Letters', earned: '₦143,760', credits: '89,850', share: 0.78 },
+              {
+                id: 'b2',
+                title: 'Morning Prayers, Volume 1',
+                earned: '₦40,544',
+                credits: '25,340',
+                share: 0.22,
+              },
+            ],
+            shortcuts: {
+              messages: { sub: '4 waiting for a reply', count: 4 },
+              club: 'Ifeoma’s Readers · 860 members',
+              books: { sub: '2 live · 1 in review', count: 3 },
+              posts: '12 new comments',
+              earnings: { sub: 'Next payout 15 Dec', trail: '₦162,752' },
+              visibility: 'Public',
+              payout: 'GTBank ···· 2291 · verified',
+              community: 'Who can post, slow mode',
+            },
+          }}
+        />
+      );
+    case 's-studio-books':
+      return (
+        <StudioBooksView
+          sub="2 live · 1 in review · 1 draft"
+          state="ready"
+          onBack={noop}
+          onSubmit={noop}
+          onAction={noop}
+          onRetry={noop}
+          books={[
+            {
+              id: 'b1',
+              title: 'Harmattan Letters',
+              tone: 'c1',
+              status: 'update_in_review',
+              label: 'Live',
+              line: '2,104 readers · 4.7★ · 31.8k min this month',
+              update: 'Update v2 in review · readers still see v1',
+              issues: [],
+              action: null,
+            },
+            {
+              id: 'b2',
+              title: 'Nine More Letters',
+              tone: 'c7',
+              status: 'changes_requested',
+              label: 'Changes requested',
+              line: null,
+              update: null,
+              issues: ['Editor: Chapter 3 repeats a page from chapter 2. Please re-upload.'],
+              action: 'Upload new file',
+            },
+            {
+              id: 'b3',
+              title: 'Kaduna Nights',
+              tone: 'c5',
+              status: 'draft',
+              label: 'Draft',
+              line: 'Uploaded 10 Nov. Confirm your chapters and submit when ready.',
+              update: null,
+              issues: [],
+              action: null,
+            },
+          ]}
+        />
+      );
+    case 's-studio-royalties':
+      return (
+        <StudioEarningsView
+          sub="October · paid after a 30-day hold"
+          total="₦162,752"
+          state="ready"
+          onBack={noop}
+          onRetry={noop}
+          rows={[
+            { k: 'Unlock all · 78,400 credits', v: '₦125,440' },
+            { k: 'Pay as you read · 23,320 credits', v: '₦37,312' },
+            { k: '101,720 credits × ₦1.60', v: '₦162,752', total: true },
+          ]}
+          payouts={[
+            {
+              month: 'October',
+              sub: 'To GTBank ···· 2291',
+              amount: '₦162,752',
+              pill: { label: 'Releases 15 Dec', tone: 'warn' },
+            },
+            {
+              month: 'September',
+              sub: 'Paid 15 Nov',
+              amount: '₦98,400',
+              pill: { label: 'Paid', tone: 'ok' },
+            },
+          ]}
+        />
       );
     default:
       return null;

@@ -5,8 +5,20 @@ import { HeroSub, HeroTitle } from '../01/parts';
 
 // Flow 11 pieces that mirror prototype elements one to one (`node tools/screen.mjs s-apply --css`).
 
-/** `.hero.sub-hero`: back bar, title and sub; body padding 4 16 44, gap 12. */
-export function SubHero({ title, sub, onBack }: { title: string; sub: string; onBack?: () => void }) {
+/** `.hero.sub-hero`: back bar (optional action on the right), title and sub; body padding 4 16 44, gap 12. */
+export function SubHero({
+  title,
+  sub,
+  onBack,
+  action,
+  children,
+}: {
+  title: string;
+  sub: string;
+  onBack?: () => void;
+  action?: ReactNode;
+  children?: ReactNode;
+}) {
   const { c, s } = useTheme();
   return (
     <OnHero.Provider value>
@@ -16,10 +28,13 @@ export function SubHero({ title, sub, onBack }: { title: string; sub: string; on
           style={{ flexDirection: 'row', alignItems: 'center', minHeight: s(52), paddingHorizontal: s(6) }}
         >
           {onBack ? <IconButton icon="back" label="Back" onPress={onBack} color={c.onOrg} /> : null}
+          <View style={{ flex: 1 }} />
+          {action}
         </View>
         <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(44), gap: s(12) }}>
           <HeroTitle>{title}</HeroTitle>
           <HeroSub>{sub}</HeroSub>
+          {children}
         </View>
       </View>
     </OnHero.Provider>
