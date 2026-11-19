@@ -147,14 +147,16 @@ export function Hero({ bar, barBack, title, xl, sub, low, children, style }: Her
                 variant="display"
                 size={xl ? 36 : 30}
                 color="onOrg"
+                // text-wrap: balance
+                textBreakStrategy="balanced"
                 style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}
               >
                 {title}
               </Text>
             ) : null}
             {sub ? (
-              // max-width: 32ch (Inter "0" ≈ 0.56em at 14.5px ≈ 259px)
-              <Text size={14.5} color="onOrg" style={{ lineHeight: s(14.5) * 1.45, maxWidth: s(259) }}>
+              // max-width: 32ch (Inter "0" advance 0.631em at 14.5px ≈ 292.7px)
+              <Text size={14.5} color="onOrg" style={{ lineHeight: s(14.5) * 1.45, maxWidth: s(292.7) }}>
                 {sub}
               </Text>
             ) : null}

@@ -16,3 +16,7 @@ supabase/.temp
 **/database.types.ts
 expo-env.d.ts
 .impeccable
+# Verbatim copies of prototype screens (like prototype/ above)
+tools/parity/s-*.html
+# Generated font advance tables (tools/gen-font-metrics.mjs)
+packages/ui/src/fonts/advances.ts

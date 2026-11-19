@@ -21,7 +21,8 @@ insert into seed_users values
   ('00000000-0000-4000-b000-000000000004', 'zainab@arpedia.africa', 'Zainab Yusuf',             'zainab.staff',   false, 'moderator'),
   ('00000000-0000-4000-b000-000000000005', 'chinedu@arpedia.africa','Chinedu Eze',              'chinedu.staff',  false, 'finance'),
   ('00000000-0000-4000-b000-000000000006', 'bisi@arpedia.africa',   'Bisi Adeyemi',             'bisi.staff',     false, 'support'),
-  ('00000000-0000-4000-b000-000000000007', 'kemi@arpedia.africa',   'Kemi Danjuma',             'kemid.staff',    false, 'analyst');
+  ('00000000-0000-4000-b000-000000000007', 'kemi@arpedia.africa',   'Kemi Danjuma',             'kemid.staff',    false, 'analyst'),
+  ('00000000-0000-4000-b000-000000000008', 'ifeanyi@arpedia.africa','Ifeanyi Obi',              'ifeanyi.staff',  false, 'publisher');
 
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -45,6 +46,30 @@ on conflict (id) do update set username = excluded.username, full_name = exclude
 
 insert into public.staff_roles (user_id, role)
 select id, role from seed_users where role is not null;
+
+-- Every seeded staff member has a verified authenticator with the same local-only TOTP secret,
+-- so tools (smoke-admin, parity --admin) can pass two-step: tools/totp.mjs makes the code.
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret)
+select gen_random_uuid(), id, 'Authenticator', 'totp', 'verified', now(), now(), 'ARPEDIALOCALTOTPSEEDSECRETXXXXXX'
+from seed_users where role is not null;
+
+-- Recent activity, as on s-team.
+update public.staff_roles s set last_active_at = now() - v.ago
+from (values
+  ('00000000-0000-4000-b000-000000000002'::uuid, interval '40 minutes'),
+  ('00000000-0000-4000-b000-000000000003'::uuid, interval '58 minutes'),
+  ('00000000-0000-4000-b000-000000000008'::uuid, interval '90 minutes'),
+  ('00000000-0000-4000-b000-000000000004'::uuid, interval '73 minutes'),
+  ('00000000-0000-4000-b000-000000000005'::uuid, interval '86 minutes'),
+  ('00000000-0000-4000-b000-000000000006'::uuid, interval '1 day'),
+  ('00000000-0000-4000-b000-000000000007'::uuid, interval '8 days')
+) as v (id, ago)
+where s.user_id = v.id;
+
+-- One open invite, as on s-team (the token is unknown, so the link itself never works).
+insert into public.staff_invites (email, full_name, role, invited_by, token_hash, expires_at)
+values ('adaora@arpedia.africa', 'Adaora Nnadi', 'support', '00000000-0000-4000-b000-000000000001',
+  encode(extensions.gen_random_bytes(32), 'hex'), now() + interval '70 hours');
 
 -- ─── Books ──────────────────────────────────────────────────────────────────
 -- words → pages = ceil(words / 250) → price = ceil(pages / 2) (packages/core pricing).
@@ -136,3 +161,23 @@ with spend as (
 )
 insert into public.entitlements (user_id, book_id, scope, source, ledger_id)
 select '00000000-0000-4000-a000-000000000001', book_id, 'book', 'unlock_all', id from spend;
+
+-- ─── Flow 01 · onboarding ───────────────────────────────────────────────────
+-- Seeded accounts have finished onboarding; Ngozi picked Fiction and Nigerian books.
+update public.profiles set onboarding_step = 'done', signup_intent = case when is_author then 'author' else 'reader' end::public.signup_intent,
+  terms_version = 1, privacy_version = 1, terms_accepted_at = now()
+where id in (select id from seed_users);
+insert into public.user_genres (user_id, genre_id)
+select '00000000-0000-4000-a000-000000000001', id from public.genres where slug in ('fiction', 'nigerian-books');
+-- Tag the seed books with launch genres too, so genre picks find them.
+update public.books set genres = genres || case title
+    when 'Harmattan Letters'    then array['Fiction', 'Christian', 'Nigerian books']
+    when 'Ruth of Ibadan'       then array['Fiction', 'Nigerian books']
+    when 'A House Called Grace' then array['Fiction', 'Christian', 'Drama']
+    when 'Still Waters, Lagos'  then array['Fiction', 'African literature', 'Nigerian books']
+    when 'Seven Bridges to Jos' then array['Fiction', 'Drama']
+    when 'Psalms for the Danfo' then array['Faith', 'Short reads']
+    when 'The Alignment'        then array['Fiction']
+    when 'Bread on Water'       then array['Short reads', 'African literature']
+  end
+where id in (select ('00000000-0000-4000-c000-' || lpad(n::text, 12, '0'))::uuid from seed_books);

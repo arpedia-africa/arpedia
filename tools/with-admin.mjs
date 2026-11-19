@@ -1,60 +1,87 @@
 #!/usr/bin/env node
-// Runs a command while the admin console and the api Worker are up, then stops both. For headless
-// runs, where background servers are not allowed: everything stays in one foreground command.
-//   node tools/with-admin.mjs [--prod] [--port 3012] <command...>
-//   node tools/with-admin.mjs --prod node tools/parity.mjs --admin books --url http://127.0.0.1:3012
-// --prod serves the last `next build` (run it first; it settles faster than `next dev`).
-import { execSync, spawn } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+// Run a command against a live admin console (and, with --api, the api Worker) in the
+// foreground, then stop them.
+//   node tools/with-admin.mjs node tools/smoke-admin.mjs
+//   node tools/with-admin.mjs --api node tools/smoke-team.mjs
+//   node tools/with-admin.mjs node tools/parity.mjs --admin signin signin-2fa
+// Starts `next dev` on :3000 and `wrangler dev` on :8787 unless something already answers there,
+// waits until they respond, runs the command, and kills the process trees it started.
+// --prod serves the last `next build` with `next start` (stable for parity: no compile reloads).
+// ADMIN_PORT / API_PORT move both (run `pnpm dev:vars` with the same values first); the command
+// gets ADMIN_URL and API_URL in its environment.
+import { spawn, spawnSync } from 'node:child_process';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const args = process.argv.slice(2);
-const prod = args[0] === '--prod' && args.shift();
-const port = args[0] === '--port' ? (args.shift(), args.shift()) : '3012';
+let args = process.argv.slice(2);
+const flags = new Set();
+while (args[0] === '--api' || args[0] === '--prod') flags.add(args.shift());
+const withApi = flags.has('--api');
 if (!args.length) {
-  console.error('usage: node tools/with-admin.mjs [--prod] [--port 3012] <command...>');
+  console.error('usage: node tools/with-admin.mjs [--api] [--prod] <command> [args…]');
   process.exit(2);
 }
 
-const kids = [];
-const start = (cmd, cwd) => kids.push(spawn(cmd, { cwd, shell: true, stdio: 'ignore' }));
-const stop = () => {
-  for (const k of kids.splice(0)) {
-    try {
-      if (process.platform === 'win32') execSync(`taskkill /pid ${k.pid} /T /F`, { stdio: 'ignore' });
-      else process.kill(-k.pid);
-    } catch {}
-  }
-};
-const up = async (url, ms = 300_000) => {
-  for (const t = Date.now(); Date.now() - t < ms; await new Promise((r) => setTimeout(r, 1000))) {
-    if (
-      await fetch(url).then(
-        () => true,
-        () => false,
-      )
-    )
-      return;
-  }
-  throw new Error(`not up after ${ms / 1000}s: ${url}`);
-};
-process.on('exit', stop);
-process.on('SIGINT', () => process.exit(130));
+const adminPort = process.env.ADMIN_PORT ?? '3000';
+const apiPort = process.env.API_PORT ?? '8787';
+process.env.ADMIN_URL = `http://127.0.0.1:${adminPort}`;
+process.env.API_URL = `http://127.0.0.1:${apiPort}`;
+process.env.ARPEDIA_API_URL = process.env.API_URL;
+const servers = [
+  {
+    name: 'admin',
+    probe: `${process.env.ADMIN_URL}/sign-in`,
+    cmd: [
+      '--filter',
+      '@arpedia/admin',
+      'exec',
+      'next',
+      flags.has('--prod') ? 'start' : 'dev',
+      '--port',
+      adminPort,
+    ],
+  },
+  ...(withApi
+    ? [
+        {
+          name: 'api',
+          probe: `${process.env.API_URL}/health`,
+          cmd: ['--filter', '@arpedia/api', 'exec', 'wrangler', 'dev', '--port', apiPort],
+        },
+      ]
+    : []),
+];
 
-try {
-  start('npx wrangler dev --port 8787', resolve(root, 'workers/api'));
-  start(`npx next ${prod ? 'start' : 'dev'} --port ${port}`, resolve(root, 'apps/admin'));
-  await up('http://127.0.0.1:8787/');
-  await up(`http://127.0.0.1:${port}/sign-in`);
-  console.log(`admin on :${port} (${prod ? 'build' : 'dev'}), api Worker on :8787`);
-  const code = await new Promise((r) =>
-    spawn(args.join(' '), { cwd: root, shell: true, stdio: 'inherit' }).on('exit', r),
-  );
-  stop();
-  process.exit(code ?? 1);
-} catch (e) {
-  console.error(e.message);
-  stop();
-  process.exit(1);
+const up = async (probe) => {
+  try {
+    return (await fetch(probe, { redirect: 'manual' })).status === 200;
+  } catch {
+    return false;
+  }
+};
+
+const started = [];
+function stop() {
+  for (const p of started) {
+    if (!p.pid) continue;
+    if (process.platform === 'win32')
+      spawnSync('taskkill', ['/pid', String(p.pid), '/T', '/F'], { stdio: 'ignore' });
+    else process.kill(-p.pid, 'SIGTERM');
+  }
 }
+
+for (const s of servers) {
+  if (await up(s.probe)) continue;
+  started.push(spawn('pnpm', s.cmd, { stdio: 'ignore', shell: true }));
+  const until = Date.now() + 180_000;
+  while (!(await up(s.probe))) {
+    if (Date.now() > until) {
+      stop();
+      console.error(`${s.name} did not start within 3 minutes`);
+      process.exit(1);
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+}
+
+const run = spawnSync(args[0], args.slice(1), { stdio: 'inherit', shell: process.platform === 'win32' });
+stop();
+process.exit(run.status ?? 1);

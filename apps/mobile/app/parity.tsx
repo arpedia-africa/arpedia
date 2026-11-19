@@ -24,7 +24,43 @@ import {
   useTheme,
   type ThemeName,
 } from '@arpedia/ui';
+import { LAUNCH_PLANS } from '@arpedia/core';
 import { kitEnabled } from '@/lib/kit';
+import { LoginView, SignupView } from '../features/01/AuthViews';
+import {
+  AllSetBody,
+  AllSetFoot,
+  AllSetHero,
+  BookLead,
+  PaywallBody,
+  PaywallFoot,
+  PaywallHero,
+  PersonLead,
+} from '../features/01/PaywallViews';
+import {
+  Foot,
+  InterestsFoot,
+  InterestsView,
+  ProfileFoot,
+  ProfileView,
+  RoleView,
+  ThemeView,
+  type GenreOption,
+} from '../features/01/StepViews';
+
+const PAGES = [
+  'kit-a',
+  'kit-b',
+  's-login',
+  's-signup',
+  's-interests',
+  's-theme',
+  's-role',
+  's-profile-setup',
+  's-plans-onboard',
+  's-all-set',
+] as const;
+type Page = (typeof PAGES)[number];
 
 /**
  * Pixel-gate pages for `node tools/parity.mjs` (kit builds only). Each page mirrors
@@ -35,7 +71,7 @@ import { kitEnabled } from '@/lib/kit';
 export default function ParityScreen() {
   const params = useLocalSearchParams<{ page?: string; theme?: string; ref?: string }>();
   const theme = (THEMES as string[]).includes(params.theme ?? '') ? (params.theme as ThemeName) : 'sunflower';
-  const page = params.page === 'kit-b' ? 'kit-b' : 'kit-a';
+  const page = (PAGES as readonly string[]).includes(params.page ?? '') ? (params.page as Page) : 'kit-a';
   // Dev builds: no LogBox toasts over the captures.
   useEffect(() => LogBox.ignoreAllLogs(), []);
   if (!kitEnabled) return <Redirect href="/" />;
@@ -71,6 +107,9 @@ function Reference({ page, theme, port }: { page: string; theme: string; port: s
         key={`${page}-${theme}`}
         source={{ uri: `http://127.0.0.1:${Number(port)}/ref?page=${page}&theme=${theme}` }}
         textZoom={100}
+        // WebView draws anything under 8px at 8px by default (WebSettings.minimumFontSize); Chrome
+        // has no minimum, so the prototype's 7.5px cover authors would come out 7% too big.
+        minimumFontSize={1}
         scrollEnabled={false}
         overScrollMode="never"
         style={{ flex: 1, backgroundColor: c.white }}
@@ -83,7 +122,7 @@ function Reference({ page, theme, port }: { page: string; theme: string; port: s
   );
 }
 
-function Page({ page, theme }: { page: 'kit-a' | 'kit-b'; theme: ThemeName }) {
+function Page({ page, theme }: { page: Page; theme: ThemeName }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   useEffect(() => {
@@ -93,9 +132,156 @@ function Page({ page, theme }: { page: 'kit-a' | 'kit-b'; theme: ThemeName }) {
   return (
     <View style={{ flex: 1, backgroundColor: c.white, paddingTop: insets.top }}>
       <StatusBar style="dark" />
-      {page === 'kit-a' ? <KitA /> : <KitB />}
+      {page === 'kit-a' ? (
+        <KitA />
+      ) : page === 'kit-b' ? (
+        <KitB />
+      ) : (
+        // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
+        <View>
+          <Flow01 page={page} />
+        </View>
+      )}
     </View>
   );
+}
+
+// ─── Flow 01 screens with the prototype's values (tools/parity/s-*.html) ────
+const GENRES: GenreOption[] = [
+  'Fiction',
+  'Christian',
+  'Christian romance',
+  'Nigerian books',
+  'African literature',
+  'Faith',
+  'Romance',
+  'Drama',
+  'Short reads',
+  'Personal growth',
+].map((name) => ({ id: name, name }));
+
+const FAN = [
+  { id: 'b1', title: 'Harmattan Letters', author: 'Ifeoma Nwachukwu' },
+  { id: 'b2', title: 'A House Called Grace', author: 'Kemi Ogunleye' },
+  { id: 'b3', title: 'Still Waters, Lagos', author: 'Chioma Okafor' },
+];
+
+function Flow01({ page }: { page: Page }) {
+  switch (page) {
+    case 's-login':
+      return (
+        <LoginView
+          values={{ email: '', password: '' }}
+          errors={{}}
+          onChange={noop}
+          onSubmit={noop}
+          onGoogle={noop}
+          onForgot={noop}
+          onCreate={noop}
+        />
+      );
+    case 's-signup':
+      return (
+        <SignupView
+          values={{ name: '', email: '', password: '' }}
+          errors={{}}
+          onChange={noop}
+          onSubmit={noop}
+          onGoogle={noop}
+          onLogin={noop}
+          onTerms={noop}
+          onPrivacy={noop}
+        />
+      );
+    case 's-interests':
+      return (
+        <>
+          <InterestsView
+            genres={GENRES}
+            picked={new Set(['Fiction', 'Nigerian books'])}
+            onToggle={noop}
+            onBack={noop}
+          />
+          <InterestsFoot onSkip={noop} onContinue={noop} />
+        </>
+      );
+    case 's-theme':
+      return <ThemeView value="sunflower" onPick={noop} onBack={noop} onSkip={noop} onContinue={noop} />;
+    case 's-role':
+      return (
+        <>
+          <RoleView value="reader" onPick={noop} onBack={noop} />
+          <Foot>
+            <Btn label="Continue" iconAfter="arrow" block />
+          </Foot>
+        </>
+      );
+    case 's-profile-setup':
+      return (
+        <>
+          <ProfileView
+            values={{ name: 'Ngozi Eze', phone: '', dob: '', country: 'NG' }}
+            errors={{}}
+            countryName="Nigeria"
+            callingCode="234"
+            onChange={noop}
+            onPhoto={noop}
+            onCountry={noop}
+            onBack={noop}
+          />
+          <ProfileFoot canContinue onContinue={noop} onSkip={noop} />
+        </>
+      );
+    case 's-plans-onboard': {
+      const plans = LAUNCH_PLANS.filter((p) => p.id !== 'monthly');
+      return (
+        <>
+          <PaywallHero
+            title="Ngozi, your shelf is ready"
+            sub="412 books in Christian & Faith, Clean romance and African stories. Start reading tonight."
+            books={FAN}
+            onClose={noop}
+            onRestore={noop}
+          />
+          <PaywallBody plans={plans} selected={plans[0]!} reminderDay={87} onSelect={noop} onMore={noop} />
+          <PaywallFoot plan={plans[0]!} onContinue={noop} onOffline={noop} onTerms={noop} onPrivacy={noop} />
+        </>
+      );
+    }
+    case 's-all-set':
+      return (
+        <>
+          <AllSetHero credits={800} planLine="Quarterly · renews 12 Feb" />
+          <AllSetBody
+            steps={[
+              {
+                key: 'book',
+                title: 'Read the #2 book this week',
+                sub: 'Harmattan Letters · 125 credits',
+                lead: <BookLead title="Harmattan Letters" />,
+                onPress: noop,
+              },
+              {
+                key: 'club',
+                title: 'Join Grace Readers',
+                sub: '1,240 members · reading chapter 8',
+                onPress: noop,
+              },
+              {
+                key: 'author',
+                title: 'Follow Ifeoma Nwachukwu',
+                sub: 'Christian fiction · 3 books',
+                lead: <PersonLead name="Ifeoma Nwachukwu" />,
+                onPress: noop,
+              },
+            ]}
+          />
+          <AllSetFoot onHome={noop} />
+        </>
+      );
+    default:
+      return null;
+  }
 }
 
 function Pk({ children }: { children: React.ReactNode }) {

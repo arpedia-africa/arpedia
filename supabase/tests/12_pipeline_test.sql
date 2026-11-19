@@ -21,7 +21,8 @@ insert into public.profiles (id, full_name, is_author) values
   ('12000000-0000-4000-a000-000000000004', 'Amaka Super', false),
   ('12000000-0000-4000-a000-000000000005', 'Bola Ops', false),
   ('12000000-0000-4000-a000-000000000006', 'Sade Support', false),
-  ('12000000-0000-4000-a000-000000000007', 'Kemi PubAuthor', true);
+  ('12000000-0000-4000-a000-000000000007', 'Kemi PubAuthor', true)
+on conflict (id) do update set full_name = excluded.full_name, is_author = excluded.is_author;
 insert into public.staff_roles (user_id, role) values
   ('12000000-0000-4000-a000-000000000003', 'publisher'),
   ('12000000-0000-4000-a000-000000000004', 'super_admin'),

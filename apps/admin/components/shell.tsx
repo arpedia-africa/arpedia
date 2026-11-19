@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { nav, locate } from '@/lib/nav';
+import { locate, type NavSection } from '@/lib/nav';
 import { Icon } from './icon';
 
 const initials = (name: string) =>
@@ -16,23 +16,30 @@ const initials = (name: string) =>
 
 export interface ShellProps {
   staff: { name: string; roleLabel: string };
+  /** The sidebar for this staff member's role (navFor): links the role cannot use are hidden. */
+  nav: NavSection[];
   env: string;
   children: ReactNode;
 }
 
-/** Every console page, for the search overlay (s-cmdk). People, books and payments join as flows build them. */
-const pages = nav.flatMap(sec =>
-  sec.sub.length ? sec.sub.map(s => ({ label: s.label, section: sec.label, href: `/${s.key}` })) : [{ label: sec.label, section: sec.label, href: sec.href }],
-);
+/** Every console page the role can open, for the search overlay (s-cmdk). */
+const pagesOf = (nav: NavSection[]) =>
+  nav.flatMap(sec =>
+    sec.sub.length
+      ? sec.sub.map(s => ({ label: s.label, section: sec.label, href: `/${s.key}` }))
+      : [{ label: sec.label, section: sec.label, href: sec.href }],
+  );
+type Page = ReturnType<typeof pagesOf>[number];
 
 /**
  * Console shell: the same markup and class names as admin/src/02-shell.html, styled by the
  * prototype's own CSS (app/prototype.css). Nav state follows the prototype script: the current
  * page gets aria-current="page" and its section gets "open".
  */
-export function Shell({ staff, env, children }: ShellProps) {
+export function Shell({ staff, nav, env, children }: ShellProps) {
   const pathname = usePathname();
   const { section: openSection, page } = locate(pathname);
+  const pages = useMemo(() => pagesOf(nav), [nav]);
   const [sideOpen, setSideOpen] = useState(false);
   const [search, setSearch] = useState(false);
 
@@ -142,7 +149,7 @@ export function Shell({ staff, env, children }: ShellProps) {
         </div>
         <main className="view">
           {children}
-          {search ? <Search onClose={() => setSearch(false)} /> : null}
+          {search ? <Search pages={pages} onClose={() => setSearch(false)} /> : null}
         </main>
       </div>
     </div>
@@ -150,7 +157,7 @@ export function Shell({ staff, env, children }: ShellProps) {
 }
 
 /** s-cmdk: search overlay. For now it finds console pages; records join as later flows add them. */
-function Search({ onClose }: { onClose: () => void }) {
+function Search({ pages, onClose }: { pages: Page[]; onClose: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -158,7 +165,7 @@ function Search({ onClose }: { onClose: () => void }) {
   const hits = useMemo(() => {
     const t = q.trim().toLowerCase();
     return t ? pages.filter(p => `${p.section} ${p.label}`.toLowerCase().includes(t)) : pages;
-  }, [q]);
+  }, [q, pages]);
 
   useEffect(() => input.current?.focus(), []);
   useEffect(() => setActive(0), [q]);

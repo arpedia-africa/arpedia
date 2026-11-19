@@ -1,0 +1,19 @@
+<!-- Parity page s-profile-setup: the prototype screen, verbatim from prototype/src/02-auth-discovery.html.
+     apps/mobile/app/parity.tsx renders the flow 01 view with the same values. -->
+<div class="hero onb-step">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="role" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="3" aria-valuemin="1" aria-valuemax="3"><i style="width:100%"></i></div><span class="onb-count">3 of 3</span></div>
+    <div class="hero__body">
+      <h1 class="hero__title">Complete your profile</h1>
+      <p class="hero__sub">Only you can see this. Optional, you can finish it later.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="onb-avatar"><span class="av xl g">NE</span><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-image"/></svg>Add photo</button></div>
+      <div class="input"><label for="ps-name">Full name</label><div class="field"><input id="ps-name" value="Ngozi Eze"></div></div>
+      <div class="input"><label for="ps-phone">Phone number</label><div class="field"><span class="t-soft t-strong">+234</span><input id="ps-phone" placeholder="803 000 0000"></div><span class="hint">For account recovery only. Never shown to others.</span></div>
+      <div class="input"><label for="ps-dob">Date of birth</label><div class="field"><input id="ps-dob" placeholder="DD / MM / YYYY"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-cal"/></svg></div><span class="hint">Helps us suggest age-appropriate books.</span></div>
+      <div class="input"><label for="ps-country">Country</label><div class="field"><input id="ps-country" value="Nigeria"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="plans-onboard">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="link t-center onb-skip" data-go="plans-onboard">Skip for now</a></div>

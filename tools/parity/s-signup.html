@@ -1,0 +1,21 @@
+<!-- Parity page s-signup: the prototype screen, verbatim from prototype/src/02-auth-discovery.html. Changed: password rule 8 characters (OPEN-QUESTIONS Q88).
+     apps/mobile/app/parity.tsx renders the flow 01 view with the same values. -->
+<div class="hero onb-hero">
+    <div class="hero__body">
+      <svg class="onb-logo" viewBox="0 0 48 48" role="img" aria-label="Arpedia"><use href="#i-appicon"/></svg>
+      <h1 class="hero__title">Create your account</h1>
+      <p class="hero__sub">Join Arpedia to read and connect.</p>
+    </div>
+  </div>
+  <div class="body onb-sheet">
+    <div class="form">
+      <div class="input"><label for="su-name">Full name</label><div class="field"><input id="su-name" placeholder="Ada Writer"></div></div>
+      <div class="input"><label for="su-email">Email</label><div class="field"><input id="su-email" type="email" placeholder="you@example.com"></div></div>
+      <div class="input"><label for="su-pw">Password</label><div class="field"><input id="su-pw" type="password" placeholder="At least 8 characters"><button class="ib onb-eye" aria-label="Show password"><svg class="ico s" aria-hidden="true"><use href="#i-eye"/></svg></button></div><span class="hint">Use at least 8 characters.</span></div>
+      <a class="btn btn-p block" data-go="interests">Create account</a>
+      <div class="divider-or">or</div>
+      <button class="btn btn-g block"><svg class="ico s" aria-hidden="true"><use href="#i-g"/></svg>Sign up with Google</button>
+      <p class="t-sm t-soft t-center onb-alt">Already have an account? <a class="link" data-go="login">Log in</a></p>
+      <p class="t-xs t-muted t-center">By creating an account you agree to the Terms and Privacy Policy.</p>
+    </div>
+  </div>

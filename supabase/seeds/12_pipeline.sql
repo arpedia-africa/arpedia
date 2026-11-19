@@ -16,17 +16,18 @@ insert into auth.users (instance_id, id, aud, role, email, encrypted_password, e
 select '00000000-0000-0000-0000-000000000000', id, 'authenticated', 'authenticated', email,
   extensions.crypt('arpedia-local', extensions.gen_salt('bf')), now(),
   '{"provider":"email","providers":["email"]}', jsonb_build_object('full_name', full_name), now(), now(), '', '', '', ''
-from seed_pipeline_users;
+from seed_pipeline_users where id not in (select id from auth.users);
 insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
 select gen_random_uuid(), id, id::text, 'email',
   jsonb_build_object('sub', id::text, 'email', email, 'email_verified', true), now(), now(), now()
-from seed_pipeline_users;
+from seed_pipeline_users where id::text not in (select provider_id from auth.identities where provider = 'email');
 insert into public.profiles (id, username, full_name, is_author)
 select id, username, full_name, is_author from seed_pipeline_users
 on conflict (id) do update set username = excluded.username, full_name = excluded.full_name,
   is_author = excluded.is_author;
 insert into public.staff_roles (user_id, role)
-select id, role from seed_pipeline_users where role is not null;
+select id, role from seed_pipeline_users where role is not null
+on conflict do nothing;
 
 create temporary table seed_queue (n int, title text, author uuid, genre text, source public.source_type,
   status public.revision_status, words int, routed interval, assignee uuid, flags jsonb, step text);

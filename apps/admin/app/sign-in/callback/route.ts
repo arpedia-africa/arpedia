@@ -16,10 +16,12 @@ export async function GET(request: NextRequest) {
   if (error) return to('/sign-in?error=google');
 
   const email = data.user?.email?.toLowerCase() ?? '';
-  if (!email.endsWith(`@${STAFF_DOMAIN}`) || !(await getStaff())) {
+  const staff = email.endsWith(`@${STAFF_DOMAIN}`) ? await getStaff() : null;
+  if (!staff) {
     // `local` drops the session cookies before the network call, so a refused account never keeps one.
     await supabase.auth.signOut({ scope: 'local' });
     return to('/sign-in?error=refused');
   }
-  return to('/');
+  // Google sign-in still goes through two-step (rule 3).
+  return to(staff.mfaEnrolled ? '/sign-in/two-step' : '/sign-in/two-step/setup');
 }

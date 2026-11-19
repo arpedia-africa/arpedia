@@ -2,17 +2,34 @@
 // Run a Maestro flow on the connected emulator at each check width (CLAUDE.md: 320, 360, 375dp)
 // by changing the display density, then restore it. Screenshots land in the current directory.
 //   node tools/maestro-widths.mjs apps/mobile/.maestro/00-kit.yaml [320,360,375]
+//   Device: --serial or ANDROID_SERIAL. CLI: MAESTRO, else .shots/maestro/bin (unzipped release), else `maestro` on PATH.
+//   Other --flags pass through to `maestro test`. MIUI (owner's phone): install the driver once (its
+//   "Install via USB" prompt needs a tap), allow it to start activities from the background
+//   (`appops set dev.mobile.maestro 10021 allow`, else launchApp silently opens nothing), then run
+//   with --no-reinstall-driver so Maestro keeps that driver.
 import { execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-const flow = process.argv[2];
-const widths = (process.argv[3] ?? '375,360,320').split(',').map(Number);
+const args = process.argv.slice(2);
+const si = args.indexOf('--serial');
+const serial = si >= 0 ? args.splice(si, 2)[1] : process.env.ANDROID_SERIAL;
+// Other --flags go to `maestro test` (e.g. --no-reinstall-driver on MIUI, see the header).
+const extra = args.filter((a) => a.startsWith('--')).join(' ');
+const [flow, widthArg] = args.filter((a) => !a.startsWith('--'));
+const widths = (widthArg ?? '375,360,320').split(',').map(Number);
 if (!flow) {
-  console.error('usage: node tools/maestro-widths.mjs <flow.yaml> [widths]');
+  console.error('usage: node tools/maestro-widths.mjs <flow.yaml> [widths] [--serial <serial>]');
   process.exit(1);
 }
-const adb = (cmd) => execSync(`adb shell ${cmd}`, { encoding: 'utf8' }).trim();
+const local = resolve('.shots/maestro/bin', process.platform === 'win32' ? 'maestro.bat' : 'maestro');
+const maestro = process.env.MAESTRO ?? (existsSync(local) ? `"${local}"` : 'maestro');
+const adb = (cmd) =>
+  execSync(`adb ${serial ? `-s ${serial} ` : ''}shell ${cmd}`, { encoding: 'utf8' }).trim();
 const px = Number(adb('wm size').match(/(\d+)x\d+/)?.[1]);
 if (!px) throw new Error('Could not read the emulator screen size');
+// Restore the device's own setting afterwards (the owner's phone keeps an override, 461 = 375dp).
+const saved = adb('wm density').match(/Override density: (\d+)/)?.[1];
 
 let failed = false;
 try {
@@ -21,13 +38,15 @@ try {
     adb(`wm density ${dpi}`);
     console.log(`\n▶ ${w}dp (density ${dpi})`);
     try {
-      execSync(`maestro test ${flow} -e WIDTH=${w}`, { stdio: 'inherit' });
+      execSync(`${maestro} ${serial ? `--device ${serial} ` : ''}test ${extra} ${flow} -e WIDTH=${w}`, {
+        stdio: 'inherit',
+      });
     } catch {
       failed = true;
       console.error(`✗ ${flow} failed at ${w}dp`);
     }
   }
 } finally {
-  adb('wm density reset');
+  adb(saved ? `wm density ${saved}` : 'wm density reset');
 }
 process.exit(failed ? 1 : 0);

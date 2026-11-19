@@ -21,6 +21,8 @@ export interface FieldProps extends Omit<TextInputProps, 'style' | 'placeholderT
   error?: string;
   /** Icon inside the field, before the text (search, mail). */
   icon?: IconName;
+  /** Text or element before the input (`+234`). */
+  leading?: ReactNode;
   trailing?: ReactNode;
   /** Show the focused look without focus (`.field.focus` specimen). */
   focusedLook?: boolean;
@@ -32,6 +34,7 @@ export function Field({
   hint,
   error,
   icon,
+  leading,
   trailing,
   focusedLook,
   onFocus,
@@ -94,6 +97,7 @@ export function Field({
           ]}
         >
           {icon ? <Icon name={icon} size="s" color={c.ink3} /> : null}
+          {leading}
           <TextInput
             {...input}
             onFocus={(e) => {
@@ -118,7 +122,11 @@ export function Field({
               paddingHorizontal: 0,
               includeFontPadding: false,
               fontFamily: fontFamily('ui', 400),
-              ...androidFontSize(fs, fontFamily('ui', 400)),
+              ...androidFontSize(
+                fs,
+                fontFamily('ui', 400),
+                input.secureTextEntry && input.value ? undefined : input.value || input.placeholder,
+              ),
               color: c.ink,
             }}
           />

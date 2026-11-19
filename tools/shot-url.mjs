@@ -3,9 +3,10 @@
 //   node tools/shot-url.mjs <url> <out.png> [width] [height] [--as <email>]
 // --as signs in a seeded local user (password arpedia-local) and sends the @supabase/ssr session
 // cookie, so console pages can be captured. Uses Chrome's DevTools protocol (no extra packages).
-import { execSync, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { localEnv, passwordSession, staffSession } from './staff-session.mjs';
 
 const args = process.argv.slice(2);
 const ai = args.indexOf('--as');
@@ -30,24 +31,12 @@ if (!chrome) {
   process.exit(1);
 }
 
+// Staff (@arpedia.africa) also pass two-step with the seeded authenticator, as the console needs.
 async function sessionCookies(email) {
-  const st = execSync('pnpm -s exec supabase status -o env', {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-  });
-  const env = Object.fromEntries(
-    st
-      .split(/\r?\n/)
-      .map((l) => l.match(/^([A-Z_]+)="?(.*?)"?$/))
-      .filter(Boolean)
-      .map((m) => [m[1], m[2]]),
-  );
-  const s = await fetch(`${env.API_URL}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: env.ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password: 'arpedia-local' }),
-  }).then((r) => r.json());
-  if (!s.access_token) throw new Error(`sign-in failed for ${email}`);
+  const env = localEnv();
+  const s = email.endsWith('@arpedia.africa')
+    ? await staffSession(env, email)
+    : await passwordSession(env, email);
   const name = `sb-${new URL(env.API_URL).hostname.split('.')[0]}-auth-token`;
   const value = 'base64-' + Buffer.from(JSON.stringify(s)).toString('base64url');
   return value.length <= 3180

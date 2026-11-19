@@ -8,18 +8,20 @@ import { useTheme } from '../theme';
 import { motion } from '../tokens';
 
 export type BtnVariant = 'p' | 's' | 'n' | 'g' | 'x';
-export type BtnSize = 'sm' | 'md';
+export type BtnSize = 'sm' | 'md' | 'lg';
 
 export interface BtnProps {
   label: string;
   onPress?: () => void;
   /** p (.btn-p primary) · s (.btn-s secondary) · n (.btn-n night) · g (.btn-g outline) · x (.btn-x destructive) */
   variant?: BtnVariant;
-  /** `.btn.sm` 36 · `.btn.md` 42 · omitted = `.btn` base 48 */
+  /** `.btn.sm` 36 · `.btn.md` 42 · omitted = `.btn` base 48 · `lg` = `.pw-foot .btn` 54 */
   size?: BtnSize;
   /** `.btn.block`: width 100% */
   block?: boolean;
   icon?: IconName;
+  /** Icon after the label ("Continue →"). */
+  iconAfter?: IconName;
   /** Prototype icon size class (`ico xs|s`); default s (xs on sm buttons). */
   iconSize?: IconSize;
   /** `.btn.dis` */
@@ -37,6 +39,7 @@ export function Btn({
   size,
   block,
   icon,
+  iconAfter,
   iconSize,
   disabled,
   loading,
@@ -61,7 +64,9 @@ export function Btn({
       ? { h: 36, px: 12, fs: 13, r: 10 }
       : size === 'md'
         ? { h: 42, px: 18, fs: 14, r: 12 }
-        : { h: 48, px: 18, fs: 15, r: 12 };
+        : size === 'lg'
+          ? { h: 54, px: 18, fs: 16, r: 14 }
+          : { h: 48, px: 18, fs: 15, r: 12 };
   const bw = 'border' in p && p.border ? 1.5 : 0;
   return (
     <Press
@@ -100,6 +105,9 @@ export function Btn({
           <Text size={dims.fs} weight={600} color={p.fg} oneLine style={{ flexShrink: 1 }}>
             {label}
           </Text>
+          {iconAfter ? (
+            <Icon name={iconAfter} size={iconSize ?? (size === 'sm' ? 'xs' : 's')} color={p.fg} />
+          ) : null}
         </>
       )}
     </Press>
@@ -154,10 +162,20 @@ export function IconButton({ icon, label, onPress, color, dot, pressed, style }:
 }
 
 /** Text link in the main ink colour (`.link`). */
-export function Link({ label, onPress }: { label: string; onPress?: () => void; children?: ReactNode }) {
+export function Link({
+  label,
+  onPress,
+  size,
+}: {
+  label: string;
+  onPress?: () => void;
+  /** Font size in CSS px (e.g. `.onb-forgot` 13.5); defaults to the body size. */
+  size?: number;
+  children?: ReactNode;
+}) {
   return (
     <Press onPress={onPress} accessibilityRole="link" hitSlop={12} pressScale={1}>
-      <Text weight={600} color="orgInk" oneLine>
+      <Text weight={600} color="orgInk" size={size} oneLine>
         {label}
       </Text>
     </Press>

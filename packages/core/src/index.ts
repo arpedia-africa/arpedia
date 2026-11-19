@@ -1,3 +1,4 @@
+export * from './onboarding';
 export * from './pricing';
 export * from './schemas';
 export * from './counting';

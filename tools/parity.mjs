@@ -43,7 +43,7 @@ const buildPackage = dev ? DEV_PACKAGE : RELEASE_PACKAGE;
 const max = Number(opt('max', '2'));
 const themes = opt('themes', admin ? 'light' : 'sunflower,palm,plum,night').split(',');
 const serial = opt('serial', process.env.ANDROID_SERIAL || 'c1212d5c');
-const baseUrl = opt('url', 'http://127.0.0.1:3000');
+const baseUrl = opt('url', process.env.ADMIN_URL ?? 'http://127.0.0.1:3000');
 const ids = argv.filter((a) => !a.startsWith('--'));
 const outDir = resolve(root, '.shots/parity');
 mkdirSync(outDir, { recursive: true });
@@ -268,6 +268,42 @@ async function loadDevBundle() {
   await sleep(3000); // a deep link sent while the router mounts is dropped
 }
 
+/**
+ * The owner may pick up the phone: never capture unless our app is in front and no heads-up
+ * notification (someone's message) is showing over it. Checks every 30 s for up to 10 minutes, then
+ * gives up (no screenshot of anything else is ever taken).
+ */
+async function waitForFocus(pkg) {
+  for (let i = 0; i <= 20; i++) {
+    const focus =
+      adb('shell', 'dumpsys', 'window')
+        .toString()
+        .match(/mCurrentFocus=.*/)?.[0] ?? '';
+    const ok = focus.includes(`${pkg}/`);
+    const banner = ok && headsUp();
+    if (ok && !banner) return;
+    if (i === 20) break;
+    console.warn(
+      banner
+        ? 'a notification is showing; waiting 30 s'
+        : `${pkg} is not in front (${focus.trim()}); waiting 30 s`,
+    );
+    await sleep(30_000);
+  }
+  throw new Error(`${pkg} was not clear in front for 10 minutes; no capture taken`);
+}
+
+/** A heads-up notification is pinned over the screen (SystemUI's own state; only flags are read). */
+function headsUp() {
+  const n = adb(
+    'shell',
+    "dumpsys activity service com.android.systemui/.SystemUIService | grep -c 'isPinned()=true' || true",
+  )
+    .toString()
+    .trim();
+  return Number(n) > 0;
+}
+
 /** Open a parity page in an app, wait for its PARITY_READY line, capture below the status bar. */
 async function capture(pkg, query, id, theme, kind, g, height) {
   if (pkg === DEV_PACKAGE) await loadDevBundle();
@@ -298,7 +334,16 @@ async function capture(pkg, query, id, theme, kind, g, height) {
   const top = Number(m[4]);
   height ??= Number(m[5]);
   await sleep(900); // arrive animations
-  const raw = adb('exec-out', 'screencap', '-p');
+  let raw;
+  for (let tries = 0; !raw; tries++) {
+    await waitForFocus(pkg);
+    raw = adb('exec-out', 'screencap', '-p');
+    // A notification that arrived during the capture: throw the capture away.
+    if (headsUp()) {
+      raw = null;
+      if (tries === 5) throw new Error('notifications kept arriving; no capture kept');
+    }
+  }
   const h = Math.min(Math.floor(height * g.dpr), g.heightPx - top);
   return {
     png: await sharp(raw).extract({ left: 0, top, width: g.widthPx, height: h }).png().toBuffer(),
@@ -398,25 +443,13 @@ try {
       );
       return b.shot();
     };
-    const cookies = async (email) => {
-      const { execSync } = await import('node:child_process');
-      const st = execSync('pnpm -s exec supabase status -o env', {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      });
-      const env = Object.fromEntries(
-        st
-          .split(/\r?\n/)
-          .map((l) => l.match(/^([A-Z_]+)="?(.*?)"?$/))
-          .filter(Boolean)
-          .map((m) => [m[1], m[2]]),
-      );
-      const s = await fetch(`${env.API_URL}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: { apikey: env.ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'arpedia-local' }),
-      }).then((r) => r.json());
-      if (!s.access_token) throw new Error(`sign-in failed for ${email}`);
+    // Types into a React-controlled input (the native setter, then an input event).
+    const typeInto = `((s,v)=>{const el=document.querySelector(s);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}))})`;
+    // `as` signs in a seeded staff member with two-step; `aal1` stops after the password.
+    const cookies = async (email, aal1 = false) => {
+      const { localEnv, passwordSession, staffSession } = await import('./staff-session.mjs');
+      const env = localEnv();
+      const s = aal1 ? await passwordSession(env, email) : await staffSession(env, email);
       const name = `sb-${new URL(env.API_URL).hostname.split('.')[0]}-auth-token`;
       const value = 'base64-' + Buffer.from(JSON.stringify(s)).toString('base64url');
       return value.length <= 3180
@@ -436,6 +469,31 @@ try {
           { x: 248, y: 0, width: W - 248, height: 60 },
         ],
       },
+      'signin-2fa': {
+        path: '/sign-in/two-step',
+        as: 'amaka@arpedia.africa',
+        aal1: true,
+        fill: `${typeInto}('input[name=code]','4812');document.querySelector('input[name=code]').focus();`,
+      },
+      'signin-reset': {
+        path: '/sign-in/reset',
+        // Wait for hydration first, or the click posts the form natively and navigates away.
+        fill: `await new Promise(r=>setTimeout(r,1500));${typeInto}('#rs-e','amaka@arpedia.africa');document.querySelector('button[type=submit]').click();await new Promise(r=>setTimeout(r,1500));`,
+      },
+      // Page content only: the prototype draws a Moderator with the full sidebar, but flow 16
+      // rule 11 hides links the role can't use (flow file wins).
+      'no-access': {
+        path: '/royalties',
+        as: 'zainab@arpedia.africa',
+        regions: [{ x: 248, y: 60, width: W - 248, height: H - 60 }],
+      },
+      team: { path: '/team', as: 'amaka@arpedia.africa' },
+      'team-invite': {
+        path: '/team?invite=1',
+        as: 'amaka@arpedia.africa',
+        fill: `${typeInto}('#iv-e','adaora@arpedia.africa');${typeInto}('#iv-n','Adaora Nnadi');await new Promise(r=>setTimeout(r,300));document.activeElement.blur();`,
+      },
+      roles: { path: '/roles', as: 'amaka@arpedia.africa' },
       // Flow 12. Shell, band, tabs, toolbar and table head; the rows hold real (seeded) data.
       books: {
         path: '/books',
@@ -543,7 +601,11 @@ try {
       const M = process.env.PARITY_MEASURE;
       const measure = `JSON.stringify([...document.querySelectorAll(${JSON.stringify(M)})].filter(e=>e.offsetParent).slice(0,60).map(e=>{const r=e.getBoundingClientRect();return e.tagName+'.'+e.className+' '+r.top.toFixed(2)+' '+r.height.toFixed(2)+' lh='+getComputedStyle(e).lineHeight+' ff='+getComputedStyle(e).fontFamily.slice(0,20)}))`;
       if (M) console.log('REF', await b.eval(measure));
-      await b.open(baseUrl + p.path, { width: W, height: H, cookies: p.as ? await cookies(p.as) : [] });
+      await b.open(baseUrl + p.path, {
+        width: W,
+        height: H,
+        cookies: p.as ? await cookies(p.as, p.aal1) : [],
+      });
       await b.eval(`(async()=>{${p.fill ?? ''};await ${SETTLE};return true})()`);
       if (M) console.log('BUILD', await b.eval(measure));
       const build = await b.shot();

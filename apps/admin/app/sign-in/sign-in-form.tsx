@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { Icon } from '@/components/icon';
 import { signIn, signInWithGoogle, type SignInState } from './actions';
@@ -13,7 +14,6 @@ const OAUTH_ERRORS = {
 export function SignInForm({ oauthError }: { oauthError?: keyof typeof OAUTH_ERRORS }) {
   const [state, action, pending] = useActionState<SignInState, FormData>(signIn, {});
   const [show, setShow] = useState(false);
-  const [forgot, setForgot] = useState(false);
   const error = state.error ?? (oauthError ? OAUTH_ERRORS[oauthError] : undefined);
   return (
     <form className="auth__card" action={action} noValidate>
@@ -56,20 +56,9 @@ export function SignInForm({ oauthError }: { oauthError?: keyof typeof OAUTH_ERR
             <Icon name="eye" size="s" className="faint" />
           </button>
         </div>
-        {/* Self-service reset arrives with flow 16; until then a super admin resets it. */}
-        <a
-          className="link"
-          href="#forgot"
-          style={{ fontSize: 13, alignSelf: 'flex-end' }}
-          aria-expanded={forgot}
-          onClick={e => {
-            e.preventDefault();
-            setForgot(true);
-          }}
-        >
+        <Link className="link" href="/sign-in/reset" style={{ fontSize: 13, alignSelf: 'flex-end' }}>
           Forgot password?
-        </a>
-        {forgot ? <p className="hint">Ask a super admin to reset your password from Team and roles.</p> : null}
+        </Link>
       </div>
       <button type="submit" className="btn btn-p lg block" disabled={pending} aria-busy={pending}>
         {pending ? 'Signing in…' : 'Continue'}
