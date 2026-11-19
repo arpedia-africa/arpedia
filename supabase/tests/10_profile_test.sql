@@ -56,13 +56,13 @@ select pg_temp.as_user('10000000-0000-4000-a000-000000000001', '10000000-0000-40
 -- ─── Reading goal ───────────────────────────────────────────────────────────
 select is((public.get_profile_summary() -> 'goal'), 'null'::jsonb, 'no goal yet');
 select is((public.get_profile_summary() ->> 'books_read')::int, 0, 'books read is a real zero');
-select throws_ok($$select public.set_reading_goal(public._lagos_year(), 366)$$, '22023', 'goal_target', 'goal above 365 refused');
-select throws_ok($$select public.set_reading_goal(public._lagos_year(), 0)$$, '22023', 'goal_target', 'goal of 0 refused');
-select throws_ok($$select public.set_reading_goal(public._lagos_year() - 1, 12)$$, '22023', 'goal_year', 'last year refused');
-select is((public.set_reading_goal(public._lagos_year(), 24)).target_books, 24, 'goal set');
-select is((public.set_reading_goal(public._lagos_year(), 12)).target_books, 12, 'goal changed in place');
+select throws_ok($$select public.set_reading_goal(extract(year from now() at time zone 'Africa/Lagos')::int, 366)$$, '22023', 'goal_target', 'goal above 365 refused');
+select throws_ok($$select public.set_reading_goal(extract(year from now() at time zone 'Africa/Lagos')::int, 0)$$, '22023', 'goal_target', 'goal of 0 refused');
+select throws_ok($$select public.set_reading_goal(extract(year from now() at time zone 'Africa/Lagos')::int - 1, 12)$$, '22023', 'goal_year', 'last year refused');
+select is((public.set_reading_goal(extract(year from now() at time zone 'Africa/Lagos')::int, 24)).target_books, 24, 'goal set');
+select is((public.set_reading_goal(extract(year from now() at time zone 'Africa/Lagos')::int, 12)).target_books, 12, 'goal changed in place');
 select is((public.get_profile_summary() ->> 'goal')::int, 12, 'summary shows the goal');
-select lives_ok($$select public.set_reading_goal(public._lagos_year() + 1, 30)$$, 'next year allowed');
+select lives_ok($$select public.set_reading_goal(extract(year from now() at time zone 'Africa/Lagos')::int + 1, 30)$$, 'next year allowed');
 select throws_ok($$insert into public.reading_goals (user_id, year, target_books)
   values ('10000000-0000-4000-a000-000000000001', 2030, 5)$$, '42501', null, 'no direct insert into goals');
 
@@ -135,11 +135,11 @@ select pg_temp.as_user('10000000-0000-4000-a000-000000000004');
 select is(public.staff_get_reader('10000000-0000-4000-a000-000000000001') ->> 'phone', '+234 803 ••• ••12', 'Support sees a masked phone');
 select is(public.staff_reveal_contact('10000000-0000-4000-a000-000000000001', 'Caller verified on ticket 12') ->> 'phone',
   '+2348031234512', 'reveal returns the full phone');
-select is((select count(*)::int from public.audit_log where action in ('contact_revealed')
-           and object_id = '10000000-0000-4000-a000-000000000001'), 1, 'reveal is audited');
 
 -- ─── Erasure (service role) ─────────────────────────────────────────────────
 reset role;
+select is((select count(*)::int from public.audit_log where action = 'contact_revealed'
+           and object_id = '10000000-0000-4000-a000-000000000001'), 1, 'reveal is audited');
 select set_config('request.jwt.claims', '{"role": "service_role"}', true);
 select ok(public.erase_account((select id from public.account_deletions
   where user_id = '10000000-0000-4000-a000-000000000007')), 'erased');

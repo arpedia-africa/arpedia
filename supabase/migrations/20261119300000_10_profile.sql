@@ -94,10 +94,13 @@ alter table public.user_devices
   add column revoked_by text check (revoked_by in ('self', 'staff')),
   add column session_id uuid;
 
+-- Only when the device itself registers (insert, or register_device touching last_seen_at); never
+-- when the reader revokes another device from this phone.
 create function public._device_session() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if auth.uid() = new.user_id and nullif(auth.jwt() ->> 'session_id', '') is not null then
+  if auth.uid() = new.user_id and nullif(auth.jwt() ->> 'session_id', '') is not null
+     and (tg_op = 'INSERT' or new.last_seen_at is distinct from old.last_seen_at) then
     new.session_id := (auth.jwt() ->> 'session_id')::uuid;
   end if;
   return new;
@@ -169,14 +172,14 @@ end $$;
 create function public._annotation_counts(p_user uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
-  out jsonb := '{"bookmark": 0, "highlight": 0, "note": 0}';
+  res jsonb := '{"bookmark": 0, "highlight": 0, "note": 0}';
 begin
   if to_regclass('public.annotations') is not null then
-    select out || coalesce(jsonb_object_agg(a.kind, a.n), '{}') into out
+    select res || coalesce(jsonb_object_agg(a.kind, a.n), '{}') into res
     from (select kind, count(*) as n from public.annotations
           where user_id = p_user and deleted_at is null group by kind) a;
   end if;
-  return out;
+  return res;
 end $$;
 
 -- Author earnings not yet paid out, in kobo. Earnings come from the ledger (₦1.60 per credit);
@@ -228,7 +231,7 @@ language plpgsql security definer set search_path = '' as $$
 declare
   uid uuid := public._me();
   yr integer := public._lagos_year();
-  out public.reading_goals;
+  res public.reading_goals;
 begin
   if p_year is null or p_year not in (yr, yr + 1) then
     raise exception 'goal_year' using errcode = '22023';
@@ -238,8 +241,8 @@ begin
   end if;
   insert into public.reading_goals (user_id, year, target_books) values (uid, p_year, p_target)
   on conflict (user_id, year) do update set target_books = excluded.target_books
-  returning * into out;
-  return out;
+  returning * into res;
+  return res;
 end $$;
 
 -- My highlights (rules 10–13): one tab of bookmarks, highlights or notes, grouped by book, groups
@@ -420,13 +423,13 @@ create function public.get_notification_preferences() returns public.notificatio
 language plpgsql stable security definer set search_path = '' as $$
 declare
   uid uuid := public._me();
-  out public.notification_preferences;
+  res public.notification_preferences;
 begin
-  select * into out from public.notification_preferences where user_id = uid;
+  select * into res from public.notification_preferences where user_id = uid;
   if not found then
-    out := row(uid, true, true, true, true, false, false, '22:00'::time, '06:00'::time, 'Africa/Lagos', now());
+    res := row(uid, true, true, true, true, false, false, '22:00'::time, '06:00'::time, 'Africa/Lagos', now());
   end if;
-  return out;
+  return res;
 end $$;
 
 -- Rule 21: one toggle (or a few) at a time, no Save button. Turning offers on or off is the
@@ -499,8 +502,8 @@ begin
     'devices', coalesce((select jsonb_agg(jsonb_build_object(
         'id', d.id, 'model', d.model, 'os', d.os, 'city', d.last_city, 'last_seen_at', d.last_seen_at,
         'download_enabled', d.download_enabled,
-        'current', d.device_key = p_device_key or (sid is not null and d.session_id = sid))
-        order by (d.device_key = p_device_key or (sid is not null and d.session_id = sid)) desc, d.last_seen_at desc)
+        'current', coalesce(d.device_key = p_device_key, false) or coalesce(d.session_id = sid, false))
+        order by (coalesce(d.device_key = p_device_key, false) or coalesce(d.session_id = sid, false)) desc, d.last_seen_at desc)
       from public.user_devices d where d.user_id = uid and d.revoked_at is null), '[]')
   );
 end $$;
@@ -555,7 +558,7 @@ create function public._start_deletion(p_user uuid, p_via text, p_by uuid, p_rea
   p_grace_until timestamptz) returns public.account_deletions
 language plpgsql security definer set search_path = '' as $$
 declare
-  out public.account_deletions;
+  res public.account_deletions;
 begin
   if exists (select 1 from public.account_deletions where user_id = p_user and status in ('pending', 'erasing')) then
     raise exception 'already_deleting' using errcode = '22023';
@@ -573,8 +576,8 @@ begin
   delete from public.account_deletions where user_id = p_user and status = 'blocked';
   insert into public.account_deletions (user_id, requested_via, requested_by, reason, erase_after, grace_until)
   values (p_user, p_via, p_by, p_reason, p_erase_after, p_grace_until)
-  returning * into out;
-  return out;
+  returning * into res;
+  return res;
 end $$;
 
 -- Rules 34–36 (Q3 default: immediate; erased within 7 days). Exact DELETE, any case.
@@ -701,18 +704,25 @@ begin
   end if;
 end $$;
 
+-- Credit balance for the reader pages. credit_balance() lets only Finance and Support ask about
+-- others; every role that may view readers sees the number here (callers check view_readers).
+create function public._balance_of(p_user uuid) returns integer
+language sql stable security definer set search_path = '' as $$
+  select coalesce(sum(delta), 0)::integer from public.credit_ledger where user_id = p_user
+$$;
+
 -- Latest subscription of a reader (flow 03's minimal table, owned by flow 09).
 create function public._reader_plan(p_user uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
-  out jsonb;
+  res jsonb;
 begin
   if to_regclass('public.subscriptions') is not null then
     select jsonb_build_object('plan', s.plan_code, 'status', s.status, 'period_start', s.period_start,
       'period_end', s.period_end)
-    into out from public.subscriptions s where s.user_id = p_user order by s.period_end desc limit 1;
+    into res from public.subscriptions s where s.user_id = p_user order by s.period_end desc limit 1;
   end if;
-  return out;
+  return res;
 end $$;
 
 create function public._reader_tab(p_deleted boolean, p_plan jsonb) returns text
@@ -735,7 +745,7 @@ declare
   qd text;
   pg integer := greatest(coalesce(p_page, 1), 1);
   f jsonb := coalesce(p_filters, '{}');
-  out jsonb;
+  res jsonb;
 begin
   perform public.require_permission('view_readers');
   if p_tab is null or p_tab not in ('all', 'subscribers', 'lapsed', 'no_plan', 'suspended', 'deleted') then
@@ -783,7 +793,7 @@ begin
       from (
         select s.id, s.last_active, jsonb_build_object(
           'id', s.id, 'name', s.full_name, 'avatar_url', s.avatar_url, 'email', s.email, 'country', s.country,
-          'plan', s.plan, 'credits', public.credit_balance(s.id), 'last_active', s.last_active,
+          'plan', s.plan, 'credits', public._balance_of(s.id), 'last_active', s.last_active,
           'joined', s.created_at, 'is_author', s.is_author, 'deleted', s.is_deleted,
           'deletion_requested', exists (select 1 from public.account_deletions ad
                                         where ad.user_id = s.id and ad.status in ('pending', 'blocked'))) as j
@@ -791,8 +801,8 @@ begin
         order by s.last_active desc nulls last, s.id
         offset (pg - 1) * 50 limit 50
       ) x), '[]'))
-  into out;
-  return out;
+  into res;
+  return res;
 end $$;
 
 -- Reader overview (s-user) and Reading and devices (s-user-activity) share one call.
@@ -845,7 +855,7 @@ begin
     'last_sign_in_at', u.last_sign_in_at,
     'platform', last_dev.os, 'app_version', last_dev.app_version,
     'plan', public._reader_plan(p_user),
-    'credits', public.credit_balance(p_user),
+    'credits', public._balance_of(p_user),
     'interests', coalesce((select jsonb_agg(g.name order by g.position) from public.user_genres ug
                            join public.genres g on g.id = ug.genre_id where ug.user_id = p_user), '[]'),
     'unlocked', coalesce((select jsonb_agg(jsonb_build_object('book_id', b.id, 'title', b.title, 'at', e.created_at,
@@ -971,17 +981,17 @@ end $$;
 create function public.staff_add_note(p_user uuid, p_body text) returns public.staff_notes
 language plpgsql security definer set search_path = '' as $$
 declare
-  out public.staff_notes;
+  res public.staff_notes;
 begin
   perform public._staff_acts_on_readers();
   if char_length(btrim(coalesce(p_body, ''))) not between 1 and 2000 then
     raise exception 'note_length' using errcode = '22023';
   end if;
   insert into public.staff_notes (user_id, author_id, body) values (p_user, auth.uid(), btrim(p_body))
-  returning * into out;
+  returning * into res;
   perform public.write_audit('readers', 'note_added', 'user', p_user::text,
     (select full_name from public.profiles where id = p_user), 'Added a staff note', null, null, null);
-  return out;
+  return res;
 end $$;
 
 -- s-user-delete, typed DELETE either way. `now`: only when the reader asked in writing; `after_30_days` hides
@@ -991,7 +1001,7 @@ returns public.account_deletions
 language plpgsql security definer set search_path = '' as $$
 declare
   p public.profiles;
-  out public.account_deletions;
+  res public.account_deletions;
 begin
   perform public._staff_support();
   if p_mode is null or p_mode not in ('now', 'after_30_days') then
@@ -1010,13 +1020,13 @@ begin
   if exists (select 1 from public.staff_roles s where s.user_id = p_user and s.active) then
     raise exception 'staff_account' using errcode = '22023';
   end if;
-  out := public._start_deletion(p_user, 'staff', auth.uid(), btrim(p_reason),
+  res := public._start_deletion(p_user, 'staff', auth.uid(), btrim(p_reason),
     case when p_mode = 'now' then now() else now() + interval '30 days' end,
     case when p_mode = 'now' then null else now() + interval '30 days' end);
   perform public.write_audit('readers', 'account_deletion_started', 'user', p_user::text, p.full_name,
     case when p_mode = 'now' then 'Deleted now' else 'Deletes after 30 days' end, null,
-    jsonb_build_object('mode', p_mode, 'deletion_id', out.id), btrim(p_reason));
-  return out;
+    jsonb_build_object('mode', p_mode, 'deletion_id', res.id), btrim(p_reason));
+  return res;
 end $$;
 
 -- Restore during a staff-chosen 30-day grace (app deletions are immediate, Q3).
@@ -1077,7 +1087,8 @@ revoke execute on function
   public._start_deletion(uuid, text, uuid, text, timestamptz, timestamptz), public.request_account_deletion(text),
   public.restore_my_account(),
   public.erase_account(uuid), public.due_account_deletions(integer),
-  public._mask_phone(text), public._staff_acts_on_readers(), public._staff_support(), public._reader_plan(uuid),
+  public._mask_phone(text), public._staff_acts_on_readers(), public._staff_support(), public._balance_of(uuid),
+  public._reader_plan(uuid),
   public._reader_tab(boolean, jsonb), public.staff_list_readers(text, text, jsonb, integer),
   public.staff_get_reader(uuid), public.staff_reveal_contact(uuid, text), public.staff_sign_out_device(uuid, uuid),
   public.staff_sign_out_all(uuid), public.staff_send_password_reset(uuid), public.staff_set_reader_role(uuid, text),
