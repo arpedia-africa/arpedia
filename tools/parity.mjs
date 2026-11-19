@@ -44,6 +44,9 @@ const max = Number(opt('max', '2'));
 const themes = opt('themes', admin ? 'light' : 'sunflower,palm,plum,night').split(',');
 const serial = opt('serial', process.env.ANDROID_SERIAL || 'c1212d5c');
 const baseUrl = opt('url', process.env.ADMIN_URL ?? 'http://127.0.0.1:3000');
+// --workdir .shots/sb15: sign staff in on a private Supabase stack (see tools/staff-session.mjs).
+const workdir = opt('workdir');
+if (workdir) process.env.SUPABASE_WORKDIR = workdir;
 const ids = argv.filter((a) => !a.startsWith('--'));
 const outDir = resolve(root, '.shots/parity');
 mkdirSync(outDir, { recursive: true });
@@ -620,6 +623,15 @@ try {
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
+      // Flow 15: seeded pushes (supabase/seeds/15_engage.sql); the composer opens the seeded draft
+      // with Schedule picked, as in the prototype.
+      campaigns: { path: '/campaigns', as: 'amaka@arpedia.africa' },
+      'campaign-new': {
+        path: '/campaigns/00000000-0000-4000-f150-000000000005',
+        as: 'amaka@arpedia.africa',
+        fill: `for(let k=0;k<50&&!document.querySelectorAll('.radios.h .radio')[1];k++)await new Promise(r=>setTimeout(r,100));const r=document.querySelectorAll('.radios.h .radio')[1];for(let k=0;k<50&&!Object.keys(r).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));r.click();await new Promise(r=>setTimeout(r,300));`,
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
     };
     for (const id of ids) {
       const p = pages[id];

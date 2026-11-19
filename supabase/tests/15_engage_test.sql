@@ -3,7 +3,7 @@
 -- forward only, banners (one modal a day, dismiss, end date), email variables, export rules.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(57);
 
 insert into auth.users (id, email) values
   ('15000000-0000-4000-a000-000000000001', 'ops15@arpedia.africa'),
@@ -132,6 +132,12 @@ select is((select count(*)::int from public.audit_log where object_id = (select 
 select lives_ok($$select public.staff_cancel_campaign((select id from c15))$$, 'a scheduled push can be cancelled');
 select throws_ok($$select public.staff_pause_campaign((select id from c15))$$, '22023', null,
   'a cancelled push cannot be paused');
+select lives_ok($$select public.staff_restore_campaign((select id from c15))$$, 'Undo puts a cancelled push back');
+select is((select status::text from public.campaigns where id = (select id from c15)), 'scheduled',
+  'restored to scheduled while its time is ahead');
+select is((select (r ->> 'delivered')::int from jsonb_array_elements(public.staff_list_campaigns('scheduled') -> 'rows') r
+           where r ->> 'id' = (select id::text from c15)), 0, 'the list carries delivered counts from push_log');
+select is(public.staff_test_push((select id from c15)), false, 'a test push needs a phone with push on');
 
 -- More than 1,000 readers needs the confirm step; more than 10,000 a second reviewer.
 reset role;

@@ -11,6 +11,9 @@ import { localEnv, passwordSession, staffSession } from './staff-session.mjs';
 const args = process.argv.slice(2);
 const ai = args.indexOf('--as');
 const as = ai !== -1 ? args.splice(ai, 2)[1] : null;
+// --workdir .shots/sb15: sign in on a private Supabase stack (see tools/staff-session.mjs).
+const wi = args.indexOf('--workdir');
+if (wi !== -1) process.env.SUPABASE_WORKDIR = args.splice(wi, 2)[1];
 const [url, out, w = '1440', h = '900'] = args;
 if (!url || !out) {
   console.error('usage: node tools/shot-url.mjs <url> <out.png> [width] [height] [--as email]');
