@@ -58,11 +58,12 @@ const importDeviceKey = (spki: string) =>
   crypto.subtle.importKey('spki', unb64(spki), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
 
 // ─── Key bundle (shared by /keys and /download) ─────────────────────────────
+// z.guid: any 8-4-4-4-12 id (seed ids are not RFC 4122 variants; the database checks they exist).
 const KeysBody = z.object({
-  book_id: z.uuid(),
-  revision_id: z.uuid(),
-  device_id: z.uuid(),
-  chapter_uids: z.array(z.uuid()).max(500).optional(),
+  book_id: z.guid(),
+  revision_id: z.guid(),
+  device_id: z.guid(),
+  chapter_uids: z.array(z.guid()).max(500).optional(),
 });
 
 interface Bundle {
