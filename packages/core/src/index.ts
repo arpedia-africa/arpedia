@@ -8,4 +8,6 @@ export * from './readiness';
 export * from './anchors';
 export * from './seal';
 export * from './unlock';
+export * from './credits';
+export * from './payments';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
