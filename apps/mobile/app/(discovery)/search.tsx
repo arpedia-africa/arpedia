@@ -21,6 +21,7 @@ import {
   SuggestionList,
   TopResultCard,
   TrendingList,
+  clubLetters,
   type ResultItem,
   type Scope,
   type Suggestion,
@@ -289,6 +290,7 @@ export default function Search() {
             meta: `${c.members.toLocaleString('en-NG')} members`,
             tone: avatarTone(c.id),
             action: 'Join',
+            letters: clubLetters(c.name),
           }))
         : [];
     const openItem = (it: ResultItem) =>
@@ -459,6 +461,7 @@ function toSuggestion(x: ServerSuggestion): Suggestion {
         title: x.title,
         sub: `Book club · ${x.members.toLocaleString('en-NG')} members`,
         tone: avatarTone(x.id),
+        letters: clubLetters(x.title),
       };
     case 'genre':
       return {

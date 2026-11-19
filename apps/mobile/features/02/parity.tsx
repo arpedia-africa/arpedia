@@ -4,6 +4,14 @@ import { IconButton, Section, useTheme } from '@arpedia/ui';
 import type { CoverTone } from '@arpedia/ui';
 import { movement } from '@arpedia/core';
 import {
+  NoneSample,
+  NotificationsSample,
+  RequestSample,
+  ResultsSample,
+  SearchSample,
+  TypingSample,
+} from './parity-search';
+import {
   BackHero,
   CatalogueHead,
   CatalogueList,
@@ -177,7 +185,18 @@ function FilterSample() {
   );
 }
 
-const PAGES02 = ['s-home', 's-see-all', 's-explore', 's-explore-filter'] as const;
+const PAGES02 = [
+  's-home',
+  's-see-all',
+  's-explore',
+  's-explore-filter',
+  's-search',
+  's-search-typing',
+  's-search-results',
+  's-search-none',
+  's-search-request',
+  's-notifications',
+] as const;
 export type Page02 = (typeof PAGES02)[number];
 export const isFlow02 = (p: string): p is Page02 => (PAGES02 as readonly string[]).includes(p);
 
@@ -191,5 +210,17 @@ export function Flow02({ page }: { page: Page02 }) {
       return <ExploreSample />;
     case 's-explore-filter':
       return <FilterSample />;
+    case 's-search':
+      return <SearchSample />;
+    case 's-search-typing':
+      return <TypingSample />;
+    case 's-search-results':
+      return <ResultsSample />;
+    case 's-search-none':
+      return <NoneSample />;
+    case 's-search-request':
+      return <RequestSample />;
+    case 's-notifications':
+      return <NotificationsSample />;
   }
 }

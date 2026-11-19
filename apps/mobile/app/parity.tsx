@@ -64,6 +64,12 @@ const PAGES = [
   's-see-all',
   's-explore',
   's-explore-filter',
+  's-search',
+  's-search-typing',
+  's-search-results',
+  's-search-none',
+  's-search-request',
+  's-notifications',
 ] as const;
 type Page = (typeof PAGES)[number];
 

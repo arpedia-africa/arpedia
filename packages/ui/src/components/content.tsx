@@ -317,18 +317,18 @@ export interface AvatarProps {
   square?: boolean;
   /** White ring (AvatarStack). */
   ring?: boolean;
+  /** Letters to show instead of the first and last initials (club names: "Grace & Glory" → GG). */
+  letters?: string;
 }
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join('');
+/** First and last word: "Adaeze Rosemary Possible" → "AP" (the prototype's initials). */
+const initials = (name: string) => {
+  const w = name.split(/\s+/).filter((p) => /[\p{L}\p{N}]/u.test(p));
+  return (w.length > 1 ? [w[0]!, w[w.length - 1]!] : w).map((p) => [...p][0]!.toUpperCase()).join('');
+};
 
 /** `.av`: photo or initials on a tone. */
-export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring }: AvatarProps) {
+export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring, letters }: AvatarProps) {
   const { c, s } = useTheme();
   const [d, fs] = avatarDims[size];
   const style: ViewStyle = {
@@ -346,7 +346,7 @@ export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring }: Ava
         <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
       ) : (
         <Text size={fs} weight={700} color="#FFFFFF" oneLine>
-          {initials(name)}
+          {letters ?? initials(name)}
         </Text>
       )}
     </View>

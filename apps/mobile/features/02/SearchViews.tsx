@@ -441,11 +441,28 @@ export function PeopleRail({ people, onPick }: { people: PersonCard[]; onPick?: 
   );
 }
 
+/** Club avatars use the first two words: "Grace & Glory Readers" → "GG". */
+export const clubLetters = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter((w) => /[\p{L}\p{N}]/u.test(w))
+    .slice(0, 2)
+    .map((w) => [...w][0]!.toUpperCase())
+    .join('');
+
 /* ─── Typing ─────────────────────────────────────────────────────────────── */
 export type Suggestion =
   | { kind: 'all'; query: string }
   | { kind: 'book'; id: string; title: string; sub: string; tone: CoverTone; uri?: string }
-  | { kind: 'person'; id: string; title: string; sub: string; tone: AvatarTone; uri?: string }
+  | {
+      kind: 'person';
+      id: string;
+      title: string;
+      sub: string;
+      tone: AvatarTone;
+      uri?: string;
+      letters?: string;
+    }
   | { kind: 'genre'; id: string; title: string; sub: string };
 
 function SquareIcon({ name }: { name: IconName }) {
@@ -482,6 +499,11 @@ export function SuggestionList({
       {t}
     </Text>
   );
+  const boldSub = (t: string, i: number) => (
+    <Text key={i} size={12.5} weight={700} color="ink3">
+      {t}
+    </Text>
+  );
   return (
     <View style={{ paddingVertical: s(6) }}>
       {items.map((it) => {
@@ -493,7 +515,7 @@ export function SuggestionList({
           ) : it.kind === 'book' ? (
             <Cover title={it.title} author="" size={40} tone={it.tone} uri={it.uri} />
           ) : (
-            <Avatar name={it.title} uri={it.uri} size="x40" tone={it.tone} />
+            <Avatar name={it.title} uri={it.uri} size="x40" tone={it.tone} letters={it.letters} />
           );
         const title =
           it.kind === 'all' ? (
@@ -527,7 +549,7 @@ export function SuggestionList({
                 {title}
               </Text>
               <Text size={12.5} color="ink3" numberOfLines={1}>
-                {sub}
+                {it.kind === 'all' ? sub : <Marked text={sub} query={query} hit={boldSub} />}
               </Text>
             </View>
             {it.kind === 'all' ? (
@@ -737,6 +759,7 @@ export type ResultItem =
       tone: AvatarTone;
       uri?: string;
       action: string;
+      letters?: string;
     };
 
 /** `.sr-list` of `.sr-row`s: books with the story snippet, authors with Follow, clubs with Join. */
@@ -783,7 +806,7 @@ export function ResultList({
           {it.kind === 'book' ? (
             <Cover title={it.title} author={it.author} size={48} tone={it.tone} uri={it.uri} />
           ) : (
-            <Avatar name={it.title} uri={it.uri} size="x48" tone={it.tone} />
+            <Avatar name={it.title} uri={it.uri} size="x48" tone={it.tone} letters={it.letters} />
           )}
           <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
             <Text size={15} weight={700} numberOfLines={2}>
