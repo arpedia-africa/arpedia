@@ -636,6 +636,7 @@ try {
       'banner-edit': { path: '/banners/00000000-0000-4000-f151-000000000001', as: 'amaka@arpedia.africa' },
       emails: { path: '/emails', as: 'amaka@arpedia.africa' },
       'email-template': { path: '/emails/payout_sent', as: 'amaka@arpedia.africa' },
+      exports: { path: '/exports', as: 'amaka@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];

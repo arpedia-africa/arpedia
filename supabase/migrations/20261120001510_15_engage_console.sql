@@ -238,3 +238,21 @@ $$;
 -- Payout emails name the month, the masked bank and the transfer reference (s-email-template).
 update public.email_templates set variables = '{first_name,amount,date,month,bank_masked,reference}'
 where key = 'payout_sent';
+
+-- ─── Exports (s-exports) ────────────────────────────────────────────────────
+-- Scheduled reports switch on and off (Super admin, Finance for the earnings statement).
+create function public.staff_set_export_schedule(p_kind text, p_enabled boolean) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.staff_mfa_ok() or not (public.is_staff('super_admin')
+     or (p_kind = 'monthly_earnings' and public.is_staff('finance'))) then
+    raise exception 'Not allowed' using errcode = 'insufficient_privilege';
+  end if;
+  update public.export_schedules set enabled = p_enabled, updated_by = auth.uid(), updated_at = now()
+  where report_kind = p_kind;
+  if not found then raise exception 'Unknown report' using errcode = 'P0002'; end if;
+  perform public.write_audit('insights', case when p_enabled then 'export_schedule.on' else 'export_schedule.off' end,
+                             'export_schedule', p_kind);
+end $$;
+revoke execute on function public.staff_set_export_schedule(text, boolean) from public, anon;
+grant execute on function public.staff_set_export_schedule(text, boolean) to authenticated;

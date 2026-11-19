@@ -120,3 +120,20 @@ select k, '00000000-0000-4000-a000-000000000001', now() - make_interval(days => 
   case when g % 3 <> 0 then now() - make_interval(days => g) end
 from (values ('welcome'), ('verify_email'), ('receipt'), ('payout_sent')) v (k)
 cross join generate_series(1, 9) g;
+
+-- Recent exports, as on s-exports (files themselves are not in local R2).
+insert into public.exports (kind, params, columns, includes_pii, reason, created_by, status, row_count, file_key,
+                            created_at, finished_at, expires_at)
+values
+  ('author_earnings', jsonb_build_object('from', current_date - 30, 'to', current_date), '{}', false, null,
+   '00000000-0000-4000-b000-000000000005', 'ready', 64, 'exports/seed-1/author-earnings.csv',
+   now() - interval '40 minutes', now() - interval '39 minutes', now() + interval '7 days'),
+  ('readers', jsonb_build_object('from', current_date - 30, 'to', current_date), '{reader_id,joined_at,state,email}',
+   true, 'Welcome-back email list', '00000000-0000-4000-b000-000000000001', 'building', null, null,
+   now() - interval '2 minutes', null, now() + interval '7 days'),
+  ('books', jsonb_build_object('from', current_date - 7, 'to', current_date), '{}', false, null,
+   '00000000-0000-4000-b000-000000000003', 'ready', 8, 'exports/seed-3/books.csv',
+   now() - interval '2 days', now() - interval '2 days', now() + interval '5 days'),
+  ('transactions', jsonb_build_object('from', current_date - 14, 'to', current_date - 7), '{}', false, null,
+   '00000000-0000-4000-b000-000000000001', 'ready', 3418, 'exports/seed-4/transactions.csv',
+   now() - interval '6 days 20 hours', now() - interval '6 days 20 hours', now() - interval '1 hour');
