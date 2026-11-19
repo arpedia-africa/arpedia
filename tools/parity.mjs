@@ -632,6 +632,8 @@ try {
         fill: `for(let k=0;k<50&&!document.querySelectorAll('.radios.h .radio')[1];k++)await new Promise(r=>setTimeout(r,100));const r=document.querySelectorAll('.radios.h .radio')[1];for(let k=0;k<50&&!Object.keys(r).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));r.click();await new Promise(r=>setTimeout(r,300));`,
         regions: [{ x: 0, y: 0, width: W, height: H }],
       },
+      banners: { path: '/banners', as: 'amaka@arpedia.africa' },
+      'banner-edit': { path: '/banners/00000000-0000-4000-f151-000000000001', as: 'amaka@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];

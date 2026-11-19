@@ -69,6 +69,24 @@ begin
       from public.push_types t where t.automatic), '[]'::jsonb));
 end $$;
 
+-- Announcements list and editor: who last edited, for "Last edited by …".
+create or replace function public.staff_list_banners() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not (public._can_draft_push() or public.has_permission('view_analytics')) then
+    raise exception 'Not allowed' using errcode = 'insufficient_privilege';
+  end if;
+  return coalesce((select jsonb_agg(to_jsonb(b) || jsonb_build_object(
+      'live_state', public.banner_live_state(b),
+      'shown', coalesce(s.shown, 0), 'taps', coalesce(s.taps, 0),
+      'tap_rate', round(100.0 * s.taps / nullif(s.shown, 0), 1),
+      'updated_by_name', (select p.full_name from public.profiles p where p.id = b.updated_by))
+      order by public.banner_live_state(b) = 'live' desc, b.priority desc, b.updated_at desc)
+    from public.banners b
+    left join lateral (select sum(d.shown)::int shown, sum(d.taps)::int taps from public.banner_daily d
+                       where d.banner_id = b.id) s on true), '[]'::jsonb);
+end $$;
+
 -- Undo for Pause and Cancel (the list's toasts): back to scheduled while the time is still ahead.
 create function public.staff_restore_campaign(p_id uuid) returns void
 language plpgsql security definer set search_path = '' as $$

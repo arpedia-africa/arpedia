@@ -69,3 +69,39 @@ where g <= v.times;
 update public.push_types set enabled = false, switched_at = now() - interval '8 days',
   switched_by = '00000000-0000-4000-b000-000000000002'
 where key = 'credits_low';
+
+-- Announcements, as on s-banners: two live, one scheduled, one draft, one ended.
+insert into public.banners (id, placement, headline, body, button_label, target, audience, starts_at, ends_at,
+                            priority, dismissible, state, created_by, updated_by, updated_at)
+values
+  ('00000000-0000-4000-f151-000000000001', 'home_top', 'Harmattan Letters is in Trending',
+   'A story of faith, family and letters from home. Read the first 10% free.', 'Read the preview',
+   '{"kind": "book", "id": "00000000-0000-4000-c000-000000000001"}', '{"kind": "all"}',
+   now() - interval '9 days', now() + interval '5 days', 3, true, 'live',
+   '00000000-0000-4000-b000-000000000003', '00000000-0000-4000-b000-000000000003', now() - interval '9 days'),
+  ('00000000-0000-4000-f151-000000000002', 'credits', 'Buy 600 credits, get a free chapter pass',
+   'Top up this month and the next locked chapter is on us.', 'See top-ups',
+   '{"kind": "screen", "screen": "credits"}', '{"kind": "subscribers"}',
+   now() - interval '18 days', now() + interval '11 days', 2, true, 'live',
+   '00000000-0000-4000-b000-000000000002', '00000000-0000-4000-b000-000000000002', now() - interval '18 days'),
+  ('00000000-0000-4000-f151-000000000003', 'launch_modal', 'December: give a reader a month',
+   'Send a month of Arpedia to someone who loves books.', 'Send a gift',
+   '{"kind": "screen", "screen": "plans"}', '{"kind": "subscribers"}',
+   now() + interval '12 days', now() + interval '35 days', 2, true, 'live',
+   '00000000-0000-4000-b000-000000000002', '00000000-0000-4000-b000-000000000002', now() - interval '1 day'),
+  ('00000000-0000-4000-f151-000000000004', 'home_top', 'Meet our November authors',
+   'Eight Nigerian authors joined Arpedia this month.', 'See authors',
+   '{"kind": "screen", "screen": "discover"}', '{"kind": "all"}', null, null, 3, true, 'draft',
+   '00000000-0000-4000-b000-000000000002', '00000000-0000-4000-b000-000000000002', now() - interval '3 hours'),
+  ('00000000-0000-4000-f151-000000000005', 'home_top', 'Independence Day reading list',
+   'Twelve books about Nigeria, from Kano to Calabar.', 'Read the list',
+   '{"kind": "screen", "screen": "discover"}', '{"kind": "all"}',
+   now() - interval '52 days', now() - interval '47 days', 3, true, 'ended',
+   '00000000-0000-4000-b000-000000000002', '00000000-0000-4000-b000-000000000002', now() - interval '47 days');
+
+insert into public.banner_daily (banner_id, day, shown, taps)
+select b.id, current_date - g, s.shown, s.taps
+from (values ('00000000-0000-4000-f151-000000000001'::uuid, 2044, 246), ('00000000-0000-4000-f151-000000000002', 340, 27),
+             ('00000000-0000-4000-f151-000000000005', 4376, 624)) s (id, shown, taps)
+join public.banners b on b.id = s.id
+cross join generate_series(1, 5) g;
