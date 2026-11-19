@@ -14,10 +14,12 @@ param(
   [string]$Topic = '',             # ntfy topic: each run's final report is pushed to your phone
   [string]$Lane = '',              # e.g. L2-product, or 'L1-critical,L3-money-ops': only those lanes (one loop per lane set)
   [string]$Flows = '',             # e.g. '06' or '06,10': only these flows (one extra loop per flow when several are ready)
-  [switch]$NoPhone                 # second builder on a PC without the owner's phone: hands on-device checks back (label needs-phone)
+  [switch]$NoPhone,                # builder that never uses the phone: hands on-device checks back (label needs-phone)
+  [switch]$PhoneOnly               # the one builder that owns the phone: only finishes on-device steps of needs-phone PRs
 )
 if ($Flows -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-f" + ($Flows -replace '\W','-') }
 elseif ($Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-$Lane" }
+if ($PhoneOnly -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-phone" }
 if ($NoPhone -and -not $Lane -and -not $PSBoundParameters.ContainsKey('WorkDir')) { $WorkDir = "$env:USERPROFILE\projects\arpedia-builder-nophone" }
 $ErrorActionPreference = 'Continue'
 $LockDir = "$env:USERPROFILE\projects\arpedia-locks"   # phone and database locks shared by builders on this PC
@@ -56,6 +58,7 @@ while ($true) {
   $prompt = Get-Content -Raw "$WorkDir\docs\prd\BUILDER-PROMPT.md"
   if ($Lane) { $prompt = "Your lanes: $Lane. Only continue or start flows listed in those lanes of status.json. Never touch another lane's PR, even if it looks stalled.`n`n" + $prompt }
   if ($Flows) { $prompt = "Only continue or start these flows: $Flows. Ignore every other flow and PR, even if it looks stalled. If none of them is ready, print NOTHING-TO-DO.`n`n" + $prompt }
+  if ($PhoneOnly) { $prompt = "You are the PHONE builder: the only builder allowed to use the phone and Metro. Other builders never touch it. Only do step 0, for every open PR labelled needs-phone, oldest first, one per run (include any Coordinator requests and CI fixes on that PR). Ignore lanes. Take phone.lock and db.lock and refresh both (touch) every 10 minutes. When the on-device steps pass, remove the label, run the gates and mark it ready as in step 2. If no PR is labelled needs-phone, print NOTHING-TO-DO and stop.`n`n" + $prompt }
   if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below.`n`n" + $prompt }
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
   Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' }) ===" -ForegroundColor Yellow

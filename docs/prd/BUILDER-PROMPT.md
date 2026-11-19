@@ -44,13 +44,14 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - Before `supabase start`, `db reset`, pgTAP, smoke tests or local Workers against it, take the lock with `mkdir ~/projects/arpedia-locks/db.lock`. The same 30-minute stale rule applies as for the phone.
   - Run `supabase db reset` first, so the database matches **your** branch's migrations.
   - Release the lock when you're done, and always before the run ends.
-- **Phone lock (two builders share the phone):**
+- **Lock heartbeat:** while you hold `db.lock` or `phone.lock`, refresh it with `touch ~/projects/arpedia-locks/<lock>` at least every 10 minutes (before and after every long command). A lock is stale only if its time is more than 30 minutes old, so a refreshed lock is never taken from you.
+- **Phone lock (only the phone builder uses the phone):**
   - Before any adb install, Metro session or parity/Maestro run on `c1212d5c`, take the lock with `mkdir ~/projects/arpedia-locks/phone.lock`.
   - If that fails because the lock exists and is under 30 minutes old, another builder is using the phone: do non-phone work, or try again later in the run. If it's older than 30 minutes, it's stale; remove it and take it.
   - Remove the lock as soon as you're done with the phone, and always before the run ends.
   - Never uninstall or clear the app while another builder holds the lock.
 - **The owner may pick up the phone.** Before every capture, check that `adb -s c1212d5c shell dumpsys window | grep mCurrentFocus` shows `com.arpedia.reader` or `.dev`. If it doesn't, wait 30 s and check again (up to 10 minutes). Never open, close or screenshot another app. Throw away any capture where something else is showing.
-- **Leftover Metro:** if port 8081 is busy at the start of a run, it's a Metro left by an earlier run of this clone. Stop it with `npx kill-port 8081`.
+- **Leftover Metro:** only the phone builder runs Metro. If port 8081 is busy at the start of a run and no one else holds `phone.lock`, it's a Metro left by an earlier run: stop it with `npx kill-port 8081`. Never kill port 8081 while another builder holds `phone.lock`.
 
 **Fast screen loop (use it for all app screen work):** never rebuild a release APK to try a visual fix.
 1. Once per run, install the dev build `com.arpedia.reader.dev` (debug, expo-dev-client) with `node tools/android-dev.mjs <serial>`. Skip this if it is already installed and no native dependency or app.json plugin changed.
