@@ -548,9 +548,84 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     [selection, state, bookId, send],
   );
 
+  // ─── Bookmarks (rule 40) ───────────────────────────────────────────────────
+  const bookmarks = useMemo(() => annotations.filter((a) => a.kind === 'bookmark'), [annotations]);
+  /** The bookmark on the page on screen: same chapter and its start paragraph is on this page. */
+  const pageBookmark = useMemo(() => {
+    if (!loc) return null;
+    return (
+      bookmarks.find(
+        (b) => b.cfi_range === loc.cfi || (b.start_para_id != null && b.start_para_id === loc.start_para),
+      ) ?? null
+    );
+  }, [bookmarks, loc]);
+
+  const toggleBookmark = useCallback(async () => {
+    if (!loc || !state) return;
+    const existing = pageBookmark;
+    const a: Annotation = existing ?? {
+      id: Crypto.randomUUID(),
+      client_id: Crypto.randomUUID(),
+      kind: 'bookmark',
+      color: 'yellow',
+      cfi_range: loc.cfi,
+      chapter_uid: loc.chapter_uid,
+      start_para_id: loc.start_para ?? loc.para_id,
+      quote: null,
+      note_text: null,
+      visibility: 'private',
+    };
+    if (!existing && bookmarks.length >= 200) {
+      setNotice('You can keep 200 bookmarks in a book. Remove one first.');
+      return;
+    }
+    setAnnotations((l) => (existing ? l.filter((x) => x.client_id !== a.client_id) : [...l, a]));
+    setNotice(existing ? 'Bookmark removed' : 'Page bookmarked');
+    const { error: e } = await supabase.rpc('upsert_annotations', {
+      p_batch: [
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: 'bookmark',
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: a.start_para_id,
+          end_para_id: a.start_para_id,
+          quote: a.quote,
+          visibility: 'private',
+          deleted: !!existing,
+          updated_at: new Date().toISOString(),
+        },
+      ] as never,
+    });
+    if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+  }, [loc, state, pageBookmark, bookmarks.length, bookId]);
+
+  // ─── Report a problem (rule 26) ────────────────────────────────────────────
+  const reportProblem = useCallback(
+    async (note: string) => {
+      if (!state) throw new Error('not_ready');
+      const { error: e } = await supabase.rpc('report_book_problem', {
+        p_book: bookId,
+        p_revision: state.revision.id,
+        p_chapter_uid: loc?.chapter_uid ?? undefined,
+        p_cfi: loc?.cfi ?? '',
+        p_note: note.trim() || undefined,
+      } as never);
+      if (e) throw e;
+    },
+    [state, bookId, loc],
+  );
+
   return {
     q,
     state,
+    bookmarks,
+    pageBookmark,
+    toggleBookmark,
+    reportProblem,
+    goTo: (payload: { cfi: string } | { chapter_uid: string }) => send({ type: 'goTo', payload }),
     phase,
     error,
     manifest,

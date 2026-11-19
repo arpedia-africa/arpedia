@@ -26,6 +26,13 @@ import {
   UnlockedToast,
   readerInk,
 } from '../../features/04/ReaderViews';
+import {
+  ChaptersSheet,
+  ReaderMenuSheet,
+  ReportProblemSheet,
+  SettingsSheet,
+  type ChapterRowModel,
+} from '../../features/04/ReaderSheets';
 import { chapterNumber, useReader } from '../../features/04/useReader';
 
 const READER_ORIGIN = 'https://reader.arpedia.invalid/';
@@ -54,6 +61,8 @@ export default function ReaderScreen() {
   const [scrub, setScrub] = useState<number | null>(null);
   const [sheet, setSheet] = useState<UnlockMode | 'short' | null>(null);
   const [pageH, setPageH] = useState(0);
+  const [panel, setPanel] = useState<'chapters' | 'settings' | 'menu' | 'report' | null>(null);
+  const [reporting, setReporting] = useState<'idle' | 'busy' | 'failed'>('idle');
   const book = useBookPage(id);
 
   const back = useCallback(() => {
@@ -166,6 +175,41 @@ export default function ReaderScreen() {
   );
 
   const soon = () => toast({ message: 'Coming soon' });
+  const openPanel = (p: typeof panel) => {
+    setChrome(false);
+    setPanel(p);
+  };
+
+  // ─── Chapters sheet rows (rule 23) ────────────────────────────────────────
+  const readPct = Math.floor(r.loc?.percent ?? st?.position?.percent ?? 0);
+  const chapterRows = useMemo<ChapterRowModel[]>(() => {
+    if (!st) return [];
+    const total = Math.max(1, st.revision.words);
+    const here = r.loc?.percent;
+    const furthest = Math.max(st.position?.max_percent ?? 0, here ?? 0);
+    return st.chapters.map((c) => {
+      const start = (c.words_before / total) * 100;
+      const end = ((c.words_before + c.words) / total) * 100;
+      const current = c.chapter_uid === r.loc?.chapter_uid;
+      const locked = (r.access[c.chapter_uid] ?? c.access) === 'locked' && c.price_credits > 0;
+      return {
+        key: c.chapter_uid,
+        number: c.kind === 'chapter' ? chapterNumber(st, c.chapter_uid) : null,
+        title: c.title,
+        state: current ? 'current' : locked ? 'locked' : end <= furthest + 0.01 ? 'read' : 'none',
+        through:
+          current && here != null && end > start
+            ? Math.min(1, Math.max(0, (here - start) / (end - start)))
+            : undefined,
+        price: c.price_credits,
+      };
+    });
+  }, [st, r.loc, r.access]);
+  const chapterLabel = (uid: string | null) => {
+    const c = uid && st ? st.chapters.find((x) => x.chapter_uid === uid) : null;
+    if (!c || !st) return null;
+    return c.kind === 'chapter' ? `Chapter ${chapterNumber(st, c.chapter_uid)} · ${c.title}` : c.title;
+  };
 
   // ─── States ───────────────────────────────────────────────────────────────
   const body = () => {
@@ -335,8 +379,9 @@ export default function ReaderScreen() {
         title={st?.book.title ?? book.data?.book.title ?? ''}
         sub={sub}
         onBack={back}
-        onBookmark={soon}
-        onMore={soon}
+        onBookmark={r.loc ? () => void r.toggleBookmark() : undefined}
+        bookmarked={!!r.pageBookmark}
+        onMore={() => openPanel('menu')}
       />
       {body()}
       <View style={{ paddingBottom: insets.bottom, backgroundColor: ink.page }}>
@@ -361,14 +406,14 @@ export default function ReaderScreen() {
           }}
           onRelease={(p) => r.send({ type: 'goTo', payload: { percent: p } })}
           actions={[
-            { icon: 'list', label: 'Chapters', onPress: soon },
+            { icon: 'list', label: 'Chapters', onPress: () => openPanel('chapters') },
             {
               icon: 'moon',
               label: 'Night',
               onPress: () => void r.changeSetting('theme', theme === 'dark' ? 'light' : 'dark'),
             },
             { icon: 'chat', label: 'Notes', onPress: soon },
-            { icon: 'cog', label: 'Settings', onPress: soon },
+            { icon: 'cog', label: 'Settings', onPress: () => openPanel('settings') },
             { icon: 'users', label: 'Room', onPress: soon },
           ]}
         />
@@ -379,6 +424,88 @@ export default function ReaderScreen() {
           text={`Chapter ${r.toast.ord} unlocked · ${r.toast.spent} credits`}
           onUndo={r.toast.ledger_id && Date.now() < r.toast.undo_until ? () => void r.undo() : undefined}
         />
+      ) : null}
+      {st ? (
+        <>
+          <ChaptersSheet
+            open={panel === 'chapters'}
+            onClose={() => setPanel(null)}
+            sub={`Chapter ${chapterNo} of ${chapterCount} · ${readPct}% read`}
+            chapters={chapterRows}
+            bookmarks={r.bookmarks.map((b) => ({
+              id: b.client_id,
+              title: chapterLabel(b.chapter_uid) ?? 'Bookmark',
+              sub: b.quote ?? undefined,
+            }))}
+            bookmarked={!!r.pageBookmark}
+            onChapter={(uid) => {
+              setPanel(null);
+              // A locked chapter opens on its first page with its card; it never charges (rule 23).
+              r.goTo({ chapter_uid: uid });
+            }}
+            onBookmark={(cid) => {
+              const b = r.bookmarks.find((x) => x.client_id === cid);
+              setPanel(null);
+              if (b) r.goTo({ cfi: b.cfi_range });
+            }}
+            onToggleBookmark={() => void r.toggleBookmark()}
+          />
+          <SettingsSheet
+            open={panel === 'settings'}
+            onClose={() => setPanel(null)}
+            settings={r.settings}
+            onChange={(k, v) => {
+              if (k === 'auto_unlock') setAutoUnlockLocal(v as boolean);
+              void r.changeSetting(k, v);
+            }}
+          />
+          <ReaderMenuSheet
+            open={panel === 'menu'}
+            onClose={() => setPanel(null)}
+            title={st.book.title}
+            sub={`${st.book.author.name ?? 'Unknown author'} · ${readPct}% read`}
+            items={[
+              {
+                key: 'about',
+                title: 'About this ebook',
+                chevron: true,
+                onPress: () => {
+                  setPanel(null);
+                  router.push({ pathname: '/book/[id]/about', params: { id } });
+                },
+              },
+              { key: 'search', title: 'Search in book', chevron: true, onPress: soon },
+              { key: 'room', title: 'Book room', chevron: true, onPress: soon },
+              { key: 'share', title: 'Share this book', chevron: true, onPress: soon },
+              {
+                key: 'report',
+                title: 'Report a problem with this book',
+                sub: 'Missing pages, wrong chapter, broken text',
+                onPress: () => {
+                  setReporting('idle');
+                  setPanel('report');
+                },
+              },
+            ]}
+          />
+          <ReportProblemSheet
+            open={panel === 'report'}
+            onClose={() => setPanel(null)}
+            busy={reporting === 'busy'}
+            failed={reporting === 'failed'}
+            onSend={(note) => {
+              setReporting('busy');
+              r.reportProblem(note).then(
+                () => {
+                  setReporting('idle');
+                  setPanel(null);
+                  toast({ message: 'Thanks. We’ll check it.' });
+                },
+                () => setReporting('failed'),
+              );
+            }}
+          />
+        </>
       ) : null}
       {book.data ? (
         <UnlockSheet
