@@ -35,6 +35,8 @@ create table public.author_applications (
   sample_file_name text check (char_length(sample_file_name) <= 200),
   sample_text text check (char_length(sample_text) <= 30000),
   sample_pages int check (sample_pages between 1 and 10),
+  -- Plain text of the uploaded file's opening, for the reviewer's excerpt and the similarity check.
+  sample_excerpt text check (char_length(sample_excerpt) <= 4000),
   agreement_version int,
   agreement_accepted_at timestamptz,
   submitted_at timestamptz,
@@ -248,6 +250,8 @@ begin
                             then null else sample_file_name end,
     sample_pages = case when p_patch ? 'sample_file_key' and p_patch -> 'sample_file_key' = 'null'::jsonb
                         then null else sample_pages end,
+    sample_excerpt = case when p_patch ? 'sample_file_key' and p_patch -> 'sample_file_key' = 'null'::jsonb
+                          then null else sample_excerpt end,
     step_reached = greatest(step_reached, least(4, coalesce((p_patch ->> 'step')::int, step_reached)))
   where id = v.id
   returning * into v;
@@ -255,7 +259,8 @@ begin
 end $$;
 
 -- Called by the api Worker after it checked the uploaded sample in R2 (type, size, pages).
-create function public.set_application_sample(p_user uuid, p_key text, p_name text, p_pages int)
+create function public.set_application_sample(p_user uuid, p_key text, p_name text, p_pages int,
+                                              p_excerpt text default null)
 returns public.author_applications
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -263,7 +268,8 @@ declare
 begin
   perform public._require_service('set_application_sample');
   update public.author_applications set
-    sample_file_key = p_key, sample_file_name = left(p_name, 200), sample_pages = p_pages
+    sample_file_key = p_key, sample_file_name = left(p_name, 200), sample_pages = p_pages,
+    sample_excerpt = left(p_excerpt, 4000)
   where user_id = p_user and status in ('draft', 'needs_info')
   returning * into v;
   if v.id is null then
@@ -334,6 +340,43 @@ begin
   perform public._require_service('complete_application_checks');
   update public.author_applications set checks = checks || coalesce(p_checks, '{}')
   where id = p_app;
+end $$;
+
+-- pgmq wrappers for the Worker (application checks; author pushes are consumed by flow 15).
+create function public.author_queue_read(p_queue text, p_vt int default 300, p_qty int default 10)
+returns setof pgmq.message_record
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public._require_service('author_queue_read');
+  if p_queue not in ('application_checks', 'author_notify') then
+    raise exception 'author_queue_read: unknown queue' using errcode = 'invalid_parameter_value';
+  end if;
+  return query select * from pgmq.read(p_queue, p_vt, p_qty);
+end $$;
+
+create function public.author_queue_ack(p_queue text, p_msg_id bigint) returns boolean
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public._require_service('author_queue_ack');
+  if p_queue not in ('application_checks', 'author_notify') then
+    raise exception 'author_queue_ack: unknown queue' using errcode = 'invalid_parameter_value';
+  end if;
+  return pgmq.archive(p_queue, p_msg_id);
+end $$;
+
+-- What the similarity check needs: this sample and other people's sent samples.
+create function public.application_similarity_corpus(p_app uuid) returns table (id uuid, mine boolean, body text)
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public._require_service('application_similarity_corpus');
+  return query
+  select a.id, a.id = p_app, coalesce(a.sample_text, a.sample_excerpt)
+  from public.author_applications a
+  join public.author_applications me on me.id = p_app
+  where (a.id = p_app or (a.user_id <> me.user_id and a.status <> 'draft'))
+    and coalesce(a.sample_text, a.sample_excerpt) is not null
+  order by a.id = p_app desc, a.submitted_at desc nulls last
+  limit 2001;
 end $$;
 
 -- ─── Staff RPCs ─────────────────────────────────────────────────────────────
@@ -786,6 +829,7 @@ begin
         '_agreement_version', '_author_notify', '_app_event', '_create_club', '_my_open_application',
         '_application_checks', 'start_application', 'save_application_draft', 'set_application_sample',
         'submit_application', 'withdraw_application', 'complete_application_checks', 'assign_application',
+        'author_queue_read', 'author_queue_ack', 'application_similarity_corpus',
         'decide_application', 'suspend_author', 'reinstate_author', 'author_in_good_standing',
         'set_club_settings', '_author_earning_rows', '_month_start', '_author_month', 'studio_home',
         'studio_earnings', 'studio_books', 'admin_authors', 'admin_author', 'application_sla', 'draft_cleanup')
@@ -818,8 +862,11 @@ grant execute on function
 
 -- Workers only.
 grant execute on function
-  public.set_application_sample(uuid, text, text, int),
-  public.complete_application_checks(uuid, jsonb)
+  public.set_application_sample(uuid, text, text, int, text),
+  public.complete_application_checks(uuid, jsonb),
+  public.author_queue_read(text, int, int),
+  public.author_queue_ack(text, bigint),
+  public.application_similarity_corpus(uuid)
   to service_role;
 
 -- Called from flow 12 functions (security definer, owned by postgres): no client grant needed.

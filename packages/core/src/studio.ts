@@ -142,3 +142,27 @@ export function replyByDate(sentAt: Date, days = REVIEW_SLA_DAYS): Date {
   d.setDate(d.getDate() + days);
   return d;
 }
+
+/** Word 5-grams of a text, lower-cased with punctuation dropped (sample similarity, rule 10). */
+export function shingles(text: string, n = 5): Set<string> {
+  const words = text
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  const out = new Set<string>();
+  for (let i = 0; i + n <= words.length; i++) out.add(words.slice(i, i + n).join(' '));
+  return out;
+}
+
+/**
+ * How much of a sample appears in another text, 0–100: the share of the sample's 5-word runs found
+ * there. Containment, not Jaccard, so a short sample lifted from a long one still scores high.
+ */
+export function similarityPct(sample: Set<string>, other: Set<string>): number {
+  if (sample.size === 0) return 0;
+  let hit = 0;
+  for (const s of sample) if (other.has(s)) hit++;
+  return Math.round((hit / sample.size) * 100);
+}

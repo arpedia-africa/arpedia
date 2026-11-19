@@ -97,14 +97,14 @@ isOneToOne: false
                   ]
                 },"author_applications": {
                   Row: {
-                    "agreement_accepted_at": string | null,"agreement_version": number | null,"assigned_to": string | null,"bio": string,"categories": (string)[],"checks": NonNullable<Json>,"created_at": string,"date_of_birth": string | null,"decided_at": string | null,"decided_by": string | null,"decision_reason": string | null,"email": string,"experience": string,"id": string,"info_request": string | null,"info_step": number | null,"legacy": boolean,"legal_name": string,"pen_name": string | null,"phone": string | null,"reapply_after": string | null,"sample_file_key": string | null,"sample_file_name": string | null,"sample_pages": number | null,"sample_text": string | null,"sla_alerted_at": string | null,"social_handle": string | null,"state": string | null,"status": Database["public"]['Enums']["application_status"],"step_reached": number,"submitted_at": string | null,"updated_at": string,"user_id": string
+                    "agreement_accepted_at": string | null,"agreement_version": number | null,"assigned_to": string | null,"bio": string,"categories": (string)[],"checks": NonNullable<Json>,"created_at": string,"date_of_birth": string | null,"decided_at": string | null,"decided_by": string | null,"decision_reason": string | null,"email": string,"experience": string,"id": string,"info_request": string | null,"info_step": number | null,"legacy": boolean,"legal_name": string,"pen_name": string | null,"phone": string | null,"reapply_after": string | null,"sample_excerpt": string | null,"sample_file_key": string | null,"sample_file_name": string | null,"sample_pages": number | null,"sample_text": string | null,"sla_alerted_at": string | null,"social_handle": string | null,"state": string | null,"status": Database["public"]['Enums']["application_status"],"step_reached": number,"submitted_at": string | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "agreement_accepted_at"?: string | null,"agreement_version"?: number | null,"assigned_to"?: string | null,"bio"?: string,"categories"?: (string)[],"checks"?: NonNullable<Json>,"created_at"?: string,"date_of_birth"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_reason"?: string | null,"email"?: string,"experience"?: string,"id"?: string,"info_request"?: string | null,"info_step"?: number | null,"legacy"?: boolean,"legal_name"?: string,"pen_name"?: string | null,"phone"?: string | null,"reapply_after"?: string | null,"sample_file_key"?: string | null,"sample_file_name"?: string | null,"sample_pages"?: number | null,"sample_text"?: string | null,"sla_alerted_at"?: string | null,"social_handle"?: string | null,"state"?: string | null,"status"?: Database["public"]['Enums']["application_status"],"step_reached"?: number,"submitted_at"?: string | null,"updated_at"?: string,"user_id": string
+                    "agreement_accepted_at"?: string | null,"agreement_version"?: number | null,"assigned_to"?: string | null,"bio"?: string,"categories"?: (string)[],"checks"?: NonNullable<Json>,"created_at"?: string,"date_of_birth"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_reason"?: string | null,"email"?: string,"experience"?: string,"id"?: string,"info_request"?: string | null,"info_step"?: number | null,"legacy"?: boolean,"legal_name"?: string,"pen_name"?: string | null,"phone"?: string | null,"reapply_after"?: string | null,"sample_excerpt"?: string | null,"sample_file_key"?: string | null,"sample_file_name"?: string | null,"sample_pages"?: number | null,"sample_text"?: string | null,"sla_alerted_at"?: string | null,"social_handle"?: string | null,"state"?: string | null,"status"?: Database["public"]['Enums']["application_status"],"step_reached"?: number,"submitted_at"?: string | null,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "agreement_accepted_at"?: string | null,"agreement_version"?: number | null,"assigned_to"?: string | null,"bio"?: string,"categories"?: (string)[],"checks"?: NonNullable<Json>,"created_at"?: string,"date_of_birth"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_reason"?: string | null,"email"?: string,"experience"?: string,"id"?: string,"info_request"?: string | null,"info_step"?: number | null,"legacy"?: boolean,"legal_name"?: string,"pen_name"?: string | null,"phone"?: string | null,"reapply_after"?: string | null,"sample_file_key"?: string | null,"sample_file_name"?: string | null,"sample_pages"?: number | null,"sample_text"?: string | null,"sla_alerted_at"?: string | null,"social_handle"?: string | null,"state"?: string | null,"status"?: Database["public"]['Enums']["application_status"],"step_reached"?: number,"submitted_at"?: string | null,"updated_at"?: string,"user_id"?: string
+                    "agreement_accepted_at"?: string | null,"agreement_version"?: number | null,"assigned_to"?: string | null,"bio"?: string,"categories"?: (string)[],"checks"?: NonNullable<Json>,"created_at"?: string,"date_of_birth"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_reason"?: string | null,"email"?: string,"experience"?: string,"id"?: string,"info_request"?: string | null,"info_step"?: number | null,"legacy"?: boolean,"legal_name"?: string,"pen_name"?: string | null,"phone"?: string | null,"reapply_after"?: string | null,"sample_excerpt"?: string | null,"sample_file_key"?: string | null,"sample_file_name"?: string | null,"sample_pages"?: number | null,"sample_text"?: string | null,"sla_alerted_at"?: string | null,"social_handle"?: string | null,"state"?: string | null,"status"?: Database["public"]['Enums']["application_status"],"step_reached"?: number,"submitted_at"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1073,6 +1073,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,
@@ -1137,6 +1138,11 @@ isOneToOne: false
 "admin_authors":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"application_similarity_corpus":
+{ Args: { "p_app": string }; Returns: {
+              "body": string,"id": string,"mine": boolean
+            }[]
+                           },
 "application_sla":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -1163,6 +1169,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,
@@ -1188,6 +1195,17 @@ isOneToOne: false
 "author_in_good_standing":
 { Args: { "p_author": string }; Returns: boolean
                            },
+"author_queue_ack":
+{ Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean
+                           },
+"author_queue_read":
+{ Args: { "p_qty"?: number,"p_queue": string,"p_vt"?: number }; Returns: unknown[]
+                          SetofOptions: {
+        from: "*"
+        to: "message_record"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "begin_reseal":
 { Args: { "p_actor": string,"p_rev": string }; Returns: Json
                            },
@@ -1258,6 +1276,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,
@@ -1416,6 +1435,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,
@@ -1477,7 +1497,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "set_application_sample":
-{ Args: { "p_key": string,"p_name": string,"p_pages": number,"p_user": string }; Returns: {
+{ Args: { "p_excerpt"?: string,"p_key": string,"p_name": string,"p_pages": number,"p_user": string }; Returns: {
               "agreement_accepted_at": string | null,
 "agreement_version": number | null,
 "assigned_to": string | null,
@@ -1499,6 +1519,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,
@@ -1567,6 +1588,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,
@@ -1618,6 +1640,7 @@ isOneToOne: false
 "pen_name": string | null,
 "phone": string | null,
 "reapply_after": string | null,
+"sample_excerpt": string | null,
 "sample_file_key": string | null,
 "sample_file_name": string | null,
 "sample_pages": number | null,

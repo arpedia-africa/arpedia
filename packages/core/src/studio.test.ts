@@ -6,6 +6,8 @@ import {
   formatKobo,
   missingApplicationFields,
   perReadEarningKobo,
+  shingles,
+  similarityPct,
   studioBookLine,
   type ApplicationDraft,
 } from './studio';
@@ -87,5 +89,22 @@ describe('studioBookLine', () => {
     expect(studioBookLine('update_in_review', 2, 1).note).toBe('Update v2 in review · readers still see v1');
     expect(studioBookLine('draft', 1, null).note).toBe('Confirm your chapters and submit when ready');
     expect(studioBookLine('changes_requested', 1, null).action).toBe('Upload new file');
+  });
+});
+
+describe('sample similarity', () => {
+  const text =
+    'The rain came down on Enugu that evening and Ada stood at the window waiting for the bus to come home';
+  it('scores a copied sample high and an unrelated one zero', () => {
+    const a = shingles(text);
+    expect(similarityPct(a, shingles(`Chapter one. ${text.toUpperCase()}! And more words after it.`))).toBe(
+      100,
+    );
+    expect(similarityPct(a, shingles('A different story about a market in Kano and a goat named Sule'))).toBe(
+      0,
+    );
+  });
+  it('is zero for texts too short to compare', () => {
+    expect(similarityPct(shingles('too short'), shingles('too short'))).toBe(0);
   });
 });
