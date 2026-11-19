@@ -1859,6 +1859,9 @@ isOneToOne: false
 "_insert_flags":
 { Args: { "p_flags": Json,"p_rev": string,"p_source": Database["public"]['Enums']["flag_source"] }; Returns: number
                            },
+"_insights_guard":
+{ Args: { "p_from": string,"p_to": string }; Returns: undefined
+                           },
 "_is_revision_author":
 { Args: { "p_rev": string }; Returns: boolean
                            },
@@ -1989,6 +1992,9 @@ isOneToOne: false
                            },
 "_set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined
+                           },
+"_small":
+{ Args: { "p": number }; Returns: number
                            },
 "_step":
 { Args: { "p_rev": string,"p_step": string }; Returns: undefined
@@ -2409,6 +2415,12 @@ isOneToOne: false
                            },
 "spend_credits":
 { Args: { "p_amount": number,"p_author": string,"p_book": string,"p_chapter_uid": string,"p_counterparty"?: string,"p_key": string,"p_meta"?: Json,"p_reason": Database["public"]['Enums']["ledger_reason"],"p_user": string }; Returns: Json
+                           },
+"staff_analytics_books":
+{ Args: { "p_from": string,"p_limit"?: number,"p_to": string }; Returns: Json
+                           },
+"staff_analytics_funnel":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
 "staff_by_role":
 { Args: Record<PropertyKey, never>; Returns: {
