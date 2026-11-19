@@ -4,7 +4,7 @@
 -- actions, leave hand-over and lifecycle.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(59);
+select plan(61);
 
 -- Hana (host), Mo (member), Obi (outsider, author of the book), Kemi (17, minor), Sam (moderator).
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -191,7 +191,12 @@ select lives_ok($$select public.admin_room_action((select id from t_room where k
 select lives_ok($$select public.admin_room_action((select id from t_room where k = 'a'), 'end')$$, 'moderator ends');
 select lives_ok($$select public.admin_room_action((select id from t_room where k = 'a'), 'undo_end')$$,
   'moderator undoes within 10 minutes');
+select pg_temp.as_user('70000000-0000-4000-a000-000000000003');
+select throws_ok($$select * from public.get_room_messages((select id from t_room where k = 'a'))$$,
+  '42501', 'not_member', 'outsiders cannot read a room''s chat');
 reset role;
+select is((select locked_until from public.groups where id = (select id from t_room where k = 'a')),
+  'infinity'::timestamptz, 'undoing an end keeps the host''s lock');
 select is((select array_agg(action order by id) from public.audit_log
            where object_id = (select id::text from t_room where k = 'a')),
   array['room.view', 'room.join_silently', 'room.end', 'room.undo_end'], 'staff opens and actions are audited');

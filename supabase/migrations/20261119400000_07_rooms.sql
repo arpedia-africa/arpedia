@@ -23,6 +23,8 @@ create table public.reading_rooms (
   max_members int not null default 100 check (max_members between 2 and 10000),
   -- "Arpedia staff locked the chat" vs the host's lock (groups.locked_until holds the lock itself).
   locked_by_staff boolean not null default false,
+  -- The chat lock before an end, so a staff Undo restores a host's lock too.
+  locked_before_end timestamptz,
   ended_at timestamptz,
   ended_by uuid references public.profiles (id) on delete set null,
   transcript_purge_at timestamptz,
@@ -211,6 +213,12 @@ begin
   if p_percent is null or p_percent < 0 or p_percent > 100 or coalesce(p_chapter, 0) < 0 then
     raise exception 'bad_progress' using errcode = '22023';
   end if;
+  -- Never ahead of the reader's own synced position (flow 03/04 reading_progress), so nobody
+  -- can claim 100% to unlock room annotations early. Until that table exists, the value is taken.
+  if to_regclass('public.reading_progress') is not null then
+    select least(p_percent, bp.percent), least(coalesce(p_chapter, 0), bp.chapter)
+      into p_percent, p_chapter from public._book_progress(auth.uid(), p_book) bp;
+  end if;
   return public._sync_room_progress(auth.uid(), p_book, p_percent, p_chapter);
 end $$;
 
@@ -353,7 +361,8 @@ declare
   g public.groups;
   v_prog record;
 begin
-  select * into g from public.groups where id = r.group_id;
+  -- Locked, so two joins at once can't both take the last place.
+  select * into g from public.groups where id = r.group_id for update;
   if r.state = 'ended' or g.archived_at is not null then
     return jsonb_build_object('status', 'ended');
   end if;
@@ -513,7 +522,8 @@ language plpgsql security definer set search_path = '' as $$
 begin
   update public.reading_rooms
      set state = 'ended', ended_at = now(), ended_by = auth.uid(),
-         transcript_purge_at = now() + interval '90 days'
+         transcript_purge_at = now() + interval '90 days',
+         locked_before_end = (select g.locked_until from public.groups g where g.id = p_room)
    where group_id = p_room and state <> 'ended';
   if not found then raise exception 'room_ended' using errcode = '22023'; end if;
   update public.groups set locked_until = 'infinity' where id = p_room;
@@ -637,6 +647,10 @@ language plpgsql stable security definer set search_path = '' as $$
 begin
   if not exists (select 1 from public.reading_rooms rr where rr.group_id = p_room) then
     raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  -- No public preview: only members (not removed) and community staff read a room's chat.
+  if not (public.is_group_member(p_room, auth.uid()) or public.is_community_staff()) then
+    raise exception 'not_member' using errcode = 'insufficient_privilege';
   end if;
   return query
     select x.*, coalesce(msg.spoiler_chapter, 0)
@@ -809,6 +823,8 @@ begin
   case p_action
     when 'join_silently' then
       v_summary := 'Joined the room silently';
+    when 'transcript' then
+      v_summary := 'Downloaded the transcript';
     when 'lock' then
       if r.state = 'ended' then raise exception 'room_ended' using errcode = '22023'; end if;
       update public.groups set locked_until = 'infinity' where id = p_room;
@@ -832,10 +848,9 @@ begin
       end if;
       update public.reading_rooms
          set state = case when starts_at > now() then 'scheduled' else 'live' end::public.room_state,
-             ended_at = null, ended_by = null, transcript_purge_at = null
+             ended_at = null, ended_by = null, transcript_purge_at = null, locked_before_end = null
        where group_id = p_room;
-      update public.groups set locked_until = case when r.locked_by_staff then 'infinity'::timestamptz end
-       where id = p_room;
+      update public.groups set locked_until = r.locked_before_end where id = p_room;
       v_summary := 'Undid ending the room';
     when 'mute' then
       perform public._mute_room_member(p_room, p_user, p_until);

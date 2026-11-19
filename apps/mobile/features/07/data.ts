@@ -267,28 +267,50 @@ export async function refreshRoom(id: string, self = false) {
   }).catch(() => {});
 }
 
-let lastSync = 0;
-/**
- * Progress-sync for the reader (flow 04): call after a page turn while a book is open. Sends at
- * most once per ROOM_PROGRESS_SYNC_MS; returns whether it sent. Rooms with this book get the new
- * percent within 15 seconds (rule 24).
- */
-export async function syncRoomProgress(bookId: string, percent: number, chapter: number): Promise<boolean> {
-  const now = Date.now();
-  if (now - lastSync < ROOM_PROGRESS_SYNC_MS) return false;
-  lastSync = now;
+/** Per book: when it last sent, and the newest position waiting for the window to pass. */
+const syncs = new Map<
+  string,
+  { last: number; pending?: { percent: number; chapter: number }; timer?: ReturnType<typeof setTimeout> }
+>();
+
+async function sendProgress(bookId: string, percent: number, chapter: number): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/v1/rooms/progress`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
       body: JSON.stringify({ book_id: bookId, percent, chapter }),
     });
-    if (!res.ok) lastSync = 0;
     return res.ok;
   } catch {
-    lastSync = 0;
     return false;
   }
+}
+
+/**
+ * Progress-sync for the reader (flow 04): call after every page turn while a book is open. Sends
+ * at most once per ROOM_PROGRESS_SYNC_MS per book; a turn inside the window is sent when it ends
+ * (newest position only), so the last page turn is never lost. Rooms with this book get the new
+ * percent within 15 seconds (rule 24).
+ */
+export function syncRoomProgress(bookId: string, percent: number, chapter: number): void {
+  const s = syncs.get(bookId) ?? { last: 0 };
+  syncs.set(bookId, s);
+  const wait = s.last + ROOM_PROGRESS_SYNC_MS - Date.now();
+  if (wait > 0) {
+    s.pending = { percent, chapter };
+    s.timer ??= setTimeout(() => {
+      s.timer = undefined;
+      const p = s.pending;
+      s.pending = undefined;
+      if (p) syncRoomProgress(bookId, p.percent, p.chapter);
+    }, wait);
+    return;
+  }
+  s.last = Date.now();
+  void sendProgress(bookId, percent, chapter).then((ok) => {
+    // A failed send doesn't hold back the next page turn.
+    if (!ok) s.last = 0;
+  });
 }
 
 // ─── Create, join, leave, host actions ──────────────────────────────────────

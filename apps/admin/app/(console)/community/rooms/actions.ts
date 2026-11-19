@@ -8,7 +8,7 @@ export interface ActionResult {
   error?: string;
 }
 
-export type RoomAction = 'join_silently' | 'lock' | 'unlock' | 'end' | 'undo_end' | 'cancel' | 'mute';
+export type RoomAction = 'join_silently' | 'lock' | 'unlock' | 'end' | 'undo_end' | 'cancel' | 'mute' | 'transcript';
 
 export interface TranscriptLine {
   id: string;
@@ -67,7 +67,7 @@ export async function roomAction(
     p_until: (opts.until ?? null) as string,
   });
   if (error) return failed(error.message);
-  if (action !== 'join_silently') await pushToChat(roomId);
+  if (action !== 'join_silently' && action !== 'transcript') await pushToChat(roomId);
   revalidatePath('/community/rooms');
   revalidatePath(`/community/rooms/${roomId}`);
   return { ok: true };
@@ -92,6 +92,9 @@ export async function roomMessages(roomId: string, limit = 50): Promise<Transcri
 /** The whole transcript as plain text (ended rooms keep it for 90 days). */
 export async function roomTranscript(roomId: string): Promise<{ text?: string; error?: string }> {
   const supabase = await serverSupabase();
+  // Audited before anything is read (and refused for roles that can't act on rooms).
+  const audit = await supabase.rpc('admin_room_action', { p_room: roomId, p_action: 'transcript' });
+  if (audit.error) return { error: failed(audit.error.message).error };
   type Row = TranscriptLine & { id: string };
   const all: Row[] = [];
   let before: { at: string; id: string } | null = null;
