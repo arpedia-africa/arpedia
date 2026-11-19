@@ -19,6 +19,8 @@ export interface Env {
   ADMIN_URL?: string;
   /** Sends staff invite emails; unset locally (the link is logged instead). */
   RESEND_API_KEY?: string;
+  /** Resend inbound-email webhook signing secret (whsec_…), flow 14; unset locally. */
+  RESEND_WEBHOOK_SECRET?: string;
 }
 
 export interface Vars {
