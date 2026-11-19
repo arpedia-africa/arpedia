@@ -8,6 +8,7 @@ import {
   isSpoiler,
   joinButtonLabel,
   joinErrorMessage,
+  messageSpoilerChapter,
   normaliseRoomCode,
   paceFinishDate,
   paceFinishLine,
@@ -85,6 +86,12 @@ describe('spoilers', () => {
     expect(isSpoiler(null, 0)).toBe(false);
     expect(isSpoiler(undefined, 5)).toBe(false);
     expect(isSpoiler(1, null)).toBe(true);
+  });
+  it('message chapter: stamp for history, sender progress live, a later quote wins', () => {
+    expect(messageSpoilerChapter({ spoiler_chapter: 8, senderChapter: 12 })).toBe(8);
+    expect(messageSpoilerChapter({ senderChapter: 12 })).toBe(12);
+    expect(messageSpoilerChapter({ senderChapter: 3, quote: { chapter: 9 } })).toBe(9);
+    expect(messageSpoilerChapter({})).toBe(0);
   });
 });
 
