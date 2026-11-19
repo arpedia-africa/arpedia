@@ -1073,6 +1073,15 @@ begin
     p_genre::text, (select name from public.genres where id = p_genre));
 end $$;
 
+-- Genres and tags: how many readers picked each genre in onboarding (readers' picks are private
+-- rows, so staff see counts only).
+create function public.genre_pick_counts() returns table (genre_id uuid, readers int)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform public.require_permission('curate_discover');
+  return query select ug.genre_id, count(*)::int from public.user_genres ug group by ug.genre_id;
+end $$;
+
 create function public.reorder_genres(p_ids uuid[]) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -1287,7 +1296,7 @@ begin
       'notification_allowed', '_create_notification', 'create_notification', 'get_notifications', 'mark_notification_read',
       'mark_all_notifications_read', '_section', 'update_home_section', 'reorder_home_sections',
       'save_shelf_draft', 'discard_shelf_draft', 'publish_shelf', 'rotate_trending', 'save_coming_soon',
-      'set_genre_visibility', 'reorder_genres', 'merge_tags', 'ban_tag', 'save_search_tuning',
+      'set_genre_visibility', 'genre_pick_counts', 'reorder_genres', 'merge_tags', 'ban_tag', 'save_search_tuning',
       'link_book_request', 'set_book_request_status', 'revisions_needing_search_text', 'set_book_search_text', '_fulfil_requests', '_books_live_fulfil', 'purge_discovery')
   loop
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f.sig);
@@ -1303,7 +1312,7 @@ grant execute on function
   public.update_home_section(uuid, boolean, jsonb), public.reorder_home_sections(uuid[]),
   public.save_shelf_draft(uuid, jsonb), public.discard_shelf_draft(uuid), public.publish_shelf(uuid),
   public.save_coming_soon(uuid, text, timestamptz), public.set_genre_visibility(uuid, boolean),
-  public.reorder_genres(uuid[]), public.merge_tags(uuid[], uuid), public.ban_tag(text),
+  public.genre_pick_counts(), public.reorder_genres(uuid[]), public.merge_tags(uuid[], uuid), public.ban_tag(text),
   public.save_search_tuning(jsonb), public.link_book_request(uuid[], uuid),
   public.set_book_request_status(text, text), public.refresh_rankings(boolean)
   to authenticated;
