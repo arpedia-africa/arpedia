@@ -251,6 +251,13 @@ export default function Library() {
     openBook(i.book_id);
   };
 
+  /** A row or cover tap: the book may have left the mirror meanwhile (refetch), then open its page. */
+  const openId = (id: string, k: AccountShelf | 'search') => {
+    const i = find(id);
+    if (i) openItem(i, k);
+    else openBook(id);
+  };
+
   const openOffline = async (e: OfflineEntry) => {
     track('library_book_opened', {
       shelf: 'offline',
@@ -349,13 +356,13 @@ export default function Library() {
       ) : listView ? (
         <LibList
           rows={results.map((i) => rowOf(i, 'search'))}
-          onOpen={(b) => openItem(find(b.id)!, 'search')}
+          onOpen={(b) => openId(b.id, 'search')}
           onAction={onAction}
         />
       ) : (
         <LibGrid
           books={results.map((i) => gridOf(i, 'search'))}
-          onOpen={(b) => openItem(find(b.id)!, 'search')}
+          onOpen={(b) => openId(b.id, 'search')}
           onMore={(b) => setMenu({ item: find(b.id), id: b.id, title: b.title })}
         />
       );
@@ -457,13 +464,13 @@ export default function Library() {
           {listView ? (
             <LibList
               rows={items.map((i) => rowOf(i, k))}
-              onOpen={(b) => openItem(find(b.id)!, k)}
+              onOpen={(b) => openId(b.id, k)}
               onAction={onAction}
             />
           ) : (
             <LibGrid
               books={items.map((i) => gridOf(i, k))}
-              onOpen={(b) => openItem(find(b.id)!, k)}
+              onOpen={(b) => openId(b.id, k)}
               onMore={(b) => setMenu({ item: find(b.id), id: b.id, title: b.title })}
             />
           )}
