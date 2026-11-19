@@ -9,11 +9,12 @@ import {
   SAMPLE_MAX_BYTES,
   SAMPLE_MAX_PAGES,
   SAMPLE_TYPES,
+  WORDS_PER_PAGE,
   shingles,
   similarityPct,
   type Json,
 } from '@arpedia/core';
-import { strFromU8, unzipSync } from 'fflate';
+import { strFromU8, Unzlib, unzipSync } from 'fflate';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { requireUser } from '../../auth';
@@ -24,23 +25,30 @@ import { rpcError, signedUrl, userDb } from '../12/http';
 const applications = new Hono<AppEnv>();
 applications.use('*', requireUser);
 
-const WORDS_PER_PAGE = 250;
 const EXCERPT_CHARS = 4000;
+/** Most a sample may inflate to (zip and PDF streams are untrusted: no zip bombs). */
+const MAX_INFLATED = 16 * 1024 * 1024;
 
 type Inspected =
-  | { ok: true; pages: number | null; excerpt: string | null }
+  | { ok: true; pages: number; excerpt: string | null }
   | { ok: false; error: 'wrong_type' | 'too_many_pages' | 'unreadable' };
 
 /** Word: pages from docProps/app.xml (Word writes it), else 250 words a page; text for the excerpt. */
 function inspectDocx(bytes: Uint8Array): Inspected {
   let files: Record<string, Uint8Array>;
+  let tooBig = false;
   try {
     files = unzipSync(bytes, {
-      filter: (f) => f.name === 'word/document.xml' || f.name === 'docProps/app.xml',
+      filter: (f) => {
+        if (f.name !== 'word/document.xml' && f.name !== 'docProps/app.xml') return false;
+        if (f.originalSize > MAX_INFLATED) tooBig = true;
+        return !tooBig;
+      },
     });
   } catch {
     return { ok: false, error: 'unreadable' };
   }
+  if (tooBig) return { ok: false, error: 'unreadable' };
   const doc = files['word/document.xml'];
   if (!doc) return { ok: false, error: 'wrong_type' };
   const text = strFromU8(doc)
@@ -64,12 +72,71 @@ function inspectDocx(bytes: Uint8Array): Inspected {
   return { ok: true, pages, excerpt: text ? text.slice(0, EXCERPT_CHARS) : null };
 }
 
-/** PDF: page count from the page tree. Text is not extracted (compressed streams); staff open the file. */
+/** zlib-inflates one stream in small pushes, giving up past `budget.left` bytes of output. */
+function inflateCapped(data: Uint8Array, budget: { left: number }): Uint8Array | null {
+  const parts: Uint8Array[] = [];
+  let over = false;
+  const z = new Unzlib((chunk) => {
+    budget.left -= chunk.length;
+    if (budget.left < 0) over = true;
+    else parts.push(chunk);
+  });
+  try {
+    for (let i = 0; i < data.length && !over; i += 4096) {
+      z.push(data.subarray(i, i + 4096), i + 4096 >= data.length);
+    }
+  } catch {
+    return null;
+  }
+  if (over) return null;
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0;
+  for (const p of parts) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
+}
+
+/** Page-tree nodes in some PDF text: their /Count and whether they are the root (no /Parent). */
+function pageNodes(src: string) {
+  const nodes: { count: number; root: boolean }[] = [];
+  for (const m of src.matchAll(/\/Type\s*\/Pages\b/g)) {
+    const start = src.lastIndexOf('<<', m.index);
+    const end = src.indexOf('>>', m.index);
+    const dict = src.slice(start < 0 ? m.index : start, end < 0 ? undefined : end);
+    const count = /\/Count\s+(\d+)/.exec(dict);
+    if (count) nodes.push({ count: Number(count[1]), root: !/\/Parent\b/.test(dict) });
+  }
+  return nodes;
+}
+
+/**
+ * PDF: page count from the root of the page tree, also inside compressed object streams (PDF 1.5+,
+ * Word and Google Docs exports). The last root wins (incremental saves append). A file whose page
+ * count can't be found is refused, so the 10-page limit always holds. Text is not extracted.
+ */
 function inspectPdf(bytes: Uint8Array): Inspected {
   const src = new TextDecoder('latin1').decode(bytes);
-  const counts = [...src.matchAll(/\/Type\s*\/Pages\b[^>]*?\/Count\s+(\d+)/g)].map((m) => Number(m[1]));
-  const pages = counts.length ? Math.max(...counts) : src.match(/\/Type\s*\/Page\b(?!s)/g)?.length || null;
-  if (pages && pages > SAMPLE_MAX_PAGES) return { ok: false, error: 'too_many_pages' };
+  const nodes = pageNodes(src);
+  if (!nodes.some((n) => n.root)) {
+    const budget = { left: MAX_INFLATED };
+    for (const m of src.matchAll(/\/Type\s*\/ObjStm\b[^]*?stream\r?\n/g)) {
+      const from = m.index + m[0].length;
+      const to = src.indexOf('endstream', from);
+      if (to < 0) break;
+      const raw = inflateCapped(bytes.subarray(from, to), budget);
+      if (!raw) {
+        if (budget.left < 0) return { ok: false, error: 'unreadable' };
+        continue;
+      }
+      nodes.push(...pageNodes(new TextDecoder('latin1').decode(raw)));
+    }
+  }
+  const roots = nodes.filter((n) => n.root);
+  const pages = roots.length ? roots[roots.length - 1]!.count : null;
+  if (!pages) return { ok: false, error: 'unreadable' };
+  if (pages > SAMPLE_MAX_PAGES) return { ok: false, error: 'too_many_pages' };
   return { ok: true, pages, excerpt: null };
 }
 
@@ -142,8 +209,7 @@ applications.post('/sample/complete', async (c) => {
     p_user: uid,
     p_key: body.data.key,
     p_name: body.data.file_name,
-    // Null when a PDF hides its page tree; generated RPC types never mark arguments nullable.
-    p_pages: result.pages as number,
+    p_pages: result.pages,
     p_excerpt: result.excerpt ?? undefined,
   });
   if (error) {

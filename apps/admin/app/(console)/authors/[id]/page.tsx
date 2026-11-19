@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { creditsToNaira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { NoAccess } from '@/components/no-access';
 import { serverSupabase } from '@/lib/supabase/server';
@@ -109,7 +110,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                                 <b>{b.title}</b>
                                 <small>
                                   {b.price_credits != null
-                                    ? `${n0(b.price_credits)} credits · ₦${n0(b.price_credits * 3)}`
+                                    ? `${n0(b.price_credits)} credits · ₦${n0(creditsToNaira(b.price_credits))}`
                                     : 'No price yet'}
                                 </small>
                               </span>

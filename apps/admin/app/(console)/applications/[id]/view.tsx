@@ -107,10 +107,15 @@ export async function ApplicationView({ id }: { id: string }) {
   const g = await gate();
   if ('denied' in g) return g.denied;
   const supabase = await serverSupabase();
-  const [{ data: a, error }, { data: events }, { data: queue }] = await Promise.all([
+  const [{ data: a, error }, { data: events }, { data: queue }, { data: rawChecks }] = await Promise.all([
     supabase
       .from('author_applications')
-      .select('*, assignee:profiles!author_applications_assigned_to_fkey(full_name)')
+      .select(
+        `id, status, step_reached, legal_name, email, phone, pen_name, social_handle, date_of_birth, state,
+         categories, bio, experience, sample_file_key, sample_file_name, sample_text, sample_pages, sample_excerpt,
+         agreement_version, agreement_accepted_at, submitted_at, decided_at,
+         assignee:profiles!author_applications_assigned_to_fkey(full_name)`,
+      )
       .eq('id', id)
       .neq('status', 'draft')
       .maybeSingle(),
@@ -125,6 +130,8 @@ export async function ApplicationView({ id }: { id: string }) {
       .select('id')
       .in('status', ['new', 'needs_info'])
       .order('submitted_at', { ascending: true }),
+    // Review internals aren't selectable from the table (applicants would see them).
+    supabase.rpc('admin_application_checks', { p_app: id }),
   ]);
   if (error?.code === '42501') return <NoAccess page="applications" label="Authors and applications" role={g.staff.role} />;
   if (error) throw error;
@@ -137,7 +144,7 @@ export async function ApplicationView({ id }: { id: string }) {
   const ids = (queue ?? []).map(q => q.id);
   const at = ids.indexOf(id);
   const next = ids.length > 1 ? ids[(Math.max(at, 0) + 1) % ids.length]! : null;
-  const checks = (a.checks ?? {}) as Checks;
+  const checks = (rawChecks ?? {}) as Checks;
   const ran = Object.keys(checks).length > 0;
   const list = ran ? checkList(checks, a) : [];
   const bad = list.filter(c => c.state === 'fail').length;

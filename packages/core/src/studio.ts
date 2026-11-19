@@ -1,5 +1,5 @@
 // Author Studio rules shared by the app and the admin (docs/prd/11-author-studio.md).
-import { AUTHOR_RATE, bookPrice, standardPages } from './pricing';
+import { authorEarningKobo, bookPrice, creditsToNaira, standardPages } from './pricing';
 
 /** Categories an applicant can pick (rule 2). The database refuses anything else. */
 export const APPLICATION_CATEGORIES = [
@@ -33,14 +33,14 @@ export function perReadEarningKobo(priceCredits: number): number {
   if (!Number.isInteger(priceCredits) || priceCredits < 0) {
     throw new RangeError(`priceCredits must be a whole number ≥ 0, got ${priceCredits}`);
   }
-  return Math.round(priceCredits * AUTHOR_RATE * 100);
+  return authorEarningKobo(priceCredits);
 }
 
 /** Price and per-read earning of a book from its length (Step 3 and Step 4 of submit). */
 export function bookQuote(words: number, imagePages = 0) {
   const pages = standardPages(words, imagePages);
   const price = bookPrice(pages);
-  return { pages, price, naira: price * 3, perReadKobo: perReadEarningKobo(price) };
+  return { pages, price, naira: creditsToNaira(price), perReadKobo: perReadEarningKobo(price) };
 }
 
 /** "₦1,234" or "₦1,234.50" from kobo. */

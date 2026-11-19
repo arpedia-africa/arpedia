@@ -186,7 +186,7 @@ export interface RevisionStatus {
 
 const retry = (n: number, e: unknown) => n < 2 && isNetworkError(e);
 
-/** Revision status; polls every 3 s while the Worker or the desk is still working. */
+/** Revision status; polls every 3 s while the Worker works, every 15 s while it's with the desk. */
 export function useRevisionStatus(rev: string | undefined) {
   return useQuery({
     queryKey: ['revision-status', rev],
@@ -195,7 +195,8 @@ export function useRevisionStatus(rev: string | undefined) {
     queryFn: () => call<RevisionStatus>(`/status/${rev}`),
     refetchInterval: (q) => {
       const d = q.state.data;
-      return !d || d.status === 'processing' || (d.status === 'draft' && !isChaptersReady(d)) ? 3000 : false;
+      if (!d || d.status === 'processing' || (d.status === 'draft' && !isChaptersReady(d))) return 3000;
+      return d.status === 'with_desk' || d.status === 'needs_fixes' ? 15_000 : false;
     },
   });
 }

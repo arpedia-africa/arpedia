@@ -131,6 +131,19 @@ begin
   return v_id;
 end $$;
 
+-- What an applicant may see of their own application: no review internals (checks, SLA alert,
+-- legacy flag), so a resubmission can't be tuned against the duplicate or similarity checks.
+create function public._applicant_view(v public.author_applications) returns public.author_applications
+language plpgsql immutable set search_path = '' as $$
+begin
+  if v.id is not null then
+    v.checks := '{}';
+    v.sla_alerted_at := null;
+    v.legacy := false;
+  end if;
+  return v;
+end $$;
+
 -- The open application of the caller, locked.
 create function public._my_open_application() returns public.author_applications
 language plpgsql security definer set search_path = '' as $$
@@ -192,7 +205,7 @@ begin
   end if;
   v := public._my_open_application();
   if v.id is not null then
-    return v;
+    return public._applicant_view(v);
   end if;
   select * into v_last from public.author_applications
   where user_id = v_uid and status = 'rejected' order by decided_at desc limit 1;
@@ -204,7 +217,7 @@ begin
   values (v_uid, coalesce(p.full_name, ''), coalesce((select email from auth.users where id = v_uid), ''),
           p.phone, p.date_of_birth)
   returning * into v;
-  return v;
+  return public._applicant_view(v);
 end $$;
 
 -- Saves fields of the open draft (debounced autosave and Save draft). Unknown keys are ignored;
@@ -255,7 +268,7 @@ begin
     step_reached = greatest(step_reached, least(4, coalesce((p_patch ->> 'step')::int, step_reached)))
   where id = v.id
   returning * into v;
-  return v;
+  return public._applicant_view(v);
 end $$;
 
 -- Called by the api Worker after it checked the uploaded sample in R2 (type, size, pages).
@@ -317,7 +330,7 @@ begin
   perform pgmq.send('application_checks', jsonb_build_object('application_id', v.id));
   perform public._author_notify('application_received', jsonb_build_object(
     'application_id', v.id, 'user_id', v.user_id, 'resend', v_resend));
-  return v;
+  return public._applicant_view(v);
 end $$;
 
 -- Cancel keeps the draft (rule 4); withdrawing a sent application is explicit.
@@ -380,6 +393,16 @@ begin
 end $$;
 
 -- ─── Staff RPCs ─────────────────────────────────────────────────────────────
+-- Automatic checks of one application (rule 10); the column is not granted to authenticated.
+create function public.admin_application_checks(p_app uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_staff_any(array['publisher', 'support']::public.staff_role[]) then
+    raise exception 'admin_application_checks: staff only' using errcode = 'insufficient_privilege';
+  end if;
+  return (select checks from public.author_applications where id = p_app);
+end $$;
+
 create function public.assign_application(p_app uuid, p_staff uuid default null, p_actor uuid default null)
 returns public.author_applications
 language plpgsql security definer set search_path = '' as $$
@@ -428,7 +451,8 @@ begin
   v_before := jsonb_build_object('status', v.status);
 
   if p_decision = 'approve' then
-    v_pen := coalesce(v.pen_name, v.legal_name);
+    -- legal_name allows 80 characters, pen_name 60.
+    v_pen := left(btrim(coalesce(v.pen_name, v.legal_name)), 60);
     update public.profiles set is_author = true where id = v.user_id;
     insert into public.author_profiles (user_id, pen_name, bio, legal_name, application_id)
     values (v.user_id, v_pen, v.bio, v.legal_name, v.id);
@@ -545,6 +569,9 @@ language sql stable security definer set search_path = '' as $$
     and l.reason in ('unlock_all', 'chapter', 'tip', 'message', 'undo', 'refund')
     and l.created_at >= p_from and l.created_at < p_to
 $$;
+-- Studio and admin read earnings per author and month.
+create index credit_ledger_author_idx on public.credit_ledger (author_id, created_at)
+  where author_id is not null;
 
 create function public._month_start(p_month date) returns timestamptz
 language sql stable set search_path = '' as $$
@@ -612,7 +639,10 @@ begin
     'changes_requested', count(*) filter (where exists (
       select 1 from public.book_revisions r where r.book_id = b.id and r.status = 'sent_back'
         and r.revision_no = (select max(revision_no) from public.book_revisions x where x.book_id = b.id))),
-    'drafts', count(*) filter (where b.status = 'draft'))
+    -- Never-published books whose latest revision is still a draft (not in review or sent back).
+    'drafts', count(*) filter (where b.status = 'draft' and coalesce((
+      select r.status from public.book_revisions r where r.book_id = b.id
+      order by r.revision_no desc limit 1), 'draft') = 'draft'))
   into v_counts
   from public.books b where b.author_id = v_uid;
   -- Follows (flows 03/08) and reading minutes (flow 04) are read when those tables exist.
@@ -812,7 +842,15 @@ create policy author_profiles_update_own on public.author_profiles for update to
 -- ─── Grants ─────────────────────────────────────────────────────────────────
 revoke all on public.author_applications, public.author_application_events, public.author_profiles
   from anon, authenticated;
-grant select on public.author_applications, public.author_application_events to authenticated;
+-- Review internals (checks, sla_alerted_at, legacy) stay server-side; staff read checks through
+-- admin_application_checks.
+grant select (id, user_id, status, step_reached, legal_name, email, phone, pen_name, social_handle,
+              date_of_birth, state, categories, bio, experience, sample_file_key, sample_file_name,
+              sample_text, sample_pages, sample_excerpt, agreement_version, agreement_accepted_at,
+              submitted_at, assigned_to, decided_by, decided_at, decision_reason, reapply_after,
+              info_request, info_step, created_at, updated_at)
+  on public.author_applications to authenticated;
+grant select on public.author_application_events to authenticated;
 grant select (user_id, pen_name, bio, photo_url, location, visibility, status, approved_at, club_group_id)
   on public.author_profiles to authenticated;
 -- Authors edit only these columns; status and payout fields are server-only.
@@ -827,6 +865,7 @@ begin
     where p.pronamespace = 'public'::regnamespace
       and p.proname in (
         '_agreement_version', '_author_notify', '_app_event', '_create_club', '_my_open_application',
+        '_applicant_view', 'admin_application_checks',
         '_application_checks', 'start_application', 'save_application_draft', 'set_application_sample',
         'submit_application', 'withdraw_application', 'complete_application_checks', 'assign_application',
         'author_queue_read', 'author_queue_ack', 'application_similarity_corpus',
@@ -852,6 +891,7 @@ grant execute on function
 
 -- Staff (own JWT), or a Worker acting for them.
 grant execute on function
+  public.admin_application_checks(uuid),
   public.assign_application(uuid, uuid, uuid),
   public.decide_application(uuid, text, text, text, boolean, int, uuid),
   public.suspend_author(uuid, text, uuid),

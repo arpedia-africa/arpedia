@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Href } from 'expo-router';
-import type { Database, Json } from '@arpedia/core';
+import { REVIEW_SLA_DAYS, type Database, type Json } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { isNetworkError } from '../01/session';
 
-export type Application = Database['public']['Tables']['author_applications']['Row'];
+/** The applicant's view: review internals (checks, SLA alert, legacy) are not granted to them. */
+export type Application = Omit<
+  Database['public']['Tables']['author_applications']['Row'],
+  'checks' | 'sla_alerted_at' | 'legacy'
+>;
+// One literal, so supabase-js can type the select.
+const APPLICANT_COLUMNS =
+  'id, user_id, status, step_reached, legal_name, email, phone, pen_name, social_handle, date_of_birth, state, categories, bio, experience, sample_file_key, sample_file_name, sample_text, sample_pages, sample_excerpt, agreement_version, agreement_accepted_at, submitted_at, assigned_to, decided_by, decided_at, decision_reason, reapply_after, info_request, info_step, created_at, updated_at';
 export type DraftPatch = Partial<
   Pick<
     Application,
@@ -27,24 +35,17 @@ export type DraftPatch = Partial<
   >
 > & { step?: number };
 
-export const CATEGORIES = [
-  'Christian fiction',
-  'Clean romance',
-  'African stories',
-  'Poetry',
-  'Devotionals',
-  'Non-fiction',
-  'Short stories',
-] as const;
+export { APPLICATION_CATEGORIES as CATEGORIES } from '@arpedia/core';
 
 /** Author Studio home (flow 11 app screens, next step of this flow). */
 export const STUDIO = '/studio' as Href;
 
 /** Admin promise (open question 2): the reply-by date is 5 days after sending. */
-export const REVIEW_DAYS = 5;
+export const REVIEW_DAYS = REVIEW_SLA_DAYS;
 
 const api = process.env.EXPO_PUBLIC_API_URL ?? '';
-const PENDING = 'arpedia.apply.pending';
+/** Unsaved draft edits, per account, so another account on this phone never sends them. */
+const pendingKey = (uid: string) => `arpedia.apply.pending.${uid}`;
 
 export const applicationKey = (uid: string | undefined) => ['author-application', uid] as const;
 
@@ -56,7 +57,7 @@ export function useLatestApplication(uid: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('author_applications')
-        .select('*')
+        .select(APPLICANT_COLUMNS)
         .eq('user_id', uid!)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -106,18 +107,18 @@ export function rpcCode(e: unknown): { code: string; detail: Record<string, unkn
   return { code: err?.message ?? 'unknown', detail };
 }
 
-async function readPending(): Promise<DraftPatch> {
+async function readPending(uid: string): Promise<DraftPatch> {
   try {
-    return JSON.parse((await AsyncStorage.getItem(PENDING)) ?? '{}') as DraftPatch;
+    return JSON.parse((await AsyncStorage.getItem(pendingKey(uid))) ?? '{}') as DraftPatch;
   } catch {
     return {};
   }
 }
 
-async function writePending(p: DraftPatch) {
+async function writePending(uid: string, p: DraftPatch) {
   try {
-    if (Object.keys(p).length) await AsyncStorage.setItem(PENDING, JSON.stringify(p));
-    else await AsyncStorage.removeItem(PENDING);
+    if (Object.keys(p).length) await AsyncStorage.setItem(pendingKey(uid), JSON.stringify(p));
+    else await AsyncStorage.removeItem(pendingKey(uid));
   } catch {
     // storage full or blocked: the in-memory patch still saves while online
   }
@@ -141,21 +142,28 @@ export function useDraftSaver(uid: string | undefined) {
     timer.current = null;
     if (flushing.current) await flushing.current;
     const run = (async () => {
-      const patch = await readPending();
+      if (!uid) return true;
+      const patch = await readPending(uid);
       if (!Object.keys(patch).length) return true;
       setState('saving');
       const { data, error } = await supabase.rpc('save_application_draft', { p_patch: patch as Json });
-      if (error) {
-        setState(isNetworkError(error) ? 'offline' : 'error');
-        return false;
-      }
       // Keep anything typed while this save was on its way.
-      const now = await readPending();
+      const now = await readPending(uid);
       const rest: DraftPatch = {};
       for (const k of Object.keys(now) as (keyof DraftPatch)[]) {
         if (JSON.stringify(now[k]) !== JSON.stringify(patch[k])) Object.assign(rest, { [k]: now[k] });
       }
-      await writePending(rest);
+      if (error) {
+        if (isNetworkError(error)) {
+          setState('offline');
+          return false;
+        }
+        // The server refused this patch (sent already, bad value): retrying it would fail forever.
+        await writePending(uid, rest);
+        setState('error');
+        return false;
+      }
+      await writePending(uid, rest);
       qc.setQueryData(applicationKey(uid), data);
       setState('saved');
       return true;
@@ -171,12 +179,13 @@ export function useDraftSaver(uid: string | undefined) {
   const queue = useCallback(
     (patch: DraftPatch) => {
       void (async () => {
-        await writePending({ ...(await readPending()), ...patch });
+        if (!uid) return;
+        await writePending(uid, { ...(await readPending(uid)), ...patch });
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => void flush(), 1000);
       })();
     },
-    [flush],
+    [flush, uid],
   );
 
   useEffect(() => {
@@ -243,10 +252,14 @@ export async function pickAndUploadSample(): Promise<PickedSample | null> {
   };
   if (!ticket.ok || !t.upload_url || !t.key)
     throw new SampleError(t.message ?? 'Upload didn’t start. Try again.');
+  // The object route refuses a PUT without the body's SHA-256 (flow 12).
+  const bytes = await blob.arrayBuffer();
+  const sha = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);
+  const hex = [...new Uint8Array(sha)].map((b) => b.toString(16).padStart(2, '0')).join('');
   const put = await fetch(t.upload_url, {
     method: 'PUT',
-    headers: { ...auth, 'Content-Type': contentType },
-    body: blob,
+    headers: { ...auth, 'Content-Type': contentType, 'X-Content-SHA256': hex },
+    body: bytes,
   });
   if (!put.ok) throw new SampleError('Upload didn’t finish. Try again.');
   const done = await fetch(`${api}/v1/author-applications/sample/complete`, {

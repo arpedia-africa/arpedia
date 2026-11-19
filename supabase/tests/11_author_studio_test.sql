@@ -1,7 +1,7 @@
 -- Flow 11 · author applications (RLS, send rules, decisions), author profiles, Studio earnings.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(35);
+select plan(38);
 
 -- The local seed (supabase/seeds/11_authors.sql) holds applications and author profiles; start empty.
 -- Rolled back with the rest of the test.
@@ -49,8 +49,11 @@ select is((select cardinality(categories) from public.author_applications), 2, '
 select throws_like($$select public.submit_application(false)$$, 'incomplete', 'send blocked without the terms box');
 select is((public.submit_application(true)).status, 'new'::public.application_status, 'application sent');
 select is((select agreement_version from public.author_applications), 1, 'agreement version stored');
-select ok((select (checks ->> 'email_verified')::boolean and (checks ->> 'age_ok')::boolean
-           from public.author_applications), 'automatic checks written on send');
+select throws_ok($$select checks from public.author_applications$$, '42501', null,
+  'applicant cannot read the automatic checks');
+select is((public.start_application()).checks, '{}'::jsonb, 'nor through the RPCs');
+select throws_ok($$select public.admin_application_checks((select id from public.author_applications))$$,
+  '42501', null, 'admin_application_checks is staff only');
 select throws_ok($$select public.save_application_draft('{"bio":"changed"}')$$, 'P0001', 'application_sent',
   'cannot edit after sending');
 
@@ -65,6 +68,9 @@ select throws_ok($$select public.decide_application((select id from public.autho
 -- ─── Staff decisions ────────────────────────────────────────────────────────
 select pg_temp.as_user('31000000-0000-4000-a000-000000000003');
 select is((select count(*)::int from public.author_applications), 1, 'publisher sees the queue');
+select ok((select (c ->> 'email_verified')::boolean and (c ->> 'age_ok')::boolean
+           from public.admin_application_checks((select id from public.author_applications)) c),
+  'automatic checks written on send, read by staff');
 select is((public.assign_application((select id from public.author_applications))).assigned_to,
   '31000000-0000-4000-a000-000000000003'::uuid, 'assign to me');
 select is((public.decide_application((select id from public.author_applications), 'ask_info',
