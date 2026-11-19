@@ -62,7 +62,13 @@ switch (cmd) {
     execSync('node tools/dev-vars.mjs', {
       cwd: root,
       stdio: 'inherit',
-      env: { ...process.env, SUPABASE_WORKDIR: work, API_PORT: '8797', CHAT_PORT: '8798', ADMIN_PORT: '3010' },
+      env: {
+        ...process.env,
+        SUPABASE_WORKDIR: work,
+        API_PORT: '8797',
+        CHAT_PORT: '8798',
+        ADMIN_PORT: '3010',
+      },
     });
     break;
   case 'status':
