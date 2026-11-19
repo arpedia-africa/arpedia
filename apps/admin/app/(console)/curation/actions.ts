@@ -39,6 +39,20 @@ export async function reorderSections(ids: string[]): Promise<Result> {
   return { ok: true };
 }
 
+/** Live books whose title or author matches (Add a book). */
+export async function findBooks(q: string): Promise<{ id: string; title: string; author: string }[]> {
+  const term = q.trim().replace(/[%_,()]/g, ' ');
+  if (term.length < 2) return [];
+  const supabase = await serverSupabase();
+  const { data } = await supabase
+    .from('catalog_books')
+    .select('id, title, author_name')
+    .or(`title.ilike.%${term}%,author_name.ilike.%${term}%`)
+    .order('title')
+    .limit(8);
+  return (data ?? []).map(b => ({ id: b.id!, title: b.title ?? '', author: b.author_name ?? '' }));
+}
+
 /** Replace the section's draft (Trending edits). Items in order. */
 export async function saveDraft(
   sectionId: string,
