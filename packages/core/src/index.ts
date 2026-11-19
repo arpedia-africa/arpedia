@@ -9,4 +9,5 @@ export * from './anchors';
 export * from './seal';
 export * from './unlock';
 export * from './reading';
+export * from './library';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
