@@ -589,6 +589,24 @@ begin
   return public._start_deletion(uid, 'app', uid, null, now(), null);
 end $$;
 
+-- A reader whose account staff set to "Delete after 30 days" restores it by signing in within the
+-- grace (s-user-delete). Returns true when restored; app deletions have no grace (Q3).
+create function public.restore_my_account() returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare
+  uid uuid := public._me();
+  d public.account_deletions;
+begin
+  select * into d from public.account_deletions where user_id = uid and status = 'pending'
+    and grace_until > now() for update;
+  if not found then
+    return false;
+  end if;
+  update public.account_deletions set status = 'cancelled', completed_at = now() where id = d.id;
+  update public.profiles set deleted_at = null, deletion_requested_at = null where id = uid;
+  return true;
+end $$;
+
 -- ─── Erasure (service role: the api Worker's cron) ──────────────────────────
 -- Rule 37. Idempotent: re-running a done deletion does nothing. Ledger, entitlement and audit
 -- rows stay (they are financial records); the profile is scrubbed to "Former reader".
@@ -966,7 +984,7 @@ begin
   return out;
 end $$;
 
--- s-user-delete. `now` (the reader asked in writing) needs the typed DELETE; `after_30_days` hides
+-- s-user-delete, typed DELETE either way. `now`: only when the reader asked in writing; `after_30_days` hides
 -- and signs out now and erases after 30 days unless restored.
 create function public.staff_start_deletion(p_user uuid, p_mode text, p_reason text, p_confirm text default null)
 returns public.account_deletions
@@ -986,7 +1004,7 @@ begin
   if not found or p.deleted_at is not null then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
-  if p_mode = 'now' and upper(btrim(coalesce(p_confirm, ''))) <> 'DELETE' then
+  if upper(btrim(coalesce(p_confirm, ''))) <> 'DELETE' then
     raise exception 'confirm_text' using errcode = '22023';
   end if;
   if exists (select 1 from public.staff_roles s where s.user_id = p_user and s.active) then
@@ -1057,6 +1075,7 @@ revoke execute on function
   public.set_notification_preferences(jsonb), public.notification_pref(uuid, text),
   public.list_my_devices(text), public.remove_device(uuid, text), public.claim_download_slot(text),
   public._start_deletion(uuid, text, uuid, text, timestamptz, timestamptz), public.request_account_deletion(text),
+  public.restore_my_account(),
   public.erase_account(uuid), public.due_account_deletions(integer),
   public._mask_phone(text), public._staff_acts_on_readers(), public._staff_support(), public._reader_plan(uuid),
   public._reader_tab(boolean, jsonb), public.staff_list_readers(text, text, jsonb, integer),
@@ -1071,7 +1090,7 @@ grant execute on function
   public.list_collection(text, timestamptz, text, integer), public.delete_annotation(uuid),
   public.restore_annotation(uuid), public.update_profile(jsonb), public.get_notification_preferences(),
   public.set_notification_preferences(jsonb), public.list_my_devices(text), public.remove_device(uuid, text),
-  public.claim_download_slot(text), public.request_account_deletion(text),
+  public.claim_download_slot(text), public.request_account_deletion(text), public.restore_my_account(),
   public.staff_list_readers(text, text, jsonb, integer), public.staff_get_reader(uuid),
   public.staff_reveal_contact(uuid, text), public.staff_sign_out_device(uuid, uuid), public.staff_sign_out_all(uuid),
   public.staff_send_password_reset(uuid), public.staff_set_reader_role(uuid, text), public.staff_add_note(uuid, text),

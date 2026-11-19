@@ -24,9 +24,9 @@ export default function Profile() {
         summary={summary.data}
         error={summary.isError}
         onRetry={() => void summary.refetch()}
-        onSettings={() => router.push('/(account)/settings')}
+        onSettings={() => router.push('/account')}
         onGoal={() => setGoalOpen(true)}
-        onCollection={(tab) => router.push({ pathname: '/(account)/highlights', params: { tab } })}
+        onCollection={(tab) => router.push({ pathname: '/my-highlights', params: { tab } })}
         onAuthor={() =>
           summary.data?.is_author
             ? toast({ message: 'Author Studio opens here once it ships.' })
