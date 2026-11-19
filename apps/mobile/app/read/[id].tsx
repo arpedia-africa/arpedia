@@ -3,6 +3,7 @@
 // screen owns the chrome around it, the gate cards in the page flow and the selection toolbar.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import { StatusBar } from 'expo-status-bar';
@@ -44,6 +45,7 @@ const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
 const CHROME_IDLE_MS = 5000;
 const DELETE_UNDO_MS = 5000;
+const HINT_KEY = 'reader.hint.seen';
 const OTHER_COLORS: HighlightColor[] = ['yellow', 'green', 'pink', 'blue', 'purple', 'peach'];
 
 export default function ReaderScreen() {
@@ -125,6 +127,19 @@ export default function ReaderScreen() {
     toast({ message: r.notice });
     r.clearNotice();
   }, [r.notice, r, toast]);
+  // First run: a one-line hint, once per phone (States: First run).
+  const hasPage = r.loc != null;
+  useEffect(() => {
+    if (!hasPage) return;
+    void AsyncStorage.getItem(HINT_KEY)
+      .then((seen) => {
+        if (seen) return;
+        toast({ message: 'Tap the middle for controls' });
+        return AsyncStorage.setItem(HINT_KEY, '1');
+      })
+      .catch(() => undefined);
+  }, [hasPage, toast]);
+
   // Another device is ahead (rule 67): offer it; Stay is the default, so the toast just goes.
   useEffect(() => {
     const e = r.elsewhere;

@@ -7,10 +7,13 @@ import {
   Cover,
   Group,
   Hero,
+  Icon,
   IconButton,
   Pill,
+  Press,
   Section,
   Text,
+  motion,
   useTheme,
   type AvatarTone,
   type CoverTone,
@@ -76,15 +79,25 @@ export function BookEndView({
         <Text size={13} weight={600} oneLine>
           Rate this ebook
         </Text>
+        {/* .star-input: .ib buttons with .ico.l.fill stars; .off for stars past the reader's rating */}
         <View style={{ flexDirection: 'row' }} accessibilityLabel="Rate 1 to 5 stars">
           {[1, 2, 3, 4, 5].map((i) => (
-            <IconButton
+            <Press
               key={i}
-              icon="star"
-              label={i === 1 ? '1 star' : `${i} stars`}
-              color={m.stars === 0 || i <= m.stars ? c.star : '#D1D5DB'}
               onPress={() => onRate(i)}
-            />
+              pressScale={motion.press.icon}
+              accessibilityRole="button"
+              accessibilityLabel={i === 1 ? '1 star' : `${i} stars`}
+              style={{
+                width: s(44),
+                height: s(44),
+                borderRadius: s(12),
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="star" size="l" filled color={m.stars === 0 || i <= m.stars ? c.star : c.control} />
+            </Press>
           ))}
         </View>
       </View>
