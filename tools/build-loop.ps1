@@ -59,7 +59,7 @@ while ($true) {
   if ($Lane) { $prompt = "Your lanes: $Lane. Only continue or start flows listed in those lanes of status.json. Never touch another lane's PR, even if it looks stalled.`n`n" + $prompt }
   if ($Flows) { $prompt = "Only continue or start these flows: $Flows. Ignore every other flow and PR, even if it looks stalled. If none of them is ready, print NOTHING-TO-DO.`n`n" + $prompt }
   if ($PhoneOnly) { $prompt = "You are the PHONE builder: the only builder allowed to use the phone and Metro. Other builders never touch it. Only do step 0, for every open PR labelled needs-phone, oldest first, one per run (include any Coordinator requests and CI fixes on that PR). Ignore lanes. Take phone.lock and db.lock and refresh both (touch) every 10 minutes. When the on-device steps pass, remove the label, run the gates and mark it ready as in step 2. If no PR is labelled needs-phone, print NOTHING-TO-DO and stop.`n`n" + $prompt }
-  if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below.`n`n" + $prompt }
+  if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below. For the database use the second stack (tools/db2.mjs, db2.lock), never db.lock.`n`n" + $prompt }
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
   Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' }) ===" -ForegroundColor Yellow
 

@@ -8,7 +8,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const out = execSync('pnpm -s exec supabase status -o env', {
+// SUPABASE_WORKDIR points at a second stack's workdir (tools/db2.mjs vars sets it).
+const workdir = process.env.SUPABASE_WORKDIR ? ` --workdir "${process.env.SUPABASE_WORKDIR}"` : '';
+const out = execSync(`pnpm -s exec supabase status -o env${workdir}`, {
   cwd: root,
   encoding: 'utf8',
   stdio: ['ignore', 'pipe', 'ignore'],
