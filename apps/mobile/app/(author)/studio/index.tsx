@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
 import { formatKobo } from '@arpedia/core';
 import { isNetworkError, useMyProfile, useSession } from '../../../features/01/session';
@@ -59,11 +59,11 @@ export default function Studio() {
       case 'club':
         return soon('Your club chat');
       case 'profile':
-        return soon('Author profile settings');
+        return router.push('/studio/profile' as Href);
       case 'payout':
-        return soon('Payout account');
+        return router.push('/studio/payout' as Href);
       case 'community':
-        return soon('Club settings');
+        return router.push('/studio/club' as Href);
     }
   };
 

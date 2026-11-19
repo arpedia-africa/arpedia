@@ -48,6 +48,12 @@ import {
   type GenreOption,
 } from '../features/01/StepViews';
 import { StudioBooksView, StudioEarningsView, StudioHomeView } from '../features/11/StudioViews';
+import {
+  StudioClubView,
+  StudioPayoutView,
+  StudioProfileFoot,
+  StudioProfileView,
+} from '../features/11/StudioSettingsViews';
 
 const PAGES = [
   'kit-a',
@@ -63,6 +69,9 @@ const PAGES = [
   's-studio',
   's-studio-books',
   's-studio-royalties',
+  's-studio-profile',
+  's-studio-payout',
+  's-studio-community',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -369,6 +378,52 @@ function Flow11({ page }: { page: Page }) {
               action: null,
             },
           ]}
+        />
+      );
+    case 's-studio-profile':
+      return (
+        <>
+          <StudioProfileView
+            values={{
+              pen_name: 'Ifeoma Nwachukwu',
+              bio: 'Writes Christian fiction from Enugu. Harmattan Letters began as twelve letters in a notebook.',
+              location: 'Enugu, Nigeria',
+              visibility: 'public',
+            }}
+            photo={null}
+            errors={{}}
+            onChange={noop}
+            onPhoto={noop}
+            onPreview={noop}
+            onBack={noop}
+          />
+          <StudioProfileFoot onSave={noop} />
+        </>
+      );
+    case 's-studio-payout':
+      return (
+        <StudioPayoutView
+          account={{
+            bank: 'GTBank ···· 2291',
+            name: 'IFEOMA C. NWACHUKWU',
+            status: { label: 'Verified', tone: 'ok' },
+          }}
+          onBack={noop}
+          onChange={noop}
+        />
+      );
+    case 's-studio-community':
+      return (
+        <StudioClubView
+          title="Ifeoma's Readers"
+          sub="Club settings · 860 members"
+          values={{ who: 'everyone', publicClub: true, slowMode: false }}
+          mutedSub="3 words"
+          moderatorsSub="Chioma, Kemi"
+          onChange={noop}
+          onBack={noop}
+          onMuted={noop}
+          onModerators={noop}
         />
       );
     case 's-studio-royalties':
