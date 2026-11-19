@@ -14,7 +14,15 @@ import {
   Top10Band,
   type BookCard,
 } from '../../features/02/HomeViews';
-import { avatarTone, coverTone, picksLine, shortName, useHome, type HomeBook } from '../../features/02/home';
+import {
+  avatarTone,
+  coverTone,
+  logShelfTap,
+  picksLine,
+  shortName,
+  useHome,
+  type HomeBook,
+} from '../../features/02/home';
 import { discoveryLinks } from '../../features/02/links';
 
 const card = (b: HomeBook): BookCard => ({
@@ -58,7 +66,7 @@ export default function Home() {
           return sec.items.length ? (
             <Section key={sec.key} title={sec.title}>
               <Rail label={sec.title}>
-                {sec.items.map((a) => (
+                {sec.items.map((a, i) => (
                   <AuthorTile
                     key={a.id}
                     author={{
@@ -68,7 +76,10 @@ export default function Home() {
                       tone: avatarTone(a.id),
                       uri: a.avatar_url ?? undefined,
                     }}
-                    onPress={() => go.author(a.id)}
+                    onPress={() => {
+                      logShelfTap(sec.key, i);
+                      go.author(a.id);
+                    }}
                   />
                 ))}
               </Rail>
@@ -81,7 +92,13 @@ export default function Home() {
               title={sec.title}
               books={sec.items.map((b) => ({ ...card(b), rank: b.rank ?? 0 }))}
               onSeeAll={() => go.seeAll('top10')}
-              onBook={go.book}
+              onBook={(id) => {
+                logShelfTap(
+                  sec.key,
+                  sec.items.findIndex((b) => b.id === id),
+                );
+                go.book(id);
+              }}
             />
           ) : null;
         case 'genres':
@@ -106,8 +123,15 @@ export default function Home() {
               onLink={() => (recommended ? go.explore() : go.seeAll(sec.key))}
             >
               <Rail label={sec.title}>
-                {sec.items.map((b) => (
-                  <BookTile key={b.id} book={card(b)} onPress={() => go.book(b.id)} />
+                {sec.items.map((b, i) => (
+                  <BookTile
+                    key={b.id}
+                    book={card(b)}
+                    onPress={() => {
+                      logShelfTap(sec.key, i);
+                      go.book(b.id);
+                    }}
+                  />
                 ))}
               </Rail>
             </Section>

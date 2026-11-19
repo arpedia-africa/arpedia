@@ -85,6 +85,15 @@ export function shortName(name: string): string {
   return [first, ...rest.map((p) => `${p[0]!.toUpperCase()}.`)].join(' ');
 }
 
+/** Counts a shelf card tap by position for Discover curation (fire and forget). */
+export function logShelfTap(sectionKey: string, position: number) {
+  if (position < 0) return;
+  void supabase.rpc('log_shelf_taps', { p_taps: [{ section_key: sectionKey, position }] }).then(
+    () => {},
+    () => {},
+  );
+}
+
 /** Recommended subtitle (rule 5). */
 export function picksLine(picks: string[]): string {
   if (picks.length === 0) return 'Popular with new readers';
