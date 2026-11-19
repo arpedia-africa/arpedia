@@ -13,6 +13,7 @@ appId: com.arpedia.reader
     timeout: 30000
 - tapOn: 'you@example.com'
 - inputText: 'ngozi@example.com'
+- hideKeyboard
 - tapOn: 'Your password'
 - inputText: 'arpedia-local'
 - hideKeyboard
