@@ -56,7 +56,7 @@ create index audit_log_area_idx on public.audit_log (area, at desc);
 
 -- ─── Helpers ────────────────────────────────────────────────────────────────
 -- The caller's level for a permission (null when they lack it or two-step is stale).
-create function public._permission_level(p_permission text) returns public.permission_level
+create function public._perm_level(p_permission text) returns public.permission_level
 language sql stable security definer set search_path = '' as $$
   select rp.level from public.staff_roles s
   join public.role_permissions rp on rp.role = s.role and rp.permission = p_permission
@@ -67,7 +67,7 @@ $$;
 create function public._require_full(p_permission text) returns void
 language plpgsql stable security definer set search_path = '' as $$
 begin
-  if public._permission_level(p_permission) is distinct from 'allow' then
+  if public._perm_level(p_permission) is distinct from 'allow' then
     raise exception 'Not allowed: %', p_permission using errcode = 'insufficient_privilege';
   end if;
 end $$;
@@ -539,7 +539,7 @@ begin
     raise exception 'Not allowed: manage_settings' using errcode = 'insufficient_privilege';
   end if;
   return jsonb_build_object(
-    'can_edit', public._permission_level('manage_settings') = 'allow',
+    'can_edit', public._perm_level('manage_settings') = 'allow',
     'config', (select jsonb_object_agg(c.key, jsonb_build_object('value', c.value, 'updated_at', c.updated_at,
                  'updated_by', p.full_name))
                from public.app_config c left join public.profiles p on p.id = c.updated_by
@@ -1183,7 +1183,7 @@ grant select on public.approval_requests, public.policies, public.policy_version
 grant select on public.policies, public.policy_versions to anon;
 
 -- ─── Grants ─────────────────────────────────────────────────────────────────
-revoke execute on function public._permission_level(text), public._require_full(text),
+revoke execute on function public._perm_level(text), public._require_full(text),
   public._version_cmp(text, text), public._rollout_bucket(uuid, text), public.verify_stepup(text, text),
   public._consume_stepup(uuid, text), public._approval_roles(text, boolean),
   public.request_approval(text, jsonb, text), public.decide_approval(uuid, boolean, text),
@@ -1220,7 +1220,8 @@ grant execute on function public.verify_stepup(text, text), public.request_appro
   to authenticated;
 
 -- Workers (service key): app config for the api Worker, health for the checks Worker, the job.
-grant execute on function public.get_app_config(text, uuid),
+grant execute on function public.get_app_config(text, uuid), public._version_cmp(text, text),
+  public._rollout_bucket(uuid, text),
   public.worker_set_integration_health(text, text, timestamptz, text, numeric, text, text),
   public.apply_pricing_rules()
   to service_role;

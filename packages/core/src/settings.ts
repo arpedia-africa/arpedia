@@ -13,7 +13,10 @@ export function priceForPages(pages: number, creditsPerPage: number): number {
 }
 
 /** The rule 32 live example: words → standard pages → credits → naira. */
-export function priceExample(words: number, rules: { wordsPerPage: number; creditsPerPage: number; creditNaira: number }) {
+export function priceExample(
+  words: number,
+  rules: { wordsPerPage: number; creditsPerPage: number; creditNaira: number },
+) {
   const pages = Math.ceil(words / rules.wordsPerPage);
   const credits = priceForPages(pages, rules.creditsPerPage);
   return { pages, credits, naira: credits * rules.creditNaira };

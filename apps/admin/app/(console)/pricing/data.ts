@@ -4,6 +4,7 @@ import type { Plan, Rules, Topup } from './format';
 
 export interface RuleVersion {
   id: string;
+  version: number;
   effective_at: string;
   created_at: string;
   rules: Rules;
@@ -33,7 +34,8 @@ export const loadPricing = cache(async () => {
     supabase.rpc('get_plans'),
     supabase
       .from('pricing_rule_versions')
-      .select('id, effective_at, created_at, rules, note, changer:profiles!pricing_rule_versions_changed_by_fkey(full_name)')
+      .select('id, version, effective_at, created_at, rules, note, changer:profiles!pricing_rule_versions_changed_by_fkey(full_name)')
+      .is('cancelled_at', null)
       .order('effective_at', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(20),
@@ -58,6 +60,7 @@ export const loadPricing = cache(async () => {
   };
   const ruleVersions: RuleVersion[] = rulesRes.data.map(r => ({
     id: r.id,
+    version: r.version,
     effective_at: r.effective_at,
     created_at: r.created_at,
     rules: r.rules as unknown as Rules,
@@ -83,6 +86,10 @@ export const loadPricing = cache(async () => {
     avgBook: catalog.avg_book_price_credits,
     rules: current?.rules ?? null,
     currentVersion: current ?? null,
+    /** Latest saved version (scheduled or in effect): sent back on save so a concurrent save is refused. */
+    latestVersion: ruleVersions.reduce((m, v) => Math.max(m, v.version), 0),
+    /** A save waiting for 00:00 WAT, which Undo cancels. */
+    scheduled: ruleVersions.find(v => v.effective_at > now) ?? null,
     ruleVersions,
     planVersions,
   };

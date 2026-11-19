@@ -87,7 +87,10 @@ describe('rollout bucket', () => {
     for (const pct of [20, 50, 80]) {
       let on = 0;
       for (let i = 0; i < 10_000; i++) {
-        if (flagOn({ key: 'offline_downloads', enabled: true, rolloutPercent: pct }, randomUUID(), '26.1', md5)) on++;
+        if (
+          flagOn({ key: 'offline_downloads', enabled: true, rolloutPercent: pct }, randomUUID(), '26.1', md5)
+        )
+          on++;
       }
       expect(Math.abs(on / 100 - pct)).toBeLessThanOrEqual(1);
     }
@@ -95,8 +98,12 @@ describe('rollout bucket', () => {
   it('respects off and the minimum app version', () => {
     const id = randomUUID();
     expect(flagOn({ key: 'a', enabled: false, rolloutPercent: 100 }, id, '26.1', md5)).toBe(false);
-    expect(flagOn({ key: 'a', enabled: true, rolloutPercent: 100, minAppVersion: '26.1' }, id, '26.0', md5)).toBe(false);
-    expect(flagOn({ key: 'a', enabled: true, rolloutPercent: 100, minAppVersion: '26.1' }, id, '26.10', md5)).toBe(true);
+    expect(
+      flagOn({ key: 'a', enabled: true, rolloutPercent: 100, minAppVersion: '26.1' }, id, '26.0', md5),
+    ).toBe(false);
+    expect(
+      flagOn({ key: 'a', enabled: true, rolloutPercent: 100, minAppVersion: '26.1' }, id, '26.10', md5),
+    ).toBe(true);
   });
 });
 

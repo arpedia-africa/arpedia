@@ -8,7 +8,7 @@ import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { describeChange, nairaDec, num, RULE_LABEL, ruleValue, type Plan, type Rules, type Topup } from '../pricing/format';
 import { Otp } from '../pricing/otp';
-import { previewRules, saveRules, type RulesPreview } from './actions';
+import { previewRules, saveRules, undoRules, type RulesPreview } from './actions';
 
 type Edits = Omit<Rules, 'store_fee_pct'>;
 
@@ -75,6 +75,8 @@ export function RulesForm({
   lastChange,
   log,
   canSave,
+  version,
+  scheduledId,
 }: {
   rules: Rules;
   plans: Plan[];
@@ -84,6 +86,10 @@ export function RulesForm({
   lastChange: { at: string; by: string | null };
   log: Log[];
   canSave: boolean;
+  /** Version the page loaded at; a save from an older page is refused. */
+  version: number;
+  /** A save waiting for 00:00 WAT, which Undo cancels. */
+  scheduledId: string | null;
 }) {
   const router = useRouter();
   const [toast, show] = useToast();
@@ -177,7 +183,7 @@ export function RulesForm({
     start(async () => {
       if (!parsed) return;
       setError(null);
-      const r = await saveRules(parsed, otp);
+      const r = await saveRules(parsed, otp, version);
       if (!r.ok) {
         setError(r.error);
         if (r.needCode) setOtp('');
@@ -185,7 +191,17 @@ export function RulesForm({
       }
       const n = confirm?.books_changed ?? 0;
       setConfirm(null);
-      show(`Pricing rules saved. ${num(n)} book price${n === 1 ? '' : 's'} update${n === 1 ? 's' : ''} at 00:00 WAT.`);
+      setOtp('');
+      show(`Pricing rules saved. ${num(n)} book price${n === 1 ? '' : 's'} update${n === 1 ? 's' : ''} at 00:00 WAT.`, () =>
+        undo(r.id),
+      );
+      router.refresh();
+    });
+
+  const undo = (id: string) =>
+    start(async () => {
+      const r = await undoRules(id);
+      show(r.ok ? 'Undone. The rules in effect stay as they are.' : r.error);
       router.refresh();
     });
 
@@ -443,7 +459,17 @@ export function RulesForm({
                     {log.map((l, i) => (
                       <div key={i} className={`tl__i ${l.pending ? 'org' : 'ok'}`}>
                         <b>{l.title}</b>
-                        <small>{l.small}</small>
+                        <small>
+                          {l.small}
+                          {l.pending && canSave && scheduledId && (
+                            <>
+                              {' · '}
+                              <a className="link" role="button" onClick={() => !pending && undo(scheduledId)}>
+                                Undo
+                              </a>
+                            </>
+                          )}
+                        </small>
                       </div>
                     ))}
                     {!dirty && log.length === 0 && <span className="muted">Saved changes show here.</span>}

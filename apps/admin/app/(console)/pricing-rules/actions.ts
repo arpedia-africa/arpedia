@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { serverSupabase } from '@/lib/supabase/server';
-import { verifyCode } from '../pricing/verify';
+import { stepUp, stepUpError } from '@/lib/stepup';
 import type { Rules } from '../pricing/format';
 
 export interface RulesPreview {
@@ -16,9 +16,14 @@ export interface RulesPreview {
 
 type Edits = Omit<Rules, 'store_fee_pct'>;
 
-function errorText(error: { message: string; code?: string }): string {
+function errorText(error: { message: string; code?: string; details?: string }): string {
   const m = error.message;
   if (m.includes('bad_rules')) return 'One of the rules is out of range. Check the hints under each field and try again.';
+  if (m.includes('rules_changed')) {
+    const by = /"by"\s*:\s*"([^"]+)"/.exec(error.details ?? '')?.[1];
+    return `Rules changed by ${by ?? 'another Super admin'}, review again.`;
+  }
+  if (m.includes('no_change')) return 'Nothing changed. Edit a rule first.';
   if (m.includes('plan_check_failed'))
     return 'A plan would stop earning more than the author rate after the store fee. Raise the plan price or lower the author rate.';
   if (error.code === '42501') return 'Only a Super admin can save pricing rules, with a fresh 2-step code.';
@@ -33,16 +38,41 @@ export async function previewRules(rules: Edits): Promise<{ ok: true; preview: R
   return { ok: true, preview: data as unknown as RulesPreview };
 }
 
-/** Save the rules from 00:00 WAT tomorrow (rule 24). Needs a Super admin and a code from the last 10 minutes. */
+/**
+ * Save the rules from 00:00 WAT tomorrow (flow 16 rules 34–35). Needs a Super admin, a fresh single-use
+ * code and the version the page was loaded at, so a second Super admin's save is refused.
+ */
 export async function saveRules(
   rules: Edits,
   otp: string,
-): Promise<{ ok: true } | { ok: false; error: string; needCode?: boolean }> {
-  const bad = await verifyCode(otp);
-  if (bad) return { ok: false, error: bad, needCode: true };
+  expectedVersion: number,
+): Promise<{ ok: true; id: string } | { ok: false; error: string; needCode?: boolean }> {
+  const step = await stepUp(otp, 'pricing_rules');
+  if ('error' in step) return { ok: false, error: step.error, needCode: true };
   const supabase = await serverSupabase();
-  const { error } = await supabase.rpc('save_pricing_rules', { p_rules: rules });
-  if (error) return { ok: false, error: errorText(error), needCode: error.code === '42501' };
+  const { data, error } = await supabase.rpc('save_pricing_rules', {
+    p_rules: rules,
+    p_expected_version: expectedVersion,
+    p_stepup: step.id,
+  });
+  if (error) {
+    const expired = stepUpError(error.message);
+    return { ok: false, error: expired ?? errorText(error), needCode: !!expired || error.code === '42501' };
+  }
+  revalidatePath('/pricing-rules');
+  revalidatePath('/pricing');
+  return { ok: true, id: (data as { id: string }).id };
+}
+
+/** Undo a scheduled save before 00:00 WAT (rule 35). */
+export async function undoRules(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('cancel_pricing_rules', { p_id: id });
+  if (error)
+    return {
+      ok: false,
+      error: error.message.includes('not_scheduled') ? 'Those rules are already in effect and cannot be undone.' : errorText(error),
+    };
   revalidatePath('/pricing-rules');
   revalidatePath('/pricing');
   return { ok: true };

@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Pricing rules · Arpedia Admin' };
 export default async function PricingRulesPage() {
   const staff = await requireStaff();
   if (!canOpen('pricing-rules', staff.permissions)) return <NoAccess page="pricing-rules" label="Pricing rules" role={staff.role} />;
-  const { plans, topups, rules, currentVersion, ruleVersions } = await loadPricing();
+  const { plans, topups, rules, currentVersion, ruleVersions, latestVersion, scheduled } = await loadPricing();
   if (!rules || !currentVersion) throw new Error('No pricing rules found');
 
   const supabase = await serverSupabase();
@@ -50,6 +50,8 @@ export default async function PricingRulesPage() {
       lastChange={{ at: currentVersion.effective_at, by: currentVersion.by }}
       log={log}
       canSave={staff.role === 'super_admin'}
+      version={latestVersion}
+      scheduledId={scheduled?.id ?? null}
     />
   );
 }
