@@ -55,6 +55,15 @@ import {
   StudioProfileView,
 } from '../features/11/StudioSettingsViews';
 import { StudioInboxView, StudioPostView } from '../features/11/StudioCommsViews';
+import {
+  StepFoot,
+  SubmitChaptersView,
+  SubmitDoneView,
+  SubmitPreviewView,
+  SubmitProcessingFoot,
+  SubmitProcessingView,
+  SubmitUploadView,
+} from '../features/11/SubmitViews';
 
 const PAGES = [
   'kit-a',
@@ -75,6 +84,11 @@ const PAGES = [
   's-studio-community',
   's-studio-post',
   's-studio-inbox',
+  's-studio-submit',
+  's-studio-processing',
+  's-studio-chapters',
+  's-studio-preview',
+  's-studio-submitted',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -479,6 +493,140 @@ function Flow11({ page }: { page: Page }) {
           onRetry={noop}
           onBack={noop}
         />
+      );
+    case 's-studio-submit':
+      return (
+        <>
+          <SubmitUploadView
+            values={{
+              source: 'docx',
+              title: 'Market Day in Onitsha',
+              subtitle: '',
+              genres: ['African stories', 'Fiction'],
+              description: '',
+            }}
+            file={{ name: 'market-day-in-onitsha-final.docx', line: '2.1 MB · uploaded' }}
+            cover={null}
+            errors={{}}
+            onChange={noop}
+            onPickFile={noop}
+            onRemoveFile={noop}
+            onPickCover={noop}
+            onRemoveCover={noop}
+            onBack={noop}
+          />
+          <StepFoot label="Continue" onPress={noop} />
+        </>
+      );
+    case 's-studio-processing':
+      return (
+        <>
+          <SubmitProcessingView
+            sub="This takes 1 to 3 minutes."
+            steps={[
+              { label: 'Reading your file', state: 'done' },
+              { label: 'Cleaning text and quotes', state: 'done' },
+              { label: 'Finding chapters', state: 'now' },
+              { label: 'Building the free 10% preview', state: 'todo' },
+              { label: 'Checking cover and content', state: 'todo' },
+            ]}
+            progress={0.5}
+            note="Nothing for you to do here. You can leave this screen; we'll send a notification when your chapters are ready to check."
+            onBack={noop}
+          />
+          <SubmitProcessingFoot ready onReady={noop} onLeave={noop} />
+        </>
+      );
+    case 's-studio-chapters':
+      return (
+        <>
+          <SubmitChaptersView
+            sub="We found 22 chapters in Market Day in Onitsha."
+            flags={[
+              { tone: 'warn', text: 'Chapter 4 has no title. Add one?' },
+              { tone: 'info', text: 'Image on page 41 is too large, we’ll shrink it.' },
+              {
+                tone: 'info',
+                text: 'Chapter 17 runs to 31 pages, so we split it into two parts. Readers who pay as they read pay for it in two smaller steps.',
+              },
+            ]}
+            chapters={[
+              { ord: 0, title: 'The Road to the Market', words: 2940, canMerge: false },
+              { ord: 1, title: 'Mama Nkechi’s Stall', words: 3120, canMerge: false },
+              { ord: 2, title: 'Bargains and Whispers', words: 2780, canMerge: false },
+              { ord: 3, title: null, words: 2610, canMerge: true },
+              { ord: 4, title: 'The Trader from Aba', words: 3350, canMerge: false },
+              { ord: 5, title: 'Rain Over Main Market', words: 2490, canMerge: false },
+              { ord: 6, title: 'A Debt Remembered', words: 180, canMerge: true },
+            ]}
+            note="Showing 7 of 22. Scroll to see all chapters."
+            totals={{ words: '62,400 words', pages: '250 pages', price: '125 credits · ₦375' }}
+            onRename={noop}
+            onMerge={noop}
+            onBack={noop}
+          />
+          <StepFoot label="Looks right, continue" onPress={noop} />
+        </>
+      );
+    case 's-studio-preview':
+      return (
+        <>
+          <SubmitPreviewView
+            pages={[
+              {
+                label: 'First page',
+                title: 'The Road to the Market',
+                paras: [
+                  'Before the cocks had finished their quarrel, Mama Nkechi was already on the road, a basket of yams balanced on her head and the whole of Onitsha stirring around her.',
+                  'She did not look back. Market day waited for no one.',
+                ],
+              },
+              {
+                label: 'Chapter 9, page 3',
+                paras: [
+                  '“You will not sell that cloth for such a price,” the trader said, laughing, and the crowd leaned in to hear what the old woman would answer.',
+                  'She smiled, folded the cloth once, and named a number that made him stop laughing altogether.',
+                ],
+              },
+              {
+                label: 'Chapter 3, page 8',
+                paras: [
+                  'By noon the heat sat on the stalls like a hand. Ada counted the coins twice, then a third time, as if the count itself might change.',
+                ],
+                end: 'The free preview ends here (10%)',
+              },
+            ]}
+            readiness={92}
+            readinessLabel="Ready for review"
+            checklist={[
+              { k: 'File read and cleaned', v: 'Done' },
+              { k: '22 chapters confirmed', v: 'Done' },
+              { k: 'Free 10% preview', v: 'Built' },
+              { k: 'Cover', v: 'Good size' },
+              { k: 'Chapter 4 title', v: 'Still to add' },
+            ]}
+            price={{ k: '62,400 words → 250 pages', v: '125 credits (₦375)' }}
+            earn="₦200"
+            agreed={false}
+            onAgree={noop}
+            onBack={noop}
+          />
+          <StepFoot label="Submit for review" onPress={noop} />
+        </>
+      );
+    case 's-studio-submitted':
+      return (
+        <>
+          <SubmitDoneView
+            title="Market Day in Onitsha is in!"
+            sub="Our team will review it within 3 days. Most reviews take 5 minutes."
+            price={{ k: '62,400 words → 250 pages', v: '125 credits (₦375)' }}
+            earn="₦1.60 a credit · ₦200 a full read"
+            submittedOn="12 November"
+            onClose={noop}
+          />
+          <StepFoot label="Back to My books" onPress={noop} />
+        </>
       );
     case 's-studio-royalties':
       return (

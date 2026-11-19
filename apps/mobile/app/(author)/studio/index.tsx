@@ -5,6 +5,7 @@ import { formatKobo } from '@arpedia/core';
 import { isNetworkError, useMyProfile, useSession } from '../../../features/01/session';
 import { useTrack } from '../../../features/11/analytics';
 import { rpcCode } from '../../../features/11/application';
+import { SUBMIT } from '../../../features/11/submit';
 import {
   STUDIO_BOOKS,
   STUDIO_EARNINGS,
@@ -50,7 +51,7 @@ export default function Studio() {
       case 'earnings':
         return router.push(STUDIO_EARNINGS);
       case 'submit':
-        return soon('Submit a book');
+        return router.push(SUBMIT);
       case 'post':
       case 'posts':
         return router.push('/studio/post' as Href);
