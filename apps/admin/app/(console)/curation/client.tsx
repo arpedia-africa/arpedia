@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { reorderSections, setSectionVisible } from './actions';
@@ -28,11 +28,23 @@ const EDIT_HREF: Record<string, string> = {
  * Discover curation (s-curation): sections top to bottom as in the app, drag (or Alt+↑/↓) to
  * reorder, saved as you go; the switch shows or hides a section; Edit opens its editor.
  */
-export function CurationView({ sections, error }: { sections: SectionRow[]; error: boolean }) {
+export function CurationView({
+  sections,
+  error,
+  notice,
+}: {
+  sections: SectionRow[];
+  error: boolean;
+  /** A message carried over from an editor that just saved (Coming soon). */
+  notice?: string;
+}) {
   const [rows, setRows] = useState(sections);
   const [drag, setDrag] = useState<number | null>(null);
   const [, start] = useTransition();
   const [toastNode, showToast] = useToast();
+  useEffect(() => {
+    if (notice) showToast(notice);
+  }, [notice, showToast]);
 
   const saveOrder = (next: SectionRow[], prev: SectionRow[]) => {
     setRows(next);

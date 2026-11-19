@@ -39,6 +39,25 @@ export async function reorderSections(ids: string[]): Promise<Result> {
   return { ok: true };
 }
 
+/** Save a Coming soon entry; a new release time also moves the book's schedule. */
+export async function saveComingSoon(bookId: string, teaser: string, releaseAt: string | null): Promise<Result> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('save_coming_soon', {
+    p_book: bookId,
+    p_teaser: teaser,
+    p_release_at: releaseAt ?? undefined,
+  });
+  if (error)
+    return {
+      ok: false,
+      error:
+        denied(error.code) ??
+        (error.message.includes('140') ? 'Keep the teaser to 140 characters.' : "Couldn't save the entry. Try again."),
+    };
+  revalidatePath('/curation');
+  return { ok: true };
+}
+
 /** Live books whose title or author matches (Add a book). */
 export async function findBooks(q: string): Promise<{ id: string; title: string; author: string }[]> {
   const term = q.trim().replace(/[%_,()]/g, ' ');

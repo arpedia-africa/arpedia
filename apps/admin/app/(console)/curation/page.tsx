@@ -9,7 +9,8 @@ const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'n
 const plural = (n: number, one: string) => `${n.toLocaleString('en-NG')} ${one}${n === 1 ? '' : 's'}`;
 
 /** Discover curation (s-curation): Home sections in app order, show/hide, who edited, Edit. */
-export default async function CurationPage() {
+export default async function CurationPage({ searchParams }: { searchParams?: Promise<{ notice?: string }> }) {
+  const notice = (await searchParams)?.notice;
   const staff = await requireStaff();
   if (!canOpen('curation', staff.permissions))
     return <NoAccess page="curation" label="Discover curation" role={staff.role} />;
@@ -72,5 +73,5 @@ export default async function CurationPage() {
     visible: s.visible,
     detail: detail(s),
   }));
-  return <CurationView sections={list} error={!!sections.error} />;
+  return <CurationView sections={list} error={!!sections.error} notice={notice} />;
 }
