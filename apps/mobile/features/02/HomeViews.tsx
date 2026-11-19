@@ -123,7 +123,7 @@ export function HomeHero({
           paddingHorizontal: s(14),
         }}
       >
-        <Icon name="search" color={c.ink3} />
+        <Icon name="search" size="s" color={c.ink3} />
         <Text size={14} color="ink3" oneLine style={{ flex: 1 }}>
           Search books, authors, topics
         </Text>

@@ -47,7 +47,7 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
-import { HomeSample } from '../features/02/parity';
+import { Flow02, isFlow02 } from '../features/02/parity';
 
 const PAGES = [
   'kit-a',
@@ -61,6 +61,9 @@ const PAGES = [
   's-plans-onboard',
   's-all-set',
   's-home',
+  's-see-all',
+  's-explore',
+  's-explore-filter',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -140,7 +143,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <KitB />
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
-        <View>{page === 's-home' ? <HomeSample /> : <Flow01 page={page} />}</View>
+        <View>{isFlow02(page) ? <Flow02 page={page} /> : <Flow01 page={page} />}</View>
       )}
     </View>
   );

@@ -88,8 +88,8 @@ export default function Home() {
           return sec.items.length ? (
             <Section key={sec.key} title={sec.title} link="Explore" onLink={() => go.explore()}>
               <GenreGrid
-                genres={sec.items.slice(0, 4).map((g) => ({ id: g.id, name: g.name, count: g.book_count }))}
-                onGenre={(id) => go.explore(id)}
+                genres={sec.items.slice(0, 4).map((g) => ({ id: g.slug, name: g.name, count: g.book_count }))}
+                onGenre={(slug) => go.explore(slug)}
               />
             </Section>
           ) : null;

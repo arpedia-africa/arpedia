@@ -24,6 +24,8 @@ export interface ScreenProps {
   contentStyle?: StyleProp<ViewStyle>;
   /** Pull to refresh on the scrolling body. */
   refreshControl?: ScrollViewProps['refreshControl'];
+  /** Scroll events on the scrolling body (infinite lists), throttled to 100 ms. */
+  onScroll?: ScrollViewProps['onScroll'];
 }
 
 /** Safe-area screen: status bar colour, optional fixed header and footer, scrolling body. */
@@ -35,6 +37,7 @@ export function Screen({
   children,
   contentStyle,
   refreshControl,
+  onScroll,
 }: ScreenProps) {
   const { c, name } = useTheme();
   const onOrg = top === 'org';
@@ -48,7 +51,13 @@ export function Screen({
         <Body
           style={{ flex: 1, backgroundColor: c.white }}
           {...(scroll
-            ? { contentContainerStyle: contentStyle, showsVerticalScrollIndicator: false, refreshControl }
+            ? {
+                contentContainerStyle: contentStyle,
+                showsVerticalScrollIndicator: false,
+                refreshControl,
+                onScroll,
+                scrollEventThrottle: onScroll ? 100 : undefined,
+              }
             : { style: [{ flex: 1, backgroundColor: c.white }, contentStyle] })}
         >
           {children}
