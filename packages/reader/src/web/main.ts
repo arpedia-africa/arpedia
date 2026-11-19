@@ -225,13 +225,23 @@ function gateTop(doc: Document): number | null {
 }
 
 function onRelocate(loc: { cfi: string; range: Range }) {
-  if (!manifest || !view) return;
+  // While opening or reopening, foliate passes through the section start: not a real place.
+  if (!manifest || !view || settling) return;
   const contents = view.renderer.getContents()[0];
   const index = contents?.index ?? currentIndex;
   const chapter = chapterAt(index);
-  const startPara = paraOf(loc.range.startContainer);
+  // A page with no paragraph start on it (the tail of a long paragraph, the gate room) keeps the
+  // place of the page before it in this chapter, so percent never steps back.
+  const own = paraOf(loc.range.startContainer);
+  const carried = !own && lastRelocate?.chapter_uid === chapter?.chapter_uid ? lastRelocate : null;
+  const startPara =
+    own ?? (carried?.para_id ? (contents?.doc.getElementById(carried.para_id) ?? null) : null);
   const endPara = paraOf(loc.range.endContainer);
-  const offset = startPara ? wordsInto(startPara, loc.range.startContainer, loc.range.startOffset) : 0;
+  const offset = carried
+    ? carried.offset
+    : startPara
+      ? wordsInto(startPara, loc.range.startContainer, loc.range.startOffset)
+      : 0;
   const pos = {
     chapter_uid: chapter?.chapter_uid ?? '',
     para_id: startPara?.id ?? chapter?.paragraphs[0]?.id ?? '',
@@ -595,8 +605,9 @@ function applySettings(s: ReaderSettings) {
   if (!view) return;
   const r = view.renderer;
   const W = window.innerWidth;
-  // Prototype .page: 24 px sides (half the column gap each side), 20 px top.
-  r.setAttribute('gap', `${((48 / W) * 100).toFixed(3)}%`);
+  // Prototype .page: 24 px sides, 20 px top. foliate insets text by gap × width in total (outer
+  // padding gW/2 plus half its inner column gap, also gW/2), so gap = 24 / W.
+  r.setAttribute('gap', `${((24 / W) * 100).toFixed(3)}%`);
   r.setAttribute('margin', '20px');
   r.setAttribute('max-inline-size', `${W}px`);
   r.setAttribute('max-column-count', '1');
@@ -677,6 +688,7 @@ async function open(p: Extract<NativeToWeb, { type: 'open' }>['payload']) {
   }
   view = mount();
   try {
+    settling = true;
     await view.open(book);
     applySettings(p.settings);
     post({
@@ -686,10 +698,23 @@ async function open(p: Extract<NativeToWeb, { type: 'open' }>['payload']) {
         sections: book.sections.length,
       },
     });
-    await startAt(p.start);
+    await settled(() => startAt(p.start));
   } catch (e) {
+    settling = false;
     post({ type: 'error', payload: { code: 'render_failed', detail: String(e) } });
   }
+}
+
+/** Hold position reports until the book stands at its target, then report that place once. */
+let settling = false;
+async function settled(go: () => Promise<unknown>) {
+  settling = true;
+  try {
+    await go();
+  } finally {
+    settling = false;
+  }
+  if (view?.lastLocation) onRelocate(view.lastLocation);
 }
 
 /** After an unlock or undo: reload the open section with its new file at the same place (rule 8). */
@@ -697,13 +722,17 @@ function reopen(): Promise<void> {
   const at = view?.lastLocation?.cfi ?? null;
   reopened = (async () => {
     if (!book || !settings) return;
+    settling = true;
     for (const s of book.sections) s.unload?.();
     view?.close();
     view = mount();
     await view.open(book);
     applySettings(settings);
-    await startAt(at);
-  })().catch((e) => post({ type: 'error', payload: { code: 'render_failed', detail: String(e) } }));
+    await settled(() => startAt(at));
+  })().catch((e) => {
+    settling = false;
+    post({ type: 'error', payload: { code: 'render_failed', detail: String(e) } });
+  });
   return reopened;
 }
 
@@ -839,10 +868,14 @@ window.addEventListener('message', (e) => void onMessage(e.data));
 window.addEventListener('error', (e) =>
   post({ type: 'error', payload: { code: 'render_failed', detail: String(e.message) } }),
 );
-// Keep lastRelocate referenced for debugging hooks in dev builds.
+// Read-only state for debugging (Chrome smoke, WebView inspector). Nothing secret lives here.
 (window as unknown as { __arp?: unknown }).__arp = {
   get last() {
     return lastRelocate;
+  },
+  get page() {
+    const r = view?.renderer;
+    return r ? { page: r.page, pages: r.pages, atEnd: r.atEnd, index: currentIndex } : null;
   },
 };
 post({ type: 'ready', payload: { bundle_version: __BUNDLE_VERSION__ } });

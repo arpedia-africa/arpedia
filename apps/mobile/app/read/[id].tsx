@@ -28,6 +28,7 @@ import {
 } from '../../features/04/ReaderViews';
 import { chapterNumber, useReader } from '../../features/04/useReader';
 
+const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
 const CHROME_IDLE_MS = 5000;
 const OTHER_COLORS: HighlightColor[] = ['yellow', 'green', 'pink', 'blue', 'purple', 'peach'];
@@ -215,9 +216,13 @@ export default function ReaderScreen() {
             ref={(w) => {
               r.web.current = w;
             }}
-            source={{ html: readerHtml }}
-            originWhitelist={['about:*', 'blob:*', 'data:*']}
-            onShouldStartLoadWithRequest={(req) => /^(about|blob|data):/.test(req.url)}
+            // A real (never fetched) origin: foliate's blob: section frames must be same-origin with
+            // the page, which an opaque about:blank origin isn't. CSP blocks every network request.
+            source={{ html: readerHtml, baseUrl: READER_ORIGIN }}
+            originWhitelist={[READER_ORIGIN + '*', 'about:*', 'blob:*', 'data:*']}
+            onShouldStartLoadWithRequest={(req) =>
+              req.url.startsWith(READER_ORIGIN) || /^(about|blob|data):/.test(req.url)
+            }
             onMessage={(e) =>
               void r.onMessage(e.nativeEvent.data, {
                 onTap: (zone) => {
