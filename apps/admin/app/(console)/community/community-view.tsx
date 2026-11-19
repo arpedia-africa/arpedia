@@ -63,7 +63,7 @@ export function CommunityView({
   canEdit: boolean;
 }) {
   const router = useRouter();
-  const toast = useToast();
+  const [toastNode, showToast] = useToast();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<KindFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -94,7 +94,7 @@ export function CommunityView({
       (!t || `${r.name} ${ownerLabel(r.ownerName)}`.toLowerCase().includes(t)),
   );
   const filtered = kind !== 'all' || status !== 'all' || reportsOnly;
-  const soon = () => toast.show({ text: 'Reading rooms arrive with a later part of the build.' });
+  const soon = () => showToast('Reading rooms arrive with a later part of the build.');
 
   const today = stats?.messages_today ?? 0;
   const base = stats?.messages_last_week ?? 0;
@@ -311,12 +311,12 @@ export function CommunityView({
           onClose={() => setCreating(false)}
           onCreated={id => {
             setCreating(false);
-            toast.show({ text: 'Official channel created. Staff only post until you change it.' });
+            showToast('Official channel created. Staff only post until you change it.');
             router.push(`/community/${id}`);
           }}
         />
       ) : null}
-      {toast.node}
+      {toastNode}
     </section>
   );
 }

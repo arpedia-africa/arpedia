@@ -115,7 +115,7 @@ const whoOptions = (kind: GroupKind): WhoCanPost[] =>
 /** s-channel. */
 export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail | null; failed: boolean; canEdit: boolean }) {
   const router = useRouter();
-  const toast = useToast();
+  const [toastNode, showToast] = useToast();
   const [pending, start] = useTransition();
   const [menu, setMenu] = useState(false);
   const g = detail?.group;
@@ -187,7 +187,8 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
   const run = (p: Promise<{ ok?: boolean; error?: string }>, ok: string, undo?: () => void) =>
     start(async () => {
       const r = await p;
-      toast.show(r.ok ? { text: ok, onUndo: undo } : { text: r.error ?? "That didn't save. Try again." });
+      if (r.ok) showToast(ok, undo);
+      else showToast(r.error ?? "That didn't save. Try again.");
       if (r.ok) router.refresh();
     });
   const restore = () => setChannelState(g.id, g.locked_until, g.muted_until);
@@ -512,7 +513,7 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
                             const w = adding.trim().toLowerCase();
                             if (w && !words.includes(w)) {
                               setWords(ws => [...ws, w]);
-                              toast.show({ text: 'Word added to this channel. Save settings to keep it.' });
+                              showToast('Word added to this channel. Save settings to keep it.');
                             }
                             setAdding(null);
                           }}
@@ -539,7 +540,7 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
           </div>
         </div>
       </div>
-      {toast.node}
+      {toastNode}
     </section>
   );
 }
