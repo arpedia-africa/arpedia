@@ -1289,7 +1289,7 @@ isOneToOne: false
 { Args: { "p_group": string,"p_reason"?: string,"p_until": string,"p_user": string }; Returns: undefined
                            },
 "admin_set_channel_state":
-{ Args: { "p_group": string,"p_lock_until": string,"p_mute_until": string,"p_reason"?: string }; Returns: undefined
+{ Args: { "p_field": string,"p_group": string,"p_reason"?: string,"p_until": string }; Returns: undefined
                            },
 "admin_update_channel":
 { Args: { "p_group": string,"p_patch": Json,"p_reason"?: string }; Returns: undefined
@@ -1357,7 +1357,7 @@ isOneToOne: false
 { Args: { "p_user": string }; Returns: number
                            },
 "delete_message":
-{ Args: { "p_message": string }; Returns: Json
+{ Args: { "p_group"?: string,"p_message": string }; Returns: Json
                            },
 "desk_claim":
 { Args: { "p_actor"?: string,"p_rev"?: string }; Returns: Json
@@ -1389,7 +1389,7 @@ isOneToOne: false
 { Args: { "p_group": string,"p_user": string }; Returns: Json
                            },
 "get_inbox":
-{ Args: { "p_cursor"?: string,"p_filter"?: string,"p_limit"?: number }; Returns: {
+{ Args: { "p_cursor"?: string,"p_cursor_id"?: string,"p_filter"?: string,"p_limit"?: number }; Returns: {
               "avatar_url": string,"group_id": string,"is_author": boolean,"kind": Database["public"]['Enums']["group_kind"],"last_at": string,"last_body": string,"last_from_author": boolean,"last_kind": Database["public"]['Enums']["message_kind"],"last_sender": string,"last_state": Database["public"]['Enums']["message_state"],"live": boolean,"member_count": number,"muted": boolean,"name": string,"other_user_id": string,"role": Database["public"]['Enums']["group_role"],"unread_count": number
             }[]
                            },
@@ -1507,7 +1507,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "react":
-{ Args: { "p_emoji": string,"p_message": string }; Returns: Json
+{ Args: { "p_emoji": string,"p_group"?: string,"p_message": string }; Returns: Json
                            },
 "record_fix":
 { Args: { "p_actor": string,"p_expected_version": number,"p_flag": string,"p_inverse": Json,"p_op": Json,"p_rev": string }; Returns: Json

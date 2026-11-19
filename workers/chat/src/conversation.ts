@@ -278,7 +278,8 @@ export class Conversation {
           return false;
         }
         await this.d.queue.park(key, item);
-        if (item.state === 'visible') this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
+        if (item.state === 'visible')
+          this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
       }
       await this.d.queue.delete([key]);
     }
@@ -290,7 +291,8 @@ export class Conversation {
     for (const r of results) {
       if (r.status !== 'rejected') continue;
       const item = batch.find((b) => b.client_id === r.client_id && b.sender_id === r.sender_id);
-      if (item && item.state === 'visible') this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
+      if (item && item.state === 'visible')
+        this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
     }
   }
 
@@ -392,7 +394,9 @@ function isUuid(v: unknown): v is string {
 
 /** Postgres refused the data (400-class), as opposed to being down, overloaded or misconfigured. */
 function permanent(e: unknown): boolean {
-  return e instanceof RpcError && e.status >= 400 && e.status < 500 && ![401, 403, 408, 429].includes(e.status);
+  return (
+    e instanceof RpcError && e.status >= 400 && e.status < 500 && ![401, 403, 408, 429].includes(e.status)
+  );
 }
 
 function canRead(a: Access): boolean {

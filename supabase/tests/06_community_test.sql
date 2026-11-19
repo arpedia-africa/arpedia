@@ -2,7 +2,7 @@
 -- idempotency; get_group_access (locked, muted, banned, non-member); reports and blocks.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(48);
 
 -- Ada (member), Bola (member), Cy (outsider), Dee (banned), Eve (DM partner of Ada), staff Sam.
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -155,6 +155,11 @@ select is((select count(*)::int from public.messages where group_id = '60000000-
 select throws_ok($$ select public.report_message(current_setting('t.m2')::uuid, 'spam') $$,
   '23505', 'already_reported', 'one report per person per message');
 
+-- The Worker passes the group it routed to; a message from another group is refused before any write.
+select throws_ok($$ select public.react((select id from public.messages
+    where client_id = '6c000000-0000-4000-8000-000000000003'), '🔥', '60000000-0000-4000-d000-0000000000ff') $$,
+  'P0002', 'not_found', 'react refuses a message from another group');
+
 -- Delete: only the sender; text kept for the open report.
 select throws_ok($$ select public.delete_message((select id from public.messages
     where client_id = '6c000000-0000-4000-8000-000000000003')) $$,
@@ -188,6 +193,18 @@ select ok(not has_function_privilege('authenticated', 'public.is_group_member(uu
 select ok(has_function_privilege('authenticated', 'public.am_group_member(uuid)', 'execute')
   and has_function_privilege('authenticated', 'public.i_blocked(uuid)', 'execute'),
   'caller-bound helpers are available to policies');
+
+-- Staff lock and mute change one field each, so a stale page can't undo the other.
+update public.groups set muted_until = now() + interval '1 day' where id = '60000000-0000-4000-d000-000000000001';
+select set_config('request.jwt.claims', jsonb_build_object('sub', '60000000-0000-4000-a000-000000000006',
+  'role', 'authenticated', 'aal', 'aal2', 'amr', jsonb_build_array(jsonb_build_object('method', 'totp',
+  'timestamp', extract(epoch from now())::bigint)))::text, true);
+set local role authenticated;
+select lives_ok($$ select public.admin_set_channel_state('60000000-0000-4000-d000-000000000001', 'lock',
+    now() + interval '1 hour') $$, 'a moderator locks the chat');
+reset role;
+select ok((select locked_until > now() and muted_until > now() from public.groups
+    where id = '60000000-0000-4000-d000-000000000001'), 'locking keeps the existing channel mute');
 
 select * from finish();
 rollback;
