@@ -1,0 +1,84 @@
+# Flow 02: sign in as the seeded reader, tap a Trending book, go back, search "grace",
+# open the top result. The book page is flow 03: until it ships, a book tap shows a toast.
+# Needs the local stack (Supabase, seeded) behind the app.
+# Run: maestro test apps/mobile/.maestro/02-discovery.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/02-discovery.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Sign in'
+
+# s-home
+- extendedWaitUntil:
+    visible: 'Trending this week'
+    timeout: 30000
+- assertVisible: 'Good (morning|afternoon|evening), Ngozi\.'
+- takeScreenshot: disc-${WIDTH}-home
+- tapOn: 'Harmattan Letters by .*'
+- extendedWaitUntil:
+    visible: 'Book pages are coming soon'
+    timeout: 5000
+- back:
+    optional: true
+
+# s-see-all (Top 10)
+- scrollUntilVisible:
+    element: 'Top 10 books'
+    direction: DOWN
+- tapOn:
+    text: 'See all'
+    rightOf: 'Top 10 books'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Most read on Arpedia this week'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-top10
+- back
+
+# s-search → typing → results → top result
+- scrollUntilVisible:
+    element: 'Search books, authors, topics'
+    direction: UP
+- tapOn: 'Search books, authors, topics'
+- extendedWaitUntil:
+    visible: 'Trending searches'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-search
+- inputText: 'grace'
+- extendedWaitUntil:
+    visible: 'Search for grace'
+    timeout: 10000
+- takeScreenshot: disc-${WIDTH}-typing
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: 'Top result.*'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-results
+- tapOn: 'Top result.*'
+- extendedWaitUntil:
+    visible: 'Book pages are coming soon'
+    timeout: 5000
+
+# s-search-none → Ask for this book → Request sent
+- tapOn: 'Clear search'
+- inputText: 'things fall apart'
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: 'Ask for this book'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-none
+- tapOn: 'Ask for this book'
+- extendedWaitUntil:
+    visible: 'Request sent'
+    timeout: 10000
+- takeScreenshot: disc-${WIDTH}-request
+- tapOn: 'Done'
