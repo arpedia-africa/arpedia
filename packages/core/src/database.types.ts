@@ -1650,6 +1650,7 @@ export type Database = {
         Args: { p_group: string; p_patch: Json; p_reason?: string };
         Returns: undefined;
       };
+      am_group_member: { Args: { p_group: string }; Returns: boolean };
       block_user: { Args: { p_at?: string; p_source_group?: string; p_user: string }; Returns: string };
       can_quote: { Args: { p_book: string; p_chapter: number; p_user: string }; Returns: boolean };
       change_staff_role: {
@@ -1725,6 +1726,7 @@ export type Database = {
       get_staff_invite: { Args: { p_token_hash: string }; Returns: Json };
       has_blocked: { Args: { p_user: string; p_viewer: string }; Returns: boolean };
       has_permission: { Args: { p_permission: string }; Returns: boolean };
+      i_blocked: { Args: { p_user: string }; Returns: boolean };
       inbox_rows_for: {
         Args: { p_user: string };
         Returns: {
