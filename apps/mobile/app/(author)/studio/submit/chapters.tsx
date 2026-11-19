@@ -33,41 +33,54 @@ export default function SubmitChapters() {
   const status = useRevisionStatus(rev);
   const book = useRevisionBook(rev);
   const chapters = useRevisionChapters(rev, !!status.data);
-  const [rows, setRows] = useState<ChapterRow[] | null>(null);
-  const [edits, setEdits] = useState<ChapterEdit[]>([]);
+  const [{ rows, edits }, setState] = useState<{ rows: ChapterRow[] | null; edits: ChapterEdit[] }>({
+    rows: null,
+    edits: [],
+  });
   const [renaming, setRenaming] = useState<{ ord: number; title: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (chapters.data && !rows)
-      setRows(
-        chapters.data.map((c) => ({
+      setState({
+        rows: chapters.data.map((c, k) => ({
           ord: c.ord,
           title: c.title.trim() || null,
           words: c.words,
-          canMerge: c.ord > 0,
+          canMerge: k > 0,
         })),
-      );
+        edits: [],
+      });
   }, [chapters.data, rows]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace(STUDIO_BOOKS));
 
-  const rename = (ord: number, title: string) => {
-    setRows((r) => r!.map((c) => (c.ord === ord ? { ...c, title } : c)));
-    setEdits((e) => [...e, { op: 'rename', ord: rows!.findIndex((c) => c.ord === ord), title }]);
-  };
-  const merge = (ord: number) => {
-    const i = rows!.findIndex((c) => c.ord === ord);
-    if (i < 1) return;
-    setRows((r) => {
-      const next = [...r!];
-      next[i - 1] = { ...next[i - 1]!, words: next[i - 1]!.words + next[i]!.words };
-      next.splice(i, 1);
-      return next.map((c, k) => ({ ...c, canMerge: k > 0 }));
+  // Rows and edits change together, so a double tap can't record an edit against a stale list.
+  // Edit ords are positions in the list as it stands, as applyEdits replays them in order.
+  const edit = (ord: number, change: (rows: ChapterRow[], i: number) => ChapterEdit | null) =>
+    setState((st) => {
+      if (!st.rows) return st;
+      const rows = [...st.rows];
+      const e = change(
+        rows,
+        rows.findIndex((c) => c.ord === ord),
+      );
+      return e ? { rows: rows.map((c, k) => ({ ...c, canMerge: k > 0 })), edits: [...st.edits, e] } : st;
     });
-    setEdits((e) => [...e, { op: 'merge_up', ord: i }]);
-  };
+  const rename = (ord: number, title: string) =>
+    edit(ord, (rows, i) => {
+      if (i < 0) return null;
+      rows[i] = { ...rows[i]!, title };
+      return { op: 'rename', ord: i, title };
+    });
+  const merge = (ord: number) =>
+    edit(ord, (rows, i) => {
+      if (i < 1) return null;
+      rows[i - 1] = { ...rows[i - 1]!, words: rows[i - 1]!.words + rows[i]!.words };
+      rows.splice(i, 1);
+      return { op: 'merge_up', ord: i };
+    });
 
   const next = async () => {
     setBusy(true);

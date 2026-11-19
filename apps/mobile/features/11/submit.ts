@@ -126,7 +126,13 @@ async function put(url: string, file: PickedFile) {
  * the Worker's checks (it is already an ebook; the Worker rebuilds it from sanitised content).
  * Word and PDF go to the Arpedia team's desk until on-device Word conversion lands (rule 18a).
  */
-export async function uploadBook(v: SubmitValues, file: PickedFile, cover: PickedFile, bookId?: string) {
+export async function uploadBook(
+  v: SubmitValues,
+  file: PickedFile,
+  cover: PickedFile,
+  bookId?: string,
+  replace?: boolean,
+) {
   const ticket = await call<{
     book_id: string;
     revision_id: string;
@@ -139,6 +145,8 @@ export async function uploadBook(v: SubmitValues, file: PickedFile, cover: Picke
       ...(v.subtitle.trim() ? { subtitle: v.subtitle.trim() } : {}),
       description: v.description.trim(),
       genres: v.genres,
+      // Continue on a draft whose upload never finished: the new upload closes that draft.
+      ...(replace ? { replace: true } : {}),
     },
   });
   await put(ticket.uploads.source, file);

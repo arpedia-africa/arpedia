@@ -32,7 +32,7 @@ export default function SubmitUpload() {
   const qc = useQueryClient();
   const net = useNetInfo();
   const uid = useSession()?.user.id;
-  const { book } = useLocalSearchParams<{ book?: string }>();
+  const { book, replace } = useLocalSearchParams<{ book?: string; replace?: string }>();
   const [values, setValues] = useState<SubmitValues>({
     source: 'docx',
     title: '',
@@ -80,7 +80,7 @@ export default function SubmitUpload() {
     setBusy(true);
     track('book_submit_started', { source_type: values.source });
     try {
-      const rev = await uploadBook(values, file, cover, book);
+      const rev = await uploadBook(values, file, cover, book, replace === '1');
       void qc.invalidateQueries({ queryKey: ['studio-books', uid] });
       void qc.invalidateQueries({ queryKey: ['studio-home', uid] });
       router.replace(submitStep('processing', rev));

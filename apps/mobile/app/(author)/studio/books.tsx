@@ -59,8 +59,8 @@ export default function StudioBooks() {
 
 /** Rule 23: a draft reopens at the step it was left on. */
 function continueStep(b: StudioBook): Href {
-  const step = String(b.draft_step ?? '');
-  if (step === 'upload') return `/studio/submit?book=${b.book_id}` as Href;
+  const step = b.draft_step;
+  if (step === 'upload') return `/studio/submit?book=${b.book_id}&replace=1` as Href;
   if (step === 'chapters') return submitStep('chapters', b.revision_id);
   if (step === 'preview') return submitStep('preview', b.revision_id);
   return submitStep('processing', b.revision_id);

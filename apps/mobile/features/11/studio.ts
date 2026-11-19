@@ -53,7 +53,8 @@ export interface StudioBook {
   revision_id: string;
   revision_no: number;
   revision_status: string;
-  draft_step: number | null;
+  /** book_revisions.draft_step (flow 12's enum); null outside a draft. */
+  draft_step: 'upload' | 'converting' | 'checking' | 'chapters' | 'preview' | null;
   price_credits: number | null;
   live_revision_no: number | null;
   chapters: number;
