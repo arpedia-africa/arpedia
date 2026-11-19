@@ -70,7 +70,13 @@ export interface ReportDetail {
     sanction: { kind: string; ends_at: string | null } | null;
   } | null;
   reporters: { name: string; reason: ReportReason; details: string | null; at: string; eligible: boolean }[];
-  checks: { links: boolean; phone: boolean; new_account: boolean; matched: string | null; abuse_score: number };
+  checks: {
+    links: boolean;
+    phone: boolean;
+    new_account: boolean;
+    matched: string | null;
+    abuse_score: number;
+  };
 }
 
 type ActionKind = 'warn' | 'mute' | 'suspend' | 'ban';
@@ -81,10 +87,13 @@ const ACTIONS: { key: ActionKind; label: string; button: string }[] = [
   { key: 'ban', label: 'Ban', button: 'Remove and ask to ban' },
 ];
 
-const days = (iso: string | null) => (iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : 0);
+const days = (iso: string | null) =>
+  iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : 0;
 const first = (name: string) => name.split(/\s+/)[0] ?? name;
 const until = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' }) : 'for good';
+  iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' })
+    : 'for good';
 
 /** s-report, s-report-review and the s-report-action overlay. J skips to the next report. */
 export function ReportView({
@@ -110,7 +119,8 @@ export function ReportView({
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if ((e.key === 'j' || e.key === 'J') && !(e.target as Element).closest('input, textarea') && nextId) router.push(`/reports/${nextId}`);
+      if ((e.key === 'j' || e.key === 'J') && !(e.target as Element).closest('input, textarea') && nextId)
+        router.push(`/reports/${nextId}`);
       if (e.key === 'Escape') setMenu(false);
     };
     document.addEventListener('keydown', key);
@@ -173,7 +183,15 @@ export function ReportView({
             </h1>
             <div className="ph__meta">
               <span>
-                {[decided ? (OUTCOME_LABEL[r.outcome ?? ''] ?? 'Resolved') : r.status === 'auto_hidden' ? 'Auto-hidden' : null, TYPE_LABEL[r.content_type], where]
+                {[
+                  decided
+                    ? (OUTCOME_LABEL[r.outcome ?? ''] ?? 'Resolved')
+                    : r.status === 'auto_hidden'
+                      ? 'Auto-hidden'
+                      : null,
+                  TYPE_LABEL[r.content_type],
+                  where,
+                ]
                   .filter(Boolean)
                   .join(' · ')}
               </span>
@@ -190,7 +208,13 @@ export function ReportView({
           </div>
           <div className="ph__acts">
             <div className="mwrap">
-              <button type="button" className="ib" aria-expanded={menu} aria-label="More actions" onClick={() => setMenu(m => !m)}>
+              <button
+                type="button"
+                className="ib"
+                aria-expanded={menu}
+                aria-label="More actions"
+                onClick={() => setMenu((m) => !m)}
+              >
                 <Icon name="more" />
               </button>
               {menu ? (
@@ -199,7 +223,7 @@ export function ReportView({
                   {canDecide && !decided ? (
                     <a
                       href="#assign"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.preventDefault();
                         setMenu(false);
                         start(async () => {
@@ -216,12 +240,15 @@ export function ReportView({
                   <a
                     className="danger"
                     href="#escalate"
-                    onClick={e => {
+                    onClick={(e) => {
                       e.preventDefault();
                       setMenu(false);
                       start(async () => {
                         const res = await escalate(r.id);
-                        showToast(res.error ?? 'Escalated to Super admin. They decide whether to contact the police and keep the logs.');
+                        showToast(
+                          res.error ??
+                            'Escalated to Super admin. They decide whether to contact the police and keep the logs.',
+                        );
                         router.refresh();
                       });
                     }}
@@ -239,14 +266,31 @@ export function ReportView({
           <div className="stack s20">
             <div className="panel">
               <div className="panel__head">
-                <h2>{isChat ? (r.content_type === 'dm' ? 'Reported conversation' : 'Message in context') : TYPE_LABEL[r.content_type]}</h2>
+                <h2>
+                  {isChat
+                    ? r.content_type === 'dm'
+                      ? 'Reported conversation'
+                      : 'Message in context'
+                    : TYPE_LABEL[r.content_type]}
+                </h2>
                 {isChat && ctx.length ? (
                   <span className="sub">{`${watTime(ctx[0]!.created_at)} to ${watTime(ctx[ctx.length - 1]!.created_at)} · times in WAT`}</span>
                 ) : null}
               </div>
               <div className="panel__body">
                 {isChat ? (
-                  (ctx.length ? ctx : [{ id: r.content_id, sender_id: null, sender_name: s?.sender_name ?? '', body: s?.body ?? null, created_at: flaggedAt }]).map(m => {
+                  (ctx.length
+                    ? ctx
+                    : [
+                        {
+                          id: r.content_id,
+                          sender_id: null,
+                          sender_name: s?.sender_name ?? '',
+                          body: s?.body ?? null,
+                          created_at: flaggedAt,
+                        },
+                      ]
+                  ).map((m) => {
                     const flagged = m.id === r.content_id;
                     return (
                       <div key={m.id} className={`msg${flagged ? ' flagged' : ''}`}>
@@ -267,10 +311,14 @@ export function ReportView({
                   </dl>
                 ) : r.content_type === 'profile' ? (
                   <div className="who">
-                    <span className={`av lg ${tint(s?.full_name ?? '')}`}>{initials(s?.full_name ?? '?')}</span>
+                    <span className={`av lg ${tint(s?.full_name ?? '')}`}>
+                      {initials(s?.full_name ?? '?')}
+                    </span>
                     <span>
                       <b>{s?.full_name}</b>
-                      <small>{[s?.username ? `@${s.username}` : null, s?.bio].filter(Boolean).join(' · ')}</small>
+                      <small>
+                        {[s?.username ? `@${s.username}` : null, s?.bio].filter(Boolean).join(' · ')}
+                      </small>
                     </span>
                   </div>
                 ) : (
@@ -295,7 +343,7 @@ export function ReportView({
                       </tr>
                     </thead>
                     <tbody>
-                      {detail.reporters.map(p => (
+                      {detail.reporters.map((p) => (
                         <tr key={`${p.name}${p.at}`}>
                           <td>
                             <div className="who">
@@ -320,7 +368,10 @@ export function ReportView({
                     <b>{`${detail.checks.abuse_score} of 100`}</b>
                   </div>
                   <div className="meter">
-                    <i className={detail.checks.abuse_score >= 70 ? 'err' : undefined} style={{ width: `${detail.checks.abuse_score}%` }} />
+                    <i
+                      className={detail.checks.abuse_score >= 70 ? 'err' : undefined}
+                      style={{ width: `${detail.checks.abuse_score}%` }}
+                    />
                   </div>
                 </div>
                 <div className="kv-row">
@@ -370,7 +421,8 @@ export function ReportView({
                     <dl className="kv tight">
                       <dt>Account age</dt>
                       <dd>
-                        {`${days(user.joined_at)} days`} {days(user.joined_at) < 14 ? <span className="st st-warn">New</span> : null}
+                        {`${days(user.joined_at)} days`}{' '}
+                        {days(user.joined_at) < 14 ? <span className="st st-warn">New</span> : null}
                       </dd>
                       <dt>Prior warnings</dt>
                       <dd>{user.warnings}</dd>
@@ -379,7 +431,11 @@ export function ReportView({
                       <dt>Messages sent</dt>
                       <dd>{user.messages_sent.toLocaleString('en-NG')}</dd>
                       <dt>Muted or banned</dt>
-                      <dd>{user.sanction ? `${user.sanction.kind === 'mute' ? 'Muted' : user.sanction.kind === 'ban' ? 'Banned' : 'Suspended'} until ${until(user.sanction.ends_at)}` : 'No'}</dd>
+                      <dd>
+                        {user.sanction
+                          ? `${user.sanction.kind === 'mute' ? 'Muted' : user.sanction.kind === 'ban' ? 'Banned' : 'Suspended'} until ${until(user.sanction.ends_at)}`
+                          : 'No'}
+                      </dd>
                     </dl>
                   </>
                 )}
@@ -406,7 +462,12 @@ export function ReportView({
               type="button"
               className="btn btn-g"
               disabled={pending}
-              onClick={() => run(() => decideReport(r.id, 'keep'), isChat ? 'Report closed. Message restored.' : 'Report closed. Nothing removed.')}
+              onClick={() =>
+                run(
+                  () => decideReport(r.id, 'keep'),
+                  isChat ? 'Report closed. Message restored.' : 'Report closed. Nothing removed.',
+                )
+              }
             >
               Keep
             </button>
@@ -414,7 +475,12 @@ export function ReportView({
               type="button"
               className="btn btn-g"
               disabled={pending}
-              onClick={() => run(() => decideReport(r.id, 'remove', { reason: REASON_LABELS[r.reason] }), `Removed. ${reporters} ${reporters === 1 ? 'reporter' : 'reporters'} told.`)}
+              onClick={() =>
+                run(
+                  () => decideReport(r.id, 'remove', { reason: REASON_LABELS[r.reason] }),
+                  `Removed. ${reporters} ${reporters === 1 ? 'reporter' : 'reporters'} told.`,
+                )
+              }
             >
               Remove
             </button>
@@ -423,7 +489,12 @@ export function ReportView({
                 type="button"
                 className="btn btn-g"
                 disabled={pending}
-                onClick={() => run(() => decideReport(r.id, 'spoiler', { reason: 'Spoilers' }), 'Marked as spoiler. The reviewer was told why.')}
+                onClick={() =>
+                  run(
+                    () => decideReport(r.id, 'spoiler', { reason: 'Spoilers' }),
+                    'Marked as spoiler. The reviewer was told why.',
+                  )
+                }
               >
                 Mark as spoiler
               </button>
@@ -449,7 +520,7 @@ export function ReportView({
           user={user}
           where={where}
           onClose={() => setActing(false)}
-          onDone={msg => {
+          onDone={(msg) => {
             setActing(false);
             after(msg);
           }}
@@ -497,7 +568,7 @@ function ActionModal({
   const [reason, setReason] = useState<ReportReason>(r.reason);
   const [note, setNote] = useState('');
   const [pending, start] = useTransition();
-  const options = ACTIONS.filter(a => !(user.is_minor && a.key === 'suspend'));
+  const options = ACTIONS.filter((a) => !(user.is_minor && a.key === 'suspend'));
   const pick = (k: ActionKind) => {
     setKind(k);
     if (!edited) setMessage(draft(k));
@@ -522,13 +593,26 @@ function ActionModal({
       });
       if (res.error) return onError(res.error);
       const what =
-        kind === 'warn' ? 'warned' : kind === 'mute' ? 'muted for 7 days' : kind === 'suspend' ? 'suspended for 30 days' : 'sent to a Super admin to confirm the ban';
-      onDone(`Removed and ${name} ${what}.${tell && reporters ? ` ${reporters} ${reporters === 1 ? 'reporter' : 'reporters'} told.` : ''}${res.suggest === 'mute' ? ' Third warning in 90 days: consider Mute 7 days.' : ''}`);
+        kind === 'warn'
+          ? 'warned'
+          : kind === 'mute'
+            ? 'muted for 7 days'
+            : kind === 'suspend'
+              ? 'suspended for 30 days'
+              : 'sent to a Super admin to confirm the ban';
+      onDone(
+        `Removed and ${name} ${what}.${tell && reporters ? ` ${reporters} ${reporters === 1 ? 'reporter' : 'reporters'} told.` : ''}${res.suggest === 'mute' ? ' Third warning in 90 days: consider Mute 7 days.' : ''}`,
+      );
     });
 
   return (
     <div className="screen overlay">
-      <a className="backdrop" href="#close" aria-label="Close" onClick={e => (e.preventDefault(), onClose())} />
+      <a
+        className="backdrop"
+        href="#close"
+        aria-label="Close"
+        onClick={(e) => (e.preventDefault(), onClose())}
+      />
       <div className="modal wide" role="dialog" aria-label="Take action">
         <div className="modal__h">
           <div className="grow">
@@ -541,7 +625,7 @@ function ActionModal({
         </div>
         <div className="modal__b">
           <div className="radios" role="radiogroup">
-            {options.map(a => (
+            {options.map((a) => (
               <div
                 key={a.key}
                 role="radio"
@@ -549,7 +633,7 @@ function ActionModal({
                 tabIndex={0}
                 className={`radio${kind === a.key ? ' is-selected' : ''}`}
                 onClick={() => pick(a.key)}
-                onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && pick(a.key)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && pick(a.key)}
               >
                 <span>
                   <b>{a.label}</b>
@@ -566,17 +650,19 @@ function ActionModal({
               rows={4}
               value={message}
               maxLength={2000}
-              onChange={e => (setMessage(e.target.value), setEdited(true))}
+              onChange={(e) => (setMessage(e.target.value), setEdited(true))}
             />
             <span className="hint">Sent as an in-app message and email. You can edit it.</span>
           </div>
           {reporters ? (
-            <label className="checkrow" onClick={() => setTell(v => !v)}>
+            <label className="checkrow" onClick={() => setTell((v) => !v)}>
               <span className={`cb${tell ? ' on' : ''}`} role="checkbox" aria-checked={tell} />
               <span>
                 <b>{`Tell the ${reporters} ${reporters === 1 ? 'reporter' : 'reporters'}`}</b>
                 <br />
-                <small className="faint">They get: &quot;We took action on your report.&quot; They are not told what the action was.</small>
+                <small className="faint">
+                  They get: &quot;We took action on your report.&quot; They are not told what the action was.
+                </small>
               </span>
             </label>
           ) : null}
@@ -587,7 +673,12 @@ function ActionModal({
             <div className="fold__b">
               <div className="f">
                 <label htmlFor="ra-reason">Reason</label>
-                <select id="ra-reason" className="inp sel" value={reason} onChange={e => setReason(e.target.value as ReportReason)}>
+                <select
+                  id="ra-reason"
+                  className="inp sel"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value as ReportReason)}
+                >
                   {Object.entries(REASON_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>
                       {v}
@@ -600,7 +691,12 @@ function ActionModal({
                   Internal note <span className="opt">(staff only)</span>
                 </label>
                 <div className="inp">
-                  <input id="ra-note" value={note} maxLength={2000} onChange={e => setNote(e.target.value)} />
+                  <input
+                    id="ra-note"
+                    value={note}
+                    maxLength={2000}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -611,7 +707,7 @@ function ActionModal({
             Cancel
           </button>
           <button type="button" className="btn btn-p" disabled={pending || !message.trim()} onClick={submit}>
-            {ACTIONS.find(a => a.key === kind)!.button}
+            {ACTIONS.find((a) => a.key === kind)!.button}
           </button>
         </div>
       </div>

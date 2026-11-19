@@ -12,10 +12,12 @@ export interface ActionResult {
 
 const failed = (message?: string): ActionResult => {
   const m = message ?? '';
-  if (m.startsWith('already_decided:')) return { error: `${m.slice('already_decided:'.length)} already decided this.` };
+  if (m.startsWith('already_decided:'))
+    return { error: `${m.slice('already_decided:'.length)} already decided this.` };
   if (m.includes('own_content')) return { error: "You can't decide a report about your own content." };
   if (m.includes('reason_required')) return { error: 'Add a reason first.' };
-  if (m.includes('not allowed') || m.includes('Not allowed')) return { error: 'Your role can read reports but not decide them.' };
+  if (m.includes('not allowed') || m.includes('Not allowed'))
+    return { error: 'Your role can read reports but not decide them.' };
   if (m.includes('second_person')) return { error: 'Another Super admin has to confirm a ban you decided.' };
   return { error: "That didn't save. Nothing changed. Try again." };
 };

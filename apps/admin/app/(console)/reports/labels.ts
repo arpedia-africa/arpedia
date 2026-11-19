@@ -5,7 +5,8 @@ export type { ReportContentType, ReportReason };
 
 export type Severity = 'high' | 'medium' | 'low';
 export type ReportTab = 'open' | 'mine' | 'resolved' | 'auto_hidden';
-export type TypeFilter = 'all' | 'message' | 'discussion_comment' | 'review' | 'rooms' | 'post_comment' | 'profile' | 'book' | 'dm';
+export type TypeFilter =
+  'all' | 'message' | 'discussion_comment' | 'review' | 'rooms' | 'post_comment' | 'profile' | 'book' | 'dm';
 
 export const TABS: { key: ReportTab; label: string }[] = [
   { key: 'open', label: 'Open' },
@@ -58,12 +59,22 @@ export function age(iso: string, now = Date.now()): string {
 }
 
 export function watTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Lagos',
+  });
 }
 
 export function initials(name: string): string {
-  const parts = name.replace(/[^\p{L}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '')).toUpperCase();
+  const parts = name
+    .replace(/[^\p{L}\s]/gu, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return (
+    (parts[0]?.[0] ?? '?') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '')
+  ).toUpperCase();
 }
 
 /** Avatar tint from the name (prototype classes o, g, r, k, t). */

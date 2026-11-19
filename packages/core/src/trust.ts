@@ -3,14 +3,7 @@
 // rules (report_severity_setting, report_due_at, _apply_sanction); these mirror them for the screens.
 
 export type ReportContentType =
-  | 'message'
-  | 'discussion_comment'
-  | 'review'
-  | 'post_comment'
-  | 'author_post'
-  | 'profile'
-  | 'book'
-  | 'dm';
+  'message' | 'discussion_comment' | 'review' | 'post_comment' | 'author_post' | 'profile' | 'book' | 'dm';
 
 export type ReportReason =
   | 'spam'
@@ -39,7 +32,16 @@ export const REASON_LABELS: Record<ReportReason, string> = {
   other: 'Something else',
 };
 
-const CHAT_REASONS: ReportReason[] = ['spam', 'harassment', 'hate', 'sexual', 'violence', 'self_harm', 'copyright', 'other'];
+const CHAT_REASONS: ReportReason[] = [
+  'spam',
+  'harassment',
+  'hate',
+  'sexual',
+  'violence',
+  'self_harm',
+  'copyright',
+  'other',
+];
 
 /** Rule 3: the reasons a reader may pick depend on what they report. */
 export function reasonsFor(type: ReportContentType): ReportReason[] {
@@ -70,7 +72,10 @@ export const DEFAULT_SEVERITY: Record<ReportReason, Severity> = {
   other: 'low',
 };
 
-export function severityFor(reason: ReportReason, settings?: Partial<Record<ReportReason, Severity>>): Severity {
+export function severityFor(
+  reason: ReportReason,
+  settings?: Partial<Record<ReportReason, Severity>>,
+): Severity {
   return settings?.[reason] ?? DEFAULT_SEVERITY[reason];
 }
 
@@ -90,14 +95,24 @@ export function slaLabel(dueAt: Date, now: Date): { text: string; late: boolean 
   const diff = dueAt.getTime() - now.getTime();
   const late = diff < 0;
   const mins = Math.abs(diff) / 60_000;
-  const text = mins < 60 ? `${Math.max(1, Math.floor(mins))}m` : mins < 48 * 60 ? `${Math.floor(mins / 60)}h` : `${Math.floor(mins / 1440)}d`;
+  const text =
+    mins < 60
+      ? `${Math.max(1, Math.floor(mins))}m`
+      : mins < 48 * 60
+        ? `${Math.floor(mins / 60)}h`
+        : `${Math.floor(mins / 1440)}d`;
   return { text: `${text} ${late ? 'over' : 'left'}`, late };
 }
 
 export type SanctionKind = 'warn' | 'mute' | 'suspend' | 'ban';
 
 /** Default lengths: mute 7 days, suspend 30 days, ban never ends; a warning counts for 90 days. */
-export const SANCTION_DAYS: Record<SanctionKind, number | null> = { warn: 90, mute: 7, suspend: 30, ban: null };
+export const SANCTION_DAYS: Record<SanctionKind, number | null> = {
+  warn: 90,
+  mute: 7,
+  suspend: 30,
+  ban: null,
+};
 
 export function sanctionEndsAt(kind: SanctionKind, startsAt: Date, days?: number | null): Date | null {
   const d = kind === 'ban' ? null : (days ?? SANCTION_DAYS[kind]);
@@ -105,7 +120,11 @@ export function sanctionEndsAt(kind: SanctionKind, startsAt: Date, days?: number
 }
 
 /** Reduce on appeal: the new end, and whether access comes back at once (the time has passed). */
-export function reducedSanction(startsAt: Date, days: number, now: Date): { endsAt: Date; endedNow: boolean } {
+export function reducedSanction(
+  startsAt: Date,
+  days: number,
+  now: Date,
+): { endsAt: Date; endedNow: boolean } {
   const endsAt = new Date(startsAt.getTime() + days * 86_400_000);
   return { endsAt, endedNow: endsAt.getTime() <= now.getTime() };
 }
@@ -118,7 +137,11 @@ export function canAppeal(decidedAt: Date, now: Date): boolean {
 /** "Your account is suspended until 12 Dec." (WAT). */
 export function suspendedUntilCopy(endsAt: Date | null): string {
   if (!endsAt) return 'Your account has been closed for breaking our community rules.';
-  const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' }).format(endsAt);
+  const day = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Africa/Lagos',
+  }).format(endsAt);
   return `Your account is suspended until ${day}. You can appeal from the email we sent.`;
 }
 
@@ -154,10 +177,7 @@ const SUBSTITUTIONS: Record<string, string> = {
  * (stuuupid → stupid). Everything that is not a letter becomes a single space.
  */
 export function normaliseForMatch(text: string): string {
-  const lowered = text
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+  const lowered = text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
   let out = '';
   for (const ch of lowered) out += SUBSTITUTIONS[ch] ?? ch;
   return out
@@ -184,7 +204,9 @@ export function matchMutedWords(
     if (w.scope === 'reviews' && surface !== 'review') return false;
     const needle = normaliseForMatch(w.text);
     if (!needle) return false;
-    return w.is_phrase ? body.includes(` ${needle} `) || squashed.includes(needle.replace(/ /g, '')) : body.includes(` ${needle} `);
+    return w.is_phrase
+      ? body.includes(` ${needle} `) || squashed.includes(needle.replace(/ /g, ''))
+      : body.includes(` ${needle} `);
   });
   const action = hits.reduce<WordAction | null>(
     (best, w) => (best === null || ACTION_RANK[w.action] > ACTION_RANK[best] ? w.action : best),

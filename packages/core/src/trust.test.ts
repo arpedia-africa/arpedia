@@ -78,7 +78,11 @@ describe('muted word matcher', () => {
     expect(matchMutedWords('s.e.n.d m.o.n.e.y', [phrase], 'chat').action).toBe('hide_and_report');
   });
   it('respects scope and keeps the strongest action', () => {
-    const words = [w('spoiler', { scope: 'reviews', action: 'blur' }), w('idiot', { action: 'warn' }), w('scam', { action: 'hide_and_report' })];
+    const words = [
+      w('spoiler', { scope: 'reviews', action: 'blur' }),
+      w('idiot', { action: 'warn' }),
+      w('scam', { action: 'hide_and_report' }),
+    ];
     expect(matchMutedWords('spoiler idiot', words, 'chat').action).toBe('warn');
     expect(matchMutedWords('spoiler idiot', words, 'review').action).toBe('blur');
     expect(matchMutedWords('idiot scam', words, 'chat').action).toBe('hide_and_report');

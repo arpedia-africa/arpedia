@@ -9,18 +9,27 @@ import { ReportsView, type ReportCounts, type ReportRow } from './reports-view';
 export const metadata: Metadata = { title: 'Reports · Arpedia Admin' };
 
 /** s-reports: one queue for every reported item, severity then oldest first. */
-export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ tab?: string; type?: string }> }) {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; type?: string }>;
+}) {
   const staff = await requireStaff();
-  if (!canOpen('reports', staff.permissions)) return <NoAccess page="reports" label="Reports" role={staff.role} />;
+  if (!canOpen('reports', staff.permissions))
+    return <NoAccess page="reports" label="Reports" role={staff.role} />;
   const sp = await searchParams;
-  const tab: ReportTab = TABS.some(t => t.key === sp.tab) ? (sp.tab as ReportTab) : 'open';
-  const type: TypeFilter = TYPE_FILTERS.some(t => t.key === sp.type) ? (sp.type as TypeFilter) : 'all';
+  const tab: ReportTab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as ReportTab) : 'open';
+  const type: TypeFilter = TYPE_FILTERS.some((t) => t.key === sp.type) ? (sp.type as TypeFilter) : 'all';
   const supabase = await serverSupabase();
   const [list, counts] = await Promise.all([
-    supabase.rpc('admin_list_reports', { p_tab: tab, p_type: type === 'all' ? undefined : type, p_limit: 100 }),
+    supabase.rpc('admin_list_reports', {
+      p_tab: tab,
+      p_type: type === 'all' ? undefined : type,
+      p_limit: 100,
+    }),
     supabase.rpc('admin_report_counts'),
   ]);
-  const rows: ReportRow[] = (list.data ?? []).map(r => ({
+  const rows: ReportRow[] = (list.data ?? []).map((r) => ({
     id: r.id,
     ref: r.ref,
     type: r.content_type,

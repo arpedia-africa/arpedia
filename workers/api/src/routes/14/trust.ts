@@ -1,5 +1,11 @@
 import { Hono, type Context } from 'hono';
-import { hasBlockedLink, hasPhoneNumber, matchMutedWords, type MutedWord, type WordAction } from '@arpedia/core';
+import {
+  hasBlockedLink,
+  hasPhoneNumber,
+  matchMutedWords,
+  type MutedWord,
+  type WordAction,
+} from '@arpedia/core';
 import { AuthError, bearer, verifySupabaseJwt } from '@arpedia/core/jwt';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
@@ -15,7 +21,11 @@ import type { AppEnv, Env } from '../../env';
 type Surface = 'chat' | 'dm' | 'review' | 'comment';
 interface Rules {
   words: MutedWord[];
-  links: { block_new_accounts_days?: number; block_dm_links_to_authors?: boolean; allowed_domains?: string[] };
+  links: {
+    block_new_accounts_days?: number;
+    block_dm_links_to_authors?: boolean;
+    allowed_domains?: string[];
+  };
   spam: { phone_numbers?: string };
   loadedAt: number;
 }
@@ -63,7 +73,8 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 const RANK: Record<WordAction, number> = { warn: 0, blur: 1, hide: 2, hide_and_report: 3 };
-const stronger = (a: WordAction | null, b: WordAction): WordAction => (a === null || RANK[b] > RANK[a] ? b : a);
+const stronger = (a: WordAction | null, b: WordAction): WordAction =>
+  a === null || RANK[b] > RANK[a] ? b : a;
 
 const trust = new Hono<AppEnv>();
 
@@ -71,7 +82,9 @@ trust.post('/moderate', async (c) => {
   if (!(await authorised(c))) return c.json({ error: 'unauthorized' }, 401);
   const body = await c.req.json().catch(() => null);
   const text = typeof body?.text === 'string' ? body.text.slice(0, 4000) : null;
-  const surface: Surface = ['chat', 'dm', 'review', 'comment'].includes(body?.surface) ? body.surface : 'chat';
+  const surface: Surface = ['chat', 'dm', 'review', 'comment'].includes(body?.surface)
+    ? body.surface
+    : 'chat';
   if (text === null) return c.json({ error: 'bad_request' }, 400);
 
   const r = await rules(c.env);
@@ -96,7 +109,9 @@ trust.post('/moderate', async (c) => {
 
   if (hits.length) {
     c.executionCtx.waitUntil(
-      Promise.resolve(serviceDb(c.env).rpc('record_automod_hits', { p_word_ids: hits.map((h) => h.id) })).then(() => undefined),
+      Promise.resolve(
+        serviceDb(c.env).rpc('record_automod_hits', { p_word_ids: hits.map((h) => h.id) }),
+      ).then(() => undefined),
     );
   }
   return c.json({ action: action ?? 'allow', reason, hits: hits.map((h) => h.text) });
@@ -115,7 +130,11 @@ export async function verifySvix(
   if (!Number.isFinite(ts) || Math.abs(nowSeconds - ts) > 300) return false;
   const raw = Uint8Array.from(atob(secret.replace(/^whsec_/, '')), (ch) => ch.charCodeAt(0));
   const key = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${headers.id}.${headers.timestamp}.${payload}`));
+  const mac = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`${headers.id}.${headers.timestamp}.${payload}`),
+  );
   const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
   return headers.signature
     .split(' ')
@@ -124,7 +143,12 @@ export async function verifySvix(
 }
 
 const emailOf = (from: unknown): string | null => {
-  const s = typeof from === 'string' ? from : typeof (from as { email?: unknown })?.email === 'string' ? (from as { email: string }).email : '';
+  const s =
+    typeof from === 'string'
+      ? from
+      : typeof (from as { email?: unknown })?.email === 'string'
+        ? (from as { email: string }).email
+        : '';
   const m = /<([^>]+)>/.exec(s) ?? /([^\s<>]+@[^\s<>]+)/.exec(s);
   return m ? m[1]!.trim().toLowerCase() : null;
 };
@@ -135,7 +159,11 @@ trust.post('/support/inbound', async (c) => {
   const payload = await c.req.text();
   const ok = await verifySvix(
     secret,
-    { id: c.req.header('svix-id') ?? null, timestamp: c.req.header('svix-timestamp') ?? null, signature: c.req.header('svix-signature') ?? null },
+    {
+      id: c.req.header('svix-id') ?? null,
+      timestamp: c.req.header('svix-timestamp') ?? null,
+      signature: c.req.header('svix-signature') ?? null,
+    },
     payload,
   );
   if (!ok) return c.json({ error: 'bad_signature' }, 401);
@@ -144,18 +172,24 @@ trust.post('/support/inbound', async (c) => {
   const d = event.data ?? {};
   const headers = (d.headers ?? {}) as Record<string, string>;
   const from = emailOf(d.from);
-  const messageId = String(d.message_id ?? headers['message-id'] ?? headers['Message-ID'] ?? c.req.header('svix-id'));
+  const messageId = String(
+    d.message_id ?? headers['message-id'] ?? headers['Message-ID'] ?? c.req.header('svix-id'),
+  );
   if (!from) return c.json({ ok: true, ignored: 'no_sender' });
 
   // Attachments go to R2 under support/; the ticket keeps their keys.
   const files: { key: string; name: string; type: string }[] = [];
-  for (const a of ((d.attachments ?? []) as { filename?: string; content?: string; content_type?: string }[]).slice(0, 10)) {
+  for (const a of (
+    (d.attachments ?? []) as { filename?: string; content?: string; content_type?: string }[]
+  ).slice(0, 10)) {
     if (!a.content) continue;
     const name = (a.filename ?? 'file').replace(/[^\w.-]+/g, '_').slice(0, 100);
     const key = `support/${crypto.randomUUID()}/${name}`;
     const bytes = Uint8Array.from(atob(a.content), (ch) => ch.charCodeAt(0));
     if (bytes.byteLength > 10 * 1024 * 1024) continue;
-    await c.env.BOOKS.put(key, bytes, { httpMetadata: { contentType: a.content_type ?? 'application/octet-stream' } });
+    await c.env.BOOKS.put(key, bytes, {
+      httpMetadata: { contentType: a.content_type ?? 'application/octet-stream' },
+    });
     files.push({ key, name, type: a.content_type ?? 'application/octet-stream' });
   }
 
@@ -184,7 +218,11 @@ interface OutboxItem {
 async function sendTicketReply(env: Env, item: OutboxItem): Promise<void> {
   if (!item.email || !item.message_id) return;
   const db = serviceDb(env);
-  const { data: msg } = await db.from('ticket_messages').select('body').eq('id', item.message_id).maybeSingle();
+  const { data: msg } = await db
+    .from('ticket_messages')
+    .select('body')
+    .eq('id', item.message_id)
+    .maybeSingle();
   if (!msg) return;
   if (!env.RESEND_API_KEY) {
     console.log(`[support] reply to ${item.email} on ${item.ref}: ${msg.body.slice(0, 80)}`);
@@ -192,7 +230,11 @@ async function sendTicketReply(env: Env, item: OutboxItem): Promise<void> {
   }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': item.message_id },
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': item.message_id,
+    },
     body: JSON.stringify({
       from: 'Arpedia Support <support@arpedia.africa>',
       to: item.email,
@@ -229,7 +271,8 @@ export async function drainTrustOutbox(env: Env): Promise<{ handled: number }> {
 
 trust.post('/outbox/drain', async (c) => {
   const key = c.req.header('X-Internal-Key');
-  if (!key || !timingSafeEqual(key, c.env.SUPABASE_SERVICE_ROLE_KEY)) return c.json({ error: 'unauthorized' }, 401);
+  if (!key || !timingSafeEqual(key, c.env.SUPABASE_SERVICE_ROLE_KEY))
+    return c.json({ error: 'unauthorized' }, 401);
   return c.json(await drainTrustOutbox(c.env));
 });
 

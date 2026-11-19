@@ -47,7 +47,11 @@ export interface ReportCounts {
 
 const num = (n: number) => n.toLocaleString('en-NG');
 const quoted = (r: ReportRow) =>
-  r.type === 'book' || r.type === 'profile' ? r.quote : r.quote ? `"${r.quote.length > 90 ? `${r.quote.slice(0, 88)}…` : r.quote}"` : 'Content removed';
+  r.type === 'book' || r.type === 'profile'
+    ? r.quote
+    : r.quote
+      ? `"${r.quote.length > 90 ? `${r.quote.slice(0, 88)}…` : r.quote}"`
+      : 'Content removed';
 
 /** s-reports. Refreshes every 10 seconds and on focus (no Realtime). */
 export function ReportsView({
@@ -99,10 +103,13 @@ export function ReportsView({
 
   const t = q.trim().toLowerCase();
   const shown = rows.filter(
-    r =>
+    (r) =>
       (reason === 'all' || r.reason === reason) &&
       (severity === 'all' || r.severity === severity) &&
-      (!t || r.ref.toLowerCase().includes(t) || r.quote.toLowerCase().includes(t) || (r.author ?? '').toLowerCase().includes(t.replace(/^@/, ''))),
+      (!t ||
+        r.ref.toLowerCase().includes(t) ||
+        r.quote.toLowerCase().includes(t) ||
+        (r.author ?? '').toLowerCase().includes(t.replace(/^@/, ''))),
   );
   const go = (params: { tab?: ReportTab; type?: TypeFilter }) => {
     const sp = new URLSearchParams();
@@ -112,7 +119,7 @@ export function ReportsView({
     if (ny !== 'all') sp.set('type', ny);
     router.push(`/reports${sp.size ? `?${sp}` : ''}`);
   };
-  const tabLabel = TABS.find(x => x.key === tab)?.label.toLowerCase() ?? 'open';
+  const tabLabel = TABS.find((x) => x.key === tab)?.label.toLowerCase() ?? 'open';
 
   return (
     <section className="screen enter">
@@ -129,7 +136,7 @@ export function ReportsView({
               className="ib"
               href="#export"
               aria-label="Export reports"
-              onClick={e => {
+              onClick={(e) => {
                 e.preventDefault();
                 showToast('Exports arrive with a later part of the build.');
               }}
@@ -140,14 +147,14 @@ export function ReportsView({
         </div>
       </div>
       <div className="tabs" role="tablist">
-        {TABS.map(x => (
+        {TABS.map((x) => (
           <a
             key={x.key}
             role="tab"
             href={`/reports${x.key === 'open' ? '' : `?tab=${x.key}`}`}
             aria-selected={tab === x.key}
             className={tab === x.key ? 'is-selected' : undefined}
-            onClick={e => {
+            onClick={(e) => {
               e.preventDefault();
               go({ tab: x.key });
             }}
@@ -160,21 +167,26 @@ export function ReportsView({
         <div className="toolbar">
           <label className="search">
             <Icon name="search" />
-            <input placeholder="Search content, @username or report id" aria-label="Search reports" value={q} onChange={e => setQ(e.target.value)} />
+            <input
+              placeholder="Search content, @username or report id"
+              aria-label="Search reports"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
           </label>
           <div className="mwrap">
-            <button type="button" className="fbtn" aria-expanded={menu} onClick={() => setMenu(m => !m)}>
+            <button type="button" className="fbtn" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
               <Icon name="filter" />
               Filters
             </button>
             {menu ? (
               <div className="menu sy-menul">
-                {(['all', 'high', 'medium', 'low'] as const).map(s => (
+                {(['all', 'high', 'medium', 'low'] as const).map((s) => (
                   <a
                     key={s}
                     href={`#${s}`}
                     aria-current={severity === s ? 'true' : undefined}
-                    onClick={e => {
+                    onClick={(e) => {
                       e.preventDefault();
                       setSeverity(s);
                     }}
@@ -183,12 +195,12 @@ export function ReportsView({
                   </a>
                 ))}
                 <hr />
-                {(['all', ...Object.keys(REASON_LABELS)] as (ReportReason | 'all')[]).map(k => (
+                {(['all', ...Object.keys(REASON_LABELS)] as (ReportReason | 'all')[]).map((k) => (
                   <a
                     key={k}
                     href={`#${k}`}
                     aria-current={reason === k ? 'true' : undefined}
-                    onClick={e => {
+                    onClick={(e) => {
                       e.preventDefault();
                       setReason(k);
                     }}
@@ -200,14 +212,17 @@ export function ReportsView({
             ) : null}
           </div>
           <span className="row">
-            {TYPE_FILTERS.map(f => (
+            {TYPE_FILTERS.map((f) => (
               <button
                 key={f.key}
                 type="button"
                 className={`fchip${type === f.key ? ' is-selected' : ''}`}
                 onClick={() => go({ type: f.key })}
               >
-                {f.label} {type === 'all' || type === f.key ? <span className="c">{num(typeCounts[f.key] ?? 0)}</span> : null}
+                {f.label}{' '}
+                {type === 'all' || type === f.key ? (
+                  <span className="c">{num(typeCounts[f.key] ?? 0)}</span>
+                ) : null}
               </button>
             ))}
           </span>
@@ -228,7 +243,11 @@ export function ReportsView({
               <b>Nothing matches</b>
               <span>Try other words, or clear the filters.</span>
               <div className="row">
-                <button type="button" className="btn btn-g" onClick={() => (setQ(''), setReason('all'), setSeverity('all'))}>
+                <button
+                  type="button"
+                  className="btn btn-g"
+                  onClick={() => (setQ(''), setReason('all'), setSeverity('all'))}
+                >
                   Clear filters
                 </button>
               </div>
@@ -247,15 +266,21 @@ export function ReportsView({
                   </tr>
                 </thead>
                 <tbody>
-                  {shown.map(r => (
+                  {shown.map((r) => (
                     <tr
                       key={r.id}
                       data-go="report"
                       tabIndex={0}
                       onClick={() => router.push(`/reports/${r.id}`)}
-                      onKeyDown={e => e.key === 'Enter' && router.push(`/reports/${r.id}`)}
+                      onKeyDown={(e) => e.key === 'Enter' && router.push(`/reports/${r.id}`)}
                     >
-                      <td>{r.severity === 'high' ? <span className="st st-err">High</span> : SEVERITY_LABEL[r.severity]}</td>
+                      <td>
+                        {r.severity === 'high' ? (
+                          <span className="st st-err">High</span>
+                        ) : (
+                          SEVERITY_LABEL[r.severity]
+                        )}
+                      </td>
                       <td>
                         <span className="ts-ex">{quoted(r)}</span>
                         <small className="faint">
@@ -265,7 +290,9 @@ export function ReportsView({
                       </td>
                       <td>{REASON_LABELS[r.reason]}</td>
                       <td className="n">{num(r.reporters)}</td>
-                      <td className={`nw${r.late ? ' warn-t' : ''}`}>{r.late ? <b>{age(r.createdAt)}</b> : age(r.createdAt)}</td>
+                      <td className={`nw${r.late ? ' warn-t' : ''}`}>
+                        {r.late ? <b>{age(r.createdAt)}</b> : age(r.createdAt)}
+                      </td>
                       <td>
                         {r.status === 'resolved' ? (
                           (OUTCOME_LABEL[r.outcome ?? ''] ?? 'Resolved')
