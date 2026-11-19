@@ -620,6 +620,16 @@ try {
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
+      // Flow 10 · Readers. Seeded data differs from the prototype's sample readers; compare by eye.
+      users: { path: '/users', as: 'amaka@arpedia.africa' },
+      user: { path: '/users/00000000-0000-4000-a000-000000000001', as: 'amaka@arpedia.africa' },
+      'user-activity': { path: '/users/00000000-0000-4000-a000-000000000001/activity', as: 'amaka@arpedia.africa' },
+      // Open the ⋯ menu, then Delete account….
+      'user-delete': {
+        path: '/users/00000000-0000-4000-a000-000000000001',
+        as: 'amaka@arpedia.africa',
+        fill: `const m=document.querySelector('.ph__acts .mwrap button');for(let k=0;k<50&&!Object.keys(m).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));m.click();await new Promise(r=>setTimeout(r,200));document.querySelector('.menu a.danger').click();await new Promise(r=>setTimeout(r,400));`,
+      },
     };
     for (const id of ids) {
       const p = pages[id];
