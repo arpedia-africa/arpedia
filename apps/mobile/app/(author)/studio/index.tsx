@@ -53,9 +53,9 @@ export default function Studio() {
         return soon('Submit a book');
       case 'post':
       case 'posts':
-        return soon('Posts');
+        return router.push('/studio/post' as Href);
       case 'inbox':
-        return soon('Reader messages');
+        return router.push('/studio/inbox' as Href);
       case 'club':
         return soon('Your club chat');
       case 'profile':

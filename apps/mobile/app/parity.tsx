@@ -54,6 +54,7 @@ import {
   StudioProfileFoot,
   StudioProfileView,
 } from '../features/11/StudioSettingsViews';
+import { StudioInboxView, StudioPostView } from '../features/11/StudioCommsViews';
 
 const PAGES = [
   'kit-a',
@@ -72,6 +73,8 @@ const PAGES = [
   's-studio-profile',
   's-studio-payout',
   's-studio-community',
+  's-studio-post',
+  's-studio-inbox',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -424,6 +427,57 @@ function Flow11({ page }: { page: Page }) {
           onBack={noop}
           onMuted={noop}
           onModerators={noop}
+        />
+      );
+    case 's-studio-post':
+      return (
+        <StudioPostView
+          values={{
+            title: 'Why I wrote the letters first',
+            body: 'Before there was a story there were twelve letters in a notebook my late uncle gave me…',
+          }}
+          book="Harmattan Letters"
+          audience="3.4k followers + club"
+          errors={{}}
+          onChange={noop}
+          onBook={noop}
+          onPost={noop}
+          onBack={noop}
+        />
+      );
+    case 's-studio-inbox':
+      return (
+        <StudioInboxView
+          filter="waiting"
+          waiting={4}
+          state="ready"
+          rows={[
+            {
+              id: '1',
+              name: 'Ngozi Eze',
+              tone: 'g',
+              preview: 'Is the man who fixes the gate the same one…',
+              time: '09:14',
+            },
+            {
+              id: '2',
+              name: 'Kemi O.',
+              tone: 't',
+              preview: 'Will there be a sequel? My whole fellowship…',
+              time: 'Yesterday',
+            },
+            {
+              id: '3',
+              name: 'Tolu A.',
+              tone: 'b',
+              preview: 'Thank you for chapter 4. I lost my husband in…',
+              time: '10 Nov',
+            },
+          ]}
+          onFilter={noop}
+          onRow={noop}
+          onRetry={noop}
+          onBack={noop}
         />
       );
     case 's-studio-royalties':
