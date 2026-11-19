@@ -42,11 +42,19 @@ export interface ParaPosition {
 
 /** Index paragraphs once per manifest: para_id → {chapter, index, words_before, words}. */
 export function indexParagraphs(m: ReadingManifest) {
-  const out = new Map<string, { chapter: ReadingChapter; index: number; words_before: number; words: number }>();
+  const out = new Map<
+    string,
+    { chapter: ReadingChapter; index: number; words_before: number; words: number }
+  >();
   for (const c of m.chapters) {
     c.paragraphs.forEach((p, i) => {
       const next = c.paragraphs[i + 1]?.words_before ?? c.words_before + c.words;
-      out.set(p.id, { chapter: c, index: i, words_before: p.words_before, words: Math.max(0, next - p.words_before) });
+      out.set(p.id, {
+        chapter: c,
+        index: i,
+        words_before: p.words_before,
+        words: Math.max(0, next - p.words_before),
+      });
     });
   }
   return out;
@@ -72,7 +80,11 @@ export function percentToParagraph(m: ReadingManifest, percent: number): ParaPos
   for (const c of m.chapters) {
     for (const p of c.paragraphs) {
       if (p.words_before > target) return found;
-      found = { chapter_uid: c.chapter_uid, para_id: p.id, offset_words: Math.round(target - p.words_before) };
+      found = {
+        chapter_uid: c.chapter_uid,
+        para_id: p.id,
+        offset_words: Math.round(target - p.words_before),
+      };
     }
   }
   if (found) {
@@ -102,7 +114,11 @@ export function timeLeftLabel(wordsLeft: number): string {
 }
 
 /** Can the reader be at this position? Locked chapters allow only the peek; partial up to the cut. */
-export function positionAllowed(m: ReadingManifest, access: Record<string, ChapterAccess>, pos: ParaPosition): boolean {
+export function positionAllowed(
+  m: ReadingManifest,
+  access: Record<string, ChapterAccess>,
+  pos: ParaPosition,
+): boolean {
   const a = access[pos.chapter_uid];
   if (a === 'open' || a === 'unlocked') return true;
   const idx = indexParagraphs(m);
@@ -165,7 +181,12 @@ export const pendingCharges = (store: PendingStore, user: string) =>
 
 export function memoryPendingStore(): PendingStore {
   const m = new Map<string, PendingCharge>();
-  return { get: (k) => m.get(k), set: (k, v) => void m.set(k, v), delete: (k) => void m.delete(k), values: () => m.values() };
+  return {
+    get: (k) => m.get(k),
+    set: (k, v) => void m.set(k, v),
+    delete: (k) => void m.delete(k),
+    values: () => m.values(),
+  };
 }
 
 // ─── Offline licence (rule 71) ──────────────────────────────────────────────

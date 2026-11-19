@@ -75,10 +75,19 @@ interface Bundle {
 
 async function keyBundle(c: Context<AppEnv>, body: z.infer<typeof KeysBody>) {
   // 1. Which chapters, decided by the database as the reader.
-  const ent = await userDb(c).rpc('entitled_chapters', { p_book: body.book_id, p_revision: body.revision_id });
+  const ent = await userDb(c).rpc('entitled_chapters', {
+    p_book: body.book_id,
+    p_revision: body.revision_id,
+  });
   if (ent.error) return { error: ent.error };
-  const allowed = ent.data as { revision_id: string; all: boolean; chapter_uids: string[]; partial_uids: string[] };
-  if (allowed.revision_id !== body.revision_id) return { error: { code: 'P0001', message: 'stale_revision' } };
+  const allowed = ent.data as {
+    revision_id: string;
+    all: boolean;
+    chapter_uids: string[];
+    partial_uids: string[];
+  };
+  if (allowed.revision_id !== body.revision_id)
+    return { error: { code: 'P0001', message: 'stale_revision' } };
   const wanted = body.chapter_uids
     ? allowed.chapter_uids.filter((u) => body.chapter_uids!.includes(u))
     : allowed.chapter_uids;
@@ -150,7 +159,12 @@ reading.post('/keys', async (c) => {
   if (!body.success) return c.json({ error: 'bad_request' }, 400);
   const r = await keyBundle(c, body.data);
   if (r.error) return fail(c, r.error);
-  return c.json({ keys: r.keys, licence: r.licence, signature: r.signature, server_time: new Date().toISOString() });
+  return c.json({
+    keys: r.keys,
+    licence: r.licence,
+    signature: r.signature,
+    server_time: new Date().toISOString(),
+  });
 });
 
 // ─── POST /download {…, scope} → {files, keys, licence, signature} ─────────

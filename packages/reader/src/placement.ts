@@ -23,8 +23,7 @@ export interface PlacementInput {
 }
 
 export type Placement =
-  | { kind: 'above' | 'below'; x: number; y: number }
-  | { kind: 'docked'; x: number; y: number };
+  { kind: 'above' | 'below'; x: number; y: number } | { kind: 'docked'; x: number; y: number };
 
 export const GAP = 8;
 
