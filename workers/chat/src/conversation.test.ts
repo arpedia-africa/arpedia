@@ -2,8 +2,8 @@
 // enforcement push-down and write retry (flow 06 "Done when").
 import { describe, expect, it } from 'vitest';
 import type { ServerFrame } from '@arpedia/core';
-import { ACCESS_TTL_MS, Conversation, RETRY_MS, type Peer } from './conversation';
-import type { Access, ChatDb, PersistItem, PersistResult } from './db';
+import { ACCESS_TTL_MS, Conversation, RETRY_MS, type Peer, type SenderState } from './conversation';
+import { RpcError, type Access, type ChatDb, type PersistItem, type PersistResult } from './db';
 
 const G = '11111111-1111-4111-8111-111111111111';
 const cid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -34,6 +34,7 @@ function setup() {
   const calls = { access: 0, persist: 0 };
   const stored: PersistItem[] = [];
   let failPersist = false;
+  let poison: string | null = null;
   const flushAt: number[] = [];
   const db: ChatDb = {
     getAccess: async (_g, u) => {
@@ -43,6 +44,7 @@ function setup() {
     persist: async (batch) => {
       calls.persist++;
       if (failPersist) throw new Error('postgres down');
+      if (batch.some((b) => b.body === poison)) throw new RpcError(400, '22P02', 'invalid input');
       return batch.map((b): PersistResult => {
         const a = table.get(b.sender_id);
         if (a?.post_block)
@@ -56,19 +58,29 @@ function setup() {
     canQuote: async () => true,
   };
   const q = new Map<string, PersistItem>();
+  const parked = new Map<string, PersistItem>();
+  const senders = new Map<string, SenderState>();
   const peers: (Peer & { frames: ServerFrame[]; closed?: number })[] = [];
-  const conv = new Conversation({
-    groupId: G,
-    db,
-    queue: {
-      list: async () => new Map(q),
-      put: async (k, v) => void q.set(k, v),
-      delete: async (keys) => keys.forEach((k) => q.delete(k)),
-    },
-    peers: () => peers.filter((p) => p.closed === undefined),
-    now: () => now,
-    scheduleFlush: (ms) => void flushAt.push(ms),
-  });
+  // A new instance over the same storage and sockets = the DO woken from hibernation.
+  const make = () =>
+    new Conversation({
+      groupId: G,
+      db,
+      queue: {
+        list: async () => new Map(q),
+        put: async (k, v) => void q.set(k, v),
+        delete: async (keys) => keys.forEach((k) => q.delete(k)),
+        park: async (k, v) => void parked.set(k, v),
+      },
+      senders: {
+        get: async (u) => senders.get(u),
+        put: async (u, s) => void senders.set(u, s),
+      },
+      peers: () => peers.filter((p) => p.closed === undefined),
+      now: () => now,
+      scheduleFlush: (ms) => void flushAt.push(ms),
+    });
+  const conv = make();
   const peer = (userId: string) => {
     const p = {
       userId,
@@ -88,15 +100,18 @@ function setup() {
     conv.onFrame(p, JSON.stringify({ type: 'send', client_id: cid(n), body }));
   return {
     conv,
+    make,
     table,
     calls,
     stored,
     q,
+    parked,
     peer,
     send,
     flushAt,
     tick: (ms: number) => (now += ms),
     failPersist: (v: boolean) => (failPersist = v),
+    poison: (body: string) => (poison = body),
   };
 }
 
@@ -190,6 +205,25 @@ describe('send path', () => {
     expect(bola.frames.some((f) => f.type === 'message')).toBe(false);
     await t.conv.flush();
     expect(t.stored[0]?.state).toBe('auto_hidden');
+    // A retry gets the same answer, not an ack that would clear the pending bubble.
+    await t.send(ada, 1, 'join this SCAM now');
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
+  });
+
+  it('keeps slow mode and retry dedupe across hibernation', async () => {
+    const t = setup();
+    t.table.set('ada', access({ slow_mode_seconds: 30 }));
+    t.table.set('bola', access());
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    await t.send(ada, 1);
+    const woken = t.make();
+    t.tick(10_000);
+    await woken.onFrame(ada, JSON.stringify({ type: 'send', client_id: cid(1), body: 'hello 1' }));
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'ack', client_id: cid(1) });
+    await woken.onFrame(ada, JSON.stringify({ type: 'send', client_id: cid(2), body: 'hello 2' }));
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'error', error: 'slow_mode', wait_seconds: 20 });
+    expect(bola.frames.filter((f) => f.type === 'message')).toHaveLength(1);
   });
 
   it('drops frames with malformed ids so they never stall the write queue', async () => {
@@ -245,6 +279,20 @@ describe('enforcement push-down', () => {
     expect(ada.closed).toBeUndefined();
     expect(ada.frames.find((f) => f.type === 'group')).toMatchObject({ post_block: 'locked' });
   });
+
+  it('lets a plain member refresh only themselves', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('dee', access());
+    t.peer('ada');
+    const dee = t.peer('dee');
+    t.table.set('dee', access({ access: 'banned' }));
+    await t.conv.refresh(undefined, 'ada');
+    expect(dee.closed).toBeUndefined();
+    t.table.set('mod', access({ role: 'moderator' }));
+    await t.conv.refresh(undefined, 'mod');
+    expect(dee.closed).toBe(4403);
+  });
 });
 
 describe('write retry', () => {
@@ -275,5 +323,19 @@ describe('write retry', () => {
     t.table.set('ada', access({ post_block: 'muted' }));
     await t.conv.flush();
     expect(bola.frames.at(-1)).toMatchObject({ type: 'state', state: 'removed' });
+  });
+
+  it('sets aside a row Postgres can never take, and writes the rest', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    await t.send(ada, 2, 'bad row');
+    await t.send(ada, 3);
+    t.poison('bad row');
+    await t.conv.flush();
+    expect(t.q.size).toBe(0);
+    expect([...t.parked.values()].map((p) => p.client_id)).toEqual([cid(2)]);
+    expect(t.stored.map((s) => s.client_id)).toEqual([cid(1), cid(3)]);
   });
 });

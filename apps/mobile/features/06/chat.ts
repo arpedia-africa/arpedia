@@ -210,10 +210,19 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
       }
     };
 
+    // The retry timer and the online event can both fire: only one socket at a time.
+    let connecting = false;
     const connect = async () => {
-      if (closed || !CHAT_URL) return;
-      const t = await token();
-      if (!t || closed) return;
+      if (closed || !CHAT_URL || connecting || ws.current) return;
+      connecting = true;
+      let t: string | null;
+      try {
+        t = await token();
+      } finally {
+        connecting = false;
+      }
+      if (!t || closed || ws.current) return;
+      if (retry) clearTimeout(retry);
       setState('connecting');
       const url = `${CHAT_URL.replace(/^http/, 'ws')}/c/${gid}?token=${encodeURIComponent(t)}`;
       const sock = new WebSocket(url);

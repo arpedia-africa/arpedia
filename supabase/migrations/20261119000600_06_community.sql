@@ -408,9 +408,10 @@ language sql stable security definer set search_path = '' as $$
     and not (g.kind = 'dm' and public.has_blocked(p_user, o.user_id))
 $$;
 
--- The caller's inbox: filter all | unread | groups, newest activity first, keyset on last_at.
+-- The caller's inbox: filter all | unread | groups, newest activity first, keyset on
+-- (last_at, group_id) so rows sharing a time aren't lost between pages.
 create function public.get_inbox(p_filter text default 'all', p_limit int default 50,
-                                 p_cursor timestamptz default null)
+                                 p_cursor timestamptz default null, p_cursor_id uuid default null)
 returns table (
   group_id uuid, kind public.group_kind, name text, avatar_url text, other_user_id uuid,
   is_author boolean, last_sender text, last_body text, last_kind public.message_kind,
@@ -429,7 +430,8 @@ begin
     select r.* from public.inbox_rows_for(auth.uid()) r
     where (p_filter <> 'unread' or r.unread_count > 0)
       and (p_filter <> 'groups' or r.kind <> 'dm')
-      and (p_cursor is null or r.last_at < p_cursor)
+      and (p_cursor is null or r.last_at < p_cursor
+           or (r.last_at = p_cursor and p_cursor_id is not null and r.group_id > p_cursor_id))
     order by r.last_at desc, r.group_id
     limit least(greatest(coalesce(p_limit, 50), 1), 100);
 end $$;
@@ -667,7 +669,8 @@ end $$;
 
 -- One reaction per person per message; the same emoji again (or null) removes it.
 -- Returns the message's group and new counts, for the chat Worker to push to the DO.
-create function public.react(p_message uuid, p_emoji text) returns jsonb
+-- `p_group` (the conversation the Worker routed to) must match before anything is written.
+create function public.react(p_message uuid, p_emoji text, p_group uuid default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   uid uuid := auth.uid();
@@ -675,7 +678,8 @@ declare
   v_old text;
 begin
   select * into x from public.messages where id = p_message;
-  if x.id is null or x.state <> 'visible' or not public.is_group_member(x.group_id, uid) then
+  if x.id is null or x.state <> 'visible' or not public.is_group_member(x.group_id, uid)
+     or (p_group is not null and x.group_id <> p_group) then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
   select emoji into v_old from public.message_reactions where message_id = p_message and user_id = uid;
@@ -721,12 +725,13 @@ end $$;
 
 -- Sender deletes their own message: "This message was deleted" for everyone. The text is kept
 -- 30 days only when the message has an open report.
-create function public.delete_message(p_message uuid) returns jsonb
+create function public.delete_message(p_message uuid, p_group uuid default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare x public.messages;
 begin
   select * into x from public.messages where id = p_message for update;
-  if x.id is null or x.sender_id is distinct from auth.uid() then
+  if x.id is null or x.sender_id is distinct from auth.uid()
+     or (p_group is not null and x.group_id <> p_group) then
     raise exception 'not_allowed' using errcode = 'insufficient_privilege';
   end if;
   if x.state = 'deleted' then
@@ -1143,21 +1148,29 @@ begin
     p_reason);
 end $$;
 
--- Lock chat (until a time, or null to unlock) and mute the channel (24 hours, or null).
-create function public.admin_set_channel_state(p_group uuid, p_lock_until timestamptz, p_mute_until timestamptz,
+-- Lock chat (until a time, or null to unlock) or mute the channel (24 hours, or null). Only the
+-- named field changes, so a stale page can't undo another moderator's lock or mute.
+create function public.admin_set_channel_state(p_group uuid, p_field text, p_until timestamptz,
                                                p_reason text default null) returns void
 language plpgsql security definer set search_path = '' as $$
 declare g public.groups;
 begin
   perform public.require_community_admin(true);
+  if p_field not in ('lock', 'mute') then raise exception 'bad field' using errcode = '22023'; end if;
   select * into g from public.groups where id = p_group and kind <> 'dm' for update;
   if g.id is null then raise exception 'not_found' using errcode = 'P0002'; end if;
-  update public.groups set locked_until = p_lock_until, muted_until = p_mute_until where id = p_group;
+  if p_field = 'lock' then
+    update public.groups set locked_until = p_until where id = p_group;
+  else
+    update public.groups set muted_until = p_until where id = p_group;
+  end if;
   perform public.write_audit('community', 'channel.state', 'group', g.id::text, g.name,
-    case when p_lock_until > now() then 'Locked chat' when p_mute_until > now() then 'Muted channel'
-         else 'Opened chat' end,
-    jsonb_build_object('locked_until', g.locked_until, 'muted_until', g.muted_until),
-    jsonb_build_object('locked_until', p_lock_until, 'muted_until', p_mute_until), p_reason);
+    case when p_until > now() then case p_field when 'lock' then 'Locked chat' else 'Muted channel' end
+         else case p_field when 'lock' then 'Opened chat' else 'Unmuted channel' end end,
+    jsonb_build_object(case p_field when 'lock' then 'locked_until' else 'muted_until' end,
+                       case p_field when 'lock' then g.locked_until else g.muted_until end),
+    jsonb_build_object(case p_field when 'lock' then 'locked_until' else 'muted_until' end, p_until),
+    p_reason);
 end $$;
 
 create function public.admin_mute_member(p_group uuid, p_user uuid, p_until timestamptz,
@@ -1230,18 +1243,18 @@ begin
 end $$;
 
 grant execute on function
-  public.get_inbox(text, int, timestamptz), public.get_inbox_counts(), public.mark_all_read(),
+  public.get_inbox(text, int, timestamptz, uuid), public.get_inbox_counts(), public.mark_all_read(),
   public.mark_read(uuid, uuid), public.get_group(uuid),
   public.get_messages(uuid, timestamptz, uuid, int), public.join_group(uuid), public.leave_group(uuid),
-  public.set_group_mute(uuid, timestamptz), public.react(uuid, text), public.pin_message(uuid, uuid),
-  public.unpin_message(uuid, uuid), public.delete_message(uuid),
+  public.set_group_mute(uuid, timestamptz), public.react(uuid, text, uuid), public.pin_message(uuid, uuid),
+  public.unpin_message(uuid, uuid), public.delete_message(uuid, uuid),
   public.block_user(uuid, uuid, timestamptz), public.unblock_user(uuid), public.get_blocked(),
   public.report_message(uuid, public.report_reason, text, boolean),
   public.search_communities(text, text, int, int),
   public.admin_list_channels(text, text, boolean, text),
   public.admin_create_official_channel(text, text, public.group_who_can_post, public.group_visibility),
   public.admin_get_channel(uuid), public.admin_update_channel(uuid, jsonb, text), public.admin_community_stats(),
-  public.admin_set_channel_state(uuid, timestamptz, timestamptz, text),
+  public.admin_set_channel_state(uuid, text, timestamptz, text),
   public.admin_mute_member(uuid, uuid, timestamptz, text),
   -- used inside RLS policies
   public.am_group_member(uuid), public.is_community_staff(), public.i_blocked(uuid)

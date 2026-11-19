@@ -191,7 +191,6 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
       else showToast(r.error ?? "That didn't save. Try again.");
       if (r.ok) router.refresh();
     });
-  const restore = () => setChannelState(g.id, g.locked_until, g.muted_until);
 
   return (
     <section className="screen enter">
@@ -256,9 +255,9 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
                         onClick={() => {
                           setMenu(false);
                           run(
-                            setChannelState(g.id, locked ? null : FOREVER, g.muted_until),
+                            setChannelState(g.id, 'lock', locked ? null : FOREVER),
                             locked ? 'Chat open again.' : `Chat locked. ${ownerFirst} and members see that staff locked it.`,
-                            () => run(restore(), 'Undone.'),
+                            () => run(setChannelState(g.id, 'lock', g.locked_until), 'Undone.'),
                           );
                         }}
                       >
@@ -269,9 +268,9 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
                         onClick={() => {
                           setMenu(false);
                           run(
-                            setChannelState(g.id, g.locked_until, muted ? null : new Date(now + 86_400_000).toISOString()),
+                            setChannelState(g.id, 'mute', muted ? null : new Date(now + 86_400_000).toISOString()),
                             muted ? 'Channel unmuted.' : 'Channel muted for 24 hours.',
-                            () => run(restore(), 'Undone.'),
+                            () => run(setChannelState(g.id, 'mute', g.muted_until), 'Undone.'),
                           );
                         }}
                       >

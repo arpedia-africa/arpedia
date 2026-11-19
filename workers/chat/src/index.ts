@@ -65,7 +65,8 @@ export default {
     if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
     if (sub === 'refresh') {
-      // Harmless for anyone signed in: the DO only re-reads Postgres.
+      // The DO re-reads Postgres. Only staff and the group's owner or moderators may refresh
+      // everyone; anyone else refreshes just themselves (checked in the DO).
       const body = (await request.json().catch(() => ({}))) as { self?: boolean };
       await toDo('refresh', { method: 'POST', body: JSON.stringify(body.self ? { user_id: userId } : {}) });
       return json({ ok: true });
@@ -83,9 +84,8 @@ export default {
           await toDo('flush', { method: 'POST' });
           const r = await asUser<{ group_id: string; message_id: string; reactions: Record<string, number> }>(
             'react',
-            { p_message: action.message_id, p_emoji: action.emoji },
+            { p_message: action.message_id, p_emoji: action.emoji, p_group: groupId },
           );
-          if (r.group_id !== groupId) return json({ error: 'not_found' }, 404);
           await relay({ type: 'reactions', message_id: r.message_id, reactions: r.reactions });
           return json({ reactions: r.reactions });
         }
@@ -93,9 +93,9 @@ export default {
           await toDo('flush', { method: 'POST' });
           const r = await asUser<{ group_id: string; message_id: string }>('delete_message', {
             p_message: action.message_id,
+            p_group: groupId,
           });
-          if (r.group_id === groupId)
-            await relay({ type: 'state', message_id: r.message_id, state: 'deleted' });
+          await relay({ type: 'state', message_id: r.message_id, state: 'deleted' });
           return json({ ok: true });
         }
         case 'pin':

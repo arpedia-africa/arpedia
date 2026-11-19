@@ -10,7 +10,7 @@ import {
   type SendError,
   type ServerFrame,
 } from '@arpedia/core';
-import type { Access, ChatDb, PersistItem } from './db';
+import { RpcError, type Access, type ChatDb, type PersistItem, type PersistResult } from './db';
 
 export interface Peer {
   userId: string;
@@ -23,12 +23,27 @@ export interface QueueStore {
   list(): Promise<Map<string, PersistItem>>;
   put(key: string, item: PersistItem): Promise<void>;
   delete(keys: string[]): Promise<void>;
+  /** Set aside an item Postgres can never take, so it doesn't block the ones behind it. */
+  park(key: string, item: PersistItem): Promise<void>;
+}
+
+/** Per-sender limits and recent client ids, kept in DO storage so hibernation can't reset them. */
+export interface SenderState {
+  last: number;
+  sends: number[];
+  recent: { client_id: string; id: string; created_at: string; hidden: boolean }[];
+}
+
+export interface SenderStore {
+  get(userId: string): Promise<SenderState | undefined>;
+  put(userId: string, s: SenderState): Promise<void>;
 }
 
 export interface Deps {
   groupId: string;
   db: ChatDb;
   queue: QueueStore;
+  senders: SenderStore;
   peers(): Peer[];
   now(): number;
   /** Ask for flush() to run in `ms` (the DO alarm). */
@@ -40,14 +55,13 @@ export const FLUSH_MS = 1_000;
 export const FLUSH_BATCH = 50;
 export const RETRY_MS = 5_000;
 export const RATE_LIMIT = { count: 20, windowMs: 60_000 };
+const RECENT_PER_SENDER = 20;
 const LINK = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|ng|net|org|africa|io|co|me|ly|link)\b/i;
 const PHONE = /(?<!\d)(?:\+?234|0)[789][01]\d{8}(?!\d)/;
 
 export class Conversation {
   private access = new Map<string, { a: Access; at: number }>();
-  private recent = new Map<string, { id: string; created_at: string }>();
-  private lastSent = new Map<string, number>();
-  private sends = new Map<string, number[]>();
+  private senders = new Map<string, SenderState>();
   private readingNow = -1;
   private lastTs = 0;
   private flushing: Promise<void> | null = null;
@@ -110,9 +124,13 @@ export class Conversation {
     if (!isUuid(f.client_id)) return;
     if (f.reply_to_id != null && !isUuid(f.reply_to_id)) return;
 
-    // A retry of something we already took: ack again, never post twice.
-    const dup = this.recent.get(`${uid}:${f.client_id}`);
-    if (dup) return peer.send(json({ type: 'ack', client_id: f.client_id, ...dup }));
+    // A retry of something we already took: answer the same way again, never post twice.
+    const s = await this.senderState(uid);
+    const dup = s.recent.find((r) => r.client_id === f.client_id);
+    if (dup) {
+      if (dup.hidden) return err('rejected_by_rules');
+      return peer.send(json({ type: 'ack', client_id: f.client_id, id: dup.id, created_at: dup.created_at }));
+    }
 
     const a = await this.accessFor(uid);
     if (a.access === 'banned' || a.access === 'archived' || a.access === 'not_member') {
@@ -131,11 +149,10 @@ export class Conversation {
     const now = this.d.now();
     const mod = a.is_staff || a.role === 'owner' || a.role === 'moderator';
     if (!mod && a.slow_mode_seconds > 0) {
-      const last = this.lastSent.get(uid) ?? 0;
-      const wait = last + a.slow_mode_seconds * 1000 - now;
+      const wait = s.last + a.slow_mode_seconds * 1000 - now;
       if (wait > 0) return err('slow_mode', { wait_seconds: Math.ceil(wait / 1000) });
     }
-    const window = (this.sends.get(uid) ?? []).filter((t) => now - t < RATE_LIMIT.windowMs);
+    const window = s.sends.filter((t) => now - t < RATE_LIMIT.windowMs);
     if (window.length >= RATE_LIMIT.count) return err('rate_limited');
 
     if (quote) {
@@ -169,11 +186,14 @@ export class Conversation {
       created_at,
     };
     await this.d.queue.put(`q:${String(ts).padStart(15, '0')}:${id}`, item);
-    this.recent.set(`${uid}:${f.client_id}`, { id, created_at });
-    if (this.recent.size > 2000) this.recent.delete(this.recent.keys().next().value!);
     window.push(now);
-    this.sends.set(uid, window);
-    this.lastSent.set(uid, now);
+    const next: SenderState = {
+      last: now,
+      sends: window,
+      recent: [...s.recent, { client_id: f.client_id, id, created_at, hidden }].slice(-RECENT_PER_SENDER),
+    };
+    this.senders.set(uid, next);
+    await this.d.senders.put(uid, next);
 
     if (hidden) {
       // Stored for moderators with an automatic report; never delivered, and the sender isn't
@@ -222,20 +242,22 @@ export class Conversation {
           if (all.size === 0) return;
           const keys = [...all.keys()].sort().slice(0, FLUSH_BATCH);
           const batch = keys.map((k) => all.get(k)!);
-          let results;
+          let results: PersistResult[];
           try {
             results = await this.d.db.persist(batch);
-          } catch {
-            this.d.scheduleFlush(RETRY_MS);
-            return;
+          } catch (e) {
+            if (!permanent(e)) {
+              this.d.scheduleFlush(RETRY_MS);
+              return;
+            }
+            // Postgres refused the batch itself: find the bad rows one by one and set them aside,
+            // so they can't hold back every message behind them.
+            const done = await this.persistEach(keys, batch);
+            if (!done) return;
+            continue;
           }
           await this.d.queue.delete(keys);
-          for (const r of results) {
-            if (r.status !== 'rejected') continue;
-            const item = batch.find((b) => b.client_id === r.client_id && b.sender_id === r.sender_id);
-            if (item && item.state === 'visible')
-              this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
-          }
+          this.takeBack(batch, results);
         }
       } finally {
         this.flushing = null;
@@ -244,11 +266,45 @@ export class Conversation {
     return this.flushing;
   }
 
+  /** One row at a time; false when Postgres became unreachable (retry later). */
+  private async persistEach(keys: string[], batch: PersistItem[]): Promise<boolean> {
+    for (const [i, item] of batch.entries()) {
+      const key = keys[i]!;
+      try {
+        this.takeBack([item], await this.d.db.persist([item]));
+      } catch (e) {
+        if (!permanent(e)) {
+          this.d.scheduleFlush(RETRY_MS);
+          return false;
+        }
+        await this.d.queue.park(key, item);
+        if (item.state === 'visible') this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
+      }
+      await this.d.queue.delete([key]);
+    }
+    return true;
+  }
+
+  /** Rows Postgres refused (sender muted or removed meanwhile) are taken back from live clients. */
+  private takeBack(batch: PersistItem[], results: PersistResult[]): void {
+    for (const r of results) {
+      if (r.status !== 'rejected') continue;
+      const item = batch.find((b) => b.client_id === r.client_id && b.sender_id === r.sender_id);
+      if (item && item.state === 'visible') this.broadcast({ type: 'state', message_id: item.id, state: 'removed' });
+    }
+  }
+
   /**
    * Moderation push-down, after Postgres changed: re-read access (one user or everyone), close
    * sockets of people who may no longer be here, and tell the rest about the new composer state.
    */
-  async refresh(userId?: string): Promise<void> {
+  async refresh(userId?: string, requester?: string): Promise<void> {
+    // Re-reading everyone costs a Postgres call per person here: only staff and the group's
+    // owner or moderators may ask for that; anyone else refreshes just themselves.
+    if (!userId && requester) {
+      const r = await this.accessFor(requester, true);
+      if (!(r.is_staff || r.role === 'owner' || r.role === 'moderator')) userId = requester;
+    }
     if (userId) this.access.delete(userId);
     else this.access.clear();
     const seen = new Set<string>();
@@ -305,6 +361,15 @@ export class Conversation {
     await Promise.all([...missing].map((u) => this.accessFor(u).catch(() => undefined)));
   }
 
+  private async senderState(userId: string): Promise<SenderState> {
+    let s = this.senders.get(userId);
+    if (!s) {
+      s = (await this.d.senders.get(userId)) ?? { last: 0, sends: [], recent: [] };
+      this.senders.set(userId, s);
+    }
+    return s;
+  }
+
   private countReading(): number {
     const users = new Set<string>();
     for (const p of this.d.peers()) {
@@ -323,6 +388,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuid(v: unknown): v is string {
   return typeof v === 'string' && UUID.test(v);
+}
+
+/** Postgres refused the data (400-class), as opposed to being down, overloaded or misconfigured. */
+function permanent(e: unknown): boolean {
+  return e instanceof RpcError && e.status >= 400 && e.status < 500 && ![401, 403, 408, 429].includes(e.status);
 }
 
 function canRead(a: Access): boolean {

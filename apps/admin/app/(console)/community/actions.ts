@@ -75,17 +75,17 @@ export async function saveChannelSettings(
   return { ok: true };
 }
 
-/** Lock chat / mute channel for 24 hours (null opens it again). */
+/** Lock chat / mute channel for 24 hours (null opens it again). Only `field` changes. */
 export async function setChannelState(
   groupId: string,
-  lockUntil: string | null,
-  muteUntil: string | null,
+  field: 'lock' | 'mute',
+  until: string | null,
 ): Promise<ActionResult> {
   const supabase = await serverSupabase();
   const { error } = await supabase.rpc('admin_set_channel_state', {
     p_group: groupId,
-    p_lock_until: lockUntil as string,
-    p_mute_until: muteUntil as string,
+    p_field: field,
+    p_until: until as string,
   });
   if (error) return failed(error.message);
   await pushToChat(groupId);

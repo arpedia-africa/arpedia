@@ -1,6 +1,6 @@
 import { CLOSE_FORBIDDEN, type ServerFrame } from '@arpedia/core';
 import { DurableObject } from 'cloudflare:workers';
-import { Conversation, type Peer } from './conversation';
+import { Conversation, type Peer, type SenderState } from './conversation';
 import { serviceDb, type PersistItem } from './db';
 import type { Env } from './env';
 
@@ -27,6 +27,11 @@ export class ConversationDO extends DurableObject<Env> {
         delete: async (keys) => {
           await storage.delete(keys);
         },
+        park: (k, v) => storage.put(`dead:${k}`, v),
+      },
+      senders: {
+        get: (uid) => storage.get<SenderState>(`s:${uid}`),
+        put: (uid, s) => storage.put(`s:${uid}`, s),
       },
       peers: () =>
         this.ctx.getWebSockets().map((ws): Peer => ({
@@ -81,7 +86,7 @@ export class ConversationDO extends DurableObject<Env> {
     if (request.method !== 'POST') return new Response('not found', { status: 404 });
     if (url.pathname.endsWith('/refresh')) {
       const body = (await request.json().catch(() => ({}))) as { user_id?: string };
-      await conv.refresh(body.user_id);
+      await conv.refresh(body.user_id, request.headers.get('X-User-Id') ?? undefined);
       return Response.json({ ok: true });
     }
     if (url.pathname.endsWith('/flush')) {
