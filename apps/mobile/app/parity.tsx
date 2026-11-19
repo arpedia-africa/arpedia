@@ -65,6 +65,7 @@ import { Bubble, ComHead, ComPin, Composer, DayMarker, type BubbleView } from '.
 import { OptionList, ReactionRow, ReportBody } from '../features/06/SheetViews';
 import { BlockedRow } from '../features/06/BlockedViews';
 import { BookEndView } from '../features/04/BookEndView';
+import { FLOW05_PAGES, Flow05, type Flow05Page } from '../features/05/parity';
 
 const PAGES = [
   'kit-a',
@@ -91,6 +92,7 @@ const PAGES = [
   's-report',
   's-blocked',
   's-book-end',
+  ...FLOW05_PAGES,
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -191,6 +193,8 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
               onTip={noop}
               onBook={noop}
             />
+          ) : page.startsWith('s-library') ? (
+            <Flow05 page={page as Flow05Page} />
           ) : page.startsWith('s-book') || page.includes('review') ? (
             <Flow03 page={page} />
           ) : (
