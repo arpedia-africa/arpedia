@@ -430,10 +430,31 @@ export function ThemeSheet({
   onClose: () => void;
 }) {
   const { s } = useTheme();
-  const rows = [THEMES.slice(0, 2), THEMES.slice(2, 4)];
   return (
     <Sheet open={open} onClose={onClose} title="App colour" bold>
-      <View accessibilityRole="radiogroup" style={{ gap: s(12) }}>
+      {/* the prototype's sheet body is `.body` (padding 16 0 22), not `.pb` (16 18 28): undo the difference */}
+      <View style={{ marginHorizontal: s(-18), marginBottom: s(-6) }}>
+        <ThemeBody value={value} onPick={onPick} onDone={onClose} />
+      </View>
+    </Sheet>
+  );
+}
+
+/** Theme tiles and Done (`.th-grid` padding 0 16, gap 14). */
+export function ThemeBody({
+  value,
+  onPick,
+  onDone,
+}: {
+  value: ThemeName;
+  onPick: (t: ThemeName) => void;
+  onDone: () => void;
+}) {
+  const { s } = useTheme();
+  const rows = [THEMES.slice(0, 2), THEMES.slice(2, 4)];
+  return (
+    <View style={{ gap: s(14) }}>
+      <View accessibilityRole="radiogroup" style={{ gap: s(12), paddingHorizontal: s(16) }}>
         {rows.map((row, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: s(12) }}>
             {row.map((t) => (
@@ -442,8 +463,10 @@ export function ThemeSheet({
           </View>
         ))}
       </View>
-      <Btn label="Done" block onPress={onClose} />
-    </Sheet>
+      <View style={{ paddingHorizontal: s(16) }}>
+        <Btn label="Done" block onPress={onDone} />
+      </View>
+    </View>
   );
 }
 

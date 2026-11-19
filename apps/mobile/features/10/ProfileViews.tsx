@@ -1,6 +1,6 @@
 // Flow 10 · Profile tab (s-profile) and Reading goal sheet (s-goal). Views take data and callbacks
 // only, so the parity page can draw them with the prototype's sample data.
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
@@ -365,20 +365,31 @@ export interface GoalSheetProps {
 }
 
 export function GoalSheet({ open, current, read, saving, error, onClose, onSave }: GoalSheetProps) {
+  return (
+    <Sheet open={open} onClose={onClose} title="Books this year" locked={saving}>
+      {/* remount on open so the current goal is picked again */}
+      <GoalBody
+        key={open ? 'open' : 'shut'}
+        current={current}
+        read={read}
+        saving={saving}
+        error={error}
+        onSave={onSave}
+      />
+    </Sheet>
+  );
+}
+
+/** The sheet's `.pb` contents (also drawn flat by the parity page). */
+export function GoalBody({ current, read, saving, error, onSave }: Omit<GoalSheetProps, 'open' | 'onClose'>) {
   const { c, s, bw } = useTheme();
   const [pick, setPick] = useState<number | null>(current);
   const [own, setOwn] = useState(current && !GOAL_OPTIONS.includes(current as never) ? String(current) : '');
-  useEffect(() => {
-    if (open) {
-      setPick(current);
-      setOwn(current && !GOAL_OPTIONS.includes(current as never) ? String(current) : '');
-    }
-  }, [open, current]);
   const ownN = own ? Number(own) : null;
   const value = ownN ?? pick;
   const ok = value !== null && validGoal(value);
   return (
-    <Sheet open={open} onClose={onClose} title="Books this year" locked={saving}>
+    <>
       <Text variant="sm" color="ink2">
         Finishing a book counts towards your goal.
       </Text>
@@ -400,8 +411,10 @@ export function GoalSheet({ open, current, read, saving, error, onClose, onSave 
                 flex: 1,
                 minHeight: s(68),
                 borderRadius: s(14),
-                borderWidth: on ? s(2) : bw(1),
-                borderColor: on ? c.org : c.line,
+                // .amount.is-selected: inset 2px main-colour ring, border transparent
+                borderWidth: bw(1),
+                borderColor: on ? 'transparent' : c.line,
+                boxShadow: on ? `inset 0 0 0 ${s(2)}px ${c.org}` : undefined,
                 backgroundColor: on ? c.orgTint2 : c.white,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -441,6 +454,6 @@ export function GoalSheet({ open, current, read, saving, error, onClose, onSave 
         loading={saving}
         onPress={() => ok && onSave(value)}
       />
-    </Sheet>
+    </>
   );
 }

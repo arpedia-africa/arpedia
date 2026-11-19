@@ -28,6 +28,7 @@ import {
 } from '@arpedia/ui';
 import { LAUNCH_PLANS } from '@arpedia/core';
 import { kitEnabled } from '@/lib/kit';
+import { Flow10, isFlow10 } from '../features/10/parity';
 import { LoginView, SignupView } from '../features/01/AuthViews';
 import {
   AllSetBody,
@@ -89,6 +90,16 @@ const PAGES = [
   's-msg-actions',
   's-report',
   's-blocked',
+  's-profile',
+  's-goal',
+  's-my-highlights',
+  's-account',
+  's-theme-settings',
+  's-notif-prefs',
+  's-edit-profile',
+  's-security',
+  's-about',
+  's-delete-account',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -169,7 +180,9 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          {FLOW06.has(page) ? (
+          {isFlow10(page) ? (
+            <Flow10 page={page} />
+          ) : FLOW06.has(page) ? (
             <Flow06 page={page} />
           ) : page.startsWith('s-book') || page.includes('review') ? (
             <Flow03 page={page} />
