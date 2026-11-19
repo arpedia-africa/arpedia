@@ -76,7 +76,12 @@ function Stat({ value, label, onPress }: { value?: number; label: string; onPres
   const box = { flex: 1, backgroundColor: c.surface, borderRadius: s(14), padding: s(12) };
   if (!onPress) return <View style={box}>{body}</View>;
   return (
-    <Press onPress={onPress} pressScale={motion.press.row} accessibilityLabel={`${value ?? ''} ${label}`} style={box}>
+    <Press
+      onPress={onPress}
+      pressScale={motion.press.row}
+      accessibilityLabel={`${value ?? ''} ${label}`}
+      style={box}
+    >
       {body}
     </Press>
   );
@@ -155,7 +160,13 @@ function Band({ children }: { children: React.ReactNode }) {
 function IconBubble({ icon, tone }: { icon: IconName; tone?: 'g' | 'b' | 'n' }) {
   const { c, s } = useTheme();
   const [bg, fg] =
-    tone === 'g' ? [c.okT, c.ok] : tone === 'b' ? [c.infoT, c.info] : tone === 'n' ? [c.night, c.nightOn] : [c.orgTint, c.orgInk];
+    tone === 'g'
+      ? [c.okT, c.ok]
+      : tone === 'b'
+        ? [c.infoT, c.info]
+        : tone === 'n'
+          ? [c.night, c.nightOn]
+          : [c.orgTint, c.orgInk];
   return (
     <View
       style={{
@@ -203,7 +214,13 @@ export function ProfileView({
       <Hero
         bar={
           <>
-            <Text variant="display" size={30} color="onOrg" oneLine style={{ flex: 1, lineHeight: s(30) * 1.02 }}>
+            <Text
+              variant="display"
+              size={30}
+              color="onOrg"
+              oneLine
+              style={{ flex: 1, lineHeight: s(30) * 1.02 }}
+            >
               Profile
             </Text>
             <IconButton icon="cog" label="Settings" onPress={onSettings} color={c.onOrg} />
@@ -225,9 +242,16 @@ export function ProfileView({
 
       {error && !summary ? (
         <Section>
-          <Press onPress={onRetry} accessibilityRole="button" style={{ paddingHorizontal: s(16), minHeight: s(44), justifyContent: 'center' }}>
+          <Press
+            onPress={onRetry}
+            accessibilityRole="button"
+            style={{ paddingHorizontal: s(16), minHeight: s(44), justifyContent: 'center' }}
+          >
             <Text variant="sm" color="ink2">
-              Couldn't load your reading stats. <Text variant="sm" weight={600} color="orgInk">Try again</Text>
+              Couldn't load your reading stats.{' '}
+              <Text variant="sm" weight={600} color="orgInk">
+                Try again
+              </Text>
             </Text>
           </Press>
         </Section>
@@ -254,7 +278,9 @@ export function ProfileView({
           ) : (
             <GoalRing
               value={goalProgress(summary.read_this_year, summary.goal)}
-              label={summary.goal ? `${summary.read_this_year}/${summary.goal}` : String(summary.read_this_year)}
+              label={
+                summary.goal ? `${summary.read_this_year}/${summary.goal}` : String(summary.read_this_year)
+              }
             />
           )}
           <View style={{ flex: 1, minWidth: 0, gap: s(4) }}>
@@ -407,7 +433,14 @@ export function GoalSheet({ open, current, read, saving, error, onClose, onSave 
           {error}
         </Text>
       ) : null}
-      <Btn label="Set goal" icon="trophy" block disabled={!ok} loading={saving} onPress={() => ok && onSave(value)} />
+      <Btn
+        label="Set goal"
+        icon="trophy"
+        block
+        disabled={!ok}
+        loading={saving}
+        onPress={() => ok && onSave(value)}
+      />
     </Sheet>
   );
 }

@@ -93,10 +93,14 @@ describe('name change limit', () => {
   it('allows 3 changes in 30 days', () => {
     expect(nameChangesLeft([], now)).toBe(3);
     expect(nameChangesLeft(['2026-11-01T00:00:00Z', '2026-11-10T00:00:00Z'], now)).toBe(1);
-    expect(nameChangesLeft(['2026-11-01T00:00:00Z', '2026-11-10T00:00:00Z', '2026-11-18T00:00:00Z'], now)).toBe(0);
+    expect(
+      nameChangesLeft(['2026-11-01T00:00:00Z', '2026-11-10T00:00:00Z', '2026-11-18T00:00:00Z'], now),
+    ).toBe(0);
   });
   it('forgets changes older than 30 days', () => {
-    expect(nameChangesLeft(['2026-10-01T00:00:00Z', '2026-11-10T00:00:00Z', '2026-11-18T00:00:00Z'], now)).toBe(1);
+    expect(
+      nameChangesLeft(['2026-10-01T00:00:00Z', '2026-11-10T00:00:00Z', '2026-11-18T00:00:00Z'], now),
+    ).toBe(1);
   });
 });
 

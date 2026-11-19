@@ -19,7 +19,9 @@ const account = new Hono<AppEnv>();
 account.use('*', requireUser);
 
 account.post('/password', async (c) => {
-  const body = await c.req.json<{ current?: unknown; new?: unknown }>().catch(() => ({}) as Record<string, unknown>);
+  const body = await c.req
+    .json<{ current?: unknown; new?: unknown }>()
+    .catch(() => ({}) as Record<string, unknown>);
   const current = typeof body.current === 'string' ? body.current : '';
   const next = typeof body.new === 'string' ? body.new : '';
   if (next.length < PASSWORD_MIN || next.length > 200) return c.json({ error: 'weak_password' }, 400);
@@ -28,7 +30,8 @@ account.post('/password', async (c) => {
   const db = serviceDb(c.env);
   const { data: found, error: findError } = await db.auth.admin.getUserById(user.sub!);
   if (findError || !found.user?.email) return c.json({ error: 'not_found' }, 404);
-  if (!found.user.identities?.some((i) => i.provider === 'email')) return c.json({ error: 'no_password' }, 409);
+  if (!found.user.identities?.some((i) => i.provider === 'email'))
+    return c.json({ error: 'no_password' }, 409);
 
   // Re-authenticate with the current password (Supabase Auth's own rate limit applies).
   const check = await db.auth.signInWithPassword({ email: found.user.email, password: current });

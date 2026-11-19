@@ -33,10 +33,7 @@ export default function NotificationSettings() {
         onFeed={() => router.push('/notifications')}
         onOpenSettings={() => void Linking.openSettings()}
         onToggle={(k, v) =>
-          setPref.mutate(
-            { k, v },
-            { onError: () => toast({ message: "Couldn't save that. Try again." }) },
-          )
+          setPref.mutate({ k, v }, { onError: () => toast({ message: "Couldn't save that. Try again." }) })
         }
       />
     </Screen>

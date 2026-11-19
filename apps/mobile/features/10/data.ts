@@ -93,7 +93,10 @@ export function useMyDevices() {
 
 export async function removeDevice(id: string) {
   const key = await thisDeviceKey();
-  const { error } = await supabase.rpc('remove_device', { p_device_id: id, p_current_device_key: key ?? undefined });
+  const { error } = await supabase.rpc('remove_device', {
+    p_device_id: id,
+    p_current_device_key: key ?? undefined,
+  });
   if (error) throw error;
   await queryClient.invalidateQueries({ queryKey: devicesKey });
 }
@@ -115,12 +118,16 @@ export async function changePassword(current: string, next: string) {
   const { data } = await supabase.auth.getSession();
   const res = await fetch(`${api}/v1/account/password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${data.session?.access_token ?? ''}`,
+    },
     body: JSON.stringify({ current, new: next }),
   });
   if (res.ok) return 'ok' as const;
   const body = (await res.json().catch(() => ({}))) as { error?: string };
-  return (body.error ?? 'error') as 'wrong_password' | 'weak_password' | 'no_password' | 'rate_limited' | 'error';
+  return (body.error ?? 'error') as
+    'wrong_password' | 'weak_password' | 'no_password' | 'rate_limited' | 'error';
 }
 
 export async function requestDeletion(text: string) {

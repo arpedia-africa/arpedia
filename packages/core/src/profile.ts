@@ -72,7 +72,9 @@ export const goalProgress = (read: number, target: number | null | undefined) =>
 export function paceHint(target: number, read: number): string {
   const books = `${target} ${target === 1 ? 'book' : 'books'}`;
   const pace =
-    target >= 12 ? `about ${Math.round(target / 12)} a month` : `about 1 every ${Math.round(12 / target)} months`;
+    target >= 12
+      ? `about ${Math.round(target / 12)} a month`
+      : `about 1 every ${Math.round(12 / target)} months`;
   return `${books} is ${pace}. You've read ${read} so far.`;
 }
 

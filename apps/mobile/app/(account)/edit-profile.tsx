@@ -10,7 +10,12 @@ import { supabase } from '@/lib/supabase';
 import { pickAndUploadAvatar } from '../../features/01/photo';
 import { profileKey, useSession } from '../../features/01/session';
 import { rpcReason, updateProfile } from '../../features/10/data';
-import { EditProfileFoot, EditProfileView, type EditErrors, type EditValues } from '../../features/10/EditProfileViews';
+import {
+  EditProfileFoot,
+  EditProfileView,
+  type EditErrors,
+  type EditValues,
+} from '../../features/10/EditProfileViews';
 
 // Flow 10 · Edit profile (s-edit-profile, rules 24–28).
 const COUNTRIES = [
@@ -26,7 +31,8 @@ const COUNTRIES = [
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const dobText = (iso: string | null) => (iso ? iso.split('-').reverse().join(' / ') : '');
-const phoneText = (e164: string | null, dial: string) => (e164?.startsWith(`+${dial}`) ? e164.slice(dial.length + 1) : e164 ?? '');
+const phoneText = (e164: string | null, dial: string) =>
+  e164?.startsWith(`+${dial}`) ? e164.slice(dial.length + 1) : (e164 ?? '');
 
 export default function EditProfile() {
   const { s } = useTheme();
@@ -80,7 +86,9 @@ export default function EditProfile() {
     name: () => (validName(values.name) ? undefined : 'Enter your name (1 to 80 characters).'),
     bio: () => (values.bio.length <= BIO_MAX ? undefined : `Keep it to ${BIO_MAX} characters.`),
     phone: () =>
-      !values.phone.trim() || normalisePhone(values.phone, country.dial) ? undefined : 'Check the phone number.',
+      !values.phone.trim() || normalisePhone(values.phone, country.dial)
+        ? undefined
+        : 'Check the phone number.',
     dob: () => {
       if (!values.dob.trim()) return undefined;
       const iso = parseDob(values.dob);
@@ -90,7 +98,8 @@ export default function EditProfile() {
     country: () => undefined,
   };
   const changed =
-    !!initial && (Object.keys(values) as (keyof EditValues)[]).some((k) => values[k].trim() !== initial[k].trim());
+    !!initial &&
+    (Object.keys(values) as (keyof EditValues)[]).some((k) => values[k].trim() !== initial[k].trim());
   const valid = (Object.keys(check) as (keyof EditValues)[]).every((k) => !check[k]());
 
   // Rule 27: leaving with unsaved changes asks first.
@@ -118,7 +127,8 @@ export default function EditProfile() {
     if (values.bio.trim() !== initial.bio.trim()) patch.bio = values.bio.trim() || null;
     if (values.phone.trim() !== initial.phone.trim() || values.country !== initial.country)
       patch.phone = values.phone.trim() ? normalisePhone(values.phone, country.dial) : null;
-    if (values.dob.trim() !== initial.dob.trim()) patch.date_of_birth = values.dob.trim() ? parseDob(values.dob) : null;
+    if (values.dob.trim() !== initial.dob.trim())
+      patch.date_of_birth = values.dob.trim() ? parseDob(values.dob) : null;
     if (values.country !== initial.country) patch.country = values.country;
     setSaving(true);
     try {
@@ -195,7 +205,9 @@ export default function EditProfile() {
           setErrors((cur) => ({ ...cur, [Object.keys(v)[0] as string]: undefined, form: undefined }));
         }}
         onBlur={(f) => setErrors((cur) => ({ ...cur, [f]: check[f]() }))}
-        onPhoto={() => (offline ? toast({ message: 'Connect to the internet to do this.' }) : setSheet('photo'))}
+        onPhoto={() =>
+          offline ? toast({ message: 'Connect to the internet to do this.' }) : setSheet('photo')
+        }
         onCountry={() => setSheet('country')}
       />
       <Sheet open={sheet === 'photo'} onClose={() => setSheet(null)} title="Change photo">

@@ -49,7 +49,14 @@ export function EditProfileView({
           <View style={{ gap: s(6) }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(14) }}>
               <Avatar name={values.name || 'Reader'} uri={avatarUri ?? undefined} size="xl" tone="g" />
-              <Btn label="Change photo" variant="s" size="sm" icon="image" onPress={onPhoto} loading={photoBusy} />
+              <Btn
+                label="Change photo"
+                variant="s"
+                size="sm"
+                icon="image"
+                onPress={onPhoto}
+                loading={photoBusy}
+              />
             </View>
             {errors.photo ? (
               <Text size={12} weight={500} color="err">
@@ -104,9 +111,18 @@ export function EditProfileView({
             maxLength={14}
             trailing={<Icon name="cal" size="m" color={c.ink} />}
           />
-          <Press onPress={onCountry} accessibilityRole="button" accessibilityLabel={`Country, ${countryName}`}>
+          <Press
+            onPress={onCountry}
+            accessibilityRole="button"
+            accessibilityLabel={`Country, ${countryName}`}
+          >
             <View pointerEvents="none">
-              <Field label="Country" value={countryName} editable={false} trailing={<Icon name="chevd" size="m" color={c.ink} />} />
+              <Field
+                label="Country"
+                value={countryName}
+                editable={false}
+                trailing={<Icon name="chevd" size="m" color={c.ink} />}
+              />
             </View>
           </Press>
         </View>

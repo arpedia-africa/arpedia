@@ -4,12 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
 import { dateLabel } from '@arpedia/core';
 import { queryClient } from '@/lib/query';
-import {
-  deleteAnnotation,
-  restoreAnnotation,
-  summaryKey,
-  useCollection,
-} from '../../features/10/data';
+import { deleteAnnotation, restoreAnnotation, summaryKey, useCollection } from '../../features/10/data';
 import { CollectionView, type CollectionKind, type CollectionPage } from '../../features/10/CollectionViews';
 
 // Flow 10 · My highlights (s-my-highlights, rules 10–13). Cached pages keep it working offline.
@@ -85,7 +80,10 @@ export default function MyHighlights() {
             ? router.push({ pathname: '/reader/[book]', params: { book: g.book_id, cfi: i.cfi } } as never)
             : Alert.alert(g.title, 'Unlock or open this book again to read this part.', [
                 { text: 'Not now', style: 'cancel' },
-                { text: 'Open book', onPress: () => router.push({ pathname: '/book/[id]', params: { id: g.book_id } } as never) },
+                {
+                  text: 'Open book',
+                  onPress: () => router.push({ pathname: '/book/[id]', params: { id: g.book_id } } as never),
+                },
               ])
         }
         onItemMenu={(i) =>
@@ -95,12 +93,17 @@ export default function MyHighlights() {
               text: 'Delete',
               style: 'destructive',
               onPress: () =>
-                void remove(i.id, i.kind === 'bookmark' ? 'Bookmark' : i.kind === 'note' ? 'Note' : 'Highlight'),
+                void remove(
+                  i.id,
+                  i.kind === 'bookmark' ? 'Bookmark' : i.kind === 'note' ? 'Note' : 'Highlight',
+                ),
             },
           ])
         }
       />
-      {page?.next && !list.isFetchingNextPage ? <LoadMore key={page.next} onVisible={() => void list.fetchNextPage()} /> : null}
+      {page?.next && !list.isFetchingNextPage ? (
+        <LoadMore key={page.next} onVisible={() => void list.fetchNextPage()} />
+      ) : null}
     </Screen>
   );
 }

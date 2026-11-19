@@ -51,7 +51,11 @@ export interface CollectionPage {
   counts: Record<CollectionKind, number>;
 }
 
-const TAB_LABEL: Record<CollectionKind, string> = { bookmark: 'Bookmarks', highlight: 'Highlights', note: 'Notes' };
+const TAB_LABEL: Record<CollectionKind, string> = {
+  bookmark: 'Bookmarks',
+  highlight: 'Highlights',
+  note: 'Notes',
+};
 const NOUN: Record<CollectionKind, [string, string]> = {
   bookmark: ['bookmark', 'bookmarks'],
   highlight: ['highlight', 'highlights'],
@@ -63,7 +67,8 @@ const EMPTY: Record<CollectionKind, string> = {
   note: 'No notes yet. Highlight a line in the reader and add your thoughts.',
 };
 
-const plural = (n: number, [one, many]: [string, string]) => `${n.toLocaleString('en-NG')} ${n === 1 ? one : many}`;
+const plural = (n: number, [one, many]: [string, string]) =>
+  `${n.toLocaleString('en-NG')} ${n === 1 ? one : many}`;
 
 /** "86 highlights across 9 books". */
 export const collectionSub = (kind: CollectionKind, items: number, books: number) =>
@@ -132,7 +137,14 @@ function Annotation({
         </Text>
       ) : null}
       {item.note ? (
-        <View style={{ backgroundColor: c.surface, borderRadius: s(10), paddingVertical: s(8), paddingHorizontal: s(10) }}>
+        <View
+          style={{
+            backgroundColor: c.surface,
+            borderRadius: s(10),
+            paddingVertical: s(8),
+            paddingHorizontal: s(10),
+          }}
+        >
           <Text variant="sm">{item.note}</Text>
         </View>
       ) : null}
@@ -157,7 +169,10 @@ function BookGroup({
   const counts =
     kind === 'bookmark'
       ? plural(g.items.length, NOUN.bookmark)
-      : [g.highlights ? plural(g.highlights, NOUN.highlight) : null, g.notes ? plural(g.notes, NOUN.note) : null]
+      : [
+          g.highlights ? plural(g.highlights, NOUN.highlight) : null,
+          g.notes ? plural(g.notes, NOUN.note) : null,
+        ]
           .filter(Boolean)
           .join(' · ');
   return (
@@ -259,7 +274,11 @@ export function CollectionView(p: CollectionViewProps) {
 
       <View style={{ paddingHorizontal: s(16), paddingTop: s(16), paddingBottom: s(28), gap: s(24) }}>
         {p.error && !p.page ? (
-          <Press onPress={p.onRetry} accessibilityRole="button" style={{ minHeight: s(44), justifyContent: 'center' }}>
+          <Press
+            onPress={p.onRetry}
+            accessibilityRole="button"
+            style={{ minHeight: s(44), justifyContent: 'center' }}
+          >
             <Text variant="sm" color="ink2">
               {"Couldn't load your collection. "}
               <Text variant="sm" weight={600} color="orgInk">
@@ -283,11 +302,22 @@ export function CollectionView(p: CollectionViewProps) {
         ) : p.page.groups.length === 0 ? (
           <EmptyState
             title={p.query ? 'Nothing matches' : `No ${TAB_LABEL[p.kind].toLowerCase()} yet`}
-            body={p.query ? `Nothing in your ${TAB_LABEL[p.kind].toLowerCase()} matches "${p.query}".` : EMPTY[p.kind]}
+            body={
+              p.query
+                ? `Nothing in your ${TAB_LABEL[p.kind].toLowerCase()} matches "${p.query}".`
+                : EMPTY[p.kind]
+            }
           />
         ) : (
           p.page.groups.map((g) => (
-            <BookGroup key={g.book_id} g={g} kind={p.kind} dateLabel={p.dateLabel} onOpen={p.onOpen} onItemMenu={p.onItemMenu} />
+            <BookGroup
+              key={g.book_id}
+              g={g}
+              kind={p.kind}
+              dateLabel={p.dateLabel}
+              onOpen={p.onOpen}
+              onItemMenu={p.onItemMenu}
+            />
           ))
         )}
         {p.loadingMore ? <Skeleton height={88} radius={14} /> : null}

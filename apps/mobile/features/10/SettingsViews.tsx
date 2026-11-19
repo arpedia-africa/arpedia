@@ -14,7 +14,6 @@ import {
   GroupLabel,
   Hero,
   IconButton,
-
   Pill,
   Press,
   Section,
@@ -31,7 +30,6 @@ import {
   type ThemeName,
 } from '@arpedia/ui';
 import { DOWNLOAD_DEVICES, deleteConfirmed } from '@arpedia/core';
-
 
 /* ─── Shared pieces ──────────────────────────────────────────────────────── */
 /** `.hero.sub-hero` with a back button: title, sub, body padding-bottom 44. */
@@ -226,7 +224,10 @@ export function SettingsView({ d, a }: { d: SettingsData; a: SettingsActions }) 
 
       <Section>
         <GroupLabel>Default reader theme</GroupLabel>
-        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: s(8), paddingHorizontal: s(16) }}>
+        <View
+          accessibilityRole="radiogroup"
+          style={{ flexDirection: 'row', gap: s(8), paddingHorizontal: s(16) }}
+        >
           {(['light', 'sepia', 'dark'] as const).map((t) => (
             <Swatch key={t} t={t} on={d.readerTheme === t} onPress={() => a.onReaderTheme(t)} />
           ))}
@@ -236,7 +237,12 @@ export function SettingsView({ d, a }: { d: SettingsData; a: SettingsActions }) 
       <Section>
         <GroupLabel>Storage</GroupLabel>
         <Group>
-          <Cell title="Downloads" sub={d.downloads ?? 'No books downloaded · Wi-Fi only'} chevron onPress={a.onDownloads} />
+          <Cell
+            title="Downloads"
+            sub={d.downloads ?? 'No books downloaded · Wi-Fi only'}
+            chevron
+            onPress={a.onDownloads}
+          />
         </Group>
       </Section>
 
@@ -245,13 +251,21 @@ export function SettingsView({ d, a }: { d: SettingsData; a: SettingsActions }) 
         <Group>
           <Cell
             title="Credits"
-            trail={d.credits === undefined ? undefined : <Soft>{`${d.credits.toLocaleString('en-NG')} cr`}</Soft>}
+            trail={
+              d.credits === undefined ? undefined : <Soft>{`${d.credits.toLocaleString('en-NG')} cr`}</Soft>
+            }
             chevron
             onPress={a.onCredits}
           />
           <Cell
             title="Subscription"
-            trail={d.subscription ? <Pill label={d.subscription.label} tone={d.subscription.tone} /> : <Soft>No plan</Soft>}
+            trail={
+              d.subscription ? (
+                <Pill label={d.subscription.label} tone={d.subscription.tone} />
+              ) : (
+                <Soft>No plan</Soft>
+              )
+            }
             chevron
             onPress={a.onSubscription}
           />
@@ -277,7 +291,11 @@ export function SettingsView({ d, a }: { d: SettingsData; a: SettingsActions }) 
       {/* .pro-session: gap 10, padding 8 16 0, body-end 28 */}
       <View style={{ gap: s(10), paddingTop: s(8), paddingHorizontal: s(16), paddingBottom: s(28) }}>
         <Btn label="Log out" icon="out" variant="g" block onPress={a.onLogOut} />
-        <Press onPress={a.onDelete} accessibilityRole="button" style={{ padding: s(8), alignItems: 'center' }}>
+        <Press
+          onPress={a.onDelete}
+          accessibilityRole="button"
+          style={{ padding: s(8), alignItems: 'center' }}
+        >
           <Text size={14} weight={700} color="err" oneLine>
             Delete account
           </Text>
@@ -336,7 +354,10 @@ function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boo
         }}
       >
         <Svg width={petal} height={petal} style={{ position: 'absolute', right: s(-38), top: s(-38) }}>
-          <Path d={tilePetals(petal)} fill={`rgba(${cur.petalRgb},${(name === 'sunflower' ? 0.8 : 0.45) * cur.petalK})`} />
+          <Path
+            d={tilePetals(petal)}
+            fill={`rgba(${cur.petalRgb},${(name === 'sunflower' ? 0.8 : 0.45) * cur.petalK})`}
+          />
         </Svg>
         {selected ? (
           <View
@@ -379,7 +400,14 @@ function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boo
             />
           ))}
         </View>
-        <Text family="display" weight={800} size={19} color={t.onOrg} oneLine style={{ letterSpacing: s(19) * -0.01 }}>
+        <Text
+          family="display"
+          weight={800}
+          size={19}
+          color={t.onOrg}
+          oneLine
+          style={{ letterSpacing: s(19) * -0.01 }}
+        >
           {meta.label}
         </Text>
         <Text size={12.5} color={t.onOrg} style={{ lineHeight: s(12.5) * 1.3, opacity: 0.88 }}>
@@ -445,7 +473,13 @@ function ToggleCell({
   onChange: (v: boolean) => void;
   disabled?: boolean;
 }) {
-  return <Cell title={title} sub={sub} trail={<Toggle value={value} onChange={onChange} label={title} disabled={disabled} />} />;
+  return (
+    <Cell
+      title={title}
+      sub={sub}
+      trail={<Toggle value={value} onChange={onChange} label={title} disabled={disabled} />}
+    />
+  );
 }
 
 export function NotifPrefsView({
@@ -483,7 +517,13 @@ export function NotifPrefsView({
       {phoneOff ? (
         <View style={{ paddingHorizontal: s(16), paddingTop: s(16), gap: s(8) }}>
           <Callout tone="warn">Notifications are off on this phone.</Callout>
-          <Btn label="Open phone settings" variant="g" size="sm" onPress={onOpenSettings} style={{ alignSelf: 'flex-start' }} />
+          <Btn
+            label="Open phone settings"
+            variant="g"
+            size="sm"
+            onPress={onOpenSettings}
+            style={{ alignSelf: 'flex-start' }}
+          />
         </View>
       ) : null}
       <Section>
@@ -491,9 +531,20 @@ export function NotifPrefsView({
         <Group>
           {rows.map((r) =>
             prefs ? (
-              <ToggleCell key={r.k} title={r.title} sub={r.sub} value={prefs[r.k]} onChange={(v) => onToggle(r.k, v)} />
+              <ToggleCell
+                key={r.k}
+                title={r.title}
+                sub={r.sub}
+                value={prefs[r.k]}
+                onChange={(v) => onToggle(r.k, v)}
+              />
             ) : (
-              <Cell key={r.k} title={r.title} sub={r.sub} trail={<Skeleton width={s(46)} height={28} radius={14} />} />
+              <Cell
+                key={r.k}
+                title={r.title}
+                sub={r.sub}
+                trail={<Skeleton width={s(46)} height={28} radius={14} />}
+              />
             ),
           )}
         </Group>
@@ -509,7 +560,11 @@ export function NotifPrefsView({
               onChange={(v) => onToggle('quiet_enabled', v)}
             />
           ) : (
-            <Cell title="Pause notifications" sub="22:00 to 06:00" trail={<Skeleton width={s(46)} height={28} radius={14} />} />
+            <Cell
+              title="Pause notifications"
+              sub="22:00 to 06:00"
+              trail={<Skeleton width={s(46)} height={28} radius={14} />}
+            />
           )}
         </Group>
       </Section>
@@ -571,14 +626,23 @@ export function SecurityView({
               d.emailVerified ? (
                 <Pill label="Verified" tone="ok" />
               ) : (
-                <Btn label="Send verification email" variant="g" size="sm" onPress={onVerify} disabled={offline} />
+                <Btn
+                  label="Send verification email"
+                  variant="g"
+                  size="sm"
+                  onPress={onVerify}
+                  disabled={offline}
+                />
               )
             }
           />
           {d.google ? (
             <Cell title="Google" sub="Connected" />
           ) : (
-            <Cell title="Google" trail={<Btn label="Connect" variant="g" size="sm" onPress={onGoogle} disabled={offline} />} />
+            <Cell
+              title="Google"
+              trail={<Btn label="Connect" variant="g" size="sm" onPress={onGoogle} disabled={offline} />}
+            />
           )}
           {d.hasPassword ? (
             <Cell title="Change password" chevron onPress={offline ? undefined : onChangePassword} />
@@ -605,7 +669,13 @@ export function SecurityView({
                   sub={`${dev.current ? 'This phone' : `Last used ${dateLabel(dev.last_seen_at)}`}${dev.city ? ` · ${dev.city}` : ''}`}
                   trail={
                     dev.current ? undefined : (
-                      <Btn label="Remove" variant="g" size="sm" disabled={offline} onPress={() => onRemove(dev)} />
+                      <Btn
+                        label="Remove"
+                        variant="g"
+                        size="sm"
+                        disabled={offline}
+                        onPress={() => onRemove(dev)}
+                      />
                     )
                   }
                 />
@@ -786,7 +856,15 @@ export function DeleteAccountFoot({
   const bottom = useBottomInset(26);
   // `.foot.flat`: padding 12 16 26, gap 8, no top rule
   return (
-    <View style={{ paddingTop: s(12), paddingHorizontal: s(16), paddingBottom: bottom, gap: s(8), backgroundColor: c.white }}>
+    <View
+      style={{
+        paddingTop: s(12),
+        paddingHorizontal: s(16),
+        paddingBottom: bottom,
+        gap: s(8),
+        backgroundColor: c.white,
+      }}
+    >
       <>
         {error ? (
           <Text variant="sm" color="err" style={{ paddingBottom: s(4) }}>
@@ -816,4 +894,3 @@ export function OfflineNote() {
     </Text>
   );
 }
-
