@@ -623,7 +623,10 @@ try {
       // Flow 10 · Readers. Seeded data differs from the prototype's sample readers; compare by eye.
       users: { path: '/users', as: 'amaka@arpedia.africa' },
       user: { path: '/users/00000000-0000-4000-a000-000000000001', as: 'amaka@arpedia.africa' },
-      'user-activity': { path: '/users/00000000-0000-4000-a000-000000000001/activity', as: 'amaka@arpedia.africa' },
+      'user-activity': {
+        path: '/users/00000000-0000-4000-a000-000000000001/activity',
+        as: 'amaka@arpedia.africa',
+      },
       // Open the ⋯ menu, then Delete account….
       'user-delete': {
         path: '/users/00000000-0000-4000-a000-000000000001',

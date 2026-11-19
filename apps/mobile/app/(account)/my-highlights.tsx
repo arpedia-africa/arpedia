@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
@@ -110,7 +110,7 @@ export default function MyHighlights() {
 
 /** Fetches the next page as soon as it mounts at the end of the list. */
 function LoadMore({ onVisible }: { onVisible: () => void }) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => onVisible(), []);
+  const first = useRef(onVisible);
+  useEffect(() => first.current(), []);
   return null;
 }
