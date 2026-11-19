@@ -199,6 +199,12 @@ isOneToOne: false
       referencedRelation: "author_applications"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "author_profiles_club_group_id_fkey"
+      columns: ["club_group_id"]
+isOneToOne: false
+      referencedRelation: "groups"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "author_profiles_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: true

@@ -12,7 +12,7 @@ import { isNetworkError } from '../01/session';
 /** The applicant's view: review internals (checks, SLA alert, legacy) are not granted to them. */
 export type Application = Omit<
   Database['public']['Tables']['author_applications']['Row'],
-  'checks' | 'sla_alerted_at' | 'legacy'
+  'checks' | 'sla_alerted_at' | 'legacy' | '_applicant_view'
 >;
 // One literal, so supabase-js can type the select.
 const APPLICANT_COLUMNS =
