@@ -2,7 +2,7 @@
 -- idempotency; get_group_access (locked, muted, banned, non-member); reports and blocks.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(48);
+select plan(52);
 
 -- Ada (member), Bola (member), Cy (outsider), Dee (banned), Eve (DM partner of Ada), staff Sam.
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -205,6 +205,39 @@ select lives_ok($$ select public.admin_set_channel_state('60000000-0000-4000-d00
 reset role;
 select ok((select locked_until > now() and muted_until > now() from public.groups
     where id = '60000000-0000-4000-d000-000000000001'), 'locking keeps the existing channel mute');
+
+-- A removed message's text is out of reach of a direct table read.
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-4000-a000-000000000001","role":"authenticated"}', true);
+set local role authenticated;
+select is((select count(*)::int from public.messages where group_id = '60000000-0000-4000-d000-000000000002'), 0,
+  'members can''t read a removed message from the table');
+
+-- mark_read with a live message the DO hasn't written yet uses the time inside its uuid7.
+reset role;
+update public.group_members set last_read_at = now() - interval '1 day'
+ where group_id = '60000000-0000-4000-d000-000000000001' and user_id = '60000000-0000-4000-a000-000000000001';
+set local role authenticated;
+select lives_ok($$ select public.mark_read('60000000-0000-4000-d000-000000000001',
+    public.uuid7(now() - interval '1 hour')) $$, 'mark_read takes a message not yet in Postgres');
+reset role;
+select ok((select last_read_at between now() - interval '61 minutes' and now() - interval '59 minutes'
+    from public.group_members where group_id = '60000000-0000-4000-d000-000000000001'
+      and user_id = '60000000-0000-4000-a000-000000000001'), 'read up to that message''s send time');
+
+-- Leaving and rejoining doesn't clear a moderator's mute.
+select set_config('request.jwt.claims', '{"sub":"60000000-0000-4000-a000-000000000003","role":"authenticated"}', true);
+set local role authenticated;
+select public.join_group('60000000-0000-4000-d000-000000000003');
+reset role;
+update public.group_members set muted_until = now() + interval '1 day'
+ where group_id = '60000000-0000-4000-d000-000000000003' and user_id = '60000000-0000-4000-a000-000000000003';
+set local role authenticated;
+select public.leave_group('60000000-0000-4000-d000-000000000003');
+select public.join_group('60000000-0000-4000-d000-000000000003');
+reset role;
+select ok((select muted_until > now() from public.group_members
+    where group_id = '60000000-0000-4000-d000-000000000003' and user_id = '60000000-0000-4000-a000-000000000003'),
+  'a mute survives leaving and rejoining');
 
 select * from finish();
 rollback;

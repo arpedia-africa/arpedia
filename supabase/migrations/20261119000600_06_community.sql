@@ -198,6 +198,17 @@ create unique index reports_once_idx on public.reports (reporter_id, content_typ
 create index reports_open_idx on public.reports (status, due_at) where status <> 'resolved';
 create index reports_group_idx on public.reports (group_id) where group_id is not null;
 
+-- A group mute that was still running when the member left: put back by join_group, so leaving
+-- and rejoining can't clear it. Only the RPCs touch it (RLS on, no grants).
+create table public.group_mute_carry (
+  group_id uuid not null references public.groups (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  muted_until timestamptz not null,
+  muted_by uuid references public.profiles (id),
+  primary key (group_id, user_id)
+);
+alter table public.group_mute_carry enable row level security;
+
 -- ─── Helpers ────────────────────────────────────────────────────────────────
 -- The caller's live membership (not banned). Security definer so policies can call it without
 -- recursing into group_members RLS.
@@ -314,13 +325,14 @@ create policy group_members_select on public.group_members for select to authent
 create policy group_members_update_own on public.group_members for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
--- messages: members (and community staff for non-DM groups); never auto-hidden ones, never
--- from people I blocked, never ones I reported. Public previews go through get_messages.
+-- messages: members (and community staff for non-DM groups); members see only visible ones
+-- (removed, deleted and auto-hidden text stays out of reach), never from people I blocked, never
+-- ones I reported. Placeholders and public previews go through get_messages.
 create policy messages_select on public.messages for select to authenticated
   using (
     (
       ((select public.am_group_member(group_id))
-       and state <> 'auto_hidden'
+       and state = 'visible'
        and not public.i_blocked(sender_id)
        and not exists (select 1 from public.reports r
                        where r.reporter_id = (select auth.uid()) and r.content_type = 'message'
@@ -351,7 +363,8 @@ create policy reports_select on public.reports for select to authenticated
   using (reporter_id = (select auth.uid()) or (select public.is_community_staff()));
 
 revoke all on public.groups, public.group_members, public.messages, public.message_retained,
-  public.message_reactions, public.message_pins, public.user_blocks, public.reports
+  public.message_reactions, public.message_pins, public.user_blocks, public.reports,
+  public.group_mute_carry
   from anon, authenticated;
 grant select on public.groups, public.group_members, public.messages, public.message_retained,
   public.message_reactions, public.message_pins, public.user_blocks, public.reports
@@ -471,7 +484,11 @@ begin
     v_at := now();
   else
     select created_at into v_at from public.messages where id = p_up_to and group_id = p_group;
-    if v_at is null then return; end if;
+    -- A live message the DO hasn't written yet: its uuid7 carries the send time (never past now).
+    if v_at is null then
+      v_at := least(now(), to_timestamp(
+        ('x' || lpad(substr(replace(p_up_to::text, '-', ''), 1, 12), 16, '0'))::bit(64)::bigint / 1000.0));
+    end if;
   end if;
   update public.group_members set last_read_at = greatest(last_read_at, v_at)
    where group_id = p_group and user_id = auth.uid();
@@ -636,7 +653,12 @@ begin
   if m.banned_at is not null then
     raise exception 'banned' using errcode = 'insufficient_privilege';
   elsif m.user_id is null then
-    insert into public.group_members (group_id, user_id, role) values (p_group, uid, 'member');
+    insert into public.group_members (group_id, user_id, role, muted_until, muted_by)
+    select p_group, uid, 'member', c.muted_until, c.muted_by
+      from (select 1) one
+      left join public.group_mute_carry c
+        on c.group_id = p_group and c.user_id = uid and c.muted_until > now();
+    delete from public.group_mute_carry where group_id = p_group and user_id = uid;
   end if;
 end $$;
 
@@ -651,6 +673,12 @@ begin
   end if;
   if (select kind from public.groups where id = p_group) = 'dm' then
     raise exception 'dm_cannot_leave' using errcode = 'insufficient_privilege';
+  end if;
+  if m.muted_until > now() then
+    insert into public.group_mute_carry (group_id, user_id, muted_until, muted_by)
+    values (p_group, m.user_id, m.muted_until, m.muted_by)
+    on conflict (group_id, user_id) do update
+      set muted_until = excluded.muted_until, muted_by = excluded.muted_by;
   end if;
   delete from public.group_members where group_id = p_group and user_id = auth.uid();
 end $$;

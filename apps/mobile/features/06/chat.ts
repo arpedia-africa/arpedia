@@ -172,7 +172,21 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
           void qc.invalidateQueries({ queryKey: groupKey(gid) });
           break;
         case 'message':
-          patchHistory((l) => (l.some((m) => m.id === f.message.id) ? l : [...l, f.message]));
+          patchHistory((l) => {
+            if (l.some((m) => m.id === f.message.id)) return l;
+            // Live frames carry only reply_to_id: quote the replied-to message from what we have
+            // (not there = blocked or older than the loaded page; history fills it on refetch).
+            const r = f.message.reply_to_id ? l.find((m) => m.id === f.message.reply_to_id) : undefined;
+            const reply_to = r
+              ? {
+                  id: r.id,
+                  sender_name: r.sender_name,
+                  state: r.state,
+                  body: r.state === 'visible' ? (r.body ?? r.quote?.text ?? '').slice(0, 140) || null : null,
+                }
+              : f.message.reply_to;
+            return [...l, { ...f.message, reply_to }];
+          });
           if (f.client_id) setPending((p) => p.filter((x) => x.client_id !== f.client_id));
           break;
         case 'ack':

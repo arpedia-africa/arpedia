@@ -193,6 +193,15 @@ describe('send path', () => {
     expect(mod.frames.filter((f) => f.type === 'ack')).toHaveLength(2);
   });
 
+  it('takes two quick sends from one person one at a time (slow mode holds)', async () => {
+    const t = setup();
+    t.table.set('ada', access({ slow_mode_seconds: 30 }));
+    const ada = t.peer('ada');
+    await Promise.all([t.send(ada, 1), t.send(ada, 2)]);
+    expect(ada.frames.filter((f) => f.type === 'ack')).toHaveLength(1);
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'error', error: 'slow_mode' });
+  });
+
   it('hides muted-word messages before delivery and stores them auto-hidden', async () => {
     const t = setup();
     t.table.set('ada', access({ muted_words: ['scam'] }));

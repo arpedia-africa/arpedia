@@ -65,6 +65,7 @@ export class Conversation {
   private readingNow = -1;
   private lastTs = 0;
   private flushing: Promise<void> | null = null;
+  private sending = new Map<string, Promise<void>>();
 
   constructor(private readonly d: Deps) {}
 
@@ -113,7 +114,18 @@ export class Conversation {
       return;
     }
     if (f.type === 'ping') return peer.send(json({ type: 'pong' }));
-    if (f.type === 'send') return this.send(peer, f);
+    if (f.type === 'send') {
+      // One send at a time per person, so two quick frames can't both pass slow mode and the
+      // rate limit on the same sender state.
+      const uid = peer.userId;
+      const run = (this.sending.get(uid) ?? Promise.resolve()).then(() => this.send(peer, f));
+      const tail = run.catch(() => undefined);
+      this.sending.set(uid, tail);
+      void tail.then(() => {
+        if (this.sending.get(uid) === tail) this.sending.delete(uid);
+      });
+      return run;
+    }
   }
 
   private async send(peer: Peer, f: Extract<ClientFrame, { type: 'send' }>): Promise<void> {
@@ -392,11 +404,13 @@ function isUuid(v: unknown): v is string {
   return typeof v === 'string' && UUID.test(v);
 }
 
-/** Postgres refused the data (400-class), as opposed to being down, overloaded or misconfigured. */
+/**
+ * Postgres refused the data itself: PostgREST answers 400 for bad values and raised errors, 409
+ * for constraint conflicts. Anything else (404 from a stale schema cache or a deploy ahead of
+ * the migration, auth, timeouts, 5xx) is the service, not the row: keep it queued and retry.
+ */
 function permanent(e: unknown): boolean {
-  return (
-    e instanceof RpcError && e.status >= 400 && e.status < 500 && ![401, 403, 408, 429].includes(e.status)
-  );
+  return e instanceof RpcError && (e.status === 400 || e.status === 409);
 }
 
 function canRead(a: Access): boolean {
