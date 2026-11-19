@@ -257,10 +257,15 @@ export function initials(name: string): string {
   return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
 }
 
-/** Time-ordered uuid (v7): 48-bit Unix ms, version 7, variant 10, then random bits. */
-export function uuid7(ms: number = Date.now()): string {
-  const b = new Uint8Array(16);
-  crypto.getRandomValues(b);
+/**
+ * Time-ordered uuid (v7): 48-bit Unix ms, version 7, variant 10, then random bits.
+ * Hermes has no global `crypto`, so the app passes expo-crypto's `getRandomBytes`.
+ */
+export function uuid7(
+  ms: number = Date.now(),
+  random: (n: number) => Uint8Array = (n) => crypto.getRandomValues(new Uint8Array(n)),
+): string {
+  const b = random(16);
   let t = ms;
   for (let i = 5; i >= 0; i--) {
     b[i] = t % 256;

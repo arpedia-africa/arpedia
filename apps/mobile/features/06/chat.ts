@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { onlineManager } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
 import {
   CLOSE_FORBIDDEN,
   OFFLINE_QUEUE_MAX,
@@ -290,7 +291,7 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
       const queued = pendingRef.current.filter((p) => p.status === 'sending').length;
       if (ws.current?.readyState !== WebSocket.OPEN && queued >= OFFLINE_QUEUE_MAX) return false;
       const p: Pending = {
-        client_id: uuid7(),
+        client_id: uuid7(Date.now(), Crypto.getRandomBytes),
         body,
         reply_to_id: opts.reply_to_id ?? null,
         quote: opts.quote ?? null,
