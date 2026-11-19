@@ -1241,6 +1241,37 @@ select cron.schedule('refresh_rankings_weekly', '0 23 * * 0', $$select public.re
 select cron.schedule('rotate_trending', '0 5 * * 1', $$select public.rotate_trending()$$);
 select cron.schedule('purge_discovery', '45 2 * * *', $$select public.purge_discovery()$$);
 
+-- ─── Story search text (api Worker cron, workers/api/src/routes/02/search-text.ts) ──
+-- Live revisions not indexed yet. A revision with no preview text still gets one empty row, so it
+-- is not picked again.
+create function public.revisions_needing_search_text(p_limit int default 5)
+returns table (revision_id uuid, work_version int)
+language sql stable security definer set search_path = '' as $$
+  select r.id, coalesce(r.sealed_work_version, r.work_version)
+  from public.books b
+  join public.book_revisions r on r.id = b.current_revision_id
+  where b.status = 'live'
+    and not exists (select 1 from public.book_search_text t where t.book_revision_id = r.id)
+  order by r.published_at desc nulls last
+  limit least(greatest(p_limit, 1), 50);
+$$;
+
+-- Replace a revision's preview text: p_rows = [{ "ord": 0, "text": "…" }, …].
+create function public.set_book_search_text(p_rev uuid, p_rows jsonb)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.book_search_text where book_revision_id = p_rev;
+  insert into public.book_search_text (book_revision_id, chapter_id, text)
+  select p_rev, c.id, left(x.text, 100000)
+  from jsonb_to_recordset(coalesce(p_rows, '[]')) as x(ord int, text text)
+  left join public.chapters c on c.revision_id = p_rev and c.ord = x.ord
+  where coalesce(x.text, '') <> '';
+  if not found then
+    insert into public.book_search_text (book_revision_id, text) values (p_rev, '');
+  end if;
+end $$;
+
 -- ─── Function grants ────────────────────────────────────────────────────────
 do $$
 declare
@@ -1257,7 +1288,7 @@ begin
       'mark_all_notifications_read', '_section', 'update_home_section', 'reorder_home_sections',
       'save_shelf_draft', 'discard_shelf_draft', 'publish_shelf', 'rotate_trending', 'save_coming_soon',
       'set_genre_visibility', 'reorder_genres', 'merge_tags', 'ban_tag', 'save_search_tuning',
-      'link_book_request', 'set_book_request_status', '_fulfil_requests', '_books_live_fulfil', 'purge_discovery')
+      'link_book_request', 'set_book_request_status', 'revisions_needing_search_text', 'set_book_search_text', '_fulfil_requests', '_books_live_fulfil', 'purge_discovery')
   loop
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f.sig);
   end loop;
@@ -1277,5 +1308,6 @@ grant execute on function
   public.set_book_request_status(text, text), public.refresh_rankings(boolean)
   to authenticated;
 grant execute on function public.create_notification(uuid, text, text, text, text, text, text, uuid, uuid),
-  public.refresh_rankings(boolean), public.rotate_trending(), public.purge_discovery()
+  public.refresh_rankings(boolean), public.rotate_trending(), public.purge_discovery(),
+  public.revisions_needing_search_text(int), public.set_book_search_text(uuid, jsonb)
   to service_role;

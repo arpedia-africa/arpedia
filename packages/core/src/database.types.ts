@@ -1826,6 +1826,11 @@ isOneToOne: false
 "revision_score":
 { Args: { "p_rev": string }; Returns: number
                            },
+"revisions_needing_search_text":
+{ Args: { "p_limit"?: number }; Returns: {
+              "revision_id": string,"work_version": number
+            }[]
+                           },
 "revoke_staff_invite":
 { Args: { "p_invite": string }; Returns: undefined
                            },
@@ -1900,6 +1905,9 @@ isOneToOne: false
                            },
 "set_book_request_status":
 { Args: { "p_query": string,"p_status": string }; Returns: number
+                           },
+"set_book_search_text":
+{ Args: { "p_rev": string,"p_rows": Json }; Returns: undefined
                            },
 "set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined

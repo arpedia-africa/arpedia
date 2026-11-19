@@ -3,7 +3,7 @@
 -- preferences and deduplicates; Home, Top 10, Explore and search read paths.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(42);
+select plan(45);
 
 -- Seed people: Ngozi (reader), Tolu (author), Tunde (Publisher), Kemi D. (Analyst).
 create function pg_temp.as_user(uid text) returns void
@@ -152,6 +152,20 @@ reset role;
 update public.books set status = 'live' where id = (select v from ids where k = 'bread');
 select is((select count(*)::int from public.notifications where kind = 'book_request_fulfilled'), 4,
   'publishing the linked book notifies each requester once');
+
+-- ─── Story search text (Worker cron) ────────────────────────────────────────
+set local role authenticated;
+select throws_ok($$select public.set_book_search_text(gen_random_uuid(), '[]')$$, '42501', null,
+  'readers cannot write search text');
+reset role;
+delete from public.book_search_text where book_revision_id = (select current_revision_id from public.books
+  where id = (select v from ids where k = 'bread'));
+set local role service_role;
+select ok((select current_revision_id from public.books where id = (select v from ids where k = 'bread'))
+  in (select revision_id from public.revisions_needing_search_text(50)), 'an unindexed live revision is picked');
+select public.set_book_search_text((select current_revision_id from public.books where id = (select v from ids where k = 'bread')), '[]');
+select ok((select current_revision_id from public.books where id = (select v from ids where k = 'bread'))
+  not in (select revision_id from public.revisions_needing_search_text(50)), 'a revision without preview text is not picked again');
 
 select * from finish();
 rollback;
