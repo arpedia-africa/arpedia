@@ -292,12 +292,14 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid, cent
 }
 
 /* ─── Avatar ─────────────────────────────────────────────────────────────── */
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'tile' | 'xl';
 const avatarDims: Record<AvatarSize, [number, number]> = {
   xs: [20, 8],
   sm: [26, 10],
   md: [36, 12],
   lg: [52, 17],
+  /** `.avatar-tile .av` (Home's Arpedia authors shelf). */
+  tile: [64, 20],
   xl: [88, 28],
 };
 

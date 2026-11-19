@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, View, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +22,8 @@ export interface ScreenProps {
   header?: ReactNode;
   children?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Pull to refresh on the scrolling body. */
+  refreshControl?: ScrollViewProps['refreshControl'];
 }
 
 /** Safe-area screen: status bar colour, optional fixed header and footer, scrolling body. */
@@ -32,6 +34,7 @@ export function Screen({
   header,
   children,
   contentStyle,
+  refreshControl,
 }: ScreenProps) {
   const { c, name } = useTheme();
   const onOrg = top === 'org';
@@ -45,7 +48,7 @@ export function Screen({
         <Body
           style={{ flex: 1, backgroundColor: c.white }}
           {...(scroll
-            ? { contentContainerStyle: contentStyle, showsVerticalScrollIndicator: false }
+            ? { contentContainerStyle: contentStyle, showsVerticalScrollIndicator: false, refreshControl }
             : { style: [{ flex: 1, backgroundColor: c.white }, contentStyle] })}
         >
           {children}
