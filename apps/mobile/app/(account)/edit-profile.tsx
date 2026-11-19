@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { router, useNavigation } from 'expo-router';
+import { router, useNavigation, usePreventRemove } from 'expo-router';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useQuery } from '@tanstack/react-query';
 import { Btn, Cell, Group, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
@@ -73,7 +73,7 @@ export default function EditProfile() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [sheet, setSheet] = useState<'photo' | 'country' | null>(null);
   const [saving, setSaving] = useState(false);
-  const leaving = useRef(false);
+  const [done, setDone] = useState(false);
   useEffect(() => {
     if (initial) {
       setValues(initial);
@@ -102,19 +102,16 @@ export default function EditProfile() {
     (Object.keys(values) as (keyof EditValues)[]).some((k) => values[k].trim() !== initial[k].trim());
   const valid = (Object.keys(check) as (keyof EditValues)[]).every((k) => !check[k]());
 
-  // Rule 27: leaving with unsaved changes asks first.
-  useEffect(
-    () =>
-      nav.addListener('beforeRemove', (e) => {
-        if (!changed || saving || leaving.current) return;
-        e.preventDefault();
-        Alert.alert('Discard changes?', 'Your changes to your profile will be lost.', [
-          { text: 'Keep editing', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => nav.dispatch(e.data.action) },
-        ]);
-      }),
-    [nav, changed, saving],
+  // Rule 27: leaving with unsaved changes asks first. After a save (`done`) the screen closes.
+  usePreventRemove(changed && !done, ({ data }) =>
+    Alert.alert('Discard changes?', 'Your changes to your profile will be lost.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => nav.dispatch(data.action) },
+    ]),
   );
+  useEffect(() => {
+    if (done) router.back();
+  }, [done]);
 
   const save = async () => {
     if (!initial) return;
@@ -138,8 +135,7 @@ export default function EditProfile() {
         queryClient.invalidateQueries({ queryKey: ['edit-profile', uid] }),
       ]);
       toast({ message: 'Profile saved' });
-      leaving.current = true;
-      router.back();
+      setDone(true);
     } catch (e) {
       const why = rpcReason(e);
       if (why === 'name_change_limit') setErrors({ name: 'You can change your name 3 times in 30 days.' });
