@@ -176,7 +176,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 <tbody>
                   {rows.map(t => {
                     // Net is what Arpedia receives: nothing yet while pending or failed, nothing left after a full refund.
-                    const net = t.status === 'failed' || t.status === 'pending' ? 0 : Math.max(0, t.net_kobo - t.refunded_kobo);
+                    const net = t.status === 'failed' || t.status === 'pending' ? 0 : Math.max(0, (t.net_kobo ?? t.gross_kobo) - t.refunded_kobo);
                     const platform = PLATFORM[t.store] ?? t.store;
                     return (
                       <tr key={t.id}>

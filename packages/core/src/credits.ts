@@ -19,8 +19,22 @@ export interface PlanInfo {
 
 export const PLANS: readonly PlanInfo[] = [
   { code: 'monthly', months: 1, credits: 300, bonusCredits: 0, pricePlayKobo: 90000, priceWebKobo: 80000 },
-  { code: 'quarterly', months: 3, credits: 800, bonusCredits: 0, pricePlayKobo: 240000, priceWebKobo: 210000 },
-  { code: 'yearly', months: 12, credits: 2800, bonusCredits: 200, pricePlayKobo: 840000, priceWebKobo: 750000 },
+  {
+    code: 'quarterly',
+    months: 3,
+    credits: 800,
+    bonusCredits: 0,
+    pricePlayKobo: 240000,
+    priceWebKobo: 210000,
+  },
+  {
+    code: 'yearly',
+    months: 12,
+    credits: 2800,
+    bonusCredits: 200,
+    pricePlayKobo: 840000,
+    priceWebKobo: 750000,
+  },
 ];
 
 export const planCredits = (p: Pick<PlanInfo, 'credits' | 'bonusCredits'>) => p.credits + p.bonusCredits;
@@ -77,7 +91,11 @@ export interface RolloverResult {
  * Rule 11: at renewal into `nextPlan`, rolled-over credits still unspent expire; unused plan credits
  * carry over one period up to one plan's worth of the plan renewed into; the excess expires.
  */
-export function rollOver(balances: Pick<Balances, 'plan' | 'rollover'>, nextPlan: PlanInfo, capPlans = 1): RolloverResult {
+export function rollOver(
+  balances: Pick<Balances, 'plan' | 'rollover'>,
+  nextPlan: PlanInfo,
+  capPlans = 1,
+): RolloverResult {
   const unused = Math.max(0, balances.plan);
   const cap = Math.floor(planCredits(nextPlan) * capPlans);
   const rolledOver = Math.min(unused, cap);
@@ -110,7 +128,8 @@ export function addMonths(date: Date, months: number): Date {
 }
 
 /** Next renewal for a plan that started (or last renewed) at `periodStart`. */
-export const nextPeriodEnd = (periodStart: Date, plan: Pick<PlanInfo, 'months'>) => addMonths(periodStart, plan.months);
+export const nextPeriodEnd = (periodStart: Date, plan: Pick<PlanInfo, 'months'>) =>
+  addMonths(periodStart, plan.months);
 
 /** Rule 17: a pause of 1–3 months starts when the paid period ends; billing resumes after it. */
 export function pauseResumeDate(periodEnd: Date, months: number, maxMonths = 3): Date {

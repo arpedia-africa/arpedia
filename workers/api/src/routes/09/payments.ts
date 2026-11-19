@@ -46,7 +46,9 @@ payments.post('/revenuecat', async (c) => {
   const secret = c.env.REVENUECAT_WEBHOOK_AUTH;
   if (!secret) return c.json({ error: 'not_configured' }, 503);
   if (!safeEqual(c.req.header('Authorization') ?? '', secret)) return c.json({ error: 'unauthorized' }, 401);
-  const body = await c.req.json<{ event?: Parameters<typeof normalizeRevenueCat>[0]['event'] }>().catch(() => null);
+  const body = await c.req
+    .json<{ event?: Parameters<typeof normalizeRevenueCat>[0]['event'] }>()
+    .catch(() => null);
   if (!body) return c.json({ error: 'bad_json' }, 400);
   const mapped = normalizeRevenueCat(body);
   if (isIgnored(mapped)) return c.json({ ok: true, ignored: mapped.ignore });
@@ -123,7 +125,9 @@ payments.post('/flutterwave', async (c) => {
 
   if (body.event === 'subscription.cancelled' && body.data.plan) {
     const email = body.data.customer?.email;
-    const { data: userId } = email ? await db.rpc('worker_user_by_email', { p_email: email }) : { data: null };
+    const { data: userId } = email
+      ? await db.rpc('worker_user_by_email', { p_email: email })
+      : { data: null };
     if (!userId) return c.json({ ok: true, ignored: 'unknown customer' });
     const res = await ingest(
       db,

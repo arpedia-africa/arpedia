@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeFlutterwaveCharge, normalizeRevenueCat, parseTxRef, safeEqual, type IngestInput } from './payments';
+import {
+  normalizeFlutterwaveCharge,
+  normalizeRevenueCat,
+  parseTxRef,
+  safeEqual,
+  type IngestInput,
+} from './payments';
 
 const USER = '11111111-2222-4333-8444-555555555555';
 const rc = (type: string, extra: Record<string, unknown> = {}) => ({
@@ -41,18 +47,27 @@ describe('RevenueCat', () => {
   it('maps renewals, top-ups, pause and product change', () => {
     expect((normalizeRevenueCat(rc('RENEWAL')) as IngestInput).normalized.type).toBe('renewal');
     expect((normalizeRevenueCat(rc('NON_RENEWING_PURCHASE')) as IngestInput).normalized.type).toBe('topup');
-    const pause = normalizeRevenueCat(rc('SUBSCRIPTION_PAUSED', { auto_resume_at_ms: Date.parse('2027-03-19T10:00:00Z') }));
-    expect((pause as IngestInput).normalized).toMatchObject({ type: 'pause', pause_until: '2027-03-19T10:00:00.000Z' });
+    const pause = normalizeRevenueCat(
+      rc('SUBSCRIPTION_PAUSED', { auto_resume_at_ms: Date.parse('2027-03-19T10:00:00Z') }),
+    );
+    expect((pause as IngestInput).normalized).toMatchObject({
+      type: 'pause',
+      pause_until: '2027-03-19T10:00:00.000Z',
+    });
     const change = normalizeRevenueCat(rc('PRODUCT_CHANGE', { new_product_id: 'arpedia_yearly' }));
-    expect((change as IngestInput).normalized).toMatchObject({ type: 'product_change', new_product_id: 'arpedia_yearly' });
+    expect((change as IngestInput).normalized).toMatchObject({
+      type: 'product_change',
+      new_product_id: 'arpedia_yearly',
+    });
   });
 
   it('a customer-support cancellation is a store refund', () => {
     const r = normalizeRevenueCat(rc('CANCELLATION', { cancel_reason: 'CUSTOMER_SUPPORT' })) as IngestInput;
     expect(r.normalized).toMatchObject({ type: 'refund', refund_kobo: 240000 });
-    expect((normalizeRevenueCat(rc('CANCELLATION', { cancel_reason: 'UNSUBSCRIBE' })) as IngestInput).normalized.type).toBe(
-      'cancellation',
-    );
+    expect(
+      (normalizeRevenueCat(rc('CANCELLATION', { cancel_reason: 'UNSUBSCRIBE' })) as IngestInput).normalized
+        .type,
+    ).toBe('cancellation');
   });
 
   it('ignores tests, anonymous users, unknown stores and types; no money outside NGN', () => {
@@ -60,14 +75,18 @@ describe('RevenueCat', () => {
     expect(normalizeRevenueCat(rc('INITIAL_PURCHASE', { app_user_id: '$RCAnonymousID:x' }))).toEqual({
       ignore: 'anonymous app user',
     });
-    expect(normalizeRevenueCat(rc('INITIAL_PURCHASE', { store: 'STRIPE' }))).toEqual({ ignore: 'store STRIPE' });
+    expect(normalizeRevenueCat(rc('INITIAL_PURCHASE', { store: 'STRIPE' }))).toEqual({
+      ignore: 'store STRIPE',
+    });
     expect(normalizeRevenueCat(rc('TRANSFER'))).toEqual({ ignore: 'type TRANSFER' });
     const usd = normalizeRevenueCat(rc('INITIAL_PURCHASE', { currency: 'USD' })) as IngestInput;
     expect(usd.normalized.gross_kobo).toBeUndefined();
   });
 
   it('uses the original app user id when the current one is an alias', () => {
-    const r = normalizeRevenueCat(rc('RENEWAL', { app_user_id: 'alias', original_app_user_id: USER })) as IngestInput;
+    const r = normalizeRevenueCat(
+      rc('RENEWAL', { app_user_id: 'alias', original_app_user_id: USER }),
+    ) as IngestInput;
     expect(r.normalized.user_id).toBe(USER);
   });
 });
@@ -102,15 +121,29 @@ describe('Flutterwave', () => {
       gross_kobo: 80000,
       fee_kobo: 1120,
     });
-    const renewal = normalizeFlutterwaveCharge({ ...tx, id: 9002 }, { renewal: true, months: 1 }) as IngestInput;
+    const renewal = normalizeFlutterwaveCharge(
+      { ...tx, id: 9002 },
+      { renewal: true, months: 1 },
+    ) as IngestInput;
     expect(renewal.normalized).toMatchObject({ type: 'renewal', original_txn_id: `fwplan:77:${USER}` });
   });
 
   it('maps a top-up and ignores failed or foreign-currency charges', () => {
-    const t = normalizeFlutterwaveCharge({ ...tx, tx_ref: `arp:topup:topup_200:${USER}:n2`, amount: 600 }, { renewal: false });
-    expect((t as IngestInput).normalized).toMatchObject({ type: 'topup', topup_code: 'topup_200', gross_kobo: 60000 });
-    expect(normalizeFlutterwaveCharge({ ...tx, status: 'failed' }, { renewal: false })).toEqual({ ignore: 'status failed' });
-    expect(normalizeFlutterwaveCharge({ ...tx, currency: 'USD' }, { renewal: false })).toEqual({ ignore: 'currency USD' });
+    const t = normalizeFlutterwaveCharge(
+      { ...tx, tx_ref: `arp:topup:topup_200:${USER}:n2`, amount: 600 },
+      { renewal: false },
+    );
+    expect((t as IngestInput).normalized).toMatchObject({
+      type: 'topup',
+      topup_code: 'topup_200',
+      gross_kobo: 60000,
+    });
+    expect(normalizeFlutterwaveCharge({ ...tx, status: 'failed' }, { renewal: false })).toEqual({
+      ignore: 'status failed',
+    });
+    expect(normalizeFlutterwaveCharge({ ...tx, currency: 'USD' }, { renewal: false })).toEqual({
+      ignore: 'currency USD',
+    });
   });
 });
 

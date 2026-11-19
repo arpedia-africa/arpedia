@@ -94,7 +94,9 @@ export function normalizeRevenueCat(body: { event?: RevenueCatEvent }): IngestIn
     e.currency === 'NGN' && e.price_in_purchased_currency != null
       ? {
           gross_kobo: Math.round(Math.abs(e.price_in_purchased_currency) * 100),
-          fee_kobo: Math.round(Math.abs(e.price_in_purchased_currency) * 100 * (1 - (e.takehome_percentage ?? 0.85))),
+          fee_kobo: Math.round(
+            Math.abs(e.price_in_purchased_currency) * 100 * (1 - (e.takehome_percentage ?? 0.85)),
+          ),
         }
       : {};
   const base = {

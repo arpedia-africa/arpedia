@@ -122,7 +122,9 @@ describe('dates', () => {
   });
 
   it('pause resume date is 1 to 3 months after the period ends', () => {
-    expect(pauseResumeDate(new Date('2026-12-12T00:00:00Z'), 2).toISOString()).toBe('2027-02-12T00:00:00.000Z');
+    expect(pauseResumeDate(new Date('2026-12-12T00:00:00Z'), 2).toISOString()).toBe(
+      '2027-02-12T00:00:00.000Z',
+    );
     expect(() => pauseResumeDate(new Date(), 4)).toThrow(RangeError);
     expect(() => pauseResumeDate(new Date(), 0)).toThrow(RangeError);
   });
