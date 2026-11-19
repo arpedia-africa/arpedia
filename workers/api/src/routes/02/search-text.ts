@@ -32,18 +32,22 @@ export function previewText(work: Pick<WorkCopy, 'chapters' | 'preview'>): Searc
   return rows;
 }
 
-/** Index up to `limit` live revisions that have no search text yet. */
+/** Index up to `limit` live revisions that have no search text yet. A revision with no working
+ * copy is stored empty, so it isn't picked again every tick; one failure never stops the rest. */
 export async function indexSearchText(env: Env, limit = 5) {
   const db = serviceDb(env);
   const { data, error } = await db.rpc('revisions_needing_search_text', { p_limit: limit });
   if (error) throw error;
   for (const rev of data ?? []) {
-    const work = await loadWork(env, rev.revision_id, rev.work_version);
-    if (!work) continue;
-    const { error: e } = await db.rpc('set_book_search_text', {
-      p_rev: rev.revision_id,
-      p_rows: previewText(work) as unknown as Json,
-    });
-    if (e) throw e;
+    try {
+      const work = await loadWork(env, rev.revision_id, rev.work_version);
+      const { error: e } = await db.rpc('set_book_search_text', {
+        p_rev: rev.revision_id,
+        p_rows: (work ? previewText(work) : []) as unknown as Json,
+      });
+      if (e) throw e;
+    } catch (err) {
+      console.error('search text', rev.revision_id, err);
+    }
   }
 }

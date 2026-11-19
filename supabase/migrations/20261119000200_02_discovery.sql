@@ -29,7 +29,7 @@ $$;
 -- One query word against one text word: prefix, or (5+ letters) within p_typo edits.
 create function public.word_hits(p_q text, p_w text, p_typo int) returns boolean
 language sql immutable parallel safe set search_path = '' as $$
-  select p_w like p_q || '%'
+  select starts_with(p_w, p_q)
     or (p_typo > 0 and char_length(p_q) >= 5
         and extensions.levenshtein(p_q, left(p_w, char_length(p_q) + 1)) <= p_typo
         and extensions.levenshtein(p_q, p_w) <= p_typo + greatest(char_length(p_w) - char_length(p_q), 0))
@@ -507,11 +507,14 @@ language plpgsql security definer set search_path = '' as $$
 begin
   perform public._uid();
   insert into public.shelf_tap_counts (section_key, week_start, position, taps)
-  select t ->> 'section_key', date_trunc('week', now())::date, (t ->> 'position')::int,
-    least(greatest(coalesce((t ->> 'taps')::int, 1), 1), 50)
-  from jsonb_array_elements(coalesce(p_taps, '[]')) t
-  where t ->> 'section_key' in (select key from public.home_sections) and (t ->> 'position')::int between 0 and 49
-  limit 50
+  select k, date_trunc('week', now())::date, pos, sum(n)
+  from (
+    select t ->> 'section_key' as k, (t ->> 'position')::int as pos,
+      least(greatest(coalesce((t ->> 'taps')::int, 1), 1), 50) as n
+    from jsonb_array_elements(coalesce(p_taps, '[]')) t
+    where t ->> 'section_key' in (select key from public.home_sections) and (t ->> 'position')::int between 0 and 49
+    limit 50) b
+  group by k, pos
   on conflict (section_key, week_start, position) do update
     set taps = public.shelf_tap_counts.taps + excluded.taps;
 end $$;
@@ -594,7 +597,7 @@ create function public._match(p_q text, p_text text, p_typo int) returns int
 language sql stable security definer set search_path = '' as $$
   select case
     when public.norm_query(p_text) = p_q then 100
-    when public.norm_query(p_text) like p_q || '%' then 80
+    when starts_with(public.norm_query(p_text), p_q) then 80
     when cardinality(public.norm_words(p_q)) > 0 and not exists (
       select 1 from unnest(public.norm_words(p_q)) q
       where not exists (
@@ -711,8 +714,9 @@ begin
     select * from (
       select 3, public._match(q, g.name, 2)::numeric, jsonb_build_object('type', 'genre', 'id', g.id,
         'slug', g.slug, 'title', g.name, 'books', g.book_count)
-      from public.genre_book_counts g where g.visible and public._match(q, g.name, 2) > 0 limit 2) ge
-    limit 7) s), '[]');
+      from public.genre_book_counts g where g.visible and public._match(q, g.name, 2) > 0
+      order by 2 desc limit 2) ge
+    order by 1, 2 desc limit 8) s), '[]');
 end $$;
 
 -- Results: top result, books (snippets from preview text only), authors, counts per scope.
@@ -759,7 +763,10 @@ language sql stable security definer set search_path = '' as $$
         null::uuid as author_id
       from public.search_events e
       where e.created_at > now() - interval '7 days' and e.result_count > 0 and e.user_id is not null
-        and not exists (select 1 from public.banned_tags bt where e.query_norm ~ ('\m' || bt.word || '\M'))
+        and not exists (select 1 from public.banned_tags bt
+          where cardinality(public.norm_words(bt.word)) > 0
+            and strpos(' ' || array_to_string(public.norm_words(e.query_norm), ' ') || ' ',
+                       ' ' || array_to_string(public.norm_words(bt.word), ' ') || ' ') > 0)
       group by e.query_norm
       having count(distinct e.user_id) >= 20
       order by count(distinct e.user_id) desc, e.query_norm limit 5) t), '[]'),
