@@ -8,13 +8,20 @@ import type { Env } from '../../env';
 type Db = ReturnType<typeof serviceDb>;
 const FROM = 'Arpedia <hello@arpedia.africa>';
 
+/** Sender settings from s-emails (email_template_latest carries them). */
+export interface Sender {
+  from?: string;
+  reply_to?: string;
+  footer?: string;
+}
+
 export interface EmailDraft {
   subject: string;
   preheader: string;
   body: string;
 }
 
-interface Latest extends EmailDraft {
+interface Latest extends EmailDraft, Sender {
   key: string;
   enabled: boolean;
   version_id: string;
@@ -27,14 +34,16 @@ const escapeHtml = (s: string) =>
   );
 
 /** Plain paragraphs; the preheader sits hidden at the top (inbox preview line). */
-function html(d: EmailDraft) {
+function html(d: EmailDraft, footer?: string) {
   const paras = d.body
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 16px;line-height:1.5">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
     .join('');
   return (
     `<div style="display:none;max-height:0;overflow:hidden">${escapeHtml(d.preheader)}</div>` +
-    `<div style="font-family:Arial,sans-serif;font-size:16px;color:#1d1a16;max-width:560px">${paras}</div>`
+    `<div style="font-family:Arial,sans-serif;font-size:16px;color:#1d1a16;max-width:560px">${paras}` +
+    (footer ? `<p style="margin:24px 0 0;font-size:12px;color:#6b7280">${escapeHtml(footer)}</p>` : '') +
+    `</div>`
   );
 }
 
@@ -46,7 +55,7 @@ export function renderEmail(d: EmailDraft, vars: Record<string, string>): EmailD
   };
 }
 
-async function resend(env: Env, to: string, d: EmailDraft): Promise<string | null> {
+async function resend(env: Env, to: string, d: EmailDraft, sender: Sender = {}): Promise<string | null> {
   if (!env.RESEND_API_KEY) {
     console.log(`[email] ${to}: ${d.subject}\n${d.body}`);
     return null;
@@ -54,7 +63,18 @@ async function resend(env: Env, to: string, d: EmailDraft): Promise<string | nul
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to, subject: d.subject, html: html(d), text: d.body }),
+    body: JSON.stringify({
+      from: sender.from ?? FROM,
+      ...(sender.reply_to ? { reply_to: sender.reply_to } : {}),
+      to,
+      subject: d.subject,
+      html: html(d, sender.footer),
+      text: sender.footer
+        ? `${d.body}
+
+${sender.footer}`
+        : d.body,
+    }),
   });
   if (!r.ok) throw new Error(`resend ${r.status}`);
   return ((await r.json()) as { id?: string }).id ?? null;
@@ -77,7 +97,7 @@ export async function sendTemplateEmail(
   const t = data as unknown as Latest | null;
   if (!t) throw new Error(`unknown email template ${key}`);
   if (!t.enabled) return false;
-  const id = await resend(env, to, renderEmail(t, vars));
+  const id = await resend(env, to, renderEmail(t, vars), t);
   const { error: ie } = await db
     .from('email_sends')
     .insert({ template_key: key, version_id: t.version_id, user_id: userId ?? null, resend_id: id });

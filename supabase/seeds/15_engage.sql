@@ -105,3 +105,18 @@ from (values ('00000000-0000-4000-f151-000000000001'::uuid, 2044, 246), ('000000
              ('00000000-0000-4000-f151-000000000005', 4376, 624)) s (id, shown, taps)
 join public.banners b on b.id = s.id
 cross join generate_series(1, 5) g;
+
+-- Email wording history, as on s-email-template (Payout sent), and some sends for the 30-day numbers.
+insert into public.email_template_versions (template_key, number, subject, preheader, body, edited_by, created_at)
+values ('payout_sent', 2, 'Your {{month}} earnings are on the way, {{first_name}}',
+  '{{amount}} sent to {{bank_masked}}. It can take up to 24 hours to show.',
+  'Hi {{first_name}},' || chr(10) || chr(10) || 'Good news. Your Arpedia earnings for {{month}} have been sent.' || chr(10) || chr(10) ||
+  'Amount: {{amount}}' || chr(10) || 'Paid to: {{bank_masked}}' || chr(10) || 'Reference: {{reference}}' || chr(10) || chr(10) ||
+  'Most banks show it within a few hours, but it can take up to 24 hours. If you don''t see it by tomorrow evening, reply to this email and we''ll trace it with Flutterwave.' ||
+  chr(10) || chr(10) || 'Thank you for writing for Arpedia.' || chr(10) || 'The Arpedia team',
+  '00000000-0000-4000-b000-000000000005', now() - interval '35 days');
+insert into public.email_sends (template_key, user_id, sent_at, opened_at)
+select k, '00000000-0000-4000-a000-000000000001', now() - make_interval(days => g),
+  case when g % 3 <> 0 then now() - make_interval(days => g) end
+from (values ('welcome'), ('verify_email'), ('receipt'), ('payout_sent')) v (k)
+cross join generate_series(1, 9) g;

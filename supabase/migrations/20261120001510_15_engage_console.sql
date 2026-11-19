@@ -120,3 +120,121 @@ end $$;
 
 revoke execute on function public.staff_restore_campaign(uuid), public.staff_test_push(uuid) from public, anon;
 grant execute on function public.staff_restore_campaign(uuid), public.staff_test_push(uuid) to authenticated;
+
+-- ─── Emails (s-emails, s-email-template) ────────────────────────────────────
+-- Names and triggers as staff read them on s-emails, plus the four system emails it lists that
+-- the first migration missed.
+update public.email_templates t set name = v.name, trigger = v.trigger
+from (values
+  ('welcome', 'Welcome', 'A reader finishes sign-up'),
+  ('verify_email', 'Verify email', 'Sign-up with email, or email change'),
+  ('receipt', 'Receipt', 'Web checkout payment succeeds'),
+  ('renewal_failed', 'Subscription renewal failed', 'Card declined, day 1, 3 and 5 of grace'),
+  ('author_approved', 'Application approved', 'Staff approve an author application'),
+  ('book_approved', 'Book approved', 'Book published or scheduled'),
+  ('changes_requested', 'Changes requested', 'Staff send a book back with a note'),
+  ('payout_sent', 'Payout sent', 'Flutterwave confirms a transfer'),
+  ('renewal_reminder', 'Plan renews soon', '3 days before a plan renews'),
+  ('new_device', 'New sign-in', 'Sign-in on a new device'),
+  ('staff_invite', 'Staff invite', 'A Super admin invites staff')) v (key, name, trigger)
+where t.key = v.key;
+
+insert into public.email_templates (key, name, trigger, can_disable, finance_review, variables, position) values
+  ('application_more_info', 'Application needs more info', 'Staff ask the applicant for changes', true, false,
+   '{first_name,note}', 6),
+  ('payout_failed', 'Payout failed', 'Flutterwave rejects a transfer', false, true, '{first_name,amount,date,reason}', 10),
+  ('data_export_ready', 'Data export ready', 'A privacy export is built (link works 7 days)', false, false,
+   '{first_name,link}', 11),
+  ('account_deleted', 'Account deleted', 'A deletion finishes after the 14-day wait', false, false, '{first_name}', 12);
+insert into public.email_template_versions (template_key, number, subject, preheader, body)
+select t.key, 1, t.name, '', 'Hi {{first_name}},' || chr(10) || chr(10) || t.name || '.' || chr(10) || chr(10) || 'The Arpedia team'
+from public.email_templates t
+where t.key in ('application_more_info', 'payout_failed', 'data_export_ready', 'account_deleted');
+update public.email_templates t set position = v.pos
+from (values ('welcome', 1), ('verify_email', 2), ('receipt', 3), ('renewal_failed', 4), ('author_approved', 5),
+             ('application_more_info', 6), ('book_approved', 7), ('changes_requested', 8), ('payout_sent', 9),
+             ('payout_failed', 10), ('data_export_ready', 11), ('account_deleted', 12), ('renewal_reminder', 13),
+             ('new_device', 14), ('staff_invite', 15)) v (key, pos)
+where t.key = v.key;
+
+-- Sender settings: one row, read by the email-sender Worker.
+create table public.email_sender (
+  id boolean primary key default true check (id),
+  from_address text not null default 'Arpedia <hello@arpedia.africa>'
+    check (from_address ~ '^[^<>]*<[^@\s<>]+@arpedia\.africa>$'),
+  reply_to text not null default 'support@arpedia.africa' check (reply_to ~ '^[^@\s]+@arpedia\.africa$'),
+  footer text not null default 'Arpedia, Yaba, Lagos, Nigeria' check (char_length(footer) between 1 and 200),
+  updated_by uuid references public.profiles (id),
+  updated_at timestamptz not null default now()
+);
+insert into public.email_sender default values;
+alter table public.email_sender enable row level security;
+create policy email_sender_staff on public.email_sender for select to authenticated using (public.is_staff());
+revoke all on public.email_sender from anon, authenticated;
+grant select on public.email_sender to authenticated;
+
+create function public.staff_save_email_sender(p_from text, p_reply_to text, p_footer text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  s public.email_sender;
+begin
+  perform public.require_permission('send_push');
+  select * into s from public.email_sender;
+  if trim(p_from) !~ '^[^<>]*<[^@\s<>]+@arpedia\.africa>$' then
+    raise exception 'From must look like Arpedia <hello@arpedia.africa>' using errcode = '22023';
+  end if;
+  if trim(p_reply_to) !~ '^[^@\s]+@arpedia\.africa$' then
+    raise exception 'Reply-to must be an @arpedia.africa address' using errcode = '22023';
+  end if;
+  update public.email_sender set from_address = trim(p_from), reply_to = trim(p_reply_to), footer = trim(p_footer),
+    updated_by = auth.uid(), updated_at = now();
+  perform public.write_audit('engage', 'email_sender.save', 'email_sender', 'sender', 'Sender settings', null,
+    to_jsonb(s), jsonb_build_object('from', p_from, 'reply_to', p_reply_to, 'footer', p_footer));
+end $$;
+
+-- Domain health (bounces and complaints from Resend events, 30 days) and version history.
+create function public.staff_email_health() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not (public.has_permission('send_push') or public.has_permission('manage_settings')) then
+    raise exception 'Not allowed' using errcode = 'insufficient_privilege';
+  end if;
+  return (select jsonb_build_object('sent', count(*),
+      'bounce_pct', round(100.0 * count(*) filter (where bounced_at is not null) / nullif(count(*), 0), 1))
+    from public.email_sends where sent_at > now() - interval '30 days');
+end $$;
+
+create function public.staff_email_versions(p_key text) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not (public.has_permission('send_push') or public.has_permission('manage_settings')
+          or public.has_permission('view_analytics')) then
+    raise exception 'Not allowed' using errcode = 'insufficient_privilege';
+  end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('number', v.number, 'subject', v.subject,
+      'preheader', v.preheader, 'body', v.body, 'created_at', v.created_at,
+      'edited_by', (select p.full_name from public.profiles p where p.id = v.edited_by)) order by v.number desc)
+    from public.email_template_versions v where v.template_key = p_key), '[]'::jsonb);
+end $$;
+
+revoke execute on function public.staff_save_email_sender(text, text, text), public.staff_email_health(),
+  public.staff_email_versions(text) from public, anon;
+grant execute on function public.staff_save_email_sender(text, text, text), public.staff_email_health(),
+  public.staff_email_versions(text) to authenticated;
+
+-- The email-sender Worker takes From, Reply-to and the footer from the sender settings.
+create or replace function public.email_template_latest(p_key text) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object('key', t.key, 'enabled', t.enabled, 'version_id', v.id, 'subject', v.subject,
+                            'preheader', v.preheader, 'body', v.body, 'variables', t.variables,
+                            'from', s.from_address, 'reply_to', s.reply_to, 'footer', s.footer)
+  from public.email_templates t
+  join lateral (select * from public.email_template_versions v where v.template_key = t.key
+                order by v.number desc limit 1) v on true
+  cross join public.email_sender s
+  where t.key = p_key
+$$;
+
+-- Payout emails name the month, the masked bank and the transfer reference (s-email-template).
+update public.email_templates set variables = '{first_name,amount,date,month,bank_masked,reference}'
+where key = 'payout_sent';
