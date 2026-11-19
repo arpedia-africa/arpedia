@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type MouseEvent } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { saveComingSoon } from '../actions';
@@ -29,6 +29,9 @@ const watParts = (iso: string | null) => {
   return { date: wat.slice(0, 10), time: wat.slice(11, 16) };
 };
 const fromWat = (date: string, time: string) => (date ? new Date(`${date}T${time || '08:00'}:00+01:00`).toISOString() : null);
+/** The prototype draws date and time as `.inp.sel` fields; a see-through native input on top picks the value. */
+const pickerOverlay = { position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' } as const;
+const openPicker = (e: MouseEvent<HTMLInputElement>) => e.currentTarget.showPicker?.();
 
 /** Edit Coming soon entry (s-curation-coming): book, teaser, release date and time, Notify me count. */
 export function ComingDrawer({ candidates, initial }: { candidates: Candidate[]; initial: string | null }) {
@@ -141,23 +144,33 @@ export function ComingDrawer({ candidates, initial }: { candidates: Candidate[];
               <div className="fgrid">
                 <div className="f">
                   <label htmlFor="rel-date">Release date</label>
-                  <input
-                    id="rel-date"
-                    className="inp"
-                    type="date"
-                    value={date}
-                    onChange={e => setWhen(w => ({ ...w, date: e.target.value }))}
-                  />
+                  <div className="inp sel" style={{ position: 'relative' }}>
+                    <span>{date ? dayLabel(`${date}T12:00:00+01:00`) : 'Pick a date'}</span>
+                    <Icon name="chevd" size="s" />
+                    <input
+                      id="rel-date"
+                      type="date"
+                      style={pickerOverlay}
+                      value={date}
+                      onClick={openPicker}
+                      onChange={e => setWhen(w => ({ ...w, date: e.target.value }))}
+                    />
+                  </div>
                 </div>
                 <div className="f">
-                  <label htmlFor="rel-time">Time (WAT)</label>
-                  <input
-                    id="rel-time"
-                    className="inp"
-                    type="time"
-                    value={time}
-                    onChange={e => setWhen(w => ({ ...w, time: e.target.value }))}
-                  />
+                  <label htmlFor="rel-time">Time</label>
+                  <div className="inp sel" style={{ position: 'relative' }}>
+                    <span>{time} WAT</span>
+                    <Icon name="chevd" size="s" />
+                    <input
+                      id="rel-time"
+                      type="time"
+                      style={pickerOverlay}
+                      value={time}
+                      onClick={openPicker}
+                      onChange={e => setWhen(w => ({ ...w, time: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </div>
               <span style={{ fontSize: 13.5 }}>

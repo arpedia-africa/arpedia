@@ -96,3 +96,17 @@ from (values
 ) n(kind, category, actor, book, title, body, target_type, target_id, ago, read)
 left join public.profiles a on a.username = n.actor
 left join public.books b on b.title = n.book;
+
+-- Coming soon: one scheduled thriller (tomorrow 08:00 WAT) on the shelf with a teaser and Notify me count.
+insert into public.books (id, author_id, title, genres, description, status, created_at)
+values ('00000000-0000-4000-c200-000000000001', '00000000-0000-4000-a000-000000000006', 'Night Bus to Kano',
+  array['Thriller'], 'A night bus, a missing ledger and a city that never fully sleeps.', 'scheduled', now() - interval '12 days');
+insert into public.book_revisions (id, book_id, revision_no, status, source_type, uploaded_by, words, pages,
+  price_credits, preview_percent, submitted_at, schedule_at, published_by)
+values ('00000000-0000-4000-d200-000000000001', '00000000-0000-4000-c200-000000000001', 1, 'scheduled', 'epub',
+  '00000000-0000-4000-a000-000000000006', 68900, 276, 138, 10.0, now() - interval '5 days',
+  date_trunc('day', now()) + interval '1 day 7 hours', '00000000-0000-4000-b000-000000000001');
+insert into public.coming_soon_entries (book_id, teaser, release_at, notify_count, updated_by)
+values ('00000000-0000-4000-c200-000000000001',
+  'A night bus, a missing ledger and a city that never fully sleeps. Musa Danladi''s thriller lands tomorrow.',
+  date_trunc('day', now()) + interval '1 day 7 hours', 312, '00000000-0000-4000-b000-000000000001');
