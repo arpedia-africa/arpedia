@@ -1,0 +1,25 @@
+<!-- Parity page s-community: the prototype screen, verbatim from prototype/src/04-library-social.html (tab bar left out; it is checked on kit-b).
+     apps/mobile/app/parity.tsx renders the flow 06 view with the same values. -->
+  <div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Community</h1><button class="ib" data-go="rooms" aria-label="Reading rooms"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg></button><button class="ib" data-go="discover" aria-label="Discover communities"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button></div>
+    <div class="hero__tabs"><button class="on">All <span class="count">5</span></button><a data-go="dms">Unread <span class="count">4</span></a><a data-go="community-groups">Groups</a></div>
+  </div>
+  <div class="group group--flush pt8"><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Grace Readers</span><span class="pill night">Live</span></span><span class="cell__sub ell">Chioma: The night vigil chapter 😭 who else cried?</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">now</span><span class="count">8</span></span></span></a><a class="cell cell--tap" data-go="dm"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma Nwachukwu</span><span class="badge-auth">Author</span></span><span class="cell__sub ell">Ifeoma: Thank you Ngozi! Chapter 12 will answer that 😊</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">45m</span><span class="count">1</span></span></span></a><a class="cell cell--tap" data-go="author-community"><span class="cell__lead"><span class="av sq m">IR</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Ifeoma's Readers</span></span><span class="cell__sub ell">Ifeoma: A small treat: I will answer three questions on Friday</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">1h</span><span class="count">3</span></span></span></a><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq o">AO</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Arpedia Official</span></span><span class="cell__sub ell">Arpedia Team: Reading challenge: finish one book this month to enter the free-year draw</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">3h</span><span class="count">2</span></span></span></a><a class="cell cell--tap" data-go="room"><span class="cell__lead"><span class="av sq b">HL</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Harmattan Letters Read-Along</span></span><span class="cell__sub ell">Hauwa: Friday we move to chapter 9. Catch up!</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">5h</span></span></span></a><a class="cell cell--tap" data-go="channel"><span class="cell__lead"><span class="av sq k">AS</span></span><span class="cell__body"><span class="com-row-name"><span class="cell__title">Arpedia Support</span></span><span class="cell__sub ell">Arpedia Team: Hello Ngozi, welcome to Arpedia. Ask us anything here.</span></span><span class="cell__trail"><span class="v4" style="align-items:flex-end"><span class="t-xs t-muted">4d</span></span></span></a></div>
+  <div class="rt">
+    <h2 class="section__title">Read together</h2>
+    <a class="rt-card rt-card--rooms" data-go="rooms">
+      <span class="rt-body">
+        <b class="rt-title">Reading rooms</b>
+        <span class="rt-sub">One book, read chapter by chapter with friends</span>
+        <span class="rt-people"><span class="rt-avs"><span class="av sm m">CO</span><span class="av sm o">IN</span><span class="av sm k">MD</span></span><span>5 friends reading now</span></span>
+      </span>
+      <span class="rt-covers" aria-hidden="true"><span class="cv c3"><b>The Alignment</b></span><span class="cv c1"><b>Harmattan Letters</b></span></span>
+    </a>
+    <a class="rt-card" data-go="discover">
+      <b class="rt-title">Discover communities</b>
+      <span class="rt-sub">Find readers who love what you love</span>
+      <span class="rt-tags"><span>Church</span><span>Campus</span><span>Lagos</span><span>Author circles</span><span>Read-alongs</span></span>
+    </a>
+  </div>
+  </div>

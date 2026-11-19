@@ -1,0 +1,14 @@
+<!-- Parity page s-report: the sheet's panel body, verbatim from prototype/src/04-library-social.html,
+     laid flat (no backdrop, grab, title row or slide; the kit Sheet chrome is the same as every other sheet).
+     Allowed differences (flow file, Q80): the intro names both review times, and the block line is
+     "Hide their messages everywhere. They aren't told." (no gender data).
+     apps/mobile/app/parity.tsx renders ReportBody inside the same .pb padding. -->
+ <div class="panel" style="position:relative;inset:auto;box-shadow:none;animation:none;max-height:none;border-radius:0">
+ <div class="pb">
+ <p class="t-sm t-soft">Moderators review reports within 24 hours. Chioma won't know who reported.</p>
+ <div class="option-list option-list--flush" data-single><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Spam or scam</span></span></button><button class="option option--compact is-selected"><span class="radio"></span><span class="option__body"><span class="option__title">Harassment or bullying</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Hate speech</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Sexual content</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Violence or threats</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Self-harm</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Copyright infringement</span></span></button><button class="option option--compact"><span class="radio"></span><span class="option__body"><span class="option__title">Something else</span></span></button></div>
+ <div class="field"><input id="rp-d" placeholder="Add details (optional)" aria-label="Details"></div>
+ <div class="h12"><div class="fill v4"><span class="t-title">Also block Chioma</span><span class="t-xs t-muted">Hide her messages everywhere. She isn't told.</span></div><button class="toggle" aria-label="Also block" aria-pressed="false"></button></div>
+ <div class="com-sheet-foot"><a class="btn btn-g" data-go="channel">Cancel</a><a class="btn btn-p" data-go="channel">Send report</a></div>
+ </div>
+ </div>

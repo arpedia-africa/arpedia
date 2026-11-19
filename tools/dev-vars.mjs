@@ -36,17 +36,21 @@ writeFileSync(
     `SUPABASE_ANON_KEY=${env.ANON_KEY}\nBOOK_MASTER_KEY=${derive('book-master')}\nUPLOAD_SIGNING_KEY=${derive('upload')}\n` +
     `ADMIN_URL=http://127.0.0.1:${adminPort}\n`,
 );
-writeFileSync(join(root, 'workers/chat/.dev.vars'), `SUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`);
+const chatPort = process.env.CHAT_PORT ?? '8788';
+writeFileSync(
+  join(root, 'workers/chat/.dev.vars'),
+  `SUPABASE_URL=${env.API_URL}\nSUPABASE_ANON_KEY=${env.ANON_KEY}\nSUPABASE_SERVICE_ROLE_KEY=${env.SERVICE_ROLE_KEY}\nSUPABASE_JWT_SECRET=${env.JWT_SECRET}\n`,
+);
 writeFileSync(
   join(root, 'apps/admin/.env.local'),
   `NEXT_PUBLIC_SUPABASE_URL=${env.API_URL}\nNEXT_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nNEXT_PUBLIC_APP_ENV=local\n` +
-    `ARPEDIA_API_URL=http://127.0.0.1:${apiPort}\n`,
+    `ARPEDIA_API_URL=http://127.0.0.1:${apiPort}\nCHAT_URL=http://127.0.0.1:${chatPort}\n`,
 );
 // The Android emulator reaches the host at 10.0.2.2. A real phone (--phone) uses 127.0.0.1
 // through `adb reverse tcp:<port> tcp:<port>` for the Supabase API and api Worker ports.
 const host = process.argv.includes('--phone') ? '127.0.0.1' : '10.0.2.2';
 writeFileSync(
   join(root, 'apps/mobile/.env.local'),
-  `EXPO_PUBLIC_SUPABASE_URL=${env.API_URL.replace('127.0.0.1', host)}\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nEXPO_PUBLIC_API_URL=http://${host}:${apiPort}\n`,
+  `EXPO_PUBLIC_SUPABASE_URL=${env.API_URL.replace('127.0.0.1', host)}\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nEXPO_PUBLIC_API_URL=http://${host}:${apiPort}\nEXPO_PUBLIC_CHAT_URL=http://${host}:${chatPort}\n`,
 );
 console.log('Wrote workers/*/.dev.vars, apps/admin/.env.local and apps/mobile/.env.local');
