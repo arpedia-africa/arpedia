@@ -490,6 +490,92 @@ export function ReaderMenuSheet({
   );
 }
 
+/**
+ * Search in book (rule 25): the bundle searches text this reader can open; hits in locked chapters
+ * are never searched, and the list ends with a line saying so.
+ */
+export function SearchSheet({
+  open,
+  onClose,
+  onSearch,
+  result,
+  label,
+  onHit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSearch: (q: string) => void;
+  result: {
+    query: string;
+    items: { cfi: string; excerpt: string; chapter_uid: string | null }[];
+    locked_left: boolean;
+    done: boolean;
+  } | null;
+  /** "Chapter 3 · The Letter" for a hit's chapter, or null. */
+  label: (uid: string | null) => string | null;
+  onHit: (cfi: string) => void;
+}) {
+  const { c, s } = useTheme();
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    if (open) setQ(result?.query ?? '');
+    // Only on opening: keep the last search when the sheet comes back.
+  }, [open]);
+  const items = result?.items ?? [];
+  return (
+    <Sheet open={open} onClose={onClose} title="Search in book">
+      <Field
+        icon="search"
+        value={q}
+        onChangeText={setQ}
+        placeholder="Words or a name"
+        returnKeyType="search"
+        autoFocus
+        onSubmitEditing={() => onSearch(q)}
+        accessibilityLabel="Search in book"
+      />
+      {result && !result.done ? (
+        <Text variant="sm" color="ink3">
+          Searching…
+        </Text>
+      ) : result ? (
+        <Flush>
+          <View style={{ marginTop: s(16) }}>
+            {items.length === 0 ? (
+              <View style={{ paddingHorizontal: s(16), paddingBottom: s(8) }}>
+                <Text
+                  variant="sm"
+                  color="ink2"
+                >{`No matches for “${result.query}” in the pages you can open.`}</Text>
+              </View>
+            ) : (
+              items.slice(0, 100).map((h, i) => (
+                <Row key={h.cfi} first={i === 0} onPress={() => onHit(h.cfi)} label={h.excerpt}>
+                  <RowBody title={label(h.chapter_uid) ?? `Result ${i + 1}`} sub={h.excerpt} />
+                </Row>
+              ))
+            )}
+            {result.locked_left ? (
+              <View
+                style={{
+                  paddingHorizontal: s(16),
+                  paddingVertical: s(12),
+                  borderTopWidth: 1,
+                  borderTopColor: c.line,
+                }}
+              >
+                <Text variant="sm" color="ink3">
+                  Unlock more chapters to search the rest
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </Flush>
+      ) : null}
+    </Sheet>
+  );
+}
+
 /** Report a problem with this book (rule 26): an optional note, then a `book_content` report. */
 export function ReportProblemSheet({
   open,

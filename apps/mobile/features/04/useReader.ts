@@ -2,7 +2,9 @@
 // file requests with decrypted bytes, holds and charges forward moves at gates, keeps the place.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
+import * as Device from 'expo-device';
 import { useQueryClient } from '@tanstack/react-query';
 import { chargeKey, confirmCharge, type ChapterAccess, type PendingStore } from '@arpedia/core';
 import {
@@ -15,6 +17,8 @@ import {
   type ReaderSettings,
   type RelocateDetail,
   type SelectionDetail,
+  type Rect,
+  type StartPosition,
 } from '@arpedia/reader';
 import { supabase } from '@/lib/supabase';
 import { rpcError } from '../03/UnlockSheet';
@@ -56,6 +60,32 @@ export interface Annotation {
 }
 
 const PROGRESS_EVERY = 10_000;
+const IDLE_MS = 60_000;
+const SESSION_EVERY = 60_000;
+
+/** The newest position on this phone (rule 66), kept per book. */
+interface LocalPosition {
+  revision_id: string;
+  cfi: string;
+  para_id: string | null;
+  offset: number;
+  percent: number;
+  at: number;
+}
+const posKey = (bookId: string) => `reader.pos.${bookId}`;
+
+/** Another device is more than 5% ahead (rule 67): offered as "Continue from n%?". */
+export interface ElsewhereOffer {
+  percent: number;
+  device: string | null;
+  start: { cfi: string } | { para_id: string; offset: number };
+}
+
+export interface SearchHit {
+  cfi: string;
+  excerpt: string;
+  chapter_uid: string | null;
+}
 
 /** Access as the bundle should see it: `unlocked` only with the key here and a valid licence (rule 7). */
 function accessMap(
@@ -89,6 +119,16 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
   const [notice, setNotice] = useState<string | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [attempt, setAttempt] = useState(0);
+  const [elsewhere, setElsewhere] = useState<ElsewhereOffer | null>(null);
+  const [search, setSearch] = useState<{
+    query: string;
+    items: SearchHit[];
+    locked_left: boolean;
+    done: boolean;
+  } | null>(null);
+  const localPos = useRef<LocalPosition | null>(null);
+  const myDevice = useRef<string | null>(null);
+  const lastActive = useRef(Date.now());
 
   const web = useRef<{ postMessage(s: string): void } | null>(null);
   const files = useRef<BookFiles | null>(null);
@@ -120,6 +160,9 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       setPhase('loading');
       setSettings(toSettings(state.reader_settings));
       pending.current ??= await loadPendingStore();
+      const raw = await AsyncStorage.getItem(posKey(bookId)).catch(() => null);
+      localPos.current = raw ? (JSON.parse(raw) as LocalPosition) : null;
+      myDevice.current = await deviceId().catch(() => null);
       userId.current = (await supabase.auth.getSession()).data.session?.user.id ?? null;
       try {
         await f.refreshLinks();
@@ -191,13 +234,35 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     if (!ready.current || !manifest || !state || opened.current) return;
     opened.current = true;
     const p = state.position;
-    const start = opts.startCfi
-      ? { cfi: opts.startCfi }
-      : p && p.revision_id === state.revision.id && p.cfi
+    const server: StartPosition =
+      p && p.revision_id === state.revision.id && p.cfi
         ? { cfi: p.cfi }
         : p?.para_id
           ? { para_id: p.para_id, offset: p.char_offset ?? 0 }
           : {};
+    const mine = localPos.current;
+    const local: StartPosition | null = !mine
+      ? null
+      : mine.revision_id === state.revision.id
+        ? { cfi: mine.cfi }
+        : mine.para_id
+          ? { para_id: mine.para_id, offset: mine.offset }
+          : null;
+    // Rule 11: the server position if newer than this phone's, else this phone's. Rule 67: another
+    // device more than 5% ahead is offered, and this phone's place stays (Stay is the default).
+    let start: StartPosition = server;
+    if (opts.startCfi) start = { cfi: opts.startCfi };
+    else if (local && mine && p) {
+      const otherDevice = p.device_id != null && p.device_id !== myDevice.current;
+      if (otherDevice && p.percent > mine.percent + 5 && (server.cfi || server.para_id)) {
+        start = local;
+        setElsewhere({
+          percent: Math.floor(p.percent),
+          device: p.device_name,
+          start: server.cfi ? { cfi: server.cfi } : { para_id: server.para_id!, offset: server.offset ?? 0 },
+        });
+      } else if (Date.parse(p.updated_at) <= mine.at) start = local;
+    } else if (local) start = local;
     send({
       type: 'open',
       payload: {
@@ -256,7 +321,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         p_char_offset: d.offset,
         p_percent: d.percent,
         p_device_id: device ?? undefined,
-        p_device_name: undefined,
+        p_device_name: Device.modelName ?? undefined,
         p_at: new Date().toISOString(),
       } as never);
     },
@@ -267,22 +332,89 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     (d: RelocateDetail) => {
       setLoc(d);
       setSelection(null);
+      lastActive.current = Date.now();
+      if (state) {
+        const lp: LocalPosition = {
+          revision_id: state.revision.id,
+          cfi: d.cfi,
+          para_id: d.para_id,
+          offset: d.offset,
+          percent: d.percent,
+          at: Date.now(),
+        };
+        localPos.current = lp;
+        void AsyncStorage.setItem(posKey(bookId), JSON.stringify(lp)).catch(() => undefined);
+      }
       const chapterChanged = d.chapter_uid !== lastChapter.current;
       lastChapter.current = d.chapter_uid;
       clearTimeout(syncTimer.current);
       if (chapterChanged || Date.now() - lastSync.current > PROGRESS_EVERY) void syncNow(d);
       else syncTimer.current = setTimeout(() => void syncNow(d), 2000);
     },
-    [syncNow],
+    [syncNow, state, bookId],
   );
+
+  // ─── Reading sessions (rule 69): idle over 60 s pauses the clock ──────────
+  const session = useRef<{ id: string; started: number; active: number; tick: number } | null>(null);
+  const logSession = useCallback(
+    async (end: boolean) => {
+      const sess = session.current;
+      if (!sess) return;
+      if (end) session.current = null;
+      if (sess.active < 1) return;
+      const device = await deviceId().catch(() => null);
+      await supabase.rpc('log_reading_session', {
+        p_client_id: sess.id,
+        p_book: bookId,
+        p_device_id: device ?? undefined,
+        p_started_at: new Date(sess.started).toISOString(),
+        p_ended_at: new Date().toISOString(),
+        p_active_seconds: Math.round(sess.active),
+      } as never);
+    },
+    [bookId],
+  );
+  const reading = phase === 'ready' && loc != null;
+  useEffect(() => {
+    if (!reading) return;
+    const now = Date.now();
+    session.current ??= { id: Crypto.randomUUID(), started: now, active: 0, tick: now };
+    let sinceLog = 0;
+    const t = setInterval(() => {
+      const sess = session.current;
+      if (!sess) return;
+      const at = Date.now();
+      const step = (at - sess.tick) / 1000;
+      sess.tick = at;
+      if (at - lastActive.current <= IDLE_MS) sess.active += step;
+      sinceLog += step * 1000;
+      if (sinceLog >= SESSION_EVERY) {
+        sinceLog = 0;
+        void logSession(false);
+      }
+    }, 5000);
+    return () => {
+      clearInterval(t);
+      void logSession(true);
+    };
+  }, [reading, logSession]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s !== 'active') void syncNow();
-      else void qc.invalidateQueries({ queryKey: readerKey(bookId) });
+      if (s !== 'active') {
+        void syncNow();
+        void logSession(true);
+      } else {
+        lastActive.current = Date.now();
+        if (phase === 'ready') {
+          const now = Date.now();
+          session.current ??= { id: Crypto.randomUUID(), started: now, active: 0, tick: now };
+        }
+        void qc.invalidateQueries({ queryKey: readerKey(bookId) });
+      }
     });
     return () => sub.remove();
-  }, [syncNow, qc, bookId]);
+  }, [syncNow, logSession, qc, bookId, phase]);
 
   // ─── Charging (rules 54–58) ────────────────────────────────────────────────
   const refresh = useCallback(async () => {
@@ -398,7 +530,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       ui: {
         onTap: (zone: 'left' | 'center' | 'right') => void;
         onMarker: (para: string) => void;
-        onAnnotation: (id: string) => void;
+        onAnnotation: (id: string, rect: Rect) => void;
       },
     ) => {
       const m = parseFromWeb(raw);
@@ -431,6 +563,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           onRelocate(m.payload);
           return;
         case 'tap':
+          lastActive.current = Date.now();
           if (m.payload.zone === 'left') send({ type: 'prev', payload: { unit: 'page' } });
           else if (m.payload.zone === 'right') send({ type: 'next', payload: { unit: 'page' } });
           ui.onTap(m.payload.zone);
@@ -465,7 +598,14 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           ui.onMarker(m.payload.para_id);
           return;
         case 'annotation.tap':
-          ui.onAnnotation(m.payload.id);
+          ui.onAnnotation(m.payload.id, m.payload.rect);
+          return;
+        case 'search.result':
+          setSearch((cur) =>
+            cur
+              ? { ...cur, items: m.payload.items, locked_left: m.payload.locked_left, done: m.payload.done }
+              : cur,
+          );
           return;
         case 'error':
           if (m.payload.code === 'resource_missing' || m.payload.code === 'decrypt_failed') setPhase('error');
@@ -642,6 +782,104 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
   }, [loc, state, pageBookmark, bookmarks.length, bookId]);
 
+  // ─── Highlight menu: colour and delete (rule 36) ───────────────────────────
+  const saveOne = useCallback(
+    async (a: Annotation, deleted = false) => {
+      if (!state) return;
+      const { error: e } = await supabase.rpc('upsert_annotations', {
+        p_batch: [
+          {
+            client_id: a.client_id,
+            book_id: bookId,
+            revision_id: state.revision.id,
+            kind: a.kind,
+            color: a.color,
+            cfi_range: a.cfi_range,
+            chapter_uid: a.chapter_uid,
+            start_para_id: a.start_para_id,
+            end_para_id: a.start_para_id,
+            quote: a.quote,
+            note_text: a.note_text,
+            visibility: a.visibility,
+            deleted,
+            updated_at: new Date().toISOString(),
+          },
+        ] as never,
+      });
+      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+    },
+    [state, bookId],
+  );
+  const draw = useCallback(
+    (a: Annotation) =>
+      send({
+        type: 'annotations.set',
+        payload: {
+          list: [
+            { id: a.id, kind: a.kind, color: a.color, cfi_range: a.cfi_range, para_id: a.start_para_id },
+          ],
+          replace: false,
+        },
+      }),
+    [send],
+  );
+
+  const recolor = useCallback(
+    async (clientId: string, color: HighlightColor) => {
+      const a = annotations.find((x) => x.client_id === clientId);
+      if (!a || a.color === color) return;
+      const next = { ...a, color };
+      setAnnotations((l) => l.map((x) => (x.client_id === clientId ? next : x)));
+      draw(next);
+      await saveOne(next);
+    },
+    [annotations, draw, saveOne],
+  );
+
+  /** Deletes at once; the returned function puts it back (the Undo toast, 5 s). */
+  const removeAnnotation = useCallback(
+    async (clientId: string) => {
+      const a = annotations.find((x) => x.client_id === clientId);
+      if (!a) return null;
+      setAnnotations((l) => l.filter((x) => x.client_id !== clientId));
+      send({ type: 'annotations.set', payload: { list: [], replace: false, remove: [a.id] } });
+      void saveOne(a, true);
+      return () => {
+        setAnnotations((l) => [...l, a]);
+        draw(a);
+        void saveOne(a, false);
+      };
+    },
+    [annotations, send, draw, saveOne],
+  );
+
+  // ─── Search in book (rule 25): runs in the bundle over open text only ──────
+  const runSearch = useCallback(
+    (query: string) => {
+      const qy = query.trim();
+      if (!qy) {
+        setSearch(null);
+        return;
+      }
+      setSearch({ query: qy, items: [], locked_left: false, done: false });
+      send({ type: 'search', payload: { query: qy } });
+    },
+    [send],
+  );
+
+  // ─── Pay the rest (rule 61): every key, fresh links, no more chapter stops ─
+  const afterBookUnlocked = useCallback(async () => {
+    if (!files.current) return;
+    await files.current.refreshLinks().catch(() => files.current?.refreshKeys().catch(() => undefined));
+    const fresh = await refresh();
+    const a = accessMap(fresh, files.current, await files.current.licenceValid());
+    setAccess(a);
+    send({
+      type: 'access.update',
+      payload: { access: a, reload_section: true, gate_room: gateRoom.current },
+    });
+  }, [refresh, send]);
+
   // ─── Report a problem (rule 26) ────────────────────────────────────────────
   const reportProblem = useCallback(
     async (note: string) => {
@@ -666,7 +904,16 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     toggleBookmark,
     reportProblem,
     editNote,
-    goTo: (payload: { cfi: string } | { chapter_uid: string }) => send({ type: 'goTo', payload }),
+    recolor,
+    removeAnnotation,
+    search,
+    runSearch,
+    clearSearch: () => setSearch(null),
+    afterBookUnlocked,
+    elsewhere,
+    clearElsewhere: () => setElsewhere(null),
+    goTo: (payload: { cfi: string } | { chapter_uid: string } | { para_id: string; offset?: number }) =>
+      send({ type: 'goTo', payload }),
     phase,
     error,
     manifest,

@@ -327,6 +327,7 @@ export function SelectionBar({
   onDiscuss,
   onClub,
   onShare,
+  onDelete,
 }: {
   y: number;
   placement: 'above' | 'below' | 'docked';
@@ -336,8 +337,10 @@ export function SelectionBar({
   onColor: (c: HighlightColor) => void;
   onNote: () => void;
   onDiscuss: () => void;
-  onClub: () => void;
-  onShare: () => void;
+  onClub?: () => void;
+  onShare?: () => void;
+  /** Tap on an existing highlight (rule 36): the same bar with Delete in place of Club and Share. */
+  onDelete?: () => void;
 }) {
   const { s, c } = useTheme();
   const btn = (icon: IconName, label: string, onPress: () => void) => (
@@ -365,7 +368,7 @@ export function SelectionBar({
   return (
     <View
       accessibilityRole="toolbar"
-      accessibilityLabel="Selected text"
+      accessibilityLabel={onDelete ? 'Highlight' : 'Selected text'}
       style={{
         position: 'absolute',
         left: s(12),
@@ -417,8 +420,9 @@ export function SelectionBar({
       </View>
       {btn('pen', 'Note', onNote)}
       {btn('chat', 'Discuss', onDiscuss)}
-      {btn('users', 'Club', onClub)}
-      {btn('share', 'Share', onShare)}
+      {onClub ? btn('users', 'Club', onClub) : null}
+      {onShare ? btn('share', 'Share', onShare) : null}
+      {onDelete ? btn('trash', 'Delete', onDelete) : null}
       {placement !== 'docked' && arrowX != null ? (
         <View
           style={{

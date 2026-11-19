@@ -4,11 +4,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as ScreenCapture from 'expo-screen-capture';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { percentToParagraph, timeLeftLabel } from '@arpedia/core';
-import { placeToolbar, type HighlightColor, type SelectionDetail } from '@arpedia/reader';
+import { placeToolbar, type HighlightColor, type Rect, type SelectionDetail } from '@arpedia/reader';
 import { readerHtml } from '@arpedia/reader/html';
 import { EmptyState, useTheme, useToast } from '@arpedia/ui';
 import { useBookPage, useOnline } from '../../features/03/book';
@@ -28,10 +29,12 @@ import {
 } from '../../features/04/ReaderViews';
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
 import { usePassageThread } from '../../features/04/passage';
+import { ChapterLowSheet, PayRestSheet } from '../../features/04/PaySheets';
 import {
   ChaptersSheet,
   ReaderMenuSheet,
   ReportProblemSheet,
+  SearchSheet,
   SettingsSheet,
   type ChapterRowModel,
 } from '../../features/04/ReaderSheets';
@@ -40,6 +43,7 @@ import { chapterNumber, useReader } from '../../features/04/useReader';
 const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
 const CHROME_IDLE_MS = 5000;
+const DELETE_UNDO_MS = 5000;
 const OTHER_COLORS: HighlightColor[] = ['yellow', 'green', 'pink', 'blue', 'purple', 'peach'];
 
 export default function ReaderScreen() {
@@ -64,8 +68,10 @@ export default function ReaderScreen() {
   const [sheet, setSheet] = useState<UnlockMode | 'short' | null>(null);
   const [pageH, setPageH] = useState(0);
   const [panel, setPanel] = useState<
-    'chapters' | 'settings' | 'menu' | 'report' | 'notes' | 'note' | 'discuss' | null
+    'chapters' | 'settings' | 'menu' | 'report' | 'notes' | 'note' | 'discuss' | 'search' | 'payrest' | null
   >(null);
+  // A tap on an existing highlight opens its menu where it sits (rule 36).
+  const [menuFor, setMenuFor] = useState<{ clientId: string; rect: Rect } | null>(null);
   const [reporting, setReporting] = useState<'idle' | 'busy' | 'failed'>('idle');
   // The note dialog works on a snapshot: a fresh selection, or an existing highlight (rule 36).
   const [noteFor, setNoteFor] = useState<{ sel: SelectionDetail } | { clientId: string } | null>(null);
@@ -102,7 +108,10 @@ export default function ReaderScreen() {
   }, [chrome, scrub, r.loc?.cfi]);
   const lastCfi = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (lastCfi.current && r.loc?.cfi !== lastCfi.current) setChrome(false);
+    if (lastCfi.current && r.loc?.cfi !== lastCfi.current) {
+      setChrome(false);
+      setMenuFor(null);
+    }
     lastCfi.current = r.loc?.cfi;
   }, [r.loc?.cfi]);
 
@@ -116,11 +125,18 @@ export default function ReaderScreen() {
     toast({ message: r.notice });
     r.clearNotice();
   }, [r.notice, r, toast]);
+  // Another device is ahead (rule 67): offer it; Stay is the default, so the toast just goes.
   useEffect(() => {
-    if (r.lowFor) {
-      setSheet('short');
-    }
-  }, [r.lowFor]);
+    const e = r.elsewhere;
+    if (!e) return;
+    toast({
+      message: `Continue from ${e.percent}%?${e.device ? ` (on ${e.device})` : ''}`,
+      undoLabel: 'Go',
+      duration: 8000,
+      onUndo: () => r.goTo(e.start),
+    });
+    r.clearElsewhere();
+  }, [r.elsewhere, r, toast]);
 
   const st = r.state;
   const theme = r.settings.theme;
@@ -158,6 +174,24 @@ export default function ReaderScreen() {
       ? `End of chapter ${Math.max(1, chapterNumber(st!, gateChapter.chapter_uid) - 1)}`
       : timeLeftLabel(r.loc.words_left_in_chapter);
 
+  // Screenshots and the recents preview are blocked on paid chapters, allowed in the free preview
+  // (rule 74, Q54).
+  const paidPage = !!chapter && chapter.price_credits > 0 && r.access[chapter.chapter_uid] === 'unlocked';
+  useEffect(() => {
+    if (!paidPage) return;
+    void ScreenCapture.preventScreenCaptureAsync('reader').catch(() => undefined);
+    return () => void ScreenCapture.allowScreenCaptureAsync('reader').catch(() => undefined);
+  }, [paidPage]);
+
+  // The last page of the last chapter opens the finish screen once per opening (rule 68).
+  const finished = useRef(false);
+  useEffect(() => {
+    if (!r.loc?.at_last_page_of_book || finished.current) return;
+    finished.current = true;
+    void r.syncNow();
+    router.push({ pathname: '/read/end/[id]', params: { id } });
+  }, [r.loc?.at_last_page_of_book, r, id]);
+
   // ─── Selection toolbar placement (rule 32) ────────────────────────────────
   const sel = r.selection;
   const placement = useMemo(() => {
@@ -172,6 +206,24 @@ export default function ReaderScreen() {
       margin: s(12),
     });
   }, [sel, pageH, s]);
+
+  const menuAnnotation = menuFor ? r.annotations.find((a) => a.client_id === menuFor.clientId) : null;
+  const menuPlacement = useMemo(() => {
+    if (!menuFor || !pageH) return null;
+    return placeToolbar({
+      rects: [menuFor.rect],
+      toolbar: { w: s(375) - s(24), h: s(SELBAR_HEIGHT) },
+      viewport: { w: s(375), h: pageH },
+      headerBottom: 0,
+      bottomLimit: pageH,
+      margin: s(12),
+    });
+  }, [menuFor, pageH, s]);
+  const deleteAnnotation = async (clientId: string) => {
+    setMenuFor(null);
+    const restore = await r.removeAnnotation(clientId);
+    if (restore) toast({ message: 'Highlight deleted', onUndo: restore, duration: DELETE_UNDO_MS });
+  };
 
   const colors = useMemo(
     () =>
@@ -329,16 +381,18 @@ export default function ReaderScreen() {
               void r.onMessage(e.nativeEvent.data, {
                 onTap: (zone) => {
                   if (zone !== 'center') return;
+                  if (menuFor) return setMenuFor(null);
                   if (r.selection) return r.clearSelection();
                   setChrome((v) => !v);
                 },
                 onMarker: (para) => startDiscuss(para, null),
-                onAnnotation: (aid) => {
-                  // Tap on a highlight: its note opens for adding or editing (rule 36).
+                onAnnotation: (aid, rect) => {
+                  // Tap on a highlight: colour, note, discuss, delete (rule 36).
                   const a = r.annotations.find((x) => x.id === aid);
                   if (!a || a.kind === 'bookmark') return;
-                  setNoteFor({ clientId: a.client_id });
-                  setPanel('note');
+                  r.clearSelection();
+                  setChrome(false);
+                  setMenuFor({ clientId: a.client_id, rect });
                 },
               })
             }
@@ -395,7 +449,7 @@ export default function ReaderScreen() {
             offline={!online}
             autoUnlock={autoUnlock}
             onUnlock={() => void r.unlockChapter(gateChapter.chapter_uid, 'tap')}
-            onPayRest={() => setSheet('all')}
+            onPayRest={() => (st.paid_credits > 0 ? setPanel('payrest') : setSheet('all'))}
             onAuto={(v) => {
               setAutoUnlockLocal(v);
               void r.changeSetting('auto_unlock', v);
@@ -432,6 +486,39 @@ export default function ReaderScreen() {
             }}
             onClub={soon}
             onShare={soon}
+          />
+        ) : null}
+        {menuAnnotation && menuPlacement && menuFor ? (
+          <SelectionBar
+            y={menuPlacement.y}
+            placement={menuPlacement.kind}
+            arrowX={
+              menuPlacement.kind === 'docked'
+                ? null
+                : Math.min(
+                    s(375) - s(24) - s(16),
+                    Math.max(s(16), menuFor.rect.x + menuFor.rect.w / 2 - s(12)),
+                  )
+            }
+            colors={[menuAnnotation.color, ...OTHER_COLORS.filter((c) => c !== menuAnnotation.color)].slice(
+              0,
+              3,
+            )}
+            current={menuAnnotation.color}
+            onColor={(c) => {
+              setMenuFor(null);
+              void r.recolor(menuAnnotation.client_id, c);
+            }}
+            onNote={() => {
+              setMenuFor(null);
+              setNoteFor({ clientId: menuAnnotation.client_id });
+              setPanel('note');
+            }}
+            onDiscuss={() => {
+              setMenuFor(null);
+              startDiscuss(menuAnnotation.start_para_id, menuAnnotation.quote);
+            }}
+            onDelete={() => void deleteAnnotation(menuAnnotation.client_id)}
           />
         ) : null}
       </View>
@@ -542,7 +629,7 @@ export default function ReaderScreen() {
                   router.push({ pathname: '/book/[id]/about', params: { id } });
                 },
               },
-              { key: 'search', title: 'Search in book', chevron: true, onPress: soon },
+              { key: 'search', title: 'Search in book', chevron: true, onPress: () => setPanel('search') },
               { key: 'room', title: 'Book room', chevron: true, onPress: soon },
               { key: 'share', title: 'Share this book', chevron: true, onPress: soon },
               {
@@ -571,6 +658,51 @@ export default function ReaderScreen() {
                 },
                 () => setReporting('failed'),
               );
+            }}
+          />
+          <SearchSheet
+            open={panel === 'search'}
+            onClose={() => setPanel(null)}
+            onSearch={r.runSearch}
+            result={r.search}
+            label={chapterLabel}
+            onHit={(hit) => {
+              setPanel(null);
+              r.goTo({ cfi: hit });
+            }}
+          />
+          <PayRestSheet
+            st={st}
+            open={panel === 'payrest'}
+            onClose={() => setPanel(null)}
+            onPaid={(res) => {
+              setPanel(null);
+              void r.afterBookUnlocked();
+              toast({
+                message:
+                  res.status === 'already_unlocked'
+                    ? 'You already have this book. Nothing was charged.'
+                    : `Whole book unlocked · ${res.balance.toLocaleString('en-NG')} credits left`,
+              });
+            }}
+            onShort={() => {
+              setPanel(null);
+              setSheet('short');
+            }}
+          />
+          <ChapterLowSheet
+            st={st}
+            chapterUid={r.lowFor}
+            onClose={() => {
+              r.clearLow();
+              void r.refresh();
+            }}
+            // Top-ups are flow 09 (s-pack-sheet); until then the button says so.
+            onTopUp={soon}
+            onLibrary={() => {
+              r.clearLow();
+              void r.syncNow();
+              router.replace('/(tabs)/library');
             }}
           />
           <NotesSheet
@@ -615,10 +747,9 @@ export default function ReaderScreen() {
         <UnlockSheet
           book={book.data}
           open={sheet}
-          need={r.lowFor ? (st?.chapters.find((c) => c.chapter_uid === r.lowFor)?.price_credits ?? 0) : 0}
+          need={st?.remaining ?? 0}
           onClose={() => {
             setSheet(null);
-            r.clearLow();
             void r.refresh();
           }}
           onRead={() => setSheet(null)}
