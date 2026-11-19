@@ -161,7 +161,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                           </div>
                         </td>
                         <td className="n">{dash}</td>
-                        <td className="n">{`${num(r.hours)} h`}</td>
+                        <td className="n">{r.hours > 0 ? `${num(r.hours)} h` : dash}</td>
                         <td className="n">{count(r.unlocks)}</td>
                         <td className="n">{dash}</td>
                         <td className="n">{dash}</td>

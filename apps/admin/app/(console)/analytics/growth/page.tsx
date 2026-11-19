@@ -93,7 +93,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
                     <div key={s.key} className="fn">
                       <span>{s.label}</span>
                       <span>
-                        <i className="bar" style={{ '--v': `${(100 * s.n) / top}%` } as CSSProperties} />
+                        <i className="bar" style={{ '--v': `${(100 * s.n) / top}%`, display: 'block' } as CSSProperties} />
                       </span>
                       <b>{num(s.n)}</b>
                       <small>{i === 0 ? '100%' : pct(s.n, steps[i - 1]!.n)}</small>

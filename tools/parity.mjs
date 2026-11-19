@@ -637,6 +637,10 @@ try {
       emails: { path: '/emails', as: 'amaka@arpedia.africa' },
       'email-template': { path: '/emails/payout_sent', as: 'amaka@arpedia.africa' },
       exports: { path: '/exports', as: 'amaka@arpedia.africa' },
+      // Insights at 30 days as in the prototype; reading charts stay empty until flow 04 merges.
+      analytics: { path: '/analytics?p=30', as: 'amaka@arpedia.africa' },
+      'analytics-growth': { path: '/analytics/growth?p=30', as: 'amaka@arpedia.africa' },
+      'analytics-reading': { path: '/analytics/reading?p=30', as: 'amaka@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];
