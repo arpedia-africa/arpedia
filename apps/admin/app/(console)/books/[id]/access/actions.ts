@@ -69,7 +69,13 @@ export async function setBookPrice(
 }
 
 /** Override the free preview (5–25%) or remove it (null). The new cut goes live when the rebuild finishes. */
-export async function setPreview(bookId: string, percent: number | null, reason: string): Promise<Result> {
+export async function setPreview(
+  bookId: string,
+  percent: number | null,
+  reason: string,
+  /** The revision's own preview, which applies again when the override is removed. */
+  defaultPercent: number,
+): Promise<Result> {
   if (!reason.trim()) return { ok: false, error: 'Add a reason. It goes in the audit log.' };
   if (percent !== null && (!Number.isFinite(percent) || percent < 5 || percent > 25))
     return { ok: false, error: 'Preview must be between 5% and 25%.' };
@@ -88,7 +94,7 @@ export async function setPreview(bookId: string, percent: number | null, reason:
     ok: true,
     message:
       percent === null
-        ? 'Preview back to 10%. Readers see it once the preview is rebuilt.'
+        ? `Preview back to ${defaultPercent}%. Readers see it once the preview is rebuilt.`
         : `Preview set to ${percent}%. Readers see it once the preview is rebuilt; anyone already past it is not affected.`,
   };
 }

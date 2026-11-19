@@ -187,6 +187,8 @@ export function UnlockSheet({
         onClose();
       } else if (code === 'rate_limited') {
         setError('That’s a lot of taps. Wait a minute, then try again.');
+      } else if (code === 'own_book') {
+        setError('This is your own book, so you can’t spend credits on it. Nothing was charged.');
       } else {
         setError('Something went wrong. Nothing was charged. Try again.');
       }

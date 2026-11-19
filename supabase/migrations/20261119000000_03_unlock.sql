@@ -458,6 +458,10 @@ begin
   end if;
 
   v_book := public._buyable_book(p_book);
+  -- Authors never pay themselves (credits spent would turn into their own earnings).
+  if v_book.author_id = v_user then
+    perform public._raise('own_book');
+  end if;
   if public._owns_book(v_user, p_book) then
     select id into v_ent from public.entitlements
     where user_id = v_user and book_id = p_book and scope = 'book' and revoked_at is null;
@@ -510,6 +514,9 @@ begin
   end if;
 
   v_book := public._buyable_book(p_book);
+  if v_book.author_id = v_user then
+    perform public._raise('own_book');
+  end if;
   if p_recipient is null or p_recipient = v_user
      or not exists (select 1 from public.profiles where id = p_recipient and deleted_at is null) then
     perform public._raise('bad_recipient');
@@ -824,6 +831,9 @@ language sql stable security definer set search_path = '' as $$
   from public.books b
   left join public.reading_progress p on p.book_id = b.id and p.user_id = auth.uid()
   where b.id = p_book and auth.uid() is not null
+    -- Same visibility as get_book_about.
+    and (b.status in ('live', 'scheduled')
+         or (public._owns_book(auth.uid(), p_book) and b.access_removed_at is null))
 $$;
 
 -- ─── Reviews ────────────────────────────────────────────────────────────────
@@ -1075,7 +1085,9 @@ begin
           format('Preview %s%% → %s', coalesce(b.preview_override_percent::text, 'default'),
                  coalesce(p_percent::text || '%', 'default')) || ': ' || btrim(p_reason), auth.uid());
   perform pgmq.send('book_verify', jsonb_build_object('kind', 'preview_rebuild', 'book_id', p_book,
-    'revision_id', b.current_revision_id, 'percent', coalesce(p_percent, 10)));
+    'revision_id', b.current_revision_id,
+    'percent', coalesce(p_percent,
+                        (select preview_percent from public.book_revisions where id = b.current_revision_id), 10)));
   perform public.write_audit('books', 'book.preview_override', 'book', p_book::text, b.title,
     format('Preview %s → %s', coalesce(b.preview_override_percent::text || '%', 'default'),
            coalesce(p_percent::text || '%', 'default')),

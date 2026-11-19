@@ -80,7 +80,8 @@ export function AccessOverrides({
   };
 
   const savePreview = async () => {
-    const r = await setPreview(bookId, pctNum === 10 ? null : pctNum, pctReason);
+    // Back to the revision's own preview removes the override.
+    const r = await setPreview(bookId, pctNum === previewPercent ? null : pctNum, pctReason, previewPercent);
     if (r.ok) setPctReason('');
     return r;
   };
@@ -169,7 +170,7 @@ export function AccessOverrides({
                     onChange={e => setPctReason(e.target.value)}
                   />
                 </div>
-                <span className="hint">5% to 25%. Leave at 10% to keep the default</span>
+                <span className="hint">{`5% to 25%. Leave at ${previewPercent}% to keep the default`}</span>
               </div>
             </div>
           </div>

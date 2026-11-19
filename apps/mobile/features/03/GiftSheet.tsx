@@ -28,6 +28,8 @@ function spendMessage(code: string): string {
       return 'They already have this book. Nothing was charged.';
     case 'rate_limited':
       return 'That’s a lot of taps. Wait a minute, then try again.';
+    case 'own_book':
+      return 'This is your own book, so you can’t spend credits on it. Nothing was charged.';
     case 'message_too_long':
       return 'Keep the message to 140 characters.';
     default:

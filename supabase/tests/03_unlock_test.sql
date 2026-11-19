@@ -2,7 +2,7 @@
 -- rows, and admin_set_book_price.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(61);
 
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 reader (plan, 200 credits), 2 reader (no plan, 10), 3 author, 4 finance, 5 reader (paygo),
@@ -17,7 +17,8 @@ insert into public.staff_roles (user_id, role) values
   ('30300000-0000-4000-a000-000000000007', 'publisher');
 
 insert into public.books (id, author_id, title, genres, status) values
-  ('30300000-0000-4000-c000-000000000001', '30300000-0000-4000-a000-000000000003', 'Test Book', '{Fiction}', 'live');
+  ('30300000-0000-4000-c000-000000000001', '30300000-0000-4000-a000-000000000003', 'Test Book', '{Fiction}', 'live'),
+  ('30300000-0000-4000-c000-000000000002', '30300000-0000-4000-a000-000000000003', 'Draft Book', '{Fiction}', 'draft');
 insert into public.book_revisions (id, book_id, revision_no, status, words, pages, price_credits, preview_percent,
   free_through_ord)
 values ('30300000-0000-4000-d000-000000000001', '30300000-0000-4000-c000-000000000001', 1, 'live', 50000, 200, 100,
@@ -172,6 +173,13 @@ select is((select credits from public.tips where author_id = '30300000-0000-4000
   'author sees the tip');
 select throws_ok($$select public.tip_author('30300000-0000-4000-c000-000000000001', 20, null, 'tip-key-own1')$$,
   'P0001', 'own_book', 'authors cannot tip themselves');
+select throws_ok($$select public.unlock_book('30300000-0000-4000-c000-000000000001', 100, 'unlock-key-own1')$$,
+  'P0001', 'own_book', 'authors cannot buy their own book');
+select throws_ok($$select public.gift_book('30300000-0000-4000-c000-000000000001', '30300000-0000-4000-a000-000000000006',
+  null, 100, 'gift-key-own1')$$, 'P0001', 'own_book', 'authors cannot gift their own book');
+select pg_temp.as_user('30300000-0000-4000-a000-000000000001');
+select is(public.get_book_discussion('30300000-0000-4000-c000-000000000002'), null,
+  'discussion of a draft book is hidden');
 
 -- ─── Reviews: 95% rule ──────────────────────────────────────────────────────
 select pg_temp.as_user('30300000-0000-4000-a000-000000000002');
