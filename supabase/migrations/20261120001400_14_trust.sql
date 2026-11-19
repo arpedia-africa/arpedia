@@ -1868,7 +1868,7 @@ begin
   end if;
   insert into public.credit_returns (ledger_id, user_id, book_id, chapter_id, credits, reason, requested_by, state)
   values (v_first, c.user_id, c.book_id, c.chapter_id, c.credits, p_reason, v_me,
-          case when v_pending then 'pending_approval' else 'done' end)
+          (case when v_pending then 'pending_approval' else 'done' end)::public.credit_return_state)
   returning id into v_id;
   if not v_pending then
     perform public._do_credit_return(v_id, v_me);

@@ -4,7 +4,7 @@
 -- idempotency, author earning, no double return); claims; help; sanction expiry.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(77);
 
 create function pg_temp.as_user(p uuid) returns void language plpgsql as $$
 begin
@@ -23,6 +23,10 @@ begin
   perform set_config('role', 'service_role', true);
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
 end $$;
+-- Staff never read `reports` directly (only through the admin RPCs), so tests look ids up as owner.
+create function pg_temp.rid(p_content uuid) returns uuid language sql security definer as $$
+  select id from public.reports where content_id = p_content order by created_at limit 1
+$$;
 create function pg_temp.as_owner() returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims', '', true);
@@ -130,14 +134,14 @@ select is((select severity::text from public.admin_list_reports() limit 1), 'hig
 select is((select reporters from public.admin_list_reports() where content_id = '14000000-0000-4000-e000-000000000001'), 4,
   'reporters are counted per item');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000005');
-select throws_ok($$ select public.staff_decide_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000001' limit 1), 'keep') $$,
+select throws_ok($$ select public.staff_decide_report(pg_temp.rid('14000000-0000-4000-e000-000000000001'), 'keep') $$,
   '42501', null, 'Support cannot decide reports');
-select lives_ok($$ select public.escalate_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000002' limit 1)) $$,
+select lives_ok($$ select public.escalate_report(pg_temp.rid('14000000-0000-4000-e000-000000000002')) $$,
   'Support can escalate');
 
 -- ─── Keep restores; a second decider is refused ─────────────────────────────
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select lives_ok($$ select public.staff_decide_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000001' limit 1), 'keep') $$,
+select lives_ok($$ select public.staff_decide_report(pg_temp.rid('14000000-0000-4000-e000-000000000001'), 'keep') $$,
   'a moderator keeps the message');
 select pg_temp.as_owner();
 select is((select state::text from public.messages where id = '14000000-0000-4000-e000-000000000001'), 'visible',
@@ -145,14 +149,14 @@ select is((select state::text from public.messages where id = '14000000-0000-400
 select is((select count(*)::int from public.reports where content_id = '14000000-0000-4000-e000-000000000001'
              and status = 'resolved' and outcome = 'dismissed'), 4, 'Keep closes every report as dismissed');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000002');
-select throws_ok($$ select public.staff_decide_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000001' limit 1), 'remove', null, null, 'Spam') $$,
+select throws_ok($$ select public.staff_decide_report(pg_temp.rid('14000000-0000-4000-e000-000000000001'), 'remove', null, null, 'Spam') $$,
   '40001', 'already_decided:Zainab Mod', 'a second moderator sees who already decided');
 
 -- ─── Remove and mute 7 days ─────────────────────────────────────────────────
 select pg_temp.as_user('14000000-0000-4000-a000-000000000001');
 select lives_ok($$ select public.create_report('message', '14000000-0000-4000-e000-000000000003', 'harassment') $$, 'report an insult');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select is((public.staff_decide_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000003'),
+select is((public.staff_decide_report(pg_temp.rid('14000000-0000-4000-e000-000000000003'),
   'action', 'mute', 7, 'Harassment', 'Second time', 'We removed your message for harassment.') ->> 'outcome'), 'actioned',
   'Remove and mute 7 days');
 select pg_temp.as_owner();
@@ -176,12 +180,12 @@ select is((public.persist_messages(jsonb_build_array(jsonb_build_object('group_i
 select pg_temp.as_user('14000000-0000-4000-a000-000000000001');
 select lives_ok($$ select public.create_report('dm', '14000000-0000-4000-e000-000000000004', 'spam') $$, 'report a DM');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select is(jsonb_array_length(public.admin_get_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000004'))
+select is(jsonb_array_length(public.admin_get_report(pg_temp.rid('14000000-0000-4000-e000-000000000004'))
   -> 'snapshot' -> 'context'), 1, 'staff see the reported DM thread from the snapshot');
 select pg_temp.as_owner();
 select ok(exists (select 1 from public.audit_log where action = 'report.view_dm'), 'opening a reported DM is audited');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select lives_ok($$ select public.staff_decide_report((select id from public.reports where content_id = '14000000-0000-4000-e000-000000000004'),
+select lives_ok($$ select public.staff_decide_report(pg_temp.rid('14000000-0000-4000-e000-000000000004'),
   'action', 'suspend', 30, 'Scam') $$, 'suspend 30 days');
 select pg_temp.as_owner();
 select ok((select banned_until > now() + interval '29 days' from auth.users where id = '14000000-0000-4000-a000-000000000006'),
@@ -191,7 +195,7 @@ select ok((select banned_until > now() + interval '29 days' from auth.users wher
 select pg_temp.as_user('14000000-0000-4000-a000-000000000002');
 select lives_ok($$ select public.create_report('profile', '14000000-0000-4000-a000-000000000004', 'impersonation') $$, 'report a profile');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select is((public.staff_decide_report((select id from public.reports where content_type = 'profile'), 'action', 'ban', null, 'Impersonation')
+select is((public.staff_decide_report(pg_temp.rid('14000000-0000-4000-a000-000000000004'), 'action', 'ban', null, 'Impersonation')
   ->> 'ban_pending'), 'true', 'a ban waits for a Super admin');
 select throws_ok($$ select public.confirm_ban((select id from public.moderation_actions where action = 'ban')) $$,
   '42501', null, 'a moderator cannot confirm a ban');
