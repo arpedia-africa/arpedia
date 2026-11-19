@@ -3,7 +3,7 @@
 -- preferences and deduplicates; Home, Top 10, Explore and search read paths.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(49);
 
 -- Seed people: Ngozi (reader), Tolu (author), Tunde (Publisher), Kemi D. (Analyst).
 create function pg_temp.as_user(uid text) returns void
@@ -140,6 +140,15 @@ select ok(public.search('harmatan') -> 'books' @> jsonb_build_array(jsonb_build_
 select ok((select bool_and(char_length(x ->> 'snippet') <= 120) from jsonb_array_elements(public.search('grace') -> 'books') x
   where x ->> 'snippet' is not null), 'snippets are at most 120 characters');
 select is(public.get_search_home() -> 'trending' -> 0 ->> 'query', 'grace', 'trending searches ranked by searchers');
+select is(jsonb_array_length(public.search('%%') -> 'books'), 0, '% and _ in a query are not wildcards');
+select ok(jsonb_array_length(public.suggest('gr')) <= 8, 'at most 8 suggestions');
+select lives_ok($$select public.log_shelf_taps(
+  '[{"section_key":"trending","position":1},{"section_key":"trending","position":1}]')$$,
+  'a batch with the same shelf position twice is summed');
+reset role;
+insert into public.banned_tags (word) values ('c++'), ('(');
+set local role authenticated;
+select lives_ok($$select public.get_search_home()$$, 'banned words with regex characters do not break Search home');
 
 -- ─── Requests fulfilled on publish ──────────────────────────────────────────
 reset role;
