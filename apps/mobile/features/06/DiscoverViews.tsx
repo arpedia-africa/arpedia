@@ -91,6 +91,7 @@ export function DiscoverHero({
       barBack
       bar={<IconButton icon="back" label="Back" onPress={onBack} color={c.onOrg} />}
       title="Discover communities"
+      titleOneLine
     >
       <SearchBox value={query} onChange={onQuery} placeholder="Search communities" />
     </Hero>
@@ -165,7 +166,7 @@ export function DiscoverRow({
         <Text size={14.5} weight={600} ellipsis style={{ lineHeight: s(14.5) * 1.3 }}>
           {row.name}
         </Text>
-        <Text size={12} color="ink3" oneLine style={{ lineHeight: s(12) * 1.45 }}>
+        <Text size={12} color="ink3" style={{ lineHeight: s(12) * 1.45 }}>
           {row.type}
         </Text>
         {row.description ? (

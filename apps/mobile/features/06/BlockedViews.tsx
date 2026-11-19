@@ -37,7 +37,7 @@ export function BlockedRow({
         <Text size={14.5} weight={600} ellipsis style={{ lineHeight: s(14.5) * 1.3 }}>
           {name}
         </Text>
-        <Text size={12.5} color="ink3" ellipsis style={{ lineHeight: s(12.5) * 1.35 }}>
+        <Text size={12.5} color="ink3" style={{ lineHeight: s(12.5) * 1.35 }}>
           {sub}
         </Text>
       </View>

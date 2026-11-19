@@ -120,7 +120,7 @@ export function ComPin({
           </Text>
         ) : null}
       </View>
-      <Icon name="chev" size="s" color={c.ink3} />
+      <Icon name="chev" size="s" color={c.ink} />
     </Press>
   );
 }
@@ -375,7 +375,6 @@ export function Composer({
           backgroundColor: c.org,
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: canSend ? 1 : 0.5,
         }}
       >
         <Icon name="send" size="s" color={c.onOrg} />
