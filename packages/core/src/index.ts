@@ -11,4 +11,5 @@ export * from './studio';
 export * from './unlock';
 export * from './credits';
 export * from './payments';
+export * from './earnings';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
