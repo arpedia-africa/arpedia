@@ -11,11 +11,11 @@ import {
   positionToPercent,
   timeLeftLabel,
   wordsLeftInChapter,
-  type Manifest,
+  type ReadingManifest,
 } from './reading';
 
 // 10,000 words: chapter One 500 (free), Two 3,000 (holds the cut at c1p0), Three 3,000, Four 3,500.
-const m: Manifest = {
+const m: ReadingManifest = {
   book_id: 'b',
   revision_id: 'r',
   total_words: 10000,

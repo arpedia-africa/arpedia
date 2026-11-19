@@ -860,6 +860,24 @@ begin
   update public.devices set last_seen_at = now() where id = p_device;
 end $$;
 
+-- Service role (Worker): the wrapped keys for K_free and the given chapters, and the revision's
+-- files. Only called after entitled_chapters (with the reader's JWT) said which chapters.
+create function public.worker_key_bundle(p_revision uuid, p_chapter_uids uuid[]) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'revision_id', r.id, 'book_id', r.book_id, 'artifact_prefix', r.artifact_prefix,
+    'manifest_key', r.manifest_key,
+    'keys', (select coalesce(jsonb_agg(jsonb_build_object('chapter_uid', k.chapter_uid,
+                                         'wrapped_key', encode(k.wrapped_key, 'base64'))), '[]')
+             from public.chapter_keys k
+             where k.revision_id = r.id and k.revoked_at is null
+               and (k.chapter_uid is null or k.chapter_uid = any (p_chapter_uids))),
+    'chapters', (select coalesce(jsonb_agg(jsonb_build_object('chapter_uid', c.chapter_uid, 'ord', c.ord,
+                                             'free_file', c.free_file, 'full_file', c.full_file) order by c.ord), '[]')
+                 from public.chapters c where c.revision_id = r.id))
+  from public.book_revisions r where r.id = p_revision
+$$;
+
 -- ─── Row level security ─────────────────────────────────────────────────────
 alter table public.reading_sessions enable row level security;
 alter table public.annotations enable row level security;
@@ -907,7 +925,7 @@ begin
         'upsert_annotations', 'pull_annotations', '_passage_reached', 'get_passage_counts',
         '_passage_comment_json', 'get_passage_thread', 'post_passage_comment', 'react_passage_comment',
         'moderate_passage_comment', 'report_book_problem', 'log_reading_session', 'set_reader_setting',
-        'entitled_chapters', 'worker_register_device', 'worker_record_license')
+        'entitled_chapters', 'worker_register_device', 'worker_record_license', 'worker_key_bundle')
   loop
     execute format('revoke all on function %s from public, anon, authenticated, service_role', f.sig);
   end loop;
@@ -940,5 +958,6 @@ grant execute on function public.moderate_passage_comment(uuid, text, text) to a
 -- The api Worker (service role).
 grant execute on function
   public.worker_register_device(uuid, text, text),
-  public.worker_record_license(uuid, uuid, uuid, uuid, timestamptz)
+  public.worker_record_license(uuid, uuid, uuid, uuid, timestamptz),
+  public.worker_key_bundle(uuid, uuid[])
   to service_role;
