@@ -607,7 +607,7 @@ language plpgsql stable security definer set search_path = '' as $$
 declare uid uuid := auth.uid();
 begin
   if not (public.is_group_member(p_room, uid)
-          and exists (select 1 from public.reading_rooms where group_id = p_room)) then
+          and exists (select 1 from public.reading_rooms rr where rr.group_id = p_room)) then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
   return query
@@ -635,7 +635,7 @@ returns table (
 )
 language plpgsql stable security definer set search_path = '' as $$
 begin
-  if not exists (select 1 from public.reading_rooms where group_id = p_room) then
+  if not exists (select 1 from public.reading_rooms rr where rr.group_id = p_room) then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
   return query
