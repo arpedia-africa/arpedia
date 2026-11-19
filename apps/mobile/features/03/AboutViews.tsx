@@ -156,7 +156,7 @@ export function DiscussionLockedView({
   return (
     <View style={{ paddingBottom: s(28) }}>
       <View style={{ alignItems: 'center', gap: s(10), paddingVertical: s(36), paddingHorizontal: s(28) }}>
-        <Text variant="display" size={19} weight={800} center>
+        <Text variant="display" size={19} weight={800} center style={{ lineHeight: s(19) * 1.45 }}>
           Finish the book to join in
         </Text>
         <Text size={13.5} color="ink2" center style={{ maxWidth: s(250) }}>

@@ -135,7 +135,7 @@ function ArrowHead({ title, label, onPress }: { title: string; label: string; on
         paddingBottom: s(12),
       }}
     >
-      <Text variant="h3" oneLine style={{ flex: 1, marginTop: s(36 - 19.6), lineHeight: s(18) * 1.45 }}>
+      <Text variant="h3" oneLine style={{ flex: 1, marginTop: s(36 - 19.6 - 8), lineHeight: s(18) * 1.45 }}>
         {title}
       </Text>
       <Arrow label={label} onPress={onPress} />
@@ -234,7 +234,9 @@ function Option({
   onPress?: () => void;
   disabled?: boolean;
 }) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
+  // .bk-opt draws its ring as an inset shadow: the border sits inside the 14/14/12 padding.
+  const ring = all ? bw(1.5) : bw(1);
   return (
     <Press
       onPress={onPress}
@@ -244,13 +246,13 @@ function Option({
       style={{
         flex: 1,
         gap: s(4),
-        paddingTop: s(14),
-        paddingHorizontal: s(14),
-        paddingBottom: s(12),
+        paddingTop: s(14) - ring,
+        paddingHorizontal: s(14) - ring,
+        paddingBottom: s(12) - ring,
         borderRadius: s(16),
         overflow: 'hidden',
         backgroundColor: all ? c.orgTint2 : c.white,
-        borderWidth: all ? s(1.5) : 1,
+        borderWidth: ring,
         borderColor: all ? rgba(c.orgRgb, 0.55) : c.line,
         opacity: disabled ? 0.55 : 1,
       }}
@@ -259,7 +261,10 @@ function Option({
       <Text size={12.5} weight={500} color="ink2" oneLine>
         {label}
       </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+      {/* `b` line box is 24 × 1.1; the display face's font padding would otherwise make it taller */}
+      <View
+        style={{ flexDirection: 'row', alignItems: 'baseline', height: s(24) * 1.1, overflow: 'visible' }}
+      >
         <Text
           variant="display"
           size={24}
@@ -270,7 +275,13 @@ function Option({
         >
           {value}
         </Text>
-        <Text size={12.5} weight={600} color="ink2" oneLine style={{ marginLeft: s(4) }}>
+        <Text
+          size={12.5}
+          weight={600}
+          color="ink2"
+          oneLine
+          style={{ marginLeft: s(4), lineHeight: s(24) * 1.1 }}
+        >
           {unit}
         </Text>
       </View>
@@ -301,7 +312,7 @@ function Stat({
     <>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(3) }}>
         {star ? (
-          <Text size={16} weight={800} color={c.star}>
+          <Text size={16} weight={800}>
             ★
           </Text>
         ) : null}

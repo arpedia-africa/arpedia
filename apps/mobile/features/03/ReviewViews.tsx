@@ -4,7 +4,6 @@ import { REVIEW_MAX } from '@arpedia/core';
 import {
   Avatar,
   Btn,
-  Chip,
   Field,
   Icon,
   IconButton,
@@ -192,7 +191,8 @@ export function ReviewsView({
   const { s } = useTheme();
   return (
     <View style={{ paddingBottom: s(28) }}>
-      <View style={{ paddingTop: s(24) }}>
+      {/* .pt24 loses to .bk-rating{padding:0 16px} (later rule): the summary sits right under the band */}
+      <View>
         <RatingSummary
           rating={rating}
           countLabel={`(${n(count)} ${count === 1 ? 'review' : 'reviews'})`}
@@ -208,13 +208,12 @@ export function ReviewsView({
         contentContainerStyle={{ gap: s(8), paddingHorizontal: s(16) }}
         style={{ paddingTop: s(16), flexGrow: 0 }}
       >
-        <Chip label="All" icon="star" state={filter === null ? 'on' : 'off'} onPress={() => onFilter(null)} />
+        <StarChip label="All" on={filter === null} onPress={() => onFilter(null)} />
         {[5, 4, 3, 2, 1].map((st) => (
-          <Chip
+          <StarChip
             key={st}
             label={String(st)}
-            icon="star"
-            state={filter === st ? 'on' : 'off'}
+            on={filter === st}
             // tapping the active chip clears it (rule 42)
             onPress={() => onFilter(filter === st ? null : st)}
           />
@@ -236,18 +235,21 @@ export function ReviewsView({
 
 /** `.star-input`: five 44px star buttons. */
 function StarInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const { c } = useTheme();
+  const { c, s } = useTheme();
   return (
     <View style={{ flexDirection: 'row' }} accessibilityLabel={`${value} of 5 stars`}>
       {[1, 2, 3, 4, 5].map((v) => (
-        <IconButton
+        // .ib (44) with .ico.l: filled gold when chosen, outlined grey (.off) when not
+        <Press
           key={v}
-          icon="star"
-          label={`${v} star${v === 1 ? '' : 's'}`}
-          pressed={v <= value}
-          color={v <= value ? c.star : c.control}
           onPress={() => onChange(v)}
-        />
+          accessibilityRole="button"
+          accessibilityLabel={`${v} star${v === 1 ? '' : 's'}`}
+          accessibilityState={{ selected: v <= value }}
+          style={{ width: s(44), height: s(44), alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Icon name="star" size="l" color={v <= value ? c.star : '#D1D5DB'} filled={v <= value} />
+        </Press>
       ))}
     </View>
   );
@@ -278,10 +280,8 @@ export function WriteReviewView({
         placeholder="What stayed with you? (optional)"
         value={body}
         onChangeText={onBody}
-        multiline
-        numberOfLines={5}
+        rows={5}
         maxLength={REVIEW_MAX}
-        textAlignVertical="top"
         hint={`${n(body.length)} / ${n(REVIEW_MAX)}`}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(12) }}>
@@ -296,5 +296,34 @@ export function WriteReviewView({
         <Toggle value={spoiler} onChange={onSpoiler} label="Contains spoilers" />
       </View>
     </View>
+  );
+}
+
+/** `.bk-starchips .chip`: 36px pill, filled xs star, gap 4; current = night. */
+function StarChip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const { c, s } = useTheme();
+  const fg = on ? '#FFFFFF' : c.ink;
+  return (
+    <Press
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={label === 'All' ? 'All ratings' : `${label} stars`}
+      hitSlop={4}
+      style={{
+        minHeight: s(36),
+        paddingHorizontal: s(14),
+        borderRadius: 999,
+        backgroundColor: on ? c.night : c.surface,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: s(4),
+      }}
+    >
+      <Icon name="star" size="xs" color={fg} filled />
+      <Text size={13} weight={600} color={fg} oneLine>
+        {label}
+      </Text>
+    </Press>
   );
 }

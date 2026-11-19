@@ -15,6 +15,7 @@ import {
   Group,
   GroupLabel,
   Hero,
+  IconButton,
   Pill,
   TabBar,
   ThemeProvider,
@@ -398,10 +399,11 @@ function Flow03({ page }: { page: Page }) {
     case 's-write-review':
       return (
         <>
-          <BackHero
+          <Hero
+            barBack
+            bar={<CloseButton />}
             title="Rate this ebook"
             sub="Harmattan Letters · you finished it on 10 November"
-            onBack={noop}
           />
           <WriteReviewView
             stars={4}
@@ -411,6 +413,9 @@ function Flow03({ page }: { page: Page }) {
             spoiler={false}
             onSpoiler={noop}
           />
+          <Foot>
+            <Btn label="Post review" block />
+          </Foot>
         </>
       );
     case 's-book-discussion':
@@ -515,6 +520,11 @@ function PkRow({ children }: { children: React.ReactNode }) {
 }
 
 const noop = () => {};
+
+function CloseButton() {
+  const { c } = useTheme();
+  return <IconButton icon="x" label="Close" onPress={noop} color={c.onOrg} />;
+}
 
 function KitA() {
   const { s } = useTheme();
