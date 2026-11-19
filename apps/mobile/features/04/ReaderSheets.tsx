@@ -94,7 +94,7 @@ function RowBody({ title, sub, reg, ugc }: { title: string; sub?: string; reg?: 
 }
 
 /** The sheet body sits edge to edge (`.panel > .inset` / `.body`), not inside `.pb`'s padding. */
-function Flush({ children }: { children: ReactNode }) {
+export function Flush({ children }: { children: ReactNode }) {
   const { s } = useTheme();
   return <View style={{ marginHorizontal: s(-18), marginTop: s(-16) }}>{children}</View>;
 }

@@ -8,11 +8,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { percentToParagraph, timeLeftLabel } from '@arpedia/core';
-import { placeToolbar, type HighlightColor } from '@arpedia/reader';
+import { placeToolbar, type HighlightColor, type SelectionDetail } from '@arpedia/reader';
 import { readerHtml } from '@arpedia/reader/html';
 import { EmptyState, useTheme, useToast } from '@arpedia/ui';
 import { useBookPage, useOnline } from '../../features/03/book';
-import { UnlockSheet } from '../../features/03/UnlockSheet';
+import { rpcError, UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
 import {
   ChapterCard,
@@ -26,6 +26,8 @@ import {
   UnlockedToast,
   readerInk,
 } from '../../features/04/ReaderViews';
+import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
+import { usePassageThread } from '../../features/04/passage';
 import {
   ChaptersSheet,
   ReaderMenuSheet,
@@ -61,8 +63,14 @@ export default function ReaderScreen() {
   const [scrub, setScrub] = useState<number | null>(null);
   const [sheet, setSheet] = useState<UnlockMode | 'short' | null>(null);
   const [pageH, setPageH] = useState(0);
-  const [panel, setPanel] = useState<'chapters' | 'settings' | 'menu' | 'report' | null>(null);
+  const [panel, setPanel] = useState<
+    'chapters' | 'settings' | 'menu' | 'report' | 'notes' | 'note' | 'discuss' | null
+  >(null);
   const [reporting, setReporting] = useState<'idle' | 'busy' | 'failed'>('idle');
+  // The note dialog works on a snapshot: a fresh selection, or an existing highlight (rule 36).
+  const [noteFor, setNoteFor] = useState<{ sel: SelectionDetail } | { clientId: string } | null>(null);
+  const [discussFor, setDiscussFor] = useState<{ para: string; quote: string | null } | null>(null);
+  const thread = usePassageThread(id, panel === 'discuss' ? (discussFor?.para ?? null) : null);
   const book = useBookPage(id);
 
   const back = useCallback(() => {
@@ -211,6 +219,56 @@ export default function ReaderScreen() {
     return c.kind === 'chapter' ? `Chapter ${chapterNumber(st, c.chapter_uid)} · ${c.title}` : c.title;
   };
 
+  // ─── Notes sheet rows (rule 42) ───────────────────────────────────────────
+  const notesRows = useMemo(() => {
+    const out: Record<'highlight' | 'note' | 'bookmark', AnnotRowModel[]> = {
+      highlight: [],
+      note: [],
+      bookmark: [],
+    };
+    for (const a of r.annotations) {
+      out[a.kind].push({
+        id: a.client_id,
+        label: chapterLabel(a.chapter_uid),
+        excerpt: a.quote,
+        color: a.kind === 'bookmark' ? null : a.color,
+        note: a.kind === 'note' ? a.note_text : null,
+        scope: a.kind === 'note' ? 'Private' : null,
+      });
+    }
+    return out;
+    // chapterLabel reads st, which the deps cover.
+  }, [r.annotations, st]);
+  const openAnnotation = (clientId: string) => {
+    const a = r.annotations.find((x) => x.client_id === clientId);
+    setPanel(null);
+    if (!a) return;
+    const locked = a.chapter_uid && (r.access[a.chapter_uid] ?? 'locked') === 'locked';
+    // A row in a chapter that is locked now opens that chapter's first page and its card (rule 42).
+    r.goTo(locked && a.chapter_uid ? { chapter_uid: a.chapter_uid } : { cfi: a.cfi_range });
+  };
+
+  const noteAnnotation =
+    noteFor && 'clientId' in noteFor ? r.annotations.find((a) => a.client_id === noteFor.clientId) : null;
+  const noteSel = noteFor && 'sel' in noteFor ? noteFor.sel : null;
+  const startNote = () => {
+    if (!sel) return;
+    setNoteFor({ sel });
+    setPanel('note');
+  };
+  const startDiscuss = (para: string | null, quote: string | null) => {
+    if (!para) return;
+    setDiscussFor({ para, quote });
+    thread.dropPending();
+    setChrome(false);
+    setPanel('discuss');
+  };
+  const threadData = thread.q.data;
+  const threadChapter =
+    st && threadData?.chapter_ord != null ? st.chapters.find((c) => c.ord === threadData.chapter_ord) : null;
+  const threadChapterNo = st && threadChapter ? chapterNumber(st, threadChapter.chapter_uid) : null;
+  const threadCount = (threadData?.count ?? 0) + thread.pending.length;
+
   // ─── States ───────────────────────────────────────────────────────────────
   const body = () => {
     if (r.q.isError && !st) {
@@ -274,8 +332,14 @@ export default function ReaderScreen() {
                   if (r.selection) return r.clearSelection();
                   setChrome((v) => !v);
                 },
-                onMarker: () => soon(),
-                onAnnotation: () => soon(),
+                onMarker: (para) => startDiscuss(para, null),
+                onAnnotation: (aid) => {
+                  // Tap on a highlight: its note opens for adding or editing (rule 36).
+                  const a = r.annotations.find((x) => x.id === aid);
+                  if (!a || a.kind === 'bookmark') return;
+                  setNoteFor({ clientId: a.client_id });
+                  setPanel('note');
+                },
               })
             }
             javaScriptEnabled
@@ -360,8 +424,12 @@ export default function ReaderScreen() {
             colors={colors}
             current={r.settings.highlight_color}
             onColor={(c) => void r.highlight(c)}
-            onNote={soon}
-            onDiscuss={soon}
+            onNote={startNote}
+            onDiscuss={() => {
+              const quote = sel.text.slice(0, 500);
+              r.clearSelection();
+              startDiscuss(sel.para_id_start, quote);
+            }}
             onClub={soon}
             onShare={soon}
           />
@@ -412,7 +480,7 @@ export default function ReaderScreen() {
               label: 'Night',
               onPress: () => void r.changeSetting('theme', theme === 'dark' ? 'light' : 'dark'),
             },
-            { icon: 'chat', label: 'Notes', onPress: soon },
+            { icon: 'chat', label: 'Notes', onPress: () => openPanel('notes') },
             { icon: 'cog', label: 'Settings', onPress: () => openPanel('settings') },
             { icon: 'users', label: 'Room', onPress: soon },
           ]}
@@ -504,6 +572,42 @@ export default function ReaderScreen() {
                 () => setReporting('failed'),
               );
             }}
+          />
+          <NotesSheet
+            open={panel === 'notes'}
+            onClose={() => setPanel(null)}
+            rows={notesRows}
+            onRow={openAnnotation}
+          />
+          <NoteDialog
+            open={panel === 'note' && !!(noteSel || noteAnnotation)}
+            onClose={() => setPanel(null)}
+            sub={chapterLabel(noteSel?.chapter_uid ?? noteAnnotation?.chapter_uid ?? null) ?? st.book.title}
+            quote={(noteSel?.text ?? noteAnnotation?.quote ?? '').slice(0, 500)}
+            color={noteAnnotation?.color ?? r.settings.highlight_color}
+            initial={noteAnnotation?.note_text ?? ''}
+            // Sharing to a club arrives with flow 06 groups; until then the switch stays hidden.
+            club={null}
+            onSave={(text) => {
+              setPanel(null);
+              if (noteAnnotation) void r.editNote(noteAnnotation.client_id, text);
+              else if (noteSel) void r.highlight(r.settings.highlight_color, text, noteSel);
+            }}
+          />
+          <DiscussSheet
+            open={panel === 'discuss'}
+            onClose={() => setPanel(null)}
+            title={threadData ? `${threadCount} ${threadCount === 1 ? 'comment' : 'comments'}` : 'Discussion'}
+            sub={threadChapterNo ? `On this passage in chapter ${threadChapterNo}` : 'On this passage'}
+            quote={discussFor?.quote ?? null}
+            quoteSrc={threadChapterNo ? `${st.book.title} · Ch. ${threadChapterNo}` : st.book.title}
+            comments={[...(threadData?.comments ?? []), ...thread.pending]}
+            loading={thread.q.isPending}
+            error={thread.q.isError && !threadData ? rpcError(thread.q.error).code : null}
+            onRetryLoad={() => void thread.q.refetch()}
+            onSend={(body) => void thread.post(body, discussFor?.quote ?? null)}
+            onRetry={(c) => void thread.post(c.body ?? '', discussFor?.quote ?? null, c.id)}
+            onReact={(c, k) => void thread.react(c, k)}
           />
         </>
       ) : null}

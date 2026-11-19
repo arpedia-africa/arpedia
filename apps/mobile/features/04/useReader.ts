@@ -40,7 +40,7 @@ export interface UnlockedToast {
   undo_until: number;
 }
 
-interface Annotation {
+export interface Annotation {
   id: string;
   client_id: string;
   kind: 'highlight' | 'note' | 'bookmark';
@@ -496,8 +496,8 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
 
   // ─── Highlights (rules 35, 41) ─────────────────────────────────────────────
   const highlight = useCallback(
-    async (color: HighlightColor, note?: string) => {
-      const sel = selection;
+    async (color: HighlightColor, note?: string, from?: SelectionDetail) => {
+      const sel = from ?? selection;
       if (!sel || !state) return;
       const a: Annotation = {
         id: Crypto.randomUUID(),
@@ -546,6 +546,46 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
     },
     [selection, state, bookId, send],
+  );
+
+  /** Add, edit or clear the note on an existing highlight (rule 36). Last write wins (rule 43). */
+  const editNote = useCallback(
+    async (clientId: string, text: string) => {
+      const a = annotations.find((x) => x.client_id === clientId);
+      if (!a || !state) return;
+      const next: Annotation = { ...a, kind: text ? 'note' : 'highlight', note_text: text || null };
+      setAnnotations((l) => l.map((x) => (x.client_id === clientId ? next : x)));
+      send({
+        type: 'annotations.set',
+        payload: {
+          list: [
+            { id: a.id, kind: next.kind, color: a.color, cfi_range: a.cfi_range, para_id: a.start_para_id },
+          ],
+          replace: false,
+        },
+      });
+      const { error: e } = await supabase.rpc('upsert_annotations', {
+        p_batch: [
+          {
+            client_id: a.client_id,
+            book_id: bookId,
+            revision_id: state.revision.id,
+            kind: next.kind,
+            color: a.color,
+            cfi_range: a.cfi_range,
+            chapter_uid: a.chapter_uid,
+            start_para_id: a.start_para_id,
+            end_para_id: a.start_para_id,
+            quote: a.quote,
+            note_text: next.note_text,
+            visibility: 'private',
+            updated_at: new Date().toISOString(),
+          },
+        ] as never,
+      });
+      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+    },
+    [annotations, state, bookId, send],
   );
 
   // ─── Bookmarks (rule 40) ───────────────────────────────────────────────────
@@ -625,6 +665,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     pageBookmark,
     toggleBookmark,
     reportProblem,
+    editNote,
     goTo: (payload: { cfi: string } | { chapter_uid: string }) => send({ type: 'goTo', payload }),
     phase,
     error,
