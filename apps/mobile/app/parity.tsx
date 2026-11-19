@@ -64,6 +64,7 @@ import { DiscoverHero, DiscoverRow, TypeChips, type DiscoverRowView } from '../f
 import { Bubble, ComHead, ComPin, Composer, DayMarker, type BubbleView } from '../features/06/ChatViews';
 import { OptionList, ReactionRow, ReportBody } from '../features/06/SheetViews';
 import { BlockedRow } from '../features/06/BlockedViews';
+import { Flow07, FLOW07 } from '../features/07/parity';
 
 const PAGES = [
   'kit-a',
@@ -89,6 +90,10 @@ const PAGES = [
   's-msg-actions',
   's-report',
   's-blocked',
+  's-rooms',
+  's-create-room',
+  's-join-code',
+  's-room',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -169,7 +174,9 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          {FLOW06.has(page) ? (
+          {FLOW07.has(page) ? (
+            <Flow07 page={page} />
+          ) : FLOW06.has(page) ? (
             <Flow06 page={page} />
           ) : page.startsWith('s-book') || page.includes('review') ? (
             <Flow03 page={page} />
