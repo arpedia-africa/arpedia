@@ -1,0 +1,86 @@
+# Flow 10: log in as Ngozi, open Profile, set a goal of 24, open Settings, change the app colour
+# to Palm, toggle one notification, log out.
+# Needs the local stack (Supabase + api Worker) behind the app, seeded (pnpm db:reset).
+# Run: maestro test apps/mobile/.maestro/10-profile.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/10-profile.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+
+# s-profile
+- extendedWaitUntil:
+    visible: 'Profile'
+    timeout: 30000
+- tapOn:
+    text: 'Profile'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Books read'
+    timeout: 30000
+- assertVisible: 'Reading goal'
+- takeScreenshot: profile-${WIDTH}-profile
+
+# s-goal: pick 24, Set goal
+- tapOn: 'Reading goal.*'
+- extendedWaitUntil:
+    visible: 'Books this year'
+    timeout: 10000
+- tapOn: '24 books'
+- assertVisible: '24 books is about 2 a month.*'
+- takeScreenshot: profile-${WIDTH}-goal
+- tapOn: 'Set goal'
+- extendedWaitUntil:
+    visible: '.* of 24 · .*'
+    timeout: 15000
+
+# s-account
+- tapOn: 'Settings'
+- extendedWaitUntil:
+    visible: 'Edit profile'
+    timeout: 10000
+- takeScreenshot: profile-${WIDTH}-settings
+
+# s-theme-settings: Palm, Done
+- scrollUntilVisible:
+    element: 'App colour.*'
+    direction: DOWN
+- tapOn: 'App colour.*'
+- tapOn: 'Palm.*'
+- takeScreenshot: profile-${WIDTH}-colour
+- tapOn: 'Done'
+- assertVisible: 'Palm'
+
+# s-notif-prefs: turn reading reminders off
+- scrollUntilVisible:
+    element: 'Notifications.*'
+    direction: UP
+- tapOn: 'Notifications.*'
+- extendedWaitUntil:
+    visible: 'Send me'
+    timeout: 10000
+- tapOn: 'Reading reminders'
+- takeScreenshot: profile-${WIDTH}-notifications
+- back
+
+# Log out
+- scrollUntilVisible:
+    element: 'Log out'
+    direction: DOWN
+- tapOn: 'Log out'
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 15000
+- takeScreenshot: profile-${WIDTH}-logged-out
