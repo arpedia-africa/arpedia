@@ -292,12 +292,18 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid, cent
 }
 
 /* ─── Avatar ─────────────────────────────────────────────────────────────── */
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'tile' | 'xl';
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'x40' | 'x48' | 'lg' | 'person' | 'tile' | 'xl';
 const avatarDims: Record<AvatarSize, [number, number]> = {
   xs: [20, 8],
   sm: [26, 10],
   md: [36, 12],
+  /** Search suggestion rows (`.sr-sugg .av`). */
+  x40: [40, 12],
+  /** Search result rows (48px `.av`). */
+  x48: [48, 12],
   lg: [52, 17],
+  /** `.sr-person .av` (Search: authors readers look for). */
+  person: [60, 18],
   /** `.avatar-tile .av` (Home's Arpedia authors shelf). */
   tile: [64, 20],
   xl: [88, 28],

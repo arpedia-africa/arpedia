@@ -94,10 +94,12 @@ export interface PetalsProps {
   opacity?: number;
   style?: StyleProp<ViewStyle>;
   reverse?: boolean;
+  /** Petal colour instead of the theme petal (search genre tiles). */
+  fill?: string;
 }
 
 /** Sunflower petal ring that drifts (one turn per 140 s; still under reduced motion). */
-export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse }: PetalsProps) {
+export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse, fill }: PetalsProps) {
   const { c } = useTheme();
   const drift = useDrift(undefined, reverse);
   return (
@@ -106,7 +108,7 @@ export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse }: P
       style={[{ position: 'absolute', width: size, height: size, opacity }, style, drift]}
     >
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Path d={petalPath(size)} fill={rgba(c.petalRgb, alpha * c.petalK)} />
+        <Path d={petalPath(size)} fill={fill ?? rgba(c.petalRgb, alpha * c.petalK)} />
       </Svg>
     </Animated.View>
   );
