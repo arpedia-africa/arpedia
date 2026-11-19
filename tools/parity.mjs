@@ -620,6 +620,9 @@ try {
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
+      // Flow 07: seeded rooms (supabase/seeds/07_rooms.sql).
+      rooms: { path: '/community/rooms', as: 'zainab@arpedia.africa' },
+      room: { path: '/community/rooms/00000000-0000-4000-f070-000000000001', as: 'zainab@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];
