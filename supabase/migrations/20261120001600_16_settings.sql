@@ -700,6 +700,10 @@ language sql stable security definer set search_path = '' as $$
                 and (f.min_app_version is null
                      or coalesce(public._version_cmp(p_app_version, f.min_app_version) >= 0, false))), '{}')
               from public.feature_flags f),
+    -- The raw rules, so the Worker can cache one copy and resolve flags per user itself.
+    'flag_rules', (select coalesce(jsonb_agg(jsonb_build_object('key', f.key, 'enabled', f.enabled,
+                     'rollout_percent', f.rollout_percent, 'min_app_version', f.min_app_version)), '[]')
+                   from public.feature_flags f),
     'copy', (select coalesce(jsonb_object_agg(r.key, r.text), '{}') from public.remote_copy r))
 $$;
 
@@ -939,8 +943,9 @@ end $$;
 
 -- The checks Worker (cron, every minute) writes one row per service. Never a secret: key_masked
 -- is the provider's own hint (prefix and last 4), checked here.
-create function public.worker_set_integration_health(p_service text, p_status text, p_last_event_at timestamptz,
-  p_last_event_text text, p_error_rate numeric, p_error_note text default null, p_key_masked text default null)
+create function public.worker_set_integration_health(p_service text, p_status text,
+  p_last_event_at timestamptz default null, p_last_event_text text default null, p_error_rate numeric default null,
+  p_error_note text default null, p_key_masked text default null)
 returns void
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -955,6 +960,18 @@ begin
     perform public._raise('bad_service');
   end if;
 end $$;
+
+-- Payment webhooks per provider for the checks Worker: last event and the last 24 hours' failures.
+create function public.worker_payment_health() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_object_agg(x.provider, jsonb_build_object('last_at', x.last_at, 'last_type', x.last_type,
+           'total', x.total, 'failed', x.failed)), '{}')
+  from (select e.provider, max(e.received_at) as last_at,
+               (array_agg(e.event_type order by e.received_at desc))[1] as last_type,
+               count(*) filter (where e.received_at > now() - interval '24 hours') as total,
+               count(*) filter (where e.received_at > now() - interval '24 hours' and e.error is not null) as failed
+        from public.payment_events e group by e.provider) x
+$$;
 
 -- "Check all now": ask the checks Worker to run at once.
 create function public.request_integration_check() returns void
@@ -1196,6 +1213,7 @@ revoke execute on function public._perm_level(text), public._require_full(text),
   public.set_policy_accept_again(uuid, boolean), public.publish_policy(uuid, text, boolean, uuid),
   public.get_pending_policies(), public.accept_policy(uuid), public.list_integrations(),
   public.worker_set_integration_health(text, text, timestamptz, text, numeric, text, text),
+  public.worker_payment_health(),
   public.request_integration_check(), public.rotate_integration_key(text, uuid), public.get_my_account(),
   public.update_my_staff_profile(text, text), public.set_my_alert_pref(text, boolean),
   public.sign_out_my_sessions(uuid), public.list_audit(uuid, text, text, timestamptz, timestamptz, text, integer, integer),
@@ -1223,5 +1241,6 @@ grant execute on function public.verify_stepup(text, text), public.request_appro
 grant execute on function public.get_app_config(text, uuid), public._version_cmp(text, text),
   public._rollout_bucket(uuid, text),
   public.worker_set_integration_health(text, text, timestamptz, text, numeric, text, text),
+  public.worker_payment_health(),
   public.apply_pricing_rules()
   to service_role;

@@ -4,6 +4,7 @@ import type { AppEnv, Env } from './env';
 import { routes } from './routes';
 import { drainPayments } from './routes/09/payments';
 import { consumeQueue } from './routes/12/pipeline';
+import { checkIntegrations } from './routes/16/integrations';
 
 const app = new Hono<AppEnv>();
 
@@ -29,9 +30,11 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  // Every minute: the book pipeline's safety net (flow 12) and outbound payment calls (flow 09).
+  // Every minute: the book pipeline's safety net (flow 12), outbound payment calls (flow 09) and
+  // integration health checks (flow 16).
   scheduled: (_event, env, ctx) => {
     ctx.waitUntil(consumeQueue(env));
     ctx.waitUntil(drainPayments(env));
+    ctx.waitUntil(checkIntegrations(env));
   },
 } satisfies ExportedHandler<Env>;
