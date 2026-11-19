@@ -40,7 +40,9 @@ describe('chapter split into parts', () => {
     ]);
     expect(parts.filter((p) => p.parentOrd === 0)).toHaveLength(3);
     expect(parts.filter((p) => p.parentOrd === 0).every((p) => p.kind === 'part')).toBe(true);
-    expect(parts.filter((p) => p.parentOrd === 1)).toEqual([expect.objectContaining({ kind: 'chapter', words: 1000 })]);
+    expect(parts.filter((p) => p.parentOrd === 1)).toEqual([
+      expect.objectContaining({ kind: 'chapter', words: 1000 }),
+    ]);
   });
 });
 
@@ -68,7 +70,10 @@ describe('missingApplicationFields', () => {
     expect(missingApplicationFields(done, true)).toEqual([]);
   });
   it('lists what blocks Send and the step it is on', () => {
-    const miss = missingApplicationFields({ ...done, categories: [], sample_text: '  ', phone: '0803' }, false);
+    const miss = missingApplicationFields(
+      { ...done, categories: [], sample_text: '  ', phone: '0803' },
+      false,
+    );
     expect(miss).toEqual(['phone', 'categories', 'sample', 'terms']);
     expect(miss.map(fieldStep)).toEqual([1, 2, 3, 4]);
   });

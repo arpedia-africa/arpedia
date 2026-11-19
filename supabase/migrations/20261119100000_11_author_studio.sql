@@ -287,14 +287,14 @@ begin
   if v.status not in ('draft', 'needs_info') then
     raise exception 'application_sent' using errcode = 'P0001';
   end if;
-  if btrim(v.legal_name) = '' then v_missing := v_missing || 'legal_name'; end if;
-  if v.email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then v_missing := v_missing || 'email'; end if;
-  if v.date_of_birth is null then v_missing := v_missing || 'date_of_birth'; end if;
-  if v.state is null then v_missing := v_missing || 'state'; end if;
-  if cardinality(v.categories) = 0 then v_missing := v_missing || 'categories'; end if;
-  if btrim(v.bio) = '' then v_missing := v_missing || 'bio'; end if;
-  if v.sample_file_key is null and v.sample_text is null then v_missing := v_missing || 'sample'; end if;
-  if not coalesce(p_accept_terms, false) then v_missing := v_missing || 'terms'; end if;
+  if btrim(v.legal_name) = '' then v_missing := array_append(v_missing, 'legal_name'); end if;
+  if v.email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then v_missing := array_append(v_missing, 'email'); end if;
+  if v.date_of_birth is null then v_missing := array_append(v_missing, 'date_of_birth'); end if;
+  if v.state is null then v_missing := array_append(v_missing, 'state'); end if;
+  if cardinality(v.categories) = 0 then v_missing := array_append(v_missing, 'categories'); end if;
+  if btrim(v.bio) = '' then v_missing := array_append(v_missing, 'bio'); end if;
+  if v.sample_file_key is null and v.sample_text is null then v_missing := array_append(v_missing, 'sample'); end if;
+  if not coalesce(p_accept_terms, false) then v_missing := array_append(v_missing, 'terms'); end if;
   if cardinality(v_missing) > 0 then
     raise exception 'incomplete' using errcode = 'P0001',
       detail = jsonb_build_object('missing', to_jsonb(v_missing))::text;
@@ -307,7 +307,7 @@ begin
   update public.author_applications set checks = checks || public._application_checks(v.id)
   where id = v.id
   returning * into v;
-  perform public._app_event(v.id, v.user_id, case when v_resend then 'info_given' else 'submitted' end);
+  perform public._app_event(v.id, v.user_id, (case when v_resend then 'info_given' else 'submitted' end)::public.application_event_kind);
   perform pgmq.send('application_checks', jsonb_build_object('application_id', v.id));
   perform public._author_notify('application_received', jsonb_build_object(
     'application_id', v.id, 'user_id', v.user_id, 'resend', v_resend));

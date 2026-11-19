@@ -63,6 +63,120 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"author_application_events": {
+                  Row: {
+                    "actor_id": string | null,"application_id": string,"created_at": string,"id": number,"kind": Database["public"]['Enums']["application_event_kind"],"note": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id"?: string | null,"application_id": string,"created_at"?: string,"id"?: never,"kind": Database["public"]['Enums']["application_event_kind"],"note"?: string | null
+                  }
+                  Update: {
+                    "actor_id"?: string | null,"application_id"?: string,"created_at"?: string,"id"?: never,"kind"?: Database["public"]['Enums']["application_event_kind"],"note"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "author_application_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_application_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_application_events_application_id_fkey"
+      columns: ["application_id"]
+isOneToOne: false
+      referencedRelation: "author_applications"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"author_applications": {
+                  Row: {
+                    "agreement_accepted_at": string | null,"agreement_version": number | null,"assigned_to": string | null,"bio": string,"categories": (string)[],"checks": NonNullable<Json>,"created_at": string,"date_of_birth": string | null,"decided_at": string | null,"decided_by": string | null,"decision_reason": string | null,"email": string,"experience": string,"id": string,"info_request": string | null,"info_step": number | null,"legacy": boolean,"legal_name": string,"pen_name": string | null,"phone": string | null,"reapply_after": string | null,"sample_file_key": string | null,"sample_file_name": string | null,"sample_pages": number | null,"sample_text": string | null,"sla_alerted_at": string | null,"social_handle": string | null,"state": string | null,"status": Database["public"]['Enums']["application_status"],"step_reached": number,"submitted_at": string | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "agreement_accepted_at"?: string | null,"agreement_version"?: number | null,"assigned_to"?: string | null,"bio"?: string,"categories"?: (string)[],"checks"?: NonNullable<Json>,"created_at"?: string,"date_of_birth"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_reason"?: string | null,"email"?: string,"experience"?: string,"id"?: string,"info_request"?: string | null,"info_step"?: number | null,"legacy"?: boolean,"legal_name"?: string,"pen_name"?: string | null,"phone"?: string | null,"reapply_after"?: string | null,"sample_file_key"?: string | null,"sample_file_name"?: string | null,"sample_pages"?: number | null,"sample_text"?: string | null,"sla_alerted_at"?: string | null,"social_handle"?: string | null,"state"?: string | null,"status"?: Database["public"]['Enums']["application_status"],"step_reached"?: number,"submitted_at"?: string | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "agreement_accepted_at"?: string | null,"agreement_version"?: number | null,"assigned_to"?: string | null,"bio"?: string,"categories"?: (string)[],"checks"?: NonNullable<Json>,"created_at"?: string,"date_of_birth"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_reason"?: string | null,"email"?: string,"experience"?: string,"id"?: string,"info_request"?: string | null,"info_step"?: number | null,"legacy"?: boolean,"legal_name"?: string,"pen_name"?: string | null,"phone"?: string | null,"reapply_after"?: string | null,"sample_file_key"?: string | null,"sample_file_name"?: string | null,"sample_pages"?: number | null,"sample_text"?: string | null,"sla_alerted_at"?: string | null,"social_handle"?: string | null,"state"?: string | null,"status"?: Database["public"]['Enums']["application_status"],"step_reached"?: number,"submitted_at"?: string | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "author_applications_assigned_to_fkey"
+      columns: ["assigned_to"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_applications_assigned_to_fkey"
+      columns: ["assigned_to"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_applications_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_applications_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_applications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_applications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"author_profiles": {
+                  Row: {
+                    "application_id": string | null,"approved_at": string,"bio": string,"club_group_id": string | null,"created_at": string,"legal_name": string,"location": string | null,"payee_type": Database["public"]['Enums']["payee_type"],"payouts_paused": boolean,"payouts_paused_reason": string | null,"pen_name": string,"photo_url": string | null,"status": Database["public"]['Enums']["author_status"],"suspended_reason": string | null,"updated_at": string,"user_id": string,"visibility": Database["public"]['Enums']["author_visibility"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "application_id"?: string | null,"approved_at"?: string,"bio"?: string,"club_group_id"?: string | null,"created_at"?: string,"legal_name"?: string,"location"?: string | null,"payee_type"?: Database["public"]['Enums']["payee_type"],"payouts_paused"?: boolean,"payouts_paused_reason"?: string | null,"pen_name": string,"photo_url"?: string | null,"status"?: Database["public"]['Enums']["author_status"],"suspended_reason"?: string | null,"updated_at"?: string,"user_id": string,"visibility"?: Database["public"]['Enums']["author_visibility"]
+                  }
+                  Update: {
+                    "application_id"?: string | null,"approved_at"?: string,"bio"?: string,"club_group_id"?: string | null,"created_at"?: string,"legal_name"?: string,"location"?: string | null,"payee_type"?: Database["public"]['Enums']["payee_type"],"payouts_paused"?: boolean,"payouts_paused_reason"?: string | null,"pen_name"?: string,"photo_url"?: string | null,"status"?: Database["public"]['Enums']["author_status"],"suspended_reason"?: string | null,"updated_at"?: string,"user_id"?: string,"visibility"?: Database["public"]['Enums']["author_visibility"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "author_profiles_application_id_fkey"
+      columns: ["application_id"]
+isOneToOne: false
+      referencedRelation: "author_applications"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_profiles_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_profiles_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"book_fixes": {
                   Row: {
                     "created_at": string,"flag_id": string | null,"id": string,"inverse": NonNullable<Json>,"op": NonNullable<Json>,"revision_id": string,"staff_id": string | null,"undone_at": string | null,"work_version": number
@@ -818,6 +932,15 @@ isOneToOne: false
             "_actor":
 { Args: { "p_actor": string,"p_allow_system"?: boolean,"p_fn": string,"p_roles": (Database["public"]['Enums']["staff_role"])[] }; Returns: string
                            },
+"_agreement_version":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_app_event":
+{ Args: { "p_actor": string,"p_app": string,"p_kind": Database["public"]['Enums']["application_event_kind"],"p_note"?: string }; Returns: undefined
+                           },
+"_application_checks":
+{ Args: { "p_app": string }; Returns: Json
+                           },
 "_apply_counts":
 { Args: { "p_result": Json,"p_rev": string }; Returns: undefined
                            },
@@ -827,11 +950,25 @@ isOneToOne: false
 "_audit_as":
 { Args: { "p_action": string,"p_actor": string,"p_after": Json,"p_area": string,"p_before": Json,"p_object_id": string,"p_object_label": string,"p_object_type": string,"p_reason": string,"p_summary": string }; Returns: number
                            },
+"_author_earning_rows":
+{ Args: { "p_author": string,"p_from": string,"p_to": string }; Returns: {
+              "at": string,"book_id": string,"credits": number,"earned_kobo": number,"reason": Database["public"]['Enums']["ledger_reason"]
+            }[]
+                           },
+"_author_month":
+{ Args: { "p_author": string,"p_month": string }; Returns: Json
+                           },
+"_author_notify":
+{ Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
+                           },
 "_chapter_prices_ok":
 { Args: { "p_rev": string }; Returns: boolean
                            },
 "_check_super_admins":
 { Args: { "p_user": string }; Returns: undefined
+                           },
+"_create_club":
+{ Args: { "p_name": string,"p_owner": string }; Returns: string
                            },
 "_fast_lane_check":
 { Args: { "p_rev": string }; Returns: (string)[]
@@ -910,6 +1047,51 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_month_start":
+{ Args: { "p_month": string }; Returns: string
+                           },
+"_my_open_application":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
                            },
@@ -949,6 +1131,57 @@ isOneToOne: false
 "accept_staff_invite":
 { Args: { "p_token_hash": string,"p_user": string }; Returns: Database["public"]['Enums']["staff_role"]
                            },
+"admin_author":
+{ Args: { "p_user": string }; Returns: Json
+                           },
+"admin_authors":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"application_sla":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"assign_application":
+{ Args: { "p_actor"?: string,"p_app": string,"p_staff"?: string }; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "audit_fast_lane":
 { Args: { "p_actor"?: string,"p_note": string,"p_result": Database["public"]['Enums']["fast_lane_result"],"p_rev": string }; Returns: undefined
                            },
@@ -978,6 +1211,9 @@ isOneToOne: false
 "clear_staff_signin_failures":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"complete_application_checks":
+{ Args: { "p_app": string,"p_checks": Json }; Returns: undefined
+                           },
 "complete_rescore":
 { Args: { "p_chapter_uids": (string)[],"p_check_keys"?: (string)[],"p_flags": Json,"p_result"?: Json,"p_rev": string,"p_work_version": number }; Returns: Json
                            },
@@ -999,6 +1235,48 @@ isOneToOne: false
 "credit_balance":
 { Args: { "p_user": string }; Returns: number
                            },
+"decide_application":
+{ Args: { "p_actor"?: string,"p_allow_reapply"?: boolean,"p_app": string,"p_decision": string,"p_info_request"?: string,"p_info_step"?: number,"p_reason"?: string }; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "desk_claim":
 { Args: { "p_actor"?: string,"p_rev"?: string }; Returns: Json
                            },
@@ -1010,6 +1288,9 @@ isOneToOne: false
                            },
 "desk_reject_unreadable":
 { Args: { "p_actor"?: string,"p_reason"?: string,"p_rev": string }; Returns: string
+                           },
+"draft_cleanup":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "finalize_revision":
 { Args: { "p_actor": string,"p_files": Json,"p_rev": string }; Returns: Json
@@ -1079,6 +1360,9 @@ isOneToOne: false
 "register_device":
 { Args: { "p_app_version"?: string,"p_device_key": string,"p_model"?: string,"p_os"?: string,"p_push_token"?: string }; Returns: boolean
                            },
+"reinstate_author":
+{ Args: { "p_actor"?: string,"p_reason"?: string,"p_user": string }; Returns: undefined
+                           },
 "reject_revision":
 { Args: { "p_actor"?: string,"p_reason": string,"p_rev": string }; Returns: undefined
                            },
@@ -1109,6 +1393,48 @@ isOneToOne: false
 "revoke_staff_invite":
 { Args: { "p_invite": string }; Returns: undefined
                            },
+"save_application_draft":
+{ Args: { "p_patch": Json }; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "save_onboarding_step":
 { Args: { "p_payload"?: Json,"p_step": string }; Returns: {
               "avatar_url": string | null,
@@ -1150,8 +1476,53 @@ isOneToOne: false
 "sent_back_reminder":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"set_application_sample":
+{ Args: { "p_key": string,"p_name": string,"p_pages": number,"p_user": string }; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined
+                           },
+"set_club_settings":
+{ Args: { "p_slow_mode_seconds": number,"p_who_can_post": string }; Returns: undefined
                            },
 "set_staff_status":
 { Args: { "p_active": boolean,"p_user": string }; Returns: undefined
@@ -1173,8 +1544,104 @@ isOneToOne: false
 "staff_signin_locked":
 { Args: { "p_email": string }; Returns: boolean
                            },
+"start_application":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"studio_books":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"studio_earnings":
+{ Args: { "p_month"?: string }; Returns: Json
+                           },
+"studio_home":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"submit_application":
+{ Args: { "p_accept_terms": boolean }; Returns: {
+              "agreement_accepted_at": string | null,
+"agreement_version": number | null,
+"assigned_to": string | null,
+"bio": string,
+"categories": (string)[],
+"checks": NonNullable<Json>,
+"created_at": string,
+"date_of_birth": string | null,
+"decided_at": string | null,
+"decided_by": string | null,
+"decision_reason": string | null,
+"email": string,
+"experience": string,
+"id": string,
+"info_request": string | null,
+"info_step": number | null,
+"legacy": boolean,
+"legal_name": string,
+"pen_name": string | null,
+"phone": string | null,
+"reapply_after": string | null,
+"sample_file_key": string | null,
+"sample_file_name": string | null,
+"sample_pages": number | null,
+"sample_text": string | null,
+"sla_alerted_at": string | null,
+"social_handle": string | null,
+"state": string | null,
+"status": Database["public"]['Enums']["application_status"],
+"step_reached": number,
+"submitted_at": string | null,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "author_applications"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "submit_revision":
 { Args: { "p_rev": string }; Returns: Json
+                           },
+"suspend_author":
+{ Args: { "p_actor"?: string,"p_reason": string,"p_user": string }; Returns: undefined
                            },
 "undo_fix":
 { Args: { "p_actor": string,"p_expected_version": number,"p_fix": string }; Returns: Json
@@ -1191,12 +1658,15 @@ isOneToOne: false
 "use_staff_backup_code":
 { Args: { "p_code": string }; Returns: number
                            },
+"withdraw_application":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "write_audit":
 { Args: { "p_action": string,"p_after"?: Json,"p_area": string,"p_before"?: Json,"p_object_id"?: string,"p_object_label"?: string,"p_object_type"?: string,"p_reason"?: string,"p_summary"?: string }; Returns: number
                            }
           }
           Enums: {
-            "anchor_method": "exact"|"fuzzy"|"nearest","app_theme": "sunflower"|"palm"|"plum"|"night","book_status": "draft"|"live"|"scheduled"|"unpublished"|"taken_down"|"rejected","chapter_kind": "chapter"|"part","draft_step": "upload"|"converting"|"checking"|"chapters"|"preview","entitlement_scope": "book"|"chapter","entitlement_source": "unlock_all"|"chapter"|"chapter_complete"|"gift"|"staff","fast_lane_result": "pending"|"ok"|"problem","flag_source": "worker"|"desk"|"staff","flag_status": "open"|"fixed"|"dismissed","ledger_bucket": "plan"|"rollover"|"topup"|"promo","ledger_reason": "plan_grant"|"rollover"|"top_up"|"unlock_all"|"chapter"|"undo"|"tip"|"message"|"expiry"|"refund"|"staff_adjust"|"gift_out"|"gift_in"|"promo","permission_level": "allow"|"limited","revision_origin": "author"|"staff"|"desk","revision_status": "draft"|"processing"|"with_desk"|"needs_fixes"|"ready_for_review"|"sent_back"|"scheduled"|"live"|"superseded"|"unpublished"|"taken_down"|"rejected","send_back_source": "fixer"|"quick_review"|"desk_auto"|"system","signup_intent": "reader"|"author","source_type": "docx"|"epub"|"pdf","staff_role": "super_admin"|"operations_admin"|"publisher"|"moderator"|"finance"|"support"|"analyst","unpublish_reason": "author_request"|"policy_violation"|"quality"
+            "anchor_method": "exact"|"fuzzy"|"nearest","app_theme": "sunflower"|"palm"|"plum"|"night","application_event_kind": "submitted"|"assigned"|"info_asked"|"info_given"|"approved"|"rejected","application_status": "draft"|"new"|"needs_info"|"approved"|"rejected"|"withdrawn","author_status": "active"|"suspended","author_visibility": "public"|"private","book_status": "draft"|"live"|"scheduled"|"unpublished"|"taken_down"|"rejected","chapter_kind": "chapter"|"part","draft_step": "upload"|"converting"|"checking"|"chapters"|"preview","entitlement_scope": "book"|"chapter","entitlement_source": "unlock_all"|"chapter"|"chapter_complete"|"gift"|"staff","fast_lane_result": "pending"|"ok"|"problem","flag_source": "worker"|"desk"|"staff","flag_status": "open"|"fixed"|"dismissed","ledger_bucket": "plan"|"rollover"|"topup"|"promo","ledger_reason": "plan_grant"|"rollover"|"top_up"|"unlock_all"|"chapter"|"undo"|"tip"|"message"|"expiry"|"refund"|"staff_adjust"|"gift_out"|"gift_in"|"promo","payee_type": "individual"|"company","permission_level": "allow"|"limited","revision_origin": "author"|"staff"|"desk","revision_status": "draft"|"processing"|"with_desk"|"needs_fixes"|"ready_for_review"|"sent_back"|"scheduled"|"live"|"superseded"|"unpublished"|"taken_down"|"rejected","send_back_source": "fixer"|"quick_review"|"desk_auto"|"system","signup_intent": "reader"|"author","source_type": "docx"|"epub"|"pdf","staff_role": "super_admin"|"operations_admin"|"publisher"|"moderator"|"finance"|"support"|"analyst","unpublish_reason": "author_request"|"policy_violation"|"quality"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1316,7 +1786,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "anchor_method": ["exact", "fuzzy", "nearest"],"app_theme": ["sunflower", "palm", "plum", "night"],"book_status": ["draft", "live", "scheduled", "unpublished", "taken_down", "rejected"],"chapter_kind": ["chapter", "part"],"draft_step": ["upload", "converting", "checking", "chapters", "preview"],"entitlement_scope": ["book", "chapter"],"entitlement_source": ["unlock_all", "chapter", "chapter_complete", "gift", "staff"],"fast_lane_result": ["pending", "ok", "problem"],"flag_source": ["worker", "desk", "staff"],"flag_status": ["open", "fixed", "dismissed"],"ledger_bucket": ["plan", "rollover", "topup", "promo"],"ledger_reason": ["plan_grant", "rollover", "top_up", "unlock_all", "chapter", "undo", "tip", "message", "expiry", "refund", "staff_adjust", "gift_out", "gift_in", "promo"],"permission_level": ["allow", "limited"],"revision_origin": ["author", "staff", "desk"],"revision_status": ["draft", "processing", "with_desk", "needs_fixes", "ready_for_review", "sent_back", "scheduled", "live", "superseded", "unpublished", "taken_down", "rejected"],"send_back_source": ["fixer", "quick_review", "desk_auto", "system"],"signup_intent": ["reader", "author"],"source_type": ["docx", "epub", "pdf"],"staff_role": ["super_admin", "operations_admin", "publisher", "moderator", "finance", "support", "analyst"],"unpublish_reason": ["author_request", "policy_violation", "quality"]
+            "anchor_method": ["exact", "fuzzy", "nearest"],"app_theme": ["sunflower", "palm", "plum", "night"],"application_event_kind": ["submitted", "assigned", "info_asked", "info_given", "approved", "rejected"],"application_status": ["draft", "new", "needs_info", "approved", "rejected", "withdrawn"],"author_status": ["active", "suspended"],"author_visibility": ["public", "private"],"book_status": ["draft", "live", "scheduled", "unpublished", "taken_down", "rejected"],"chapter_kind": ["chapter", "part"],"draft_step": ["upload", "converting", "checking", "chapters", "preview"],"entitlement_scope": ["book", "chapter"],"entitlement_source": ["unlock_all", "chapter", "chapter_complete", "gift", "staff"],"fast_lane_result": ["pending", "ok", "problem"],"flag_source": ["worker", "desk", "staff"],"flag_status": ["open", "fixed", "dismissed"],"ledger_bucket": ["plan", "rollover", "topup", "promo"],"ledger_reason": ["plan_grant", "rollover", "top_up", "unlock_all", "chapter", "undo", "tip", "message", "expiry", "refund", "staff_adjust", "gift_out", "gift_in", "promo"],"payee_type": ["individual", "company"],"permission_level": ["allow", "limited"],"revision_origin": ["author", "staff", "desk"],"revision_status": ["draft", "processing", "with_desk", "needs_fixes", "ready_for_review", "sent_back", "scheduled", "live", "superseded", "unpublished", "taken_down", "rejected"],"send_back_source": ["fixer", "quick_review", "desk_auto", "system"],"signup_intent": ["reader", "author"],"source_type": ["docx", "epub", "pdf"],"staff_role": ["super_admin", "operations_admin", "publisher", "moderator", "finance", "support", "analyst"],"unpublish_reason": ["author_request", "policy_violation", "quality"]
           }
         }
 } as const

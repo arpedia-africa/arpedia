@@ -66,15 +66,7 @@ export interface ApplicationDraft {
 }
 
 export type ApplicationField =
-  | 'legal_name'
-  | 'email'
-  | 'phone'
-  | 'date_of_birth'
-  | 'state'
-  | 'categories'
-  | 'bio'
-  | 'sample'
-  | 'terms';
+  'legal_name' | 'email' | 'phone' | 'date_of_birth' | 'state' | 'categories' | 'bio' | 'sample' | 'terms';
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE = /^\+[1-9][0-9]{7,14}$/;
@@ -118,7 +110,11 @@ export function studioBookLine(status: StudioBookStatus, revisionNo: number, liv
     case 'in_review':
       return { label: 'In review', note: 'We will tell you as soon as it is checked', action: null };
     case 'changes_requested':
-      return { label: 'Changes requested', note: 'Fix the issues below and upload again', action: 'Upload new file' };
+      return {
+        label: 'Changes requested',
+        note: 'Fix the issues below and upload again',
+        action: 'Upload new file',
+      };
     case 'live':
       return { label: 'Live', note: null, action: 'Upload new file' };
     case 'update_draft':

@@ -83,8 +83,10 @@ select is((select pen_name from public.author_profiles where user_id = '31000000
   'approval creates the author profile with the pen name');
 select throws_ok($$select public.decide_application((select id from public.author_applications), 'approve')$$,
   'P0001', 'not_open', 'cannot approve twice');
+reset role;
 select is((select count(*)::int from public.audit_log where action like 'application.%'), 3,
   'every decision is audited');
+set local role authenticated;
 
 -- ─── Author profile columns ─────────────────────────────────────────────────
 select pg_temp.as_user('31000000-0000-4000-a000-000000000001');
