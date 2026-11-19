@@ -56,6 +56,18 @@ import {
 } from '../features/11/StudioSettingsViews';
 import { StudioInboxView, StudioPostView } from '../features/11/StudioCommsViews';
 import {
+  Apply1View,
+  Apply2View,
+  Apply3View,
+  Apply4Foot,
+  Apply4View,
+  ApplyFoot,
+  ApplySentFoot,
+  ApplySentView,
+  BecomeAuthorFoot,
+  BecomeAuthorView,
+} from '../features/11/ApplyViews';
+import {
   StepFoot,
   SubmitChaptersView,
   SubmitDoneView,
@@ -89,6 +101,12 @@ const PAGES = [
   's-studio-chapters',
   's-studio-preview',
   's-studio-submitted',
+  's-become-author',
+  's-apply',
+  's-apply-2',
+  's-apply-3',
+  's-apply-4',
+  's-apply-sent',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -493,6 +511,91 @@ function Flow11({ page }: { page: Page }) {
           onRetry={noop}
           onBack={noop}
         />
+      );
+    case 's-become-author':
+      return (
+        <>
+          <BecomeAuthorView onBack={noop} />
+          <BecomeAuthorFoot label="Start application" onPress={noop} />
+        </>
+      );
+    case 's-apply':
+      return (
+        <>
+          {/* The app adds Date of birth and State (Default Q3); the prototype has neither. */}
+          <Apply1View
+            values={{
+              legal_name: 'Ngozi Eze',
+              email: 'ngozi.eze@example.com',
+              dob: '',
+              state: '',
+              phone: '',
+              pen_name: '',
+              social_handle: '',
+            }}
+            errors={{}}
+            saved="Draft saves as you type"
+            onChange={noop}
+            onBack={noop}
+          />
+          <ApplyFoot onContinue={noop} onSave={noop} onCancel={noop} />
+        </>
+      );
+    case 's-apply-2':
+      return (
+        <>
+          <Apply2View
+            categories={['Christian fiction', 'African stories']}
+            bio="Choir alto from Enugu. I write about faith, family and the small mercies of city life."
+            experience="2 self-published novellas, a church magazine column"
+            errors={{}}
+            saved="Draft saves as you type"
+            onToggle={noop}
+            onBio={noop}
+            onExperience={noop}
+            onBack={noop}
+          />
+          <ApplyFoot onContinue={noop} onSave={noop} onCancel={noop} />
+        </>
+      );
+    case 's-apply-3':
+      return (
+        <>
+          <Apply3View
+            file={{ name: 'the-gatekeeper-ch1.docx', meta: '220 KB · 8 pages' }}
+            sampleText=""
+            saved="Draft saves as you type"
+            onPick={noop}
+            onRemove={noop}
+            onText={noop}
+            onBack={noop}
+          />
+          <ApplyFoot onContinue={noop} onSave={noop} onCancel={noop} />
+        </>
+      );
+    case 's-apply-4':
+      return (
+        <>
+          <Apply4View
+            rows={[
+              { k: 'Name', v: 'Ngozi Eze' },
+              { k: 'Pen name', v: 'N. C. Eze' },
+              { k: 'Writes', v: 'Christian fiction, African stories' },
+              { k: 'Sample', v: 'the-gatekeeper-ch1.docx' },
+            ]}
+            agree
+            onAgree={noop}
+            onBack={noop}
+          />
+          <Apply4Foot canSend onSend={noop} onEdit={noop} />
+        </>
+      );
+    case 's-apply-sent':
+      return (
+        <>
+          <ApplySentView replyBy="Monday 16 November" sentOn="12 November" onClose={noop} />
+          <ApplySentFoot onStudio={noop} />
+        </>
       );
     case 's-studio-submit':
       return (
