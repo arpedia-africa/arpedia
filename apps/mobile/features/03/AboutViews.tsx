@@ -37,13 +37,13 @@ export interface Fact {
   num?: boolean;
 }
 
-/** `.bk-facts`: two columns, 18px rows, 16px columns. */
+/** `.bk-facts`: two columns, 18px rows, 16px columns; the prototype's `<dl>` keeps its 1em (14px) margins. */
 function Facts({ facts }: { facts: Fact[] }) {
   const { s } = useTheme();
   const rows: Fact[][] = [];
   for (let i = 0; i < facts.length; i += 2) rows.push(facts.slice(i, i + 2));
   return (
-    <View style={{ gap: s(18) }}>
+    <View style={{ gap: s(18), marginVertical: s(14) }}>
       {rows.map((row) => (
         <View key={row[0]!.k} style={{ flexDirection: 'row', gap: s(16) }}>
           {[0, 1].map((j) => {
