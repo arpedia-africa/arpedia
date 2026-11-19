@@ -48,7 +48,8 @@ account.post('/password', async (c) => {
     method: 'POST',
     headers: { apikey: c.env.SUPABASE_ANON_KEY, Authorization: c.req.header('Authorization')! },
   });
-  if (!res.ok && res.status !== 204) throw new Error(`logout others failed: ${res.status}`);
+  // The new password is already live, so a failed logout is logged, not reported as a failed change.
+  if (!res.ok && res.status !== 204) console.error(`logout others failed: ${res.status}`);
   return c.json({ ok: true });
 });
 

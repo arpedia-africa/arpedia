@@ -246,9 +246,10 @@ begin
 end $$;
 
 -- My highlights (rules 10–13): one tab of bookmarks, highlights or notes, grouped by book, groups
--- newest first. `p_cursor` = the `next` from the previous page (latest item time of the last group).
+-- newest first. `p_cursor` = the `next` from the previous page: '<latest>|<book_id>' of its last group
+-- (keyset on both, so books whose latest items share a timestamp aren't skipped at a page boundary).
 -- `p_query` searches the quote and the note text. Tab counts come back on every page.
-create function public.list_collection(p_kind text, p_cursor timestamptz default null,
+create function public.list_collection(p_kind text, p_cursor text default null,
   p_query text default null, p_limit integer default 20) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -256,13 +257,25 @@ declare
   q text := nullif(btrim(coalesce(p_query, '')), '');
   lim integer := least(greatest(coalesce(p_limit, 20), 1), 50);
   groups jsonb := '[]';
-  nxt timestamptz;
+  cur_at timestamptz;
+  cur_book uuid;
+  last_at timestamptz;
+  last_book uuid;
+  nxt text;
   n_page integer := 0;
   total_items integer := 0;
   total_books integer := 0;
 begin
   if p_kind is null or p_kind not in ('bookmark', 'highlight', 'note') then
     raise exception 'bad_kind' using errcode = '22023';
+  end if;
+  if p_cursor is not null then
+    begin
+      cur_at := split_part(p_cursor, '|', 1)::timestamptz;
+      cur_book := split_part(p_cursor, '|', 2)::uuid;
+    exception when others then
+      raise exception 'bad_cursor' using errcode = '22023';
+    end;
   end if;
   if q is not null then
     q := '%' || replace(replace(replace(left(q, 80), '\', '\\'), '%', '\%'), '_', '\_') || '%';
@@ -281,7 +294,7 @@ begin
       select book_id, max(created_at) as latest from items group by book_id
     ), page as (
       select * from per_book
-      where p_cursor is null or latest < p_cursor
+      where cur_at is null or latest < cur_at or (latest = cur_at and book_id > cur_book)
       order by latest desc, book_id
       limit lim
     )
@@ -303,18 +316,20 @@ begin
             order by i.created_at desc)
           from items i where i.book_id = b.id)
       ) order by pg.latest desc, b.id), '[]'),
-      min(pg.latest), count(*)
-    into groups, nxt, n_page
+      (array_agg(pg.latest order by pg.latest desc, b.id))[count(*)],
+      (array_agg(b.id order by pg.latest desc, b.id))[count(*)], count(*)
+    into groups, last_at, last_book, n_page
     from page pg
     join public.books b on b.id = pg.book_id
     join public.profiles ap on ap.id = b.author_id;
-    -- Another page exists when a group older than this page's last one is left.
-    if n_page < lim or not exists (
+    -- Another page exists when a group after this page's last one (in page order) is left.
+    if n_page = lim and exists (
       select 1 from public.annotations a
       where a.user_id = uid and a.kind = p_kind and a.deleted_at is null
         and (q is null or a.quote ilike q or a.note_text ilike q)
-      group by a.book_id having max(a.created_at) < nxt) then
-      nxt := null;
+      group by a.book_id
+      having max(a.created_at) < last_at or (max(a.created_at) = last_at and a.book_id > last_book)) then
+      nxt := last_at::text || '|' || last_book::text;
     end if;
   end if;
   return jsonb_build_object('kind', p_kind, 'groups', groups, 'next', nxt,
@@ -1080,7 +1095,7 @@ revoke execute on function
   public._name_change_limit(), public._device_session(), public._me(), public._lagos_year(),
   public._books_finished(uuid, integer), public._annotation_counts(uuid), public._unpaid_earnings_kobo(uuid),
   public.get_profile_summary(), public.set_reading_goal(integer, integer),
-  public.list_collection(text, timestamptz, text, integer), public.delete_annotation(uuid),
+  public.list_collection(text, text, text, integer), public.delete_annotation(uuid),
   public.restore_annotation(uuid), public.update_profile(jsonb), public.get_notification_preferences(),
   public.set_notification_preferences(jsonb), public.notification_pref(uuid, text),
   public.list_my_devices(text), public.remove_device(uuid, text), public.claim_download_slot(text),
@@ -1098,7 +1113,7 @@ revoke execute on function
 
 grant execute on function
   public.get_profile_summary(), public.set_reading_goal(integer, integer),
-  public.list_collection(text, timestamptz, text, integer), public.delete_annotation(uuid),
+  public.list_collection(text, text, text, integer), public.delete_annotation(uuid),
   public.restore_annotation(uuid), public.update_profile(jsonb), public.get_notification_preferences(),
   public.set_notification_preferences(jsonb), public.list_my_devices(text), public.remove_device(uuid, text),
   public.claim_download_slot(text), public.request_account_deletion(text), public.restore_my_account(),
