@@ -1671,6 +1671,11 @@ isOneToOne: false
 "finalize_revision":
 { Args: { "p_actor": string,"p_files": Json,"p_rev": string }; Returns: Json
                            },
+"genre_pick_counts":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "genre_id": string,"readers": number
+            }[]
+                           },
 "get_all_set":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
