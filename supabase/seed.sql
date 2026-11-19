@@ -181,3 +181,108 @@ update public.books set genres = genres || case title
     when 'Bread on Water'       then array['Short reads', 'African literature']
   end
 where id in (select ('00000000-0000-4000-c000-' || lpad(n::text, 12, '0'))::uuid from seed_books);
+
+-- ─── Flow 06 · community ────────────────────────────────────────────────────
+-- Groups, messages and blocks as on s-community, s-channel, s-discover and s-blocked. Member counts
+-- are the real seeded rows, not the prototype's 1,240.
+insert into public.groups (id, kind, name, description, owner_id, book_id, visibility, who_can_post,
+  weekly_book_id, weekly_from_chapter, weekly_to_chapter, weekly_note, created_at) values
+  ('00000000-0000-4000-d000-000000000001', 'club', 'Grace Readers',
+   'Christian fiction book club. This week: Harmattan Letters ch. 7–9.', '00000000-0000-4000-a000-000000000005',
+   null, 'public', 'members', '00000000-0000-4000-c000-000000000001', 7, 9, 'Vigil call Friday 8 pm', now() - interval '90 days'),
+  ('00000000-0000-4000-d000-000000000002', 'author', 'Ifeoma''s Readers',
+   'The official community for readers of Ifeoma Nwachukwu.', '00000000-0000-4000-a000-000000000002',
+   null, 'public', 'owner_and_followers', null, null, null, null, now() - interval '80 days'),
+  ('00000000-0000-4000-d000-000000000003', 'official', 'Arpedia Official',
+   'Announcements, new releases and reading challenges.', '00000000-0000-4000-b000-000000000001',
+   null, 'public', 'staff', null, null, null, null, now() - interval '120 days'),
+  ('00000000-0000-4000-d000-000000000004', 'official', 'Arpedia Support',
+   'Ask us anything about Arpedia.', '00000000-0000-4000-b000-000000000001',
+   null, 'private', 'staff', null, null, null, null, now() - interval '120 days'),
+  ('00000000-0000-4000-d000-000000000005', 'readalong', 'Harmattan Letters Read-Along',
+   'Week-by-week discussion. Please mark spoilers.', '00000000-0000-4000-a000-000000000002',
+   '00000000-0000-4000-c000-000000000001', 'public', 'members', null, null, null, null, now() - interval '30 days'),
+  ('00000000-0000-4000-d000-000000000006', 'dm', 'Ngozi and Ifeoma', null, null,
+   null, 'private', 'members', null, null, null, null, now() - interval '10 days'),
+  ('00000000-0000-4000-d000-000000000007', 'club', 'Faith & Books',
+   'Christian and faith-based reading, devotionals and testimonies.', '00000000-0000-4000-a000-000000000004',
+   null, 'public', 'members', null, null, null, null, now() - interval '60 days'),
+  ('00000000-0000-4000-d000-000000000008', 'club', 'Short Reads Lounge',
+   'Quick stories for quick commutes. Share the ones you finished on the danfo.', '00000000-0000-4000-a000-000000000007',
+   null, 'public', 'members', null, null, null, null, now() - interval '50 days'),
+  ('00000000-0000-4000-d000-000000000009', 'club', 'UNN Christian Fellowship Books',
+   'Campus reading group. Next pick vote closes Friday.', '00000000-0000-4000-a000-000000000006',
+   null, 'public', 'members', null, null, null, null, now() - interval '40 days');
+
+-- a000-…01 Ngozi · 02 Ifeoma · 03 Tolu · 04 Kemi · 05 Chioma · 06 Musa · 07 Emeka · 08 Adaeze · 09 Halima
+insert into public.group_members (group_id, user_id, role, joined_at, last_read_at)
+select ('00000000-0000-4000-d000-' || lpad(g::text, 12, '0'))::uuid,
+       ('00000000-0000-4000-' || u)::uuid, r::public.group_role, now() - interval '30 days', now() - interval '6 days'
+from (values
+  (1, 'a000-000000000005', 'owner'), (1, 'a000-000000000001', 'member'), (1, 'a000-000000000002', 'member'),
+  (1, 'a000-000000000009', 'moderator'), (1, 'a000-000000000006', 'member'), (1, 'a000-000000000008', 'member'),
+  (1, 'a000-000000000003', 'member'),
+  (2, 'a000-000000000002', 'owner'), (2, 'a000-000000000001', 'member'), (2, 'a000-000000000005', 'member'),
+  (2, 'a000-000000000004', 'member'),
+  (3, 'b000-000000000001', 'owner'), (3, 'a000-000000000001', 'member'), (3, 'a000-000000000002', 'member'),
+  (3, 'a000-000000000003', 'member'), (3, 'a000-000000000004', 'member'), (3, 'a000-000000000005', 'member'),
+  (3, 'a000-000000000006', 'member'), (3, 'a000-000000000007', 'member'), (3, 'a000-000000000008', 'member'),
+  (3, 'a000-000000000009', 'member'),
+  (4, 'b000-000000000001', 'owner'), (4, 'a000-000000000001', 'member'),
+  (5, 'a000-000000000002', 'owner'), (5, 'a000-000000000001', 'member'), (5, 'a000-000000000009', 'member'),
+  (6, 'a000-000000000001', 'member'), (6, 'a000-000000000002', 'member'),
+  (7, 'a000-000000000004', 'owner'), (7, 'a000-000000000003', 'member'), (7, 'a000-000000000008', 'member'),
+  (8, 'a000-000000000007', 'owner'), (8, 'a000-000000000003', 'member'),
+  (9, 'a000-000000000006', 'owner'), (9, 'a000-000000000009', 'member')
+) as t (g, u, r);
+
+-- (group, sender, minutes ago, body, quote). Ngozi last read 6 days ago, so the newest ones are unread.
+create temporary table seed_messages (g int, u text, ago int, body text, quote jsonb);
+insert into seed_messages values
+  (1, 'a000-000000000009', 1500, 'Welcome to this week''s reading! Chapters 7 to 9, vigil call on Friday.', null),
+  (1, 'a000-000000000008', 1440, 'I finished chapter 7 on the bus this morning. Wow.', null),
+  (1, 'a000-000000000006', 40, 'Please no spoilers past chapter 8 abeg', null),
+  (1, 'a000-000000000001', 24, 'This one is for everyone waiting on God 🙏🏾',
+   jsonb_build_object('book_id', '00000000-0000-4000-c000-000000000001', 'chapter', 7,
+     'cfi', 'epubcfi(/6/16!/4/2/1:0)', 'book_title', 'Harmattan Letters',
+     'text', 'Grace did not ask her to be ready. It only asked her to come.')),
+  (1, 'a000-000000000002', 6, 'I cried writing it. My mother''s vigil songs are in there.', null),
+  (1, 'a000-000000000005', 1, 'The night vigil chapter 😢 who else cried?', null),
+  (6, 'a000-000000000001', 70, 'Chapter 11 left me with so many questions! Does Adaeze ever read the last letter?', null),
+  (6, 'a000-000000000002', 45, 'Thank you Ngozi! Chapter 12 will answer that 😊', null),
+  (2, 'a000-000000000005', 300, 'Who else is rereading Harmattan Letters before the sequel?', null),
+  (2, 'a000-000000000002', 120, 'Thank you all for 800 readers! Questions for Friday go here.', null),
+  (2, 'a000-000000000002', 62, 'A small treat: I will answer three questions on Friday', null),
+  (3, 'b000-000000000001', 600, 'New this week: Psalms for the Danfo by Emeka Obi.', null),
+  (3, 'b000-000000000001', 180, 'Reading challenge: finish one book this month to enter the free-year draw', null),
+  (5, 'a000-000000000002', 9000, 'Week 1 starts today: chapters 1 to 4.', null),
+  (5, 'a000-000000000009', 300, 'Friday we move to chapter 9. Catch up!', null),
+  (4, 'b000-000000000001', 5760, 'Hello Ngozi, welcome to Arpedia. Ask us anything here.', null),
+  (7, 'a000-000000000004', 200, 'Morning devotional pick: A House Called Grace, chapter 2.', null),
+  (8, 'a000-000000000007', 400, 'Finished Bread on Water between Ojota and CMS. Story 4 is the one.', null),
+  (9, 'a000-000000000006', 900, 'Vote for next month''s pick closes Friday.', null);
+
+insert into public.messages (id, group_id, sender_id, client_id, kind, body, quote, created_at)
+select public.uuid7(now() - make_interval(mins => ago)), ('00000000-0000-4000-d000-' || lpad(g::text, 12, '0'))::uuid,
+       ('00000000-0000-4000-' || u)::uuid, gen_random_uuid(),
+       case when quote is null then 'text' else 'quote' end::public.message_kind, body, quote,
+       now() - make_interval(mins => ago)
+from seed_messages;
+update public.groups g set last_message_at = (select max(created_at) from public.messages m where m.group_id = g.id);
+-- Ngozi has read the read-along and Support threads.
+update public.group_members set last_read_at = now()
+where user_id = '00000000-0000-4000-a000-000000000001'
+  and group_id in ('00000000-0000-4000-d000-000000000004', '00000000-0000-4000-d000-000000000005');
+
+insert into public.message_reactions (message_id, user_id, emoji)
+select m.id, ('00000000-0000-4000-' || r.u)::uuid, r.e
+from public.messages m
+cross join (values ('a000-000000000001', '😢'), ('a000-000000000008', '😢'), ('a000-000000000009', '😢'),
+                   ('a000-000000000002', '❤️'), ('a000-000000000003', '❤️')) as r (u, e)
+where m.body = 'The night vigil chapter 😢 who else cried?';
+
+-- Ngozi blocked two people (s-blocked): Emeka from a DM long ago, Tolu from Grace Readers.
+insert into public.user_blocks (blocker_id, blocked_id, source_group_id, created_at) values
+  ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000007', null, now() - interval '35 days'),
+  ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000003',
+   '00000000-0000-4000-d000-000000000001', now() - interval '16 days');

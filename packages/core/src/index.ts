@@ -1,3 +1,4 @@
+export * from './community';
 export * from './onboarding';
 export * from './pricing';
 export * from './schemas';

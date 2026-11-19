@@ -13,6 +13,10 @@ values
    'Stories from Onitsha markets and the people who run them.',
    'Onitsha', 'public', 'active', now() - interval '610 days', 'Chioma Grace Okafor');
 
+-- Ifeoma's club is flow 06's seeded author group.
+update public.author_profiles set club_group_id = '00000000-0000-4000-d000-000000000002'
+ where user_id = '00000000-0000-4000-a000-000000000002';
+
 -- Applicants: readers who applied. Daniel Okeke was approved, so he is an author too.
 create temporary table seed_applicants (n int, id uuid, email text, full_name text, username text, is_author boolean);
 insert into seed_applicants values

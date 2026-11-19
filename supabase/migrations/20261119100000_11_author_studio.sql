@@ -2,8 +2,8 @@
 -- Conversion, readiness and publishing are flow 12 (create_revision, confirm_chapters, submit_revision).
 -- Earnings cycles and payouts are flow 13; this flow only reads the ledger.
 --
--- The author's club lives in flow 06's `groups`. Flow 06 is not merged yet, so `club_group_id` has no
--- foreign key and the club row is created only when `public.groups` exists (see _create_club).
+-- The author's club lives in flow 06's `groups` (kind 'author'), created on approval with the author
+-- as its owner member (see _create_club).
 
 -- ─── Types ──────────────────────────────────────────────────────────────────
 create type public.application_status as enum ('draft', 'new', 'needs_info', 'approved', 'rejected', 'withdrawn');
@@ -85,8 +85,7 @@ create table public.author_profiles (
   suspended_reason text,
   approved_at timestamptz not null default now(),
   application_id uuid references public.author_applications (id),
-  -- → groups (flow 06); no foreign key until that table exists.
-  club_group_id uuid,
+  club_group_id uuid references public.groups (id) on delete set null,
   -- Payee and payout fields are owned by flow 13.
   payee_type public.payee_type not null default 'individual',
   legal_name text not null default '',
@@ -117,17 +116,16 @@ language sql security definer set search_path = '' as $$
   values (p_app, p_actor, p_kind, p_note);
 $$;
 
--- Creates the author's club when flow 06's groups table exists; returns its id or null.
+-- Creates the author's club (flow 06 group, kind 'author') with the author as its owner member.
 create function public._create_club(p_owner uuid, p_name text) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
   v_id uuid;
 begin
-  if to_regclass('public.groups') is null then
-    return null;
-  end if;
-  execute 'insert into public.groups (kind, name, owner_id) values (''author'', $1, $2) returning id'
-    into v_id using left(btrim(p_name), 55) || ' club', p_owner;
+  insert into public.groups (kind, name, owner_id)
+  values ('author', left(split_part(btrim(p_name), ' ', 1), 48) || '’s Readers', p_owner)
+  returning id into v_id;
+  insert into public.group_members (group_id, user_id, role) values (v_id, p_owner, 'owner');
   return v_id;
 end $$;
 
@@ -546,15 +544,18 @@ declare
   v_club uuid;
 begin
   select club_group_id into v_club from public.author_profiles where user_id = auth.uid();
-  if v_club is null or to_regclass('public.groups') is null then
+  if v_club is null then
     raise exception 'club_not_ready' using errcode = 'P0001';
   end if;
   if p_slow_mode_seconds not in (0, 10, 30, 60, 300) then
     raise exception 'bad_slow_mode' using errcode = 'P0001';
   end if;
-  execute format('update public.groups set who_can_post = %L::public.group_who_can_post, '
-                 'slow_mode_seconds = %s where id = %L and owner_id = %L',
-                 p_who_can_post, p_slow_mode_seconds, v_club, auth.uid());
+  if p_who_can_post not in ('members', 'staff', 'owner_and_followers') then
+    raise exception 'bad_who_can_post' using errcode = 'P0001';
+  end if;
+  update public.groups
+     set who_can_post = p_who_can_post::public.group_who_can_post, slow_mode_seconds = p_slow_mode_seconds
+   where id = v_club and owner_id = auth.uid();
 end $$;
 
 -- ─── Studio read models ─────────────────────────────────────────────────────

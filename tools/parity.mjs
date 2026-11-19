@@ -591,6 +591,9 @@ try {
         fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();await new Promise(r=>setTimeout(r,300));`,
         regions: [{ x: 0, y: 0, width: W, height: H }],
       },
+      // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
+      community: { path: '/community', as: 'zainab@arpedia.africa' },
+      channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];

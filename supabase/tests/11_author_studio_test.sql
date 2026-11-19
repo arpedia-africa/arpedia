@@ -1,7 +1,7 @@
 -- Flow 11 · author applications (RLS, send rules, decisions), author profiles, Studio earnings.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(42);
 
 -- The local seed (supabase/seeds/11_authors.sql) holds applications and author profiles; start empty.
 -- Rolled back with the rest of the test.
@@ -93,6 +93,19 @@ select is((select pen_name from public.author_profiles where user_id = '31000000
   'approval creates the author profile with the pen name');
 select throws_ok($$select public.decide_application((select id from public.author_applications), 'approve')$$,
   'P0001', 'not_open', 'cannot approve twice');
+reset role;
+select is((select g.name from public.groups g join public.author_profiles a on a.club_group_id = g.id
+            where a.user_id = '31000000-0000-4000-a000-000000000001'), 'T.’s Readers',
+  'approval creates the author club');
+select is((select m.role from public.group_members m join public.author_profiles a on a.club_group_id = m.group_id
+            where a.user_id = '31000000-0000-4000-a000-000000000001' and m.user_id = a.user_id),
+  'owner'::public.group_role, 'the author owns their club');
+set local role authenticated;
+select pg_temp.as_user('31000000-0000-4000-a000-000000000001');
+select lives_ok($$select public.set_club_settings('owner_and_followers', 30)$$, 'author saves club settings');
+select is((select g.who_can_post::text || ' ' || g.slow_mode_seconds from public.groups g
+            join public.author_profiles a on a.club_group_id = g.id where a.user_id = auth.uid()),
+  'owner_and_followers 30', 'club settings stored on the club row');
 reset role;
 select is((select count(*)::int from public.audit_log where action like 'application.%'), 3,
   'every decision is audited');
