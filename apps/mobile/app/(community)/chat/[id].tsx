@@ -200,6 +200,9 @@ export default function Chat() {
       return toast({ message: 'You can queue up to 5 messages while offline.' });
     setText('');
     setReplyTo(null);
+    // Your own message always jumps to the end, even when you were scrolled up.
+    setAtBottom(true);
+    setUnseen(false);
   };
 
   const run = (a: Parameters<typeof action.mutate>[0], done?: string) =>
