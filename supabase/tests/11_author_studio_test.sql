@@ -122,6 +122,11 @@ select throws_ok($$update public.author_profiles set status = 'active', payouts_
 reset role;
 insert into public.books (id, author_id, title, status) values
   ('31000000-0000-4000-b000-000000000001', '31000000-0000-4000-a000-000000000001', 'Rain Songs', 'live');
+-- Credits to spend first (flow 09's bucket guard: no bucket goes below zero).
+insert into public.credit_ledger (user_id, delta, reason, bucket) values
+  ('31000000-0000-4000-a000-000000000005', 125, 'plan_grant', 'plan'),
+  ('31000000-0000-4000-a000-000000000005', 5, 'top_up', 'topup'),
+  ('31000000-0000-4000-a000-000000000001', 5, 'top_up', 'topup');
 insert into public.credit_ledger (user_id, delta, reason, bucket, book_id, author_id, author_earning_kobo) values
   ('31000000-0000-4000-a000-000000000005', -125, 'unlock_all', 'plan', '31000000-0000-4000-b000-000000000001',
    '31000000-0000-4000-a000-000000000001', 20000),

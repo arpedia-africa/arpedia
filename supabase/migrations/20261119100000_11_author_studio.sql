@@ -570,7 +570,8 @@ language sql stable security definer set search_path = '' as $$
     and l.reason in ('unlock_all', 'chapter', 'tip', 'message', 'undo', 'refund')
     and l.created_at >= p_from and l.created_at < p_to
 $$;
--- Studio and admin read earnings per author and month.
+-- Studio and admin read earnings per author and month (replaces flow 03's author-only index).
+drop index if exists public.credit_ledger_author_idx;
 create index credit_ledger_author_idx on public.credit_ledger (author_id, created_at)
   where author_id is not null;
 
@@ -648,7 +649,7 @@ begin
   from public.books b where b.author_id = v_uid;
   -- Follows (flows 03/08) and reading minutes (flow 04) are read when those tables exist.
   if to_regclass('public.follows') is not null then
-    execute 'select count(*)::int from public.follows where author_id = $1' into v_followers using v_uid;
+    execute 'select count(*)::int from public.follows where followee_id = $1' into v_followers using v_uid;
   end if;
   if to_regclass('public.reading_days') is not null then
     execute 'select coalesce(sum(d.minutes), 0)::int from public.reading_days d
