@@ -280,7 +280,8 @@ export function TicketView({
                       Macro: <b>{macro?.title ?? 'None'}</b>
                       <Icon name="chevd" />
                     </button>
-                    <div className="menu" hidden={!menu}>
+                    {menu ? (
+                    <div className="menu">
                       {macros.map(m => (
                         <a
                           key={m.id}
@@ -296,6 +297,7 @@ export function TicketView({
                         </a>
                       ))}
                     </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
