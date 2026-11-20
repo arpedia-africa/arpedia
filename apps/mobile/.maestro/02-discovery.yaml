@@ -98,7 +98,12 @@ appId: com.arpedia.reader
     visible: 'Top result.*'
     timeout: 15000
 - takeScreenshot: disc-${WIDTH}-results
-- tapOn: 'Top result.*'
+# Enter also hides the keyboard; a tap during that relayout was lost once at 360 dp.
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: 'Top result.*'
+    retryTapIfNoChange: true
 - extendedWaitUntil:
     visible: 'Save to library'
     timeout: 30000
