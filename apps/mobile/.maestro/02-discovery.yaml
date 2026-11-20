@@ -46,10 +46,10 @@ appId: com.arpedia.reader
     direction: DOWN
     waitToSettleTimeoutMs: 1000
     timeout: 60000
-# Its See all sits on the heading row: below the New arrivals row, above the band's subtitle.
+# Its See all sits on the heading row, the nearest See all above the band's subtitle. (No `below:
+# 'New arrivals'`: the New arrivals rail carries that label too, and at 320 dp that picked its See all.)
 - tapOn:
     text: 'See all'
-    below: 'New arrivals'
     above: 'Most read on Arpedia this week'
 - extendedWaitUntil:
     notVisible: 'Coming soon'
