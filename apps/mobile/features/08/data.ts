@@ -99,6 +99,8 @@ export interface CommentsPage {
   comments: CommentRow[];
   has_more: boolean;
   total: number;
+  /** Keyset cursor for the next page (last raw row, including rows hidden from this viewer). */
+  next: { at: string; id: string } | null;
 }
 
 export interface AuthorThread {
@@ -213,10 +215,7 @@ export function usePostComments(id: string) {
       if (error) throw error;
       return data as unknown as CommentsPage;
     },
-    getNextPageParam: (last) => {
-      const end = last.comments[last.comments.length - 1];
-      return last.has_more && end ? { at: end.created_at, id: end.id } : undefined;
-    },
+    getNextPageParam: (last) => (last.has_more && last.next ? last.next : undefined),
   });
 }
 

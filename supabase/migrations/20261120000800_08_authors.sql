@@ -40,6 +40,10 @@ create function public._follows_count_trigger() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare v_author uuid := coalesce(new.followee_id, old.followee_id);
 begin
+  -- A follow removed by the followee's profile cascade must not re-create their stats row.
+  if not exists (select 1 from public.profiles where id = v_author) then
+    return null;
+  end if;
   insert into public.author_stats (author_id, follower_count)
   values (v_author, (select count(*) from public.follows where followee_id = v_author))
   on conflict (author_id) do update
@@ -183,7 +187,8 @@ $$;
 create function public._has_link_or_phone(p_text text) returns boolean
 language sql immutable set search_path = '' as $$
   select p_text ~* '(https?://|www\.|\m[a-z0-9-]+\.(com|ng|net|org|io|me|co|africa|link|ly)\M)'
-      or p_text ~ '(\+?\d[\d\s().-]{8,}\d)'
+      -- Phone numbers only (Nigerian 0803… / 234803… or +country), not any long number.
+      or regexp_replace(p_text, '[\s().-]', '', 'g') ~ '(\+\d{10,14}|(^|\D)(234|0)[789][01]\d{8}(\D|$))'
 $$;
 
 create function public._is_new_account(p_user uuid) returns boolean
@@ -467,7 +472,11 @@ begin
   from shaped s
   where s.row is not null and (s.row ->> 'state' <> 'deleted' or jsonb_array_length(s.replies) > 0);
   v_more := (select count(*) from top) > v_lim;
-  return jsonb_build_object('comments', v_rows, 'has_more', v_more, 'total', a.comment_count);
+  -- The cursor is the last row of the raw page, so rows hidden from this viewer never stall paging.
+  return jsonb_build_object('comments', v_rows, 'has_more', v_more, 'total', a.comment_count,
+    'next', (select jsonb_build_object('at', t.created_at, 'id', t.id)
+             from (select * from top order by created_at, id limit v_lim) t
+             order by t.created_at desc, t.id desc limit 1));
 end $$;
 
 create function public.like_post(p_post uuid, p_liked boolean) returns jsonb
@@ -525,6 +534,11 @@ begin
   if p_parent is not null then
     select * into par from public.post_comments where id = p_parent and post_id = p_post;
     if par.id is null or par.state in ('removed', 'deleted') then
+      perform public._raise('not_found');
+    end if;
+    -- A reply to a reply attaches to the top-level comment, which must still be showing.
+    if par.parent_id is not null and exists (select 1 from public.post_comments t
+        where t.id = par.parent_id and t.state = 'removed') then
       perform public._raise('not_found');
     end if;
   end if;

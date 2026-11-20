@@ -2,7 +2,7 @@
 -- comments, RLS on DM groups and follows, reply-time stats.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(48);
+select plan(51);
 
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 reader (20 credits), 2 reader (3 credits), 3 author, 4 reader the author blocked,
@@ -172,6 +172,14 @@ select is(public.delete_comment((select id from c1)) ->> 'state', 'removed', 'th
 select pg_temp.as_user('80800000-0000-4000-a000-000000000001');
 select throws_ok($$select public.get_post('80800000-0000-4000-e000-000000000002')$$, 'P0001', 'not_found', 'drafts are private');
 select is((public.like_post('80800000-0000-4000-e000-000000000001', true) ->> 'like_count')::int, 1, 'like counts');
+select throws_ok($$select public.add_comment('80800000-0000-4000-e000-000000000001',
+  (select id from public.post_comments where client_id = '80800000-0000-4000-f100-000000000003'), 'Still here?',
+  '80800000-0000-4000-f100-000000000004')$$, 'P0001', 'not_found', 'no replies under a removed comment');
+
+-- Contact rule: phone numbers, not any long number.
+select ok(public._has_link_or_phone('call +234 803 123 4567') and public._has_link_or_phone('08031234567'),
+  'phone numbers are caught');
+select ok(not public._has_link_or_phone('ISBN 9780141439518, chapter 1234567890'), 'long non-phone numbers pass');
 
 select * from finish();
 rollback;
