@@ -125,7 +125,12 @@ appId: com.arpedia.reader
 - tapOn:
     text: 'Done'
     optional: true
+# Genres and Description sit below the fold once the file and cover cards are filled.
+- scrollUntilVisible:
+    element: 'Fiction'
 - tapOn: 'Fiction'
+- scrollUntilVisible:
+    element: 'Two or three sentences readers see first'
 - tapOn: 'Two or three sentences readers see first'
 - inputText: 'A market woman, a debt remembered and one long day in Onitsha.'
 - hideKeyboard
