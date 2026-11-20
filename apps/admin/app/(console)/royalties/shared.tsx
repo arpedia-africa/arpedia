@@ -2,6 +2,8 @@
 
 export const n0 = (n: number) => Number(n).toLocaleString('en-NG');
 
+export { AUTO_VERIFY_SCORE as AUTO_VERIFY } from '@arpedia/core';
+
 const LONG = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
