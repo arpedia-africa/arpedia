@@ -43,6 +43,7 @@ import {
   useMergedMessages,
 } from '../../../features/06/chat';
 import { toneFor } from '../../../features/06/data';
+import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 
 type Item = { key: string; day: string } | { key: string; bubble: BubbleView; msg?: ChatMessage };
 
@@ -455,8 +456,25 @@ export default function Chat() {
             onDetails={setDetails}
             onAlsoBlock={setAlsoBlock}
             onCancel={() => setReporting(null)}
-            onSend={() =>
-              reason &&
+            onSend={() => {
+              if (!reason) return;
+              // Offline: saved on the device and sent on reconnect with the original time (flow 14).
+              if (offline) {
+                void createReport(
+                  {
+                    content_type: g?.kind === 'dm' ? 'dm' : 'message',
+                    content_id: reporting.id,
+                    reason,
+                    details: details.trim() || null,
+                    also_block: alsoBlock,
+                  },
+                  true,
+                ).then(
+                  () => (setReporting(null), toast({ message: REPORT_SAVED })),
+                  (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
+                );
+                return;
+              }
               action.mutate(
                 {
                   type: 'report',
@@ -469,20 +487,12 @@ export default function Chat() {
                   onSuccess: () => {
                     setReporting(null);
                     void history.refetch();
-                    toast({
-                      message:
-                        "Report sent. We'll look at it within 24 hours for serious reports and within 3 days for others.",
-                    });
+                    toast({ message: REPORT_SENT });
                   },
-                  onError: (e) =>
-                    toast({
-                      message: /already/i.test(String((e as Error).message))
-                        ? 'You already reported this.'
-                        : "Couldn't send the report. Try again.",
-                    }),
+                  onError: (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
                 },
-              )
-            }
+              );
+            }}
           />
         ) : null}
       </Sheet>

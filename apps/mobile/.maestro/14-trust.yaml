@@ -1,0 +1,67 @@
+# Flow 14: log in as the seeded reader, open Grace Readers, report Chioma's message with Also block
+# (create_report through the chat Worker), then unblock her on s-blocked so the flow can run again.
+# Needs the local stack (Supabase + api Worker + chat Worker) behind the app, freshly reset
+# (`pnpm db:reset`). The first width sends the report; later widths see "You already reported this."
+# (one report per reader per item, rule 5).
+# Run: maestro test apps/mobile/.maestro/14-trust.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/14-trust.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- hideKeyboard
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+
+- extendedWaitUntil:
+    visible: 'Community'
+    timeout: 30000
+- tapOn: 'Community'
+- extendedWaitUntil:
+    visible: 'Grace Readers'
+    timeout: 30000
+- tapOn: 'Grace Readers'
+- extendedWaitUntil:
+    visible: 'Message Grace Readers'
+    timeout: 30000
+
+# s-msg-actions → s-report: Harassment or bullying, Also block, Send report
+- longPressOn: 'Chioma.*'
+- extendedWaitUntil:
+    visible: 'Report or block'
+    timeout: 10000
+- tapOn: 'Report or block.*'
+- assertVisible: 'Why are you reporting this?'
+- tapOn: 'Harassment.*'
+- tapOn: 'Also block Chioma'
+- takeScreenshot: trust-${WIDTH}-report
+- tapOn: 'Send report'
+- extendedWaitUntil:
+    visible: 'Report sent.*|You already reported this.'
+    timeout: 15000
+- takeScreenshot: trust-${WIDTH}-sent
+- assertNotVisible: 'Why are you reporting this?'
+
+# s-blocked: Chioma is listed (with the two seeded blocks); Unblock her for the next run
+- openLink: arpedia://blocked
+- extendedWaitUntil:
+    visible: 'Chioma Okafor'
+    timeout: 15000
+- takeScreenshot: trust-${WIDTH}-blocked
+# Newest block first (get_blocked), so Chioma's row is the first Unblock.
+- tapOn:
+    text: 'Unblock'
+    index: 0
+- extendedWaitUntil:
+    notVisible: 'Chioma Okafor'
+    timeout: 10000
