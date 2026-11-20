@@ -49,6 +49,7 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import { Flow02, isFlow02 } from '../features/02/parity';
 import { AboutView, BackHero, DiscussionLockedView } from '../features/03/AboutViews';
 import { BookPageView, type BookPageModel } from '../features/03/BookViews';
 import { ReviewsView, WriteReviewView, type ReviewItem } from '../features/03/ReviewViews';
@@ -76,6 +77,16 @@ const PAGES = [
   's-profile-setup',
   's-plans-onboard',
   's-all-set',
+  's-home',
+  's-see-all',
+  's-explore',
+  's-explore-filter',
+  's-search',
+  's-search-typing',
+  's-search-results',
+  's-search-none',
+  's-search-request',
+  's-notifications',
   's-book',
   's-book-about',
   's-reviews',
@@ -169,7 +180,9 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          {FLOW06.has(page) ? (
+          {isFlow02(page) ? (
+            <Flow02 page={page} />
+          ) : FLOW06.has(page) ? (
             <Flow06 page={page} />
           ) : page.startsWith('s-book') || page.includes('review') ? (
             <Flow03 page={page} />

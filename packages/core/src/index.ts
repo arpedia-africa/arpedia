@@ -7,5 +7,6 @@ export * from './preview';
 export * from './readiness';
 export * from './anchors';
 export * from './seal';
+export * from './discovery';
 export * from './unlock';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
