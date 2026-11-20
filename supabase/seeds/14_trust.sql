@@ -40,3 +40,39 @@ insert into public.ticket_messages (ticket_id, kind, author_id, body, created_at
   ('00000000-0000-4000-f140-000000000003', 'staff', '00000000-0000-4000-b000-000000000006',
    'Hi Ngozi, sorry about that. Please pull down to refresh your Library, then open the book again. Does chapter 4 open now?',
    now() - interval '2 days 20 hours');
+
+-- Safety rules: muted words as on s-automod.
+insert into public.automod_words (text, is_phrase, category, scope, action, created_by) values
+  ('find you', true, 'threats', 'everywhere', 'hide_and_report', '00000000-0000-4000-b000-000000000004'),
+  ('send nudes', true, 'sexual', 'chat_dms', 'hide_and_report', '00000000-0000-4000-b000-000000000004'),
+  ('whatsapp me', true, 'spam', 'chat_dms', 'hide', '00000000-0000-4000-b000-000000000004'),
+  ('cheap data, naira exchange', true, 'spam', 'everywhere', 'hide', '00000000-0000-4000-b000-000000000004'),
+  ('pdf free, free download', true, 'piracy', 'everywhere', 'hide', '00000000-0000-4000-b000-000000000004'),
+  ('dies in chapter', true, 'spoilers', 'reviews', 'blur', '00000000-0000-4000-b000-000000000004'),
+  ('shut up, stupid', true, 'harassment', 'chat_dms', 'warn', '00000000-0000-4000-b000-000000000004');
+insert into public.automod_hits (word_id, at)
+select w.id, now() - (g * interval '3 hours')
+from public.automod_words w
+cross join lateral generate_series(1, case w.text when 'whatsapp me' then 41 when 'shut up, stupid' then 86
+  when 'find you' then 7 when 'send nudes' then 3 else 19 end) g;
+
+-- Appeals: Emeka appeals a 30-day suspension Zainab decided; Musa a warning (in review).
+insert into public.moderation_actions (id, target_user_id, action, duration_days, reason, message_to_user, decided_by, expires_at, created_at) values
+  ('00000000-0000-4000-f141-000000000001', '00000000-0000-4000-a000-000000000007', 'suspend', 30,
+   'Violence or threats', 'You threatened another reader. Your account is suspended for 30 days.',
+   '00000000-0000-4000-b000-000000000004', now() + interval '22 days', now() - interval '8 days'),
+  ('00000000-0000-4000-f141-000000000002', '00000000-0000-4000-a000-000000000006', 'warn', null,
+   'Harassment or bullying', 'Please keep discussions kind.', '00000000-0000-4000-b000-000000000004', null, now() - interval '3 days');
+insert into public.user_sanctions (id, user_id, kind, starts_at, ends_at, action_id, state) values
+  ('00000000-0000-4000-f142-000000000001', '00000000-0000-4000-a000-000000000007', 'suspend',
+   now() - interval '8 days', now() + interval '22 days', '00000000-0000-4000-f141-000000000001', 'active'),
+  ('00000000-0000-4000-f142-000000000002', '00000000-0000-4000-a000-000000000006', 'warn',
+   now() - interval '3 days', null, '00000000-0000-4000-f141-000000000002', 'active');
+insert into public.appeals (user_id, subject_type, subject_id, original_decider, text, status, due_at, created_at) values
+  ('00000000-0000-4000-a000-000000000007', 'sanction', '00000000-0000-4000-f142-000000000001',
+   '00000000-0000-4000-b000-000000000004',
+   'I was joking with my friends and it was taken the wrong way. I would never hurt anybody. Please reduce the suspension. I am sorry to the others.',
+   'new', now() + interval '2 days', now() - interval '1 day'),
+  ('00000000-0000-4000-a000-000000000006', 'sanction', '00000000-0000-4000-f142-000000000002',
+   '00000000-0000-4000-b000-000000000004', 'I only disagreed with the review. I did not insult anybody.',
+   'in_review', now() - interval '2 hours', now() - interval '3 days 2 hours');
