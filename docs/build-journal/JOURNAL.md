@@ -101,6 +101,8 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 
 - **Owner decision: emulator first (15:50).** One PR had taken ~4 h of phone time, mostly reruns after the phone was used. Closed every desktop app except the IDE, Claude and Chrome, paused the two idle no-phone builders and the second database (free RAM 0.4 → 3.1 GB), and booted an Android 36 x86_64 emulator at `wm density 461` (375 dp, the same width as the phone). Maestro and parity now run on `emulator-5554`; the owner's phone is only for owner previews. The arm64 phone APK crashes on the emulator, so builds for it use the default x86_64 arch.
 
+- **Flow 02 Discovery merged (17:48)**, the first flow tested fully on the emulator: Maestro passed at 375/360/320 on the first try, plus parity in 4 themes. After 6 h of failed phone runs it took about 2 h on the emulator, including the first x86_64 build (~55 min with memory tight). 6 of 18 merged.
+
 **Lesson:** with AI builders, the bottleneck moves to the physical device. Plan device time (a second test phone, overnight runs) as carefully as code.
 
 ---
