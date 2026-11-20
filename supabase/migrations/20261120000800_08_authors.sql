@@ -754,6 +754,22 @@ begin
     'balance', (v_spend ->> 'balance')::int, 'replayed', false, 'first_with_author', v_first);
 end $$;
 
+-- s-dm: the cost of each paid message in a thread (rule 25), newest first. flow 06's get_messages
+-- doesn't carry cost_credits; members of the thread only.
+create function public.get_author_dm_costs(p_group uuid, p_limit int default 200)
+returns table (id uuid, cost_credits int)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_group_member(p_group, public._uid()) then
+    perform public._raise('not_found');
+  end if;
+  return query
+    select m.id, m.cost_credits from public.messages m
+    where m.group_id = p_group and m.cost_credits > 0
+    order by m.created_at desc
+    limit least(greatest(coalesce(p_limit, 200), 1), 500);
+end $$;
+
 -- ─── Nightly stats (pg_cron author_stats_refresh) ───────────────────────────
 -- Readers: distinct people who unlocked or read 10% or more of any of the author's books.
 -- Rating: all live books, weighted by count. Reply time: median hours from a reader's first
@@ -884,7 +900,7 @@ revoke execute on function public.follow_author(uuid), public.unfollow_author(uu
   public.add_comment(uuid, uuid, text, uuid), public.delete_comment(uuid),
   public.start_author_dm(uuid), public.ack_dm_cost(uuid), public.get_author_thread(uuid),
   public.get_dm_reader(uuid), public.send_author_message(uuid, uuid, text),
-  public.admin_author_social(uuid)
+  public.get_author_dm_costs(uuid, int), public.admin_author_social(uuid)
   from public, anon;
 grant execute on function public.follow_author(uuid), public.unfollow_author(uuid),
   public.get_author_profile(uuid), public.get_author_posts(uuid, timestamptz, int),
@@ -893,7 +909,7 @@ grant execute on function public.follow_author(uuid), public.unfollow_author(uui
   public.add_comment(uuid, uuid, text, uuid), public.delete_comment(uuid),
   public.start_author_dm(uuid), public.ack_dm_cost(uuid), public.get_author_thread(uuid),
   public.get_dm_reader(uuid), public.send_author_message(uuid, uuid, text),
-  public.admin_author_social(uuid)
+  public.get_author_dm_costs(uuid, int), public.admin_author_social(uuid)
   to authenticated;
 
 -- Initial stats for existing authors.

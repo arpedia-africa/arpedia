@@ -2832,6 +2832,11 @@ isOneToOne: false
               "avg_rating": number,"genres": (string)[],"id": string,"price_credits": number,"rating_count": number,"title": string
             }[]
                            },
+"get_author_dm_costs":
+{ Args: { "p_group": string,"p_limit"?: number }; Returns: {
+              "cost_credits": number,"id": string
+            }[]
+                           },
 "get_author_posts":
 { Args: { "p_author": string,"p_before"?: string,"p_limit"?: number }; Returns: {
               "comment_count": number,"excerpt": string,"id": string,"like_count": number,"liked": boolean,"published_at": string,"title": string

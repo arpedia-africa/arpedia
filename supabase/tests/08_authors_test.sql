@@ -2,7 +2,7 @@
 -- comments, RLS on DM groups and follows, reply-time stats.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(46);
+select plan(48);
 
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 reader (20 credits), 2 reader (3 credits), 3 author, 4 reader the author blocked,
@@ -144,6 +144,12 @@ reset role;
 select is(public.get_dm_reader((select id from dm_id)) ->> 'under_18', 'false', 'author sees the reader, with Under 18 flag');
 select pg_temp.as_user('80800000-0000-4000-a000-000000000001');
 select throws_ok($$select public.get_dm_reader((select id from dm_id))$$, 'P0001', 'not_found', 'only the author reads get_dm_reader');
+select results_eq($$select cost_credits from public.get_author_dm_costs((select id from dm_id))$$, $$values (5)$$,
+  'the reader sees the cost of each paid message');
+select pg_temp.as_user('80800000-0000-4000-a000-000000000006');
+select throws_ok($$select * from public.get_author_dm_costs((select id from dm_id))$$, 'P0001', 'not_found',
+  'outsiders cannot read thread costs');
+select pg_temp.as_user('80800000-0000-4000-a000-000000000001');
 
 -- ─── Comments ───────────────────────────────────────────────────────────────
 create temporary table c1 as select (public.add_comment('80800000-0000-4000-e000-000000000001', null, 'First!',
