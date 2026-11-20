@@ -2,7 +2,7 @@
 -- rows, and admin_set_book_price.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(61);
+select plan(68);
 
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 reader (plan, 200 credits), 2 reader (no plan, 10), 3 author, 4 finance, 5 reader (paygo),
@@ -202,6 +202,27 @@ select is((public.get_book_page('30300000-0000-4000-c000-000000000001') -> 'rati
   'one rating on the book page and reviews');
 select throws_ok($$update public.reviews set status = 'visible'$$, '42501', null,
   'readers cannot set moderation status');
+
+-- ─── Reports go into flow 06's reports table ────────────────────────────────
+select throws_ok($$select public.report_review((select id from public.reviews where user_id = '30300000-0000-4000-a000-000000000001'), 'spoilers_abuse_or_spam')$$,
+  'P0001', 'not_found', 'readers cannot report their own review');
+select pg_temp.as_user('30300000-0000-4000-a000-000000000002');
+select isnt(public.report_review((select id from public.reviews where user_id = '30300000-0000-4000-a000-000000000001'), 'spoilers_abuse_or_spam'), null,
+  'another reader reports the review');
+select is(public.report_review((select id from public.reviews where user_id = '30300000-0000-4000-a000-000000000001'), 'spoilers_abuse_or_spam'), null,
+  'reporting the same review twice is a no-op');
+select results_eq($$select content_type::text, reason::text, severity::text, reported_user_id::text, book_id::text
+                    from public.reports where content_type = 'review'$$,
+  $$values ('review', 'other', 'low', '30300000-0000-4000-a000-000000000001', '30300000-0000-4000-c000-000000000001')$$,
+  'review report names the reviewer and the book');
+select throws_ok($$select public.report_book('30300000-0000-4000-c000-000000000001', 'boring')$$,
+  'P0001', 'bad_reason', 'book reports take the three reasons only');
+select lives_ok($$select public.report_book('30300000-0000-4000-c000-000000000001', 'copyright')$$,
+  'reader reports a book for copyright');
+select results_eq($$select reason::text, severity::text, snapshot ->> 'reason' from public.reports
+                    where content_type = 'book'$$,
+  $$values ('copyright', 'medium', 'copyright')$$, 'copyright report is medium severity');
+select pg_temp.as_user('30300000-0000-4000-a000-000000000001');
 
 -- ─── Admin price override ───────────────────────────────────────────────────
 select throws_ok($$select public.admin_set_book_price('30300000-0000-4000-c000-000000000001', 120, 'x', '[]')$$,

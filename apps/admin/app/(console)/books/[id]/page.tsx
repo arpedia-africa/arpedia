@@ -37,13 +37,13 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
       supabase.from('books').select('id', { count: 'exact', head: true }).eq('author_id', book.author_id).eq('status', 'live'),
       supabase.from('book_rating_stats').select('avg, count').eq('book_id', id).maybeSingle(),
       supabase.from('book_effective').select('effective_price').eq('book_id', id).maybeSingle(),
-      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('target_type', 'book').eq('target_id', id).eq('status', 'open'),
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('content_type', 'book').eq('content_id', id).neq('status', 'resolved'),
       supabase
         .from('reports')
         .select('id', { count: 'exact', head: true })
-        .eq('target_type', 'book')
-        .eq('target_id', id)
-        .neq('status', 'open')
+        .eq('content_type', 'book')
+        .eq('content_id', id)
+        .eq('status', 'resolved')
         .gte('created_at', new Date(Date.now() - 90 * 864e5).toISOString()),
     ]);
 
