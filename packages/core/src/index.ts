@@ -10,4 +10,5 @@ export * from './seal';
 export * from './unlock';
 export * from './credits';
 export * from './payments';
+export * from './authors';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
