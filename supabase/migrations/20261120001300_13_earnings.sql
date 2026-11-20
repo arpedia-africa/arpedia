@@ -1325,7 +1325,7 @@ begin
     left join public.author_bank_accounts b on b.id = p.bank_account_id
   ), f as (
     select * from base
-    where (p_status is null or status::text = p_status)
+    where (p_status is null or status::text = p_status or (p_status = 'pending' and status = 'queued'))
       and (v_q is null or name ilike '%' || v_q || '%' or reference ilike '%' || v_q || '%'
            or coalesce(flutterwave_transfer_id, '') ilike '%' || v_q || '%')
   )
