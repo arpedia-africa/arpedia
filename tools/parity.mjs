@@ -565,6 +565,32 @@ try {
           { x: 544, y: 107, width: 600, height: 343 },
         ],
       },
+      // Flow 03. Harmattan Letters' Details, Pricing and access and Stats tabs: shell, page header and
+      // tabs are gated; the panels hold seeded data (no Discover shelves or history yet), compared by eye.
+      book: {
+        path: '/books/00000000-0000-4000-c000-000000000001',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'book-access': {
+        path: '/books/00000000-0000-4000-c000-000000000001/access',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'book-stats': {
+        path: '/books/00000000-0000-4000-c000-000000000001/stats',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
       // Revisions of the seeded update (The Alignment r4): shell, page header, tabs and the revisions
       // table head. Rows, panels and the fast-lane list hold seeded data, compared by eye.
       'book-revisions': {

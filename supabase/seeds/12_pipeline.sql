@@ -8,8 +8,8 @@ create temporary table seed_pipeline_users (id uuid, email text, full_name text,
   role public.staff_role);
 insert into seed_pipeline_users values
   ('00000000-0000-4000-a000-000000000010', 'obiageli@example.com',  'Obiageli Nnaji', 'obiageli',      true,  null),
-  ('00000000-0000-4000-a000-000000000011', 'esther@example.com',    'Esther Akande',  'esther',        true,  null),
-  ('00000000-0000-4000-b000-000000000008', 'ifeanyi@arpedia.africa', 'Ifeanyi Obi',   'ifeanyi.staff', false, 'publisher');
+  ('00000000-0000-4000-a000-000000000011', 'esther@example.com',    'Esther Akande',  'esther',        true,  null);
+-- Ifeanyi Obi (00000000-0000-4000-b000-000000000008) is seeded in seed.sql with the other staff.
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
   confirmation_token, recovery_token, email_change_token_new, email_change)
