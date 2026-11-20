@@ -76,3 +76,30 @@ insert into public.appeals (user_id, subject_type, subject_id, original_decider,
   ('00000000-0000-4000-a000-000000000006', 'sanction', '00000000-0000-4000-f142-000000000002',
    '00000000-0000-4000-b000-000000000004', 'I only disagreed with the review. I did not insult anybody.',
    'in_review', now() - interval '2 hours', now() - interval '3 days 2 hours');
+
+-- Copyright claims as on s-claims / s-claim: one new (Kano Nights, with a passage check), one waiting on the
+-- author (Ruth of Ibadan, held), one rejected.
+insert into public.copyright_claims (id, book_id, claimant_name, claimant_contact, type, details, evidence, similarity,
+  status, author_due_at, due_at, decided_by, decision_note, decided_at, created_at) values
+  ('00000000-0000-4000-f143-000000000001', '00000000-0000-4000-c100-000000000004', 'Paramount Books Ltd',
+   'Barr. Yetunde Coker', 'copyright',
+   'Kano Nights reuses our client''s 2019 novel almost line by line from chapter 3 on. We request removal and a written undertaking. Legal contact: legal@paramountbooks.ng',
+   '[{"name":"The-Night-Train-to-Kano-2019-edition.pdf","kind":"PDF","size":"3.8 MB","note":"uploaded 12 Nov"},
+     {"name":"Paramount-copyright-registration-NCC-2019-0873.pdf","kind":"PDF","size":"640 KB","note":"Nigerian Copyright Commission certificate"}]',
+   '{"score":74,"flagged":6,"chapter":"Chapter 3","source_title":"\"The Night Train to Kano\" (2019)","source_label":"Paramount, \"The Night Train to Kano\", p. 41",
+     "passages":[{"source":"[[The harmattan dust sat on the windowsill like a debt nobody wanted to name.]] Musa counted the coins twice, then a third time, as if the numbers might change their mind.",
+                  "book":"[[The harmattan dust sat on the windowsill like a debt nobody wanted to name.]] Garba counted the coins twice, then a third time, as if the numbers might change their mind."},
+                 {"source":"[[\"You will not leave this city with my brother''s name in your mouth,\" she said.]]",
+                  "book":"[[\"You will not leave this city with my brother''s name in your mouth,\" she told him.]]"}]}',
+   'new', null, now() + interval '6 days', null, null, null, now() - interval '1 day'),
+  ('00000000-0000-4000-f143-000000000002', '00000000-0000-4000-c000-000000000002', 'Ada Nwosu (author)',
+   'ada.nwosu@example.com', 'plagiarism',
+   'Two chapters of Ruth of Ibadan follow my short story "The Village Schoolteacher" scene by scene.',
+   '[{"name":"The-Village-Schoolteacher.docx","kind":"Word","size":"88 KB","note":"published on her blog in 2021"}]',
+   null, 'waiting_on_author', now() + interval '4 days', now() + interval '4 days', null, null, null, now() - interval '3 days'),
+  ('00000000-0000-4000-f143-000000000003', '00000000-0000-4000-c100-000000000010', 'Rotimi Press',
+   'rights@rotimipress.example', 'copyright', 'Okada Diaries uses the title of our 2015 memoir.', '[]', null,
+   'rejected', null, now() - interval '20 days', '00000000-0000-4000-b000-000000000002',
+   'Titles are not protected by copyright and the text does not match.', now() - interval '22 days', now() - interval '28 days');
+
+update public.books set claim_hold_at = now() - interval '3 days' where id = '00000000-0000-4000-c000-000000000002';

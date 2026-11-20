@@ -1280,6 +1280,8 @@ begin
                'readers', (select count(distinct e.user_id) from public.entitlements e where e.book_id = b.id and e.revoked_at is null))
              from public.books b where b.id = c.book_id),
     'can_decide', public._can_claims(true),
+    'past_claims', (select count(*) from public.copyright_claims x where x.id <> c.id
+                      and lower(x.claimant_name) = lower(c.claimant_name)),
     'timeline', (select coalesce(jsonb_agg(jsonb_build_object('at', l.at, 'action', l.action, 'by', l.actor_name,
                    'summary', l.summary) order by l.at), '[]'::jsonb)
                  from public.audit_log l where l.object_type = 'claim' and l.object_id = c.id::text));
