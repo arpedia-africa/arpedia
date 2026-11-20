@@ -1,5 +1,6 @@
 // Flow 13 · earnings and payouts (docs/prd/13-earnings-payouts.md Server, rules 17–24).
 //   GET  /v1/earnings/banks                    author: Nigerian banks for the payout account form
+//   POST /v1/earnings/bank-account/resolve     author {bank_code, account_number} → the bank's account name
 //   POST /v1/earnings/bank-account             author {bank_code, account_number}: resolve the name at
 //        Flutterwave, encrypt the number, score the name against the legal name, submit_bank_account
 //   GET  /v1/earnings/flutterwave/balance      Finance / Super admin: NGN balance, feeds prepare_cycle
@@ -20,7 +21,7 @@ import {
   type Database,
 } from '@arpedia/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
@@ -67,48 +68,71 @@ const BankBody = z.object({
   account_number: z.string().trim().refine(isAccountNumber, 'ten digits'),
 });
 
+type Resolved =
+  | { ok: false; res: Response }
+  | { ok: true; bankCode: string; bankName: string; number: string; name: string; legalName: string };
+
+/** Checks the body and the author, then asks the bank for the account name (never the client's). */
+async function resolveFor(c: Context<AppEnv>, client: PayoutClient): Promise<Resolved> {
+  const body = BankBody.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return { ok: false, res: c.json({ error: 'bad_request' }, 400) };
+  const { bank_code, account_number } = body.data;
+  const { data: profile, error } = await serviceDb(c.env)
+    .from('author_profiles')
+    .select('legal_name')
+    .eq('user_id', c.var.user.sub)
+    .maybeSingle();
+  if (error) throw new Error(`author_profiles: ${error.message}`);
+  if (!profile) return { ok: false, res: c.json({ error: 'not_an_author' }, 403) };
+  const bank = (await client.banks()).find((b) => b.code === bank_code);
+  if (!bank) return { ok: false, res: c.json({ error: 'unknown_bank' }, 400) };
+  try {
+    const name = await client.resolveAccount(bank_code, account_number, profile.legal_name);
+    return {
+      ok: true,
+      bankCode: bank_code,
+      bankName: bank.name,
+      number: account_number,
+      name,
+      legalName: profile.legal_name,
+    };
+  } catch (e) {
+    if (e instanceof FlwError && e.status < 500)
+      return { ok: false, res: c.json({ error: 'account_not_found' }, 422) };
+    console.error('resolveAccount', e);
+    return { ok: false, res: c.json({ error: 'bank_unavailable' }, 502) };
+  }
+}
+
+/** Step 1: the name the bank holds, shown to the author before saving (rule 21). */
+earnings.post('/bank-account/resolve', requireUser, async (c) => {
+  const client = payoutClient(c.env);
+  if (!client) return c.json({ error: 'not_configured' }, 503);
+  const r = await resolveFor(c, client);
+  if (!r.ok) return r.res;
+  return c.json({ bank_name: r.bankName, account_name: r.name });
+});
+
+/** Step 2: resolved again here, encrypted, scored against the legal name and saved. */
 earnings.post('/bank-account', requireUser, async (c) => {
   const client = payoutClient(c.env);
   const key = accountKey(c.env);
   if (!client || !key) return c.json({ error: 'not_configured' }, 503);
-  const body = BankBody.safeParse(await c.req.json().catch(() => null));
-  if (!body.success) return c.json({ error: 'bad_request' }, 400);
-  const { bank_code, account_number } = body.data;
+  const r = await resolveFor(c, client);
+  if (!r.ok) return r.res;
   const author = c.var.user.sub;
-  const db = serviceDb(c.env);
-
-  const { data: profile, error: pErr } = await db
-    .from('author_profiles')
-    .select('legal_name')
-    .eq('user_id', author)
-    .maybeSingle();
-  if (pErr) throw new Error(`author_profiles: ${pErr.message}`);
-  if (!profile) return c.json({ error: 'not_an_author' }, 403);
-
-  const bank = (await client.banks()).find((b) => b.code === bank_code);
-  if (!bank) return c.json({ error: 'unknown_bank' }, 400);
-
-  let resolved: string;
-  try {
-    resolved = await client.resolveAccount(bank_code, account_number, profile.legal_name);
-  } catch (e) {
-    if (e instanceof FlwError && e.status < 500) return c.json({ error: 'account_not_found' }, 422);
-    console.error('resolveAccount', e);
-    return c.json({ error: 'bank_unavailable' }, 502);
-  }
-
-  const score = nameMatchScore(resolved, profile.legal_name);
-  const { data, error } = await db.rpc('submit_bank_account', {
+  const score = nameMatchScore(r.name, r.legalName);
+  const { data, error } = await serviceDb(c.env).rpc('submit_bank_account', {
     p_author: author,
-    p_bank_code: bank_code,
-    p_bank_name: bank.name,
-    p_last4: account_number.slice(-4),
-    p_number_enc: await encryptAccount(key, author, account_number),
-    p_resolved_name: resolved,
+    p_bank_code: r.bankCode,
+    p_bank_name: r.bankName,
+    p_last4: r.number.slice(-4),
+    p_number_enc: await encryptAccount(key, author, r.number),
+    p_resolved_name: r.name,
     p_match_score: score,
   });
   if (error) return rpcError(c, error);
-  return c.json({ ...(data as object), account_name: resolved, match_score: score });
+  return c.json({ ...(data as object), account_name: r.name, match_score: score });
 });
 
 // ─── Staff: Flutterwave balance (prepare_cycle) ─────────────────────────────
