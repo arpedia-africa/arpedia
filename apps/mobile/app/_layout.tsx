@@ -21,6 +21,7 @@ import { ThemeProvider, ToastProvider, displayFonts } from '@arpedia/ui';
 import { QueryProvider } from '@/lib/query';
 import { Telemetry, initSentry, wrapRoot } from '@/lib/telemetry';
 import { useUi } from '@/lib/ui-store';
+import { AppGate } from '../features/16/AppGate';
 
 initSentry();
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -52,7 +53,9 @@ function RootLayout() {
           <QueryProvider>
             <ThemeProvider theme={theme}>
               <ToastProvider>
-                <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }} />
+                <AppGate>
+                  <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }} />
+                </AppGate>
               </ToastProvider>
             </ThemeProvider>
           </QueryProvider>
