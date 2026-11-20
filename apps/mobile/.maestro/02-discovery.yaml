@@ -36,13 +36,19 @@ appId: com.arpedia.reader
     timeout: 10000
 
 # s-see-all (Top 10)
+# The Top 10 rail carries the heading as its label and is wider than the screen, so scroll to the
+# band's subtitle instead.
 - scrollUntilVisible:
-    element: 'Top 10 books'
+    element: 'Most read on Arpedia this week'
     direction: DOWN
+# Its See all sits on the heading row: below the New arrivals row, above the band's subtitle.
 - tapOn:
     text: 'See all'
-    rightOf: 'Top 10 books'
-    optional: true
+    below: 'New arrivals'
+    above: 'Most read on Arpedia this week'
+- extendedWaitUntil:
+    notVisible: 'Coming soon'
+    timeout: 15000
 - extendedWaitUntil:
     visible: 'Most read on Arpedia this week'
     timeout: 15000
