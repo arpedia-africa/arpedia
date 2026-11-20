@@ -4,7 +4,7 @@
 -- (duplicate, out of order, reversed after success), blind retries blocked, bank review, RLS.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(58);
 
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 author A (verified bank), 2 author B (below minimum), 3 author C (no bank), 4 reader,
@@ -238,6 +238,26 @@ select lives_ok($$select public.pause_author_payouts('13130000-0000-4000-a000-00
 select pg_temp.as_owner();
 select is((select status from public._line_status('13130000-0000-4000-a000-000000000002', 500000, 100000)),
   'held_paused'::public.author_earning_status, 'a paused author is held');
+
+-- ─── Admin reads ────────────────────────────────────────────────────────────
+select pg_temp.as_user('13130000-0000-4000-a000-000000000005');
+select is((select r ->> 'status' from jsonb_array_elements(public.admin_earning_cycles() -> 'cycles') r
+           where r ->> 'month' = '2026-09-01'), 'releasing', 'cycle list shows September sending its retry');
+select is(jsonb_array_length(public.admin_earning_cycle((select id from public.earning_cycles
+                                                         where month = '2026-09-01')) -> 'lines'),
+  (select count(*)::int from public.author_earnings e join public.earning_cycles c on c.id = e.cycle_id
+   where c.month = '2026-09-01'), 'cycle detail lists every author line');
+select is((public.admin_payouts() ->> 'total')::int, (select count(*)::int from public.payouts),
+  'payouts list every transfer');
+select is((public.admin_payout((select id from public.payouts where attempt = 1)) ->> 'can_retry')::boolean, false,
+  'a retried transfer cannot be retried again');
+select ok(not (public.admin_bank_account((select id from public.author_bank_accounts limit 1))
+               ? 'account_number_enc'), 'the encrypted number never leaves the database');
+select lives_ok($$select public.admin_author_payout('13130000-0000-4000-a000-000000000001'),
+                         public.admin_earning_settings(), public.admin_bank_accounts('verified')$$,
+  'author payout, settings and bank queue read');
+select pg_temp.as_user('13130000-0000-4000-a000-000000000004');
+select throws_ok($$select public.admin_payouts()$$, '42501', null, 'readers cannot list payouts');
 
 select * from finish();
 rollback;

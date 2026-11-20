@@ -1201,3 +1201,312 @@ grant execute on function
   to service_role;
 
 select cron.schedule('earning_close', '5 23 * * *', 'select public.close_cycle_due()');
+
+-- ─── Admin reads (Finance and Super admin; one call per screen) ─────────────
+create function public._author_name(p_author uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select coalesce(nullif(a.pen_name, ''), p.full_name, 'Author')
+  from public.profiles p left join public.author_profiles a on a.user_id = p.id
+  where p.id = p_author
+$$;
+
+-- The latest attempt of a line, when it failed or was reversed and nothing newer went out.
+create function public._open_failures(p_cycle uuid) returns setof public.payouts
+language sql stable security definer set search_path = '' as $$
+  select p.* from public.payouts p join public.author_earnings e on e.id = p.author_earning_id
+  where (p_cycle is null or e.cycle_id = p_cycle) and p.status in ('failed', 'reversed')
+    and not exists (select 1 from public.payouts n where n.author_earning_id = p.author_earning_id
+                    and n.attempt > p.attempt)
+$$;
+
+-- s-royalties: the open month adding up, then one row per closed month.
+create function public.admin_earning_cycles() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  st public.earning_settings := public._earning_settings();
+  v_month date := date_trunc('month', now() at time zone 'Africa/Lagos')::date;
+  v_open jsonb;
+  v_rows jsonb;
+begin
+  perform public._require_payout_staff();
+  select jsonb_build_object('month', v_month,
+    'credits', coalesce(-sum(l.delta), 0), 'earnings_kobo', coalesce(sum(l.author_earning_kobo), 0),
+    'authors', count(distinct l.author_id),
+    'payout_date', public._payout_date(public._cycle_end(v_month), st.hold_days, st.payout_day))
+  into v_open from public.credit_ledger l
+  where l.author_id is not null and l.author_earning_kobo <> 0 and l.created_at >= public._cycle_start(v_month);
+
+  select coalesce(jsonb_agg(r order by r.month desc), '[]') into v_rows from (
+    select c.id, c.month, c.status, c.closed_at, c.payout_date, c.hold_days, c.legacy,
+      c.closed_at + make_interval(days => coalesce(c.hold_days, 0)) as hold_ends_at,
+      c.credits_books + c.credits_tips_messages as credits, c.earnings_kobo,
+      count(e.id) as authors,
+      count(e.id) filter (where e.status = 'carried') as carried,
+      count(e.id) filter (where e.status in ('payable', 'queued', 'paid', 'partly_failed')) as payable_authors,
+      coalesce(sum(e.payable_kobo) filter (where e.status in ('payable', 'queued', 'paid', 'partly_failed')), 0)
+        as payable_kobo,
+      count(e.id) filter (where e.status = 'held_unverified') as unverified,
+      (select count(*) from public._open_failures(c.id)) as failed,
+      (select max(p.settled_at) from public.payouts p join public.author_earnings x on x.id = p.author_earning_id
+       where x.cycle_id = c.id and p.status = 'successful') as paid_at
+    from public.earning_cycles c left join public.author_earnings e on e.cycle_id = c.id
+    where c.month < v_month
+    group by c.id
+  ) r;
+  return jsonb_build_object('open', v_open, 'cycles', v_rows, 'settings', to_jsonb(st));
+end $$;
+
+-- s-royalty-cycle and s-royalty-release.
+create function public.admin_earning_cycle(p_cycle uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  c public.earning_cycles;
+  v_lines jsonb;
+  v_excl jsonb;
+begin
+  perform public._require_payout_staff();
+  select * into c from public.earning_cycles where id = p_cycle;
+  if c.id is null then
+    perform public._raise('not_found');
+  end if;
+  select coalesce(jsonb_agg(l order by l.payable_kobo desc, l.name), '[]') into v_lines from (
+    select e.id, e.author_id, public._author_name(e.author_id) as name, e.book_credits, e.tip_message_credits,
+      e.excluded_credits, e.amount_kobo, e.carry_in_kobo, e.adjustment_kobo, e.payable_kobo, e.status,
+      e.held_reason, b.id as bank_account_id, b.status as bank_status,
+      b.status = 'verified' and b.payouts_resume_at > now() as bank_paused
+    from public.author_earnings e
+    left join public.author_bank_accounts b on b.author_id = e.author_id and b.status in ('needs_review', 'verified')
+    where e.cycle_id = c.id
+  ) l;
+  select coalesce(jsonb_object_agg(x.reason, jsonb_build_object('credits', x.credits, 'readers', x.readers)), '{}')
+  into v_excl from (
+    select x.reason, sum(x.credits) as credits, count(distinct l.user_id) as readers
+    from public.earning_exclusions x join public.credit_ledger l on l.id = x.ledger_id
+    where x.cycle_id = c.id group by x.reason
+  ) x;
+  return to_jsonb(c) || jsonb_build_object(
+    'hold_ends_at', c.closed_at + make_interval(days => coalesce(c.hold_days, 0)),
+    'prepared_name', case when c.prepared_by is not null then public._author_name(c.prepared_by) end,
+    'approved_name', case when c.approved_by is not null then public._author_name(c.approved_by) end,
+    'lines', v_lines, 'exclusions', v_excl,
+    'previous_failed', (select count(*) from public._open_failures(null) f
+                        join public.author_earnings e on e.id = f.author_earning_id
+                        join public.earning_cycles pc on pc.id = e.cycle_id where pc.month < c.month),
+    'previous_failed_month', (select max(pc.month) from public._open_failures(null) f
+                              join public.author_earnings e on e.id = f.author_earning_id
+                              join public.earning_cycles pc on pc.id = e.cycle_id where pc.month < c.month),
+    'author_rate_kobo', (select coalesce(max(l.author_earning_kobo / nullif(-l.delta, 0)), 160)
+                         from public.credit_ledger l
+                         where l.author_id is not null and l.delta < 0
+                           and l.created_at >= public._cycle_start(c.month)
+                           and l.created_at < public._cycle_end(c.month)));
+end $$;
+
+-- s-payouts: transfers with author, bank, month; filter by status, search author or reference.
+create function public.admin_payouts(p_status text default null, p_q text default null,
+                                     p_limit int default 25, p_offset int default 0)
+returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_rows jsonb;
+  v_total int;
+  v_counts jsonb;
+  v_kpis jsonb;
+  v_q text := nullif(btrim(coalesce(p_q, '')), '');
+begin
+  perform public._require_payout_staff();
+  with base as (
+    select p.*, public._author_name(p.author_id) as name, c.month, b.bank_name, b.account_last4,
+      not exists (select 1 from public.payouts n where n.author_earning_id = p.author_earning_id
+                  and n.attempt > p.attempt) and p.status in ('failed', 'reversed') as can_retry
+    from public.payouts p
+    join public.author_earnings e on e.id = p.author_earning_id
+    join public.earning_cycles c on c.id = e.cycle_id
+    left join public.author_bank_accounts b on b.id = p.bank_account_id
+  ), f as (
+    select * from base
+    where (p_status is null or status::text = p_status)
+      and (v_q is null or name ilike '%' || v_q || '%' or reference ilike '%' || v_q || '%'
+           or coalesce(flutterwave_transfer_id, '') ilike '%' || v_q || '%')
+  )
+  select (select count(*) from f),
+    (select coalesce(jsonb_agg(to_jsonb(x) - 'run_id' - 'retry_of' order by coalesce(x.settled_at, x.sent_at, x.queued_at) desc, x.reference), '[]')
+     from (select * from f order by coalesce(settled_at, sent_at, queued_at) desc, reference
+           limit least(greatest(p_limit, 1), 100) offset greatest(p_offset, 0)) x),
+    (select jsonb_build_object('all', count(*),
+       'successful', count(*) filter (where status = 'successful'),
+       'pending', count(*) filter (where status in ('queued', 'pending')),
+       'failed', count(*) filter (where status = 'failed' and can_retry),
+       'reversed', count(*) filter (where status = 'reversed' and can_retry)) from base)
+  into v_total, v_rows, v_counts;
+  with last_day as (
+    select max(settled_at::date) as d from public.payouts where status = 'successful'
+  )
+  select jsonb_build_object(
+    'paid_on', (select d from last_day),
+    'paid_kobo', (select coalesce(sum(amount_kobo), 0) from public.payouts, last_day
+                  where status = 'successful' and settled_at::date = last_day.d),
+    'paid_count', (select count(*) from public.payouts, last_day
+                   where status = 'successful' and settled_at::date = last_day.d),
+    'failed_kobo', (select coalesce(sum(amount_kobo), 0) from public._open_failures(null)),
+    'failed_count', (select count(*) from public._open_failures(null)),
+    'pending_count', (select count(*) from public.payouts where status in ('queued', 'pending')),
+    'pending_kobo', (select coalesce(sum(amount_kobo), 0) from public.payouts where status in ('queued', 'pending')),
+    'releasing_kobo', (select coalesce(sum(e.payable_kobo), 0) from public.author_earnings e
+                       join public.earning_cycles c on c.id = e.cycle_id
+                       where c.status in ('closed', 'prepared', 'approved') and e.status = 'payable'))
+  into v_kpis;
+  return jsonb_build_object('rows', v_rows, 'total', v_total, 'counts', v_counts, 'kpis', v_kpis);
+end $$;
+
+-- s-payout-retry: the failed transfer, the account it went to, and any newer account.
+create function public.admin_payout(p_payout uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  p public.payouts;
+  v jsonb;
+begin
+  perform public._require_payout_staff();
+  select * into p from public.payouts where id = p_payout;
+  if p.id is null then
+    perform public._raise('not_found');
+  end if;
+  select to_jsonb(p) || jsonb_build_object(
+    'name', public._author_name(p.author_id),
+    'month', (select c.month from public.author_earnings e join public.earning_cycles c on c.id = e.cycle_id
+              where e.id = p.author_earning_id),
+    'can_retry', p.status in ('failed', 'reversed')
+      and not exists (select 1 from public.payouts n where n.author_earning_id = p.author_earning_id
+                      and n.attempt > p.attempt),
+    'legal_name', (select legal_name from public.author_profiles where user_id = p.author_id),
+    'account', (select jsonb_build_object('id', b.id, 'bank_name', b.bank_name, 'last4', b.account_last4,
+                                          'bank_account_name', b.bank_account_name, 'status', b.status)
+                from public.author_bank_accounts b where b.id = p.bank_account_id),
+    'current', (select jsonb_build_object('id', b.id, 'bank_name', b.bank_name, 'last4', b.account_last4,
+                                          'status', b.status, 'created_at', b.created_at,
+                                          'payouts_resume_at', b.payouts_resume_at)
+                from public.author_bank_accounts b
+                where b.author_id = p.author_id and b.status in ('needs_review', 'verified')))
+  into v;
+  return v;
+end $$;
+
+-- s-bank-accounts and s-bank-account: the queue (oldest first) and one account with its history.
+create function public.admin_bank_accounts(p_status text default 'needs_review') returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform public._require_payout_staff();
+  return jsonb_build_object(
+    'rows', (select coalesce(jsonb_agg(r order by case when p_status = 'needs_review' then r.created_at end,
+                                              r.created_at desc), '[]') from (
+      select b.id, b.author_id, public._author_name(b.author_id) as name, b.bank_name, b.account_last4,
+        b.bank_account_name, b.legal_name, b.match_score, b.status, b.created_at, b.document_requested_at
+      from public.author_bank_accounts b where b.status::text = coalesce(p_status, 'needs_review')
+      limit 200) r),
+    'counts', (select jsonb_build_object(
+      'needs_review', count(*) filter (where status = 'needs_review'),
+      'verified', count(*) filter (where status = 'verified'),
+      'rejected', count(*) filter (where status = 'rejected')) from public.author_bank_accounts));
+end $$;
+
+create function public.admin_bank_account(p_account uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  b public.author_bank_accounts;
+begin
+  perform public._require_payout_staff();
+  select * into b from public.author_bank_accounts where id = p_account;
+  if b.id is null then
+    perform public._raise('not_found');
+  end if;
+  return (to_jsonb(b) - 'account_number_enc') || jsonb_build_object(
+    'name', public._author_name(b.author_id),
+    'pen_name', (select pen_name from public.author_profiles where user_id = b.author_id),
+    'verified_name', case when b.verified_by is not null then public._author_name(b.verified_by) end,
+    'queue', (select jsonb_agg(q.id order by q.created_at) from public.author_bank_accounts q
+              where q.status = 'needs_review'),
+    'held', (select coalesce(jsonb_agg(jsonb_build_object('month', c.month, 'kobo', e.payable_kobo,
+                                                          'status', e.status) order by c.month), '[]')
+             from public.author_earnings e join public.earning_cycles c on c.id = e.cycle_id
+             where e.author_id = b.author_id and e.carried_to is null
+               and e.status in ('held_unverified', 'held_paused', 'held_dispute', 'partly_failed')),
+    'history', (select coalesce(jsonb_agg(h order by h.created_at desc), '[]') from (
+      select o.id, o.bank_name, o.account_last4, o.status, o.created_at, o.verified_at,
+        case when o.verified_by is not null then public._author_name(o.verified_by) end as verified_name,
+        o.rejected_reason
+      from public.author_bank_accounts o where o.author_id = b.author_id and o.id <> b.id) h),
+    'failures', (select coalesce(jsonb_agg(jsonb_build_object('month', c.month, 'settled_at', p.settled_at,
+                   'reason', p.failure_reason, 'bank_name', o.bank_name, 'last4', o.account_last4)
+                   order by p.settled_at desc), '[]')
+                 from public.payouts p join public.author_earnings e on e.id = p.author_earning_id
+                 join public.earning_cycles c on c.id = e.cycle_id
+                 left join public.author_bank_accounts o on o.id = p.bank_account_id
+                 where p.author_id = b.author_id and p.status in ('failed', 'reversed')));
+end $$;
+
+-- s-author-payout: one author's account, payout lines and transfers, statements and hold.
+create function public.admin_author_payout(p_author uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_staff_any(array['finance', 'support']::public.staff_role[]) then
+    raise exception 'Not allowed: author payouts' using errcode = 'insufficient_privilege';
+  end if;
+  return jsonb_build_object(
+    -- Support sees the payout state, never bank details (Admin side).
+    'account', case when public.has_permission('release_payouts') then (
+      select to_jsonb(b) - 'account_number_enc' from public.author_bank_accounts b
+      where b.author_id = p_author and b.status in ('needs_review', 'verified')) end,
+    'has_account', exists (select 1 from public.author_bank_accounts b
+                           where b.author_id = p_author and b.status in ('needs_review', 'verified')),
+    'lines', (select coalesce(jsonb_agg(l order by l.month desc), '[]') from (
+      select e.id, c.month, c.payout_date, e.payable_kobo, e.amount_kobo, e.status,
+        (select jsonb_build_object('reference', p.reference, 'status', p.status, 'settled_at', p.settled_at,
+                                   'failure_reason', p.failure_reason)
+         from public.payouts p where p.author_earning_id = e.id order by p.attempt desc limit 1) as payout
+      from public.author_earnings e join public.earning_cycles c on c.id = e.cycle_id
+      where e.author_id = p_author limit 24) l),
+    'statements', (select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'kind', s.kind, 'month', c.month,
+                                                                'created_at', s.created_at)
+                                             order by s.created_at desc), '[]')
+                   from public.author_statements s left join public.earning_cycles c on c.id = s.cycle_id
+                   where s.author_id = p_author),
+    'hold', (select jsonb_build_object('reason', h.reason, 'note', h.note, 'set_at', h.set_at,
+                                       'set_name', public._author_name(h.set_by))
+             from public.payout_holds h where h.author_id = p_author and h.lifted_at is null),
+    'settings', to_jsonb(public._earning_settings()));
+end $$;
+
+-- s-royalty-settings: current values, last month's "not paid" counts, change log.
+create function public.admin_earning_settings() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  c public.earning_cycles;
+begin
+  perform public._require_payout_staff();
+  select * into c from public.earning_cycles where status <> 'open' order by month desc limit 1;
+  return jsonb_build_object(
+    'current', to_jsonb(public._earning_settings()),
+    'can_save', public.is_staff('super_admin'),
+    'last_month', c.month,
+    'exclusions', (select coalesce(jsonb_object_agg(x.reason, jsonb_build_object('credits', x.credits,
+                                                                                 'readers', x.readers)), '{}')
+                   from (select x.reason, sum(x.credits) as credits, count(distinct l.user_id) as readers
+                         from public.earning_exclusions x join public.credit_ledger l on l.id = x.ledger_id
+                         where x.cycle_id = c.id group by x.reason) x),
+    'log', (select coalesce(jsonb_agg(jsonb_build_object('hold_days', s.hold_days,
+              'min_payout_kobo', s.min_payout_kobo, 'payout_day', s.payout_day,
+              'gift_loop_detection', s.gift_loop_detection, 'effective_from', s.effective_from,
+              'changed_name', case when s.changed_by is not null then public._author_name(s.changed_by) end,
+              'note', s.note) order by s.effective_from desc), '[]')
+            from (select * from public.earning_settings order by effective_from desc limit 20) s));
+end $$;
+
+revoke all on function public._author_name(uuid), public._open_failures(uuid), public.admin_earning_cycles(),
+  public.admin_earning_cycle(uuid), public.admin_payouts(text, text, integer, integer), public.admin_payout(uuid),
+  public.admin_bank_accounts(text), public.admin_bank_account(uuid), public.admin_author_payout(uuid),
+  public.admin_earning_settings()
+  from public, anon, authenticated, service_role;
+grant execute on function public.admin_earning_cycles(), public.admin_earning_cycle(uuid),
+  public.admin_payouts(text, text, integer, integer), public.admin_payout(uuid), public.admin_bank_accounts(text),
+  public.admin_bank_account(uuid), public.admin_author_payout(uuid), public.admin_earning_settings()
+  to authenticated;
