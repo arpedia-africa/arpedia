@@ -95,6 +95,10 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 - **Owner decision: lighter phone checks.** Parity at 375 dp only (4 themes); Maestro at 320/360/375 covers narrow widths; owner preview every third flow. About 40% less phone time.
 - **App chooser risk:** release and dev builds both handle `arpedia://` links, so Maestro's `openLink` could stop on "Open with". `maestro-widths.mjs` now disables the dev build during runs and re-enables it after.
 
+- Phone unplugged ~09:44–10:19; then the owner used the phone (WhatsApp, banking, music) during runs, cutting every Maestro run short. The real blocker on a shared personal phone is the owner's own use.
+- **Maestro driver install:** MIUI blocks `adb install` of Maestro's driver until someone taps "Install". Fix used: extract `maestro-app.apk` and `maestro-server.apk` from `maestro-client.jar`, `adb install` them once while the owner watches, then Maestro reuses them. Also allow Maestro to start apps from the background (MIUI permission).
+- **MIUI hide-keyboard = Back:** Maestro's `hideKeyboard` presses Back on MIUI, which closed the app on the sign-in screen. Fix: tap a heading to drop the keyboard instead.
+
 **Lesson:** with AI builders, the bottleneck moves to the physical device. Plan device time (a second test phone, overnight runs) as carefully as code.
 
 ---
