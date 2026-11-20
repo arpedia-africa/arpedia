@@ -5,7 +5,6 @@ import { useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
-import { avClass, initials } from '@/lib/money';
 import { Otp } from '../pricing/otp';
 import {
   changePassword,
@@ -44,6 +43,22 @@ const ALERTS: { kind: string; label: string }[] = [
   { kind: 'applications_waiting', label: 'Applications waiting too long' },
   { kind: 'system_health', label: 'System health' },
 ];
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0]!.toUpperCase())
+    .join('') || '?';
+
+const AVATARS = ['g', 'm', 'b', 'o', 't', 'r', 'k'];
+/** The prototype's avatar colours, fixed per person (same hash as lib/money). */
+function avClass(id: string) {
+  let h = 0;
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATARS[h % AVATARS.length]!;
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const lagos = (iso: string) => new Date(new Date(iso).getTime() + 3_600_000);
