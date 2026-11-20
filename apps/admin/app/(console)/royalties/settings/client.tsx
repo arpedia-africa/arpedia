@@ -57,7 +57,7 @@ export function SettingsForm({
   log: LogRow[];
 }) {
   const router = useRouter();
-  const [toast, show] = useToast();
+  const [toast] = useToast();
   const [pending, start] = useTransition();
   const [hold, setHold] = useState(String(current.hold_days));
   const [min, setMin] = useState(n0(current.min_payout_kobo / 100));
