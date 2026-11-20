@@ -1,0 +1,85 @@
+# Flow 08: log in as the seeded reader, open Ifeoma's profile, unfollow (confirm) and follow again,
+# open a post, then Message: her thread is seeded with the price already seen, so it opens s-dm.
+# Send one paid message, see "· 5 credits" on it and the balance drop by 5 (830 → 825) on Credits.
+# Needs the local stack (Supabase + api Worker + chat Worker) behind the app, freshly reset
+# (`pnpm db:reset`): Ngozi has 830 credits and follows Ifeoma.
+# Run: maestro test apps/mobile/.maestro/08-authors.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/08-authors.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- hideKeyboard
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Community'
+    timeout: 30000
+
+# s-author (Ifeoma = a000-…02)
+- openLink: 'arpedia://author/00000000-0000-4000-a000-000000000002'
+- extendedWaitUntil:
+    visible: 'Arpedia author'
+    timeout: 30000
+- assertVisible: 'Following'
+- assertVisible: 'Message · 5 cr'
+- takeScreenshot: author-${WIDTH}-profile
+
+# Unfollow asks first; Follow is instant
+- tapOn: 'Following'
+- extendedWaitUntil:
+    visible: 'Unfollow Ifeoma?'
+    timeout: 10000
+- tapOn: 'Unfollow'
+- extendedWaitUntil:
+    visible: 'Follow'
+    timeout: 10000
+- tapOn: 'Follow'
+- extendedWaitUntil:
+    visible: 'Following'
+    timeout: 10000
+
+# Books and About tabs, then back to Posts and open a post (s-post)
+- tapOn: 'Books.*'
+- tapOn: 'About'
+- assertVisible: 'Joined'
+- tapOn: 'Posts.*'
+- tapOn: 'Why I wrote the letters first'
+- extendedWaitUntil:
+    visible: 'Discussion'
+    timeout: 15000
+- assertVisible: 'Comments'
+- takeScreenshot: author-${WIDTH}-post
+- tapOn: 'Back'
+
+# s-dm: one paid message
+- tapOn: 'Message · 5 cr'
+- extendedWaitUntil:
+    visible: 'Write a private message…'
+    timeout: 30000
+- takeScreenshot: author-${WIDTH}-dm
+- tapOn: 'Write a private message…'
+- inputText: 'Maestro thanks you for chapter 12'
+- hideKeyboard
+- tapOn: 'Send for 5 credits'
+- extendedWaitUntil:
+    visible: '.*· 5 credits'
+    timeout: 20000
+- assertVisible: 'Maestro thanks you for chapter 12'
+
+# The balance dropped by exactly 5
+- openLink: 'arpedia://credits'
+- extendedWaitUntil:
+    visible: '825.*'
+    timeout: 20000
+- takeScreenshot: author-${WIDTH}-credits
