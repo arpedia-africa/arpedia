@@ -4,8 +4,9 @@
 --
 -- Small tables later flows own are created here in their minimal form, because this flow reads
 -- them before those flows exist; each later flow extends its own table in its own migration:
---   subscriptions (09), reading_progress (04), follows and blocks (06/08), reports (14),
+--   subscriptions (09), reading_progress (04), follows and blocks (06/08),
 --   app_config (16). Gift people come from follows only until flow 06 adds groups.
+-- Review and book reports go into flow 06's `reports` table (20261119000700_03_reports.sql).
 
 -- ─── Config ─────────────────────────────────────────────────────────────────
 -- Plain key/value settings (flow 16 edits them). A missing key uses the default in _config().
@@ -108,19 +109,6 @@ create table public.blocks (
   created_at timestamptz not null default now(),
   primary key (blocker_id, blocked_id)
 );
-
--- Flow 14 adds triage fields (status changes, assignee, decisions).
-create table public.reports (
-  id uuid primary key default gen_random_uuid(),
-  reporter_id uuid not null references public.profiles (id),
-  target_type text not null check (target_type in ('book', 'review', 'user', 'message')),
-  target_id uuid not null,
-  reason text not null,
-  note text check (char_length(note) <= 1000),
-  status text not null default 'open',
-  created_at timestamptz not null default now()
-);
-create unique index reports_once_idx on public.reports (reporter_id, target_type, target_id) where status = 'open';
 
 -- ─── Flow 03 tables ─────────────────────────────────────────────────────────
 create table public.book_price_history (
@@ -904,43 +892,6 @@ language sql security definer set search_path = '' as $$
   delete from public.hidden_reviewers where user_id = public._uid() and hidden_user_id = p_user;
 $$;
 
--- Reports (flow 14 triages them). Reporting the same thing twice while open is a no-op.
-create function public._report(p_type text, p_target uuid, p_reason text, p_note text) returns uuid
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_id uuid;
-begin
-  if coalesce(btrim(p_reason), '') = '' then
-    perform public._raise('reason_required');
-  end if;
-  insert into public.reports (reporter_id, target_type, target_id, reason, note)
-  values (public._uid(), p_type, p_target, p_reason, nullif(btrim(p_note), ''))
-  on conflict (reporter_id, target_type, target_id) where status = 'open' do nothing
-  returning id into v_id;
-  return v_id;
-end $$;
-
-create function public.report_review(p_review uuid, p_reason text, p_note text default null) returns uuid
-language plpgsql security definer set search_path = '' as $$
-begin
-  if not exists (select 1 from public.reviews where id = p_review and user_id <> auth.uid()) then
-    perform public._raise('not_found');
-  end if;
-  return public._report('review', p_review, p_reason, p_note);
-end $$;
-
-create function public.report_book(p_book uuid, p_reason text, p_note text default null) returns uuid
-language plpgsql security definer set search_path = '' as $$
-begin
-  if p_reason not in ('wrong_content', 'copyright', 'abuse') then
-    perform public._raise('bad_reason');
-  end if;
-  if not exists (select 1 from public.books where id = p_book) then
-    perform public._raise('not_found');
-  end if;
-  return public._report('book', p_book, p_reason, p_note);
-end $$;
-
 -- Follow the author from the book page (same state as the author profile, flow 08).
 create function public.set_following(p_user uuid, p_follow boolean) returns boolean
 language plpgsql security definer set search_path = '' as $$
@@ -1198,7 +1149,6 @@ alter table public.subscriptions enable row level security;
 alter table public.reading_progress enable row level security;
 alter table public.follows enable row level security;
 alter table public.blocks enable row level security;
-alter table public.reports enable row level security;
 alter table public.book_price_history enable row level security;
 alter table public.paygo_accounts enable row level security;
 alter table public.gifts enable row level security;
@@ -1219,9 +1169,6 @@ create policy follows_select on public.follows for select to authenticated
   using (follower_id = (select auth.uid()) or followee_id = (select auth.uid()));
 create policy blocks_select on public.blocks for select to authenticated
   using (blocker_id = (select auth.uid()));
-create policy reports_select on public.reports for select to authenticated
-  using (reporter_id = (select auth.uid())
-         or (select public.is_staff_any(array['moderator', 'support']::public.staff_role[])));
 create policy book_price_history_select on public.book_price_history for select to authenticated
   using ((select public.is_staff()));
 create policy paygo_accounts_select on public.paygo_accounts for select to authenticated
@@ -1253,12 +1200,12 @@ create policy book_related_select on public.book_related for select to authentic
 
 -- ─── Grants ─────────────────────────────────────────────────────────────────
 revoke all on public.app_config, public.subscriptions, public.reading_progress, public.follows, public.blocks,
-  public.reports, public.book_price_history, public.paygo_accounts, public.gifts, public.tips, public.reviews,
+  public.book_price_history, public.paygo_accounts, public.gifts, public.tips, public.reviews,
   public.review_likes, public.hidden_reviewers, public.book_rating_stats, public.book_related,
   public.book_effective
   from anon, authenticated;
 grant select on public.app_config, public.subscriptions, public.reading_progress, public.follows, public.blocks,
-  public.reports, public.book_price_history, public.paygo_accounts, public.gifts, public.tips, public.reviews,
+  public.book_price_history, public.paygo_accounts, public.gifts, public.tips, public.reviews,
   public.review_likes, public.hidden_reviewers, public.book_rating_stats, public.book_related,
   public.book_effective
   to authenticated;
@@ -1282,7 +1229,7 @@ begin
         '_remaining', '_check_spend_rate', '_buyable_book', 'spend_credits', 'unlock_book', 'gift_book',
         'tip_author', '_review_json', '_book_card', 'get_book_page', 'get_book_about', 'get_reviews',
         'get_gift_people', 'get_book_discussion', '_finished', 'post_review', 'delete_review',
-        'toggle_review_like', 'hide_reviewer', 'unhide_reviewer', '_report', 'report_review', 'report_book',
+        'toggle_review_like', 'hide_reviewer', 'unhide_reviewer',
         'set_following', 'rebuild_book_related', '_require_price_staff', '_mid_paygo', '_apply_book_price',
         'admin_set_book_price', 'admin_set_preview', 'admin_book_access', 'admin_book_stats')
   loop
@@ -1308,8 +1255,6 @@ grant execute on function
   public.toggle_review_like(uuid),
   public.hide_reviewer(uuid),
   public.unhide_reviewer(uuid),
-  public.report_review(uuid, text, text),
-  public.report_book(uuid, text, text),
   public.set_following(uuid, boolean)
   to authenticated;
 

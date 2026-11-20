@@ -314,7 +314,7 @@ export interface AvatarProps {
 const initials = (name: string) =>
   name
     .split(/\s+/)
-    .filter(Boolean)
+    .filter((p) => /^[\p{L}\p{N}]/u.test(p)) // "Faith & Books" → FB, not F&
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join('');
