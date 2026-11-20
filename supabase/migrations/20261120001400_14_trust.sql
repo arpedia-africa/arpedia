@@ -529,6 +529,12 @@ begin
   if t.reported_user = uid then
     raise exception 'own_content' using errcode = 'insufficient_privilege';
   end if;
+  -- One reader's reports run one at a time, so the daily count holds; a repeat says so before the limit.
+  perform pg_advisory_xact_lock(hashtextextended('create_report:' || uid::text, 0));
+  if exists (select 1 from public.reports r where r.reporter_id = uid and r.content_type = p_content_type
+               and r.content_id = p_content_id) then
+    raise exception 'already_reported' using errcode = '23505';
+  end if;
   if (select count(*) from public.reports r where r.reporter_id = uid and r.created_at > now() - interval '1 day')
      >= coalesce((public.automod_value('reports_per_day'))::int, 20) then
     raise exception 'daily_limit' using errcode = '54000';
@@ -1834,6 +1840,13 @@ declare
   v_rows int;
 begin
   select * into r from public.credit_returns where id = p_return for update;
+  -- Same lock as staff_return_chapter_charge, then re-check the reader's own undo: a return that
+  -- waited for Finance must never pay back a charge the reader already undid.
+  perform 1 from public.profiles where id = r.user_id for update;
+  if public._charge_undone(r.user_id, r.chapter_id,
+                           (select l.created_at from public.credit_ledger l where l.id = r.ledger_id)) then
+    raise exception 'already_undone' using errcode = '23505';
+  end if;
   -- One staff-return row per bucket row of the charge; author earning reversed on each.
   insert into public.credit_ledger (user_id, delta, reason, bucket, expires_at, txn_id, ref_type, ref_id, idempotency_key,
                                     book_id, chapter_id, author_id, author_earning_kobo, actor_id, note)

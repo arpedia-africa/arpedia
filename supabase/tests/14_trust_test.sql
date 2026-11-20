@@ -4,7 +4,7 @@
 -- idempotency, author earning, no double return); claims; help; sanction expiry.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(80);
+select plan(82);
 
 create function pg_temp.as_user(p uuid) returns void language plpgsql as $$
 begin
@@ -298,6 +298,20 @@ select lives_ok($$ select public.approve_credit_return((select id from public.cr
   'Finance approves');
 select pg_temp.as_owner();
 select is(public.credit_balance('14000000-0000-4000-a000-000000000001'), 98, 'the approved return lands');
+
+-- A return waiting for Finance is refused if the reader's own undo already gave the charge back.
+insert into public.credit_ledger (user_id, delta, reason, bucket, txn_id, book_id, chapter_id, author_id, author_earning_kobo, created_at) values
+  ('14000000-0000-4000-a000-000000000001', -55, 'chapter', 'topup', '14000000-0000-4000-f000-000000000004', '14000000-0000-4000-c000-000000000001', '14000000-0000-4000-c200-000000000003', '14000000-0000-4000-a000-000000000007', 8800, now() - interval '30 minutes');
+select set_config('t.c4', (select min(id)::text from public.credit_ledger where txn_id = '14000000-0000-4000-f000-000000000004'), true) is not null as c4;
+select pg_temp.as_staff('14000000-0000-4000-b000-000000000005');
+select is((public.staff_return_chapter_charge(current_setting('t.c4')::bigint, 'wrong_book') ->> 'state'), 'pending_approval',
+  'a second big return waits for Finance');
+select pg_temp.as_owner();
+insert into public.credit_ledger (user_id, delta, reason, bucket, book_id, chapter_id, created_at) values
+  ('14000000-0000-4000-a000-000000000001', 55, 'undo', 'topup', '14000000-0000-4000-c000-000000000001', '14000000-0000-4000-c200-000000000003', now());
+select pg_temp.as_staff('14000000-0000-4000-b000-000000000006');
+select throws_ok($$ select public.approve_credit_return((select id from public.credit_returns where state = 'pending_approval'), true) $$,
+  '23505', 'already_undone', 'Finance cannot approve a return the reader already undid (no double refund)');
 
 -- ─── Copyright claim from a book report ─────────────────────────────────────
 select pg_temp.as_user('14000000-0000-4000-a000-000000000002');

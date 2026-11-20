@@ -66,8 +66,12 @@ describe('muted word matcher', () => {
     expect(matchMutedWords('Read Scunthorpe stories', [w('cunt')], 'chat').action).toBeNull();
   });
   it('ignores case, repeated letters and common substitutions', () => {
-    expect(normaliseForMatch('STUUUPID')).toBe('stupid');
+    expect(normaliseForMatch('STUUUPID!')).toBe('stuuupid');
     expect(normaliseForMatch('1d10t!')).toBe('idiot');
+    expect(matchMutedWords('you are STUUUPID', [w('stupid')], 'chat').hits).toHaveLength(1);
+    // A word with a double letter never matches the shorter common word.
+    expect(matchMutedWords('as soon as possible', [w('ass')], 'chat').hits).toHaveLength(0);
+    expect(matchMutedWords('what an asss', [w('ass')], 'chat').hits).toHaveLength(1);
     expect(matchMutedWords('you are st00pid', [w('stopid')], 'chat').hits).toHaveLength(1);
     expect(matchMutedWords('IDIOOOT', [w('idiot')], 'dm').hits).toHaveLength(1);
     expect(matchMutedWords('$cam alert', [w('scam')], 'chat').hits).toHaveLength(1);

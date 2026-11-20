@@ -276,9 +276,11 @@ trust.post('/outbox/drain', async (c) => {
   return c.json(await drainTrustOutbox(c.env));
 });
 
-/** Reload the rules on the next check (the admin calls this after saving Safety rules). */
+/** Reload the rules now instead of within 60 s. Service key only: a reader can't force reloads. */
 trust.post('/rules/refresh', async (c) => {
-  if (!(await authorised(c))) return c.json({ error: 'unauthorized' }, 401);
+  const key = c.req.header('X-Internal-Key');
+  if (!key || !timingSafeEqual(key, c.env.SUPABASE_SERVICE_ROLE_KEY))
+    return c.json({ error: 'unauthorized' }, 401);
   await rules(c.env, true);
   return c.json({ ok: true });
 });

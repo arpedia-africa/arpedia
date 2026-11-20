@@ -173,17 +173,22 @@ const SUBSTITUTIONS: Record<string, string> = {
 };
 
 /**
- * Lower-case, undo common substitutions (0 → o, @ → a, $ → s), and fold repeated letters to one
- * (stuuupid → stupid). Everything that is not a letter becomes a single space.
+ * Lower-case and undo common substitutions (0 → o, @ → a, $ → s). Everything that is not a letter
+ * becomes a single space. Repeated letters are handled by `letterRuns`, not folded here.
  */
 export function normaliseForMatch(text: string): string {
   const lowered = text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
   let out = '';
   for (const ch of lowered) out += SUBSTITUTIONS[ch] ?? ch;
-  return out
-    .replace(/[^a-z]+/g, ' ')
-    .replace(/([a-z])\1+/g, '$1')
-    .trim();
+  return out.replace(/[^a-z]+/g, ' ').trim();
+}
+
+/**
+ * A normalised word as a pattern where each run of a letter may repeat more but never less
+ * (stupid matches stuuupid; ass never matches as).
+ */
+function letterRuns(needle: string): string {
+  return needle.replace(/([a-z])\1*/g, (run, c: string) => `${c}{${run.length},}`);
 }
 
 const ACTION_RANK: Record<WordAction, number> = { warn: 0, blur: 1, hide: 2, hide_and_report: 3 };
@@ -204,9 +209,8 @@ export function matchMutedWords(
     if (w.scope === 'reviews' && surface !== 'review') return false;
     const needle = normaliseForMatch(w.text);
     if (!needle) return false;
-    return w.is_phrase
-      ? body.includes(` ${needle} `) || squashed.includes(needle.replace(/ /g, ''))
-      : body.includes(` ${needle} `);
+    const whole = new RegExp(` ${letterRuns(needle)} `).test(body);
+    return w.is_phrase ? whole || new RegExp(letterRuns(needle.replace(/ /g, ''))).test(squashed) : whole;
   });
   const action = hits.reduce<WordAction | null>(
     (best, w) => (best === null || ACTION_RANK[w.action] > ACTION_RANK[best] ? w.action : best),
