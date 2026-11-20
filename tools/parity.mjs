@@ -646,6 +646,26 @@ try {
           },
         ]),
       ),
+      // Flow 16. Shell and page header gated; panels hold seeded config, flags and health, compared by eye.
+      ...Object.fromEntries(
+        [
+          ['config', '/config'],
+          ['integrations', '/integrations'],
+          ['policies', '/policies'],
+          ['audit', '/audit'],
+          ['account', '/account'],
+        ].map(([id, path]) => [
+          id,
+          {
+            path,
+            as: 'amaka@arpedia.africa',
+            regions: [
+              { x: 0, y: 0, width: 248, height: H },
+              { x: 248, y: 0, width: W - 248, height: 150 },
+            ],
+          },
+        ]),
+      ),
       // Modals: shell and topbar gated, the modal box compared by eye (its size follows real data).
       'plan-edit': {
         path: '/pricing/quarterly',

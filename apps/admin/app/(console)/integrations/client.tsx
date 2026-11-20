@@ -171,7 +171,11 @@ export function IntegrationsView({ services, canRotate }: { services: Integratio
                       <tr key={s.service}>
                         <td>
                           <b>{s.label}</b>
-                          {s.description && <small className="faint">{s.description}</small>}
+                          {s.description && (
+                            <small className="faint" style={{ display: 'block' }}>
+                              {s.description}
+                            </small>
+                          )}
                         </td>
                         <td>{lastEvent(s, now)}</td>
                         <td className="n">{rate(s)}</td>

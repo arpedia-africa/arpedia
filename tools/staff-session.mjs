@@ -8,7 +8,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** API_URL, ANON_KEY… of the running local Supabase stack. */
 export function localEnv() {
-  const out = execSync('pnpm -s exec supabase status -o env', {
+  // SUPABASE_WORKDIR picks another stack (the second stack: .db2).
+  const wd = process.env.SUPABASE_WORKDIR ? ` --workdir "${process.env.SUPABASE_WORKDIR}"` : '';
+  const out = execSync(`pnpm -s exec supabase status -o env${wd}`, {
     cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],

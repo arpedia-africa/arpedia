@@ -146,13 +146,13 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
         {f.warning ? (
           <small className="warn-t">{f.warning}</small>
         ) : f.min_app_version ? (
-          <small className="faint">{`Needs app ${f.min_app_version} or newer`}</small>
+          <small className="faint" style={{ display: 'block' }}>{`Needs app ${f.min_app_version} or newer`}</small>
         ) : (
-          f.note && <small className="faint">{f.note}</small>
+          f.note && <small className="faint" style={{ display: 'block' }}>{f.note}</small>
         )}
       </td>
       <td>
-        <div className="row">
+        <div className="row" style={{ gap: 8 }}>
           <div className="meter grow">
             <i
               className={f.enabled && f.rollout_percent === 100 ? 'ok' : undefined}
@@ -164,7 +164,7 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
       </td>
       <td className="nw">{stamp(f)}</td>
       <td>
-        <span className="row">
+        <span className="row" style={{ gap: 10 }}>
           <span className="st-plain">{f.enabled ? 'On' : 'Off'}</span>
           {screen.can_edit && (
             <button
@@ -263,7 +263,7 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
                     </div>
                   </div>
                 </div>
-                <div className="setrow">
+                <div className="setrow" style={{ padding: 0, border: 0 }}>
                   <span className="setrow__b">
                     <b>Force update</b>
                     <small>Readers below the minimum cannot read until they update.</small>
@@ -300,7 +300,7 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
                 <span className={maintenance.on ? 'st st-err' : 'st-plain'}>{maintenance.on ? 'On' : 'Off'}</span>
               </div>
               <div className="panel__body">
-                <div className="setrow">
+                <div className="setrow" style={{ padding: 0, border: 0 }}>
                   <span className="setrow__b">
                     <b>Show maintenance screen</b>
                     <small>Readers see the message below. The staff console keeps working.</small>
