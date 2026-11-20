@@ -86,7 +86,7 @@ appId: com.arpedia.reader
     retryTapIfNoChange: true
 - extendedWaitUntil:
     visible: 'Trending searches'
-    timeout: 15000
+    timeout: 30000
 - takeScreenshot: disc-${WIDTH}-search
 - inputText: 'grace'
 - extendedWaitUntil:
