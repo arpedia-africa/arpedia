@@ -28,6 +28,8 @@ export function DmHead({
   status,
   onBack,
   onMore,
+  square,
+  onProfile,
 }: {
   name: string;
   tone: AvatarTone;
@@ -35,6 +37,9 @@ export function DmHead({
   status: string;
   onBack: () => void;
   onMore?: () => void;
+  /** s-author-community: square group avatar and View profile on the right. */
+  square?: boolean;
+  onProfile?: () => void;
 }) {
   const { c, s } = useTheme();
   return (
@@ -58,11 +63,11 @@ export function DmHead({
             style={{
               margin: -s(2),
               padding: s(2),
-              borderRadius: 999,
+              borderRadius: square ? s(14) + s(2) : 999,
               backgroundColor: 'rgba(255,255,255,0.9)',
             }}
           >
-            <Avatar name={name} uri={avatarUrl ?? undefined} tone={tone} />
+            <Avatar name={name} uri={avatarUrl ?? undefined} tone={tone} square={square} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size={15.5} weight={800} color="onOrg" ellipsis accessibilityRole="header">
@@ -73,7 +78,14 @@ export function DmHead({
             </Text>
           </View>
         </View>
-        {onMore ? (
+        {onProfile ? (
+          <IconButton
+            icon="user"
+            label={square ? 'Community menu' : 'View profile'}
+            onPress={onProfile}
+            color={c.onOrg}
+          />
+        ) : onMore ? (
           <IconButton icon="more" label="Report or block" onPress={onMore} color={c.onOrg} />
         ) : (
           <View style={{ width: s(44) }} />
@@ -112,17 +124,19 @@ function IntroAvatar({ name, uri, tone }: { name: string; uri: string | null; to
   );
 }
 
-/** `.com-intro`: avatar, name, "Private chat · Author", View profile and the pinned cost notice. */
+/** `.com-intro`: avatar, name, "Private chat · Author", View profile and the pinned notice. */
 export function DmIntro({
   name,
   tone,
   avatarUrl,
+  sub = 'Private chat · Author',
   notice,
   onProfile,
 }: {
   name: string;
   tone: AvatarTone;
   avatarUrl: string | null;
+  sub?: string;
   notice: string;
   onProfile: () => void;
 }) {
@@ -142,7 +156,7 @@ export function DmIntro({
         {name}
       </Text>
       <Text variant="xs" color="ink3" oneLine>
-        Private chat · Author
+        {sub}
       </Text>
       <Btn label="View profile" variant="g" size="sm" onPress={onProfile} />
       <View style={{ marginTop: s(8), width: '100%' }}>

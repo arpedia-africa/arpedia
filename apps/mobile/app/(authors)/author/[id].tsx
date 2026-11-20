@@ -144,7 +144,7 @@ export default function AuthorPage() {
     onSuccess: (group) => {
       track('author_community_joined', { author_id: id });
       void qc.invalidateQueries({ queryKey: authorKey(id) });
-      router.push({ pathname: '/chat/[id]', params: { id: group } });
+      router.push({ pathname: '/community/[id]', params: { id: group } });
     },
     onError: () => toast({ message: 'Couldn’t join right now. Try again.' }),
   });
@@ -285,7 +285,7 @@ export default function AuthorPage() {
           onCommunity: p.community
             ? () => {
                 const g = p.community!;
-                if (g.joined) router.push({ pathname: '/chat/[id]', params: { id: g.id } });
+                if (g.joined) router.push({ pathname: '/community/[id]', params: { id: g.id } });
                 else if (!online) offline();
                 else join.mutate(g.id);
               }
