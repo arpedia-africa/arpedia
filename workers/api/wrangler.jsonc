@@ -15,6 +15,10 @@
     "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-local" }],
+  // Flow 08: paid author messages are broadcast through the chat Worker's Durable Object.
+  "durable_objects": {
+    "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" }],
+  },
   "env": {
     "staging": {
       "name": "arpedia-api-staging",
@@ -23,6 +27,11 @@
         "SUPABASE_URL": "https://arpedia-staging.supabase.co",
       },
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-staging" }],
+      "durable_objects": {
+        "bindings": [
+          { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat-staging" },
+        ],
+      },
     },
     "production": {
       "name": "arpedia-api",
@@ -31,6 +40,11 @@
         "SUPABASE_URL": "https://arpedia.supabase.co",
       },
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books" }],
+      "durable_objects": {
+        "bindings": [
+          { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+        ],
+      },
     },
   },
 }

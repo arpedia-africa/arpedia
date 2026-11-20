@@ -703,7 +703,9 @@ begin
   select * into x from public.messages where sender_id = v_user and client_id = p_client_id;
   if x.id is not null then
     return jsonb_build_object('message', jsonb_build_object('id', x.id, 'group_id', x.group_id,
-        'body', x.body, 'created_at', x.created_at, 'cost_credits', x.cost_credits),
+        'body', x.body, 'created_at', x.created_at, 'cost_credits', x.cost_credits, 'sender_id', v_user,
+        'sender_name', public.sender_name(v_user),
+        'sender_avatar', (select p.avatar_url from public.profiles p where p.id = v_user)),
       'balance', public._balance(v_user), 'replayed', true);
   end if;
 
@@ -746,7 +748,9 @@ begin
     'from_user_id', v_user, 'group_id', v_group, 'message_id', x.id));
 
   return jsonb_build_object('message', jsonb_build_object('id', x.id, 'group_id', x.group_id,
-      'body', x.body, 'created_at', x.created_at, 'cost_credits', x.cost_credits),
+      'body', x.body, 'created_at', x.created_at, 'cost_credits', x.cost_credits, 'sender_id', v_user,
+      'sender_name', public.sender_name(v_user),
+      'sender_avatar', (select p.avatar_url from public.profiles p where p.id = v_user)),
     'balance', (v_spend ->> 'balance')::int, 'replayed', false, 'first_with_author', v_first);
 end $$;
 
