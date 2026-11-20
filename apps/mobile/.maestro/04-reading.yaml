@@ -3,7 +3,8 @@
 # Auto-unlock on (charged once, toast with Undo), highlight a passage, restart the app and come back
 # to the same place with the highlight there.
 # Needs the local stack (Supabase + api Worker with sealed seed files in local R2) behind the app,
-# freshly reset (`pnpm db:reset`): the first width pays for the chapter, later widths re-read it free.
+# freshly reset (`pnpm db:reset`, then `node tools/seed-reader-files.mjs` to seal the seed books into
+# local R2 and seed their chapter keys; `--supabase http://127.0.0.1:55621` for the second stack): the first width pays for the chapter, later widths re-read it free.
 # Run: maestro test apps/mobile/.maestro/04-reading.yaml -e WIDTH=375
 # All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/04-reading.yaml
 appId: com.arpedia.reader
