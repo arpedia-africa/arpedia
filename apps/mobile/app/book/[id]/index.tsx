@@ -12,6 +12,7 @@ import { GiftSheet, TipSheet } from '../../../features/03/GiftSheet';
 import { MenuBody, ReportSheet, moreItems } from '../../../features/03/MoreSheet';
 import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../../features/03/UnlockViews';
+import { DOWNLOAD_STARTED, downloadBook } from '../../../features/04/download';
 
 export default function BookPage() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
@@ -60,7 +61,7 @@ export default function BookPage() {
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  // The reader, plans, top-up packs, author pages and downloads belong to flows 04, 09 and 08.
+  // Plans, top-up packs and author pages belong to flows 09 and 08.
   const soon = () => toast({ message: 'Coming soon' });
   const go = (screen: 'about' | 'reviews' | 'discussion' | 'write-review') =>
     router.push({ pathname: `/book/[id]/${screen}`, params: { id } });
@@ -154,10 +155,14 @@ export default function BookPage() {
             comingSoon: d.coming_soon,
             isAuthor: d.is_author,
             online,
-            // request_download is flow 04's (reader and downloads).
             onDownload: () => {
               setOverlay(null);
-              soon();
+              if (!online) return toast({ message: 'Connect to continue' });
+              track('download_requested', { book_id: id });
+              downloadBook(id, (scope) => toast({ message: DOWNLOAD_STARTED[scope] })).then(
+                () => toast({ message: 'Ready offline' }),
+                () => toast({ message: 'Couldn’t download. Try again.' }),
+              );
             },
             onGift: () => {
               if (!online) return;
