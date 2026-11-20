@@ -5,6 +5,8 @@
 # small EPUB with a few chapters and any portrait JPG, pushed as
 #   adb -s <serial> push <book>.epub /sdcard/Download/maestro-book.epub
 #   adb -s <serial> push <cover>.jpg /sdcard/Download/maestro-cover.jpg
+#   adb -s <serial> shell content call --method scan_volume --uri content://media --arg external_primary
+# (the cover must be the newest photo on the device: the photo picker has no file names)
 # Run: maestro test apps/mobile/.maestro/11-author.yaml -e WIDTH=375
 # All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/11-author.yaml
 appId: com.arpedia.reader
@@ -32,48 +34,58 @@ appId: com.arpedia.reader
     visible: 'Share your stories with Arpedia readers.'
     timeout: 15000
 - takeScreenshot: author-${WIDTH}-become
-- tapOn: 'Start application'
+# The first width applies; later widths on the same database see it already sent (rule 7).
+- runFlow:
+    when:
+      visible: 'Start application'
+    commands:
+      - tapOn: 'Start application'
 
-# s-apply (1 of 4): name and email carry over; date of birth and state (Default Q3)
-- extendedWaitUntil:
-    visible: 'Your author profile'
-    timeout: 15000
-- tapOn: 'DD / MM / YYYY'
-- inputText: '12031990'
-- hideKeyboard
-- tapOn: 'Where you live, e.g. Enugu'
-- inputText: 'Enugu'
-- hideKeyboard
-- takeScreenshot: author-${WIDTH}-apply-1
-- tapOn: 'Continue'
+      # s-apply (1 of 4): name and email carry over; date of birth and state (Default Q3)
+      - extendedWaitUntil:
+          visible: 'Your author profile'
+          timeout: 15000
+      - tapOn: 'DD / MM / YYYY'
+      - inputText: '12031990'
+      - hideKeyboard
+      - tapOn: 'Where you live, e.g. Enugu'
+      - inputText: 'Enugu'
+      - hideKeyboard
+      - takeScreenshot: author-${WIDTH}-apply-1
+      - tapOn: 'Continue'
 
-# s-apply-2
-- assertVisible: 'Your writing'
-- tapOn: 'African stories'
-- tapOn:
-    below: 'Short bio'
-- inputText: 'I write about faith, family and the small mercies of city life.'
-- hideKeyboard
-- takeScreenshot: author-${WIDTH}-apply-2
-- tapOn: 'Continue'
+      # s-apply-2
+      - assertVisible: 'Your writing'
+      - tapOn: 'African stories'
+      - tapOn:
+          below: 'Short bio'
+      - inputText: 'I write about faith, family and the small mercies of city life.'
+      - hideKeyboard
+      - takeScreenshot: author-${WIDTH}-apply-2
+      - tapOn: 'Continue'
 
-# s-apply-3: paste a sample instead of a file
-- assertVisible: 'Writing sample'
-- tapOn: 'Paste a chapter or a few pages'
-- inputText: 'Before the cocks had finished their quarrel, Mama Nkechi was already on the road to the market.'
-- hideKeyboard
-- takeScreenshot: author-${WIDTH}-apply-3
-- tapOn: 'Continue'
+      # s-apply-3: paste a sample instead of a file
+      - assertVisible: 'Writing sample'
+      - tapOn: 'Paste a chapter or a few pages'
+      - inputText: 'Before the cocks had finished their quarrel, Mama Nkechi was already on the road to the market.'
+      - hideKeyboard
+      - takeScreenshot: author-${WIDTH}-apply-3
+      - tapOn: 'Continue'
 
-# s-apply-4
-- assertVisible: 'Review and send'
-- tapOn: 'I agree'
-- takeScreenshot: author-${WIDTH}-apply-4
-- tapOn: 'Send application'
-- extendedWaitUntil:
-    visible: 'Application received'
-    timeout: 30000
-- takeScreenshot: author-${WIDTH}-apply-sent
+      # s-apply-4
+      - assertVisible: 'Review and send'
+      - tapOn: 'I agree'
+      - takeScreenshot: author-${WIDTH}-apply-4
+      - tapOn: 'Send application'
+      - extendedWaitUntil:
+          visible: 'Application received'
+          timeout: 30000
+      - takeScreenshot: author-${WIDTH}-apply-sent
+- runFlow:
+    when:
+      notVisible: 'Application received'
+    commands:
+      - assertVisible: 'Sent · we.ll reply by.*'
 
 # ─── Submit a book (seeded approved author Ifeoma) ───────────────────────────
 - launchApp:
@@ -105,7 +117,10 @@ appId: com.arpedia.reader
 - tapOn: 'Choose your file'
 - tapOn: 'maestro-book.epub'
 - tapOn: 'Add cover image'
-- tapOn: 'maestro-cover.jpg'
+# Android's photo picker shows thumbnails, not file names: the pushed cover is the newest photo.
+- tapOn:
+    text: 'Photo taken on.*'
+    index: 0
 - tapOn: 'Fiction'
 - tapOn: 'Two or three sentences readers see first'
 - inputText: 'A market woman, a debt remembered and one long day in Onitsha.'
