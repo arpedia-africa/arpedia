@@ -129,10 +129,23 @@ export interface HeroProps {
   low?: boolean;
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Overrides for `.hero__body` (e.g. `.bk-hero .hero__body`: centred, padding 0 16 46). */
+  bodyStyle?: StyleProp<ViewStyle>;
 }
 
 /** Full-width main-colour band with drifting sunflower petals (`.hero`). */
-export function Hero({ bar, barBack, title, titleOneLine, xl, sub, low, children, style }: HeroProps) {
+export function Hero({
+  bar,
+  barBack,
+  title,
+  titleOneLine,
+  xl,
+  sub,
+  low,
+  children,
+  style,
+  bodyStyle,
+}: HeroProps) {
   const { c, s } = useTheme();
   const size = s(260);
   return (
@@ -157,7 +170,12 @@ export function Hero({ bar, barBack, title, titleOneLine, xl, sub, low, children
           </View>
         ) : null}
         {title || sub || children ? (
-          <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) }}>
+          <View
+            style={[
+              { paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) },
+              bodyStyle,
+            ]}
+          >
             {title ? (
               <Text
                 variant="display"

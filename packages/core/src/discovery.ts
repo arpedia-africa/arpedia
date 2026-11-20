@@ -1,5 +1,6 @@
 // Discovery rules shared by the app and admin (docs/prd/02-discovery.md). The SQL in
 // supabase/migrations/*_02_discovery.sql mirrors normalizeQuery, lengthBand and trimSnippet.
+import { WORDS_PER_MINUTE } from './unlock';
 
 /** Longest query we search or store. */
 export const MAX_QUERY = 80;
@@ -9,8 +10,6 @@ export const MIN_QUERY = 2;
 export const TRENDING_MIN_SEARCHERS = 20;
 /** Longest story snippet in results. */
 export const SNIPPET_MAX = 120;
-/** Reading speed for "N hr read" (flow 03 rule 2). */
-export const WORDS_PER_MINUTE = 230;
 
 /** Trim, lowercase, drop accents, collapse spaces, cut to 80 characters. */
 export function normalizeQuery(q: string): string {

@@ -1,0 +1,14 @@
+<!-- Parity page s-write-review: the prototype screen, verbatim from prototype/src/03-book-reader.html.
+     apps/mobile/app/parity.tsx renders the flow 03 view with the same values. -->
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="reviews" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="hero__body"><h1 class="hero__title">Rate this ebook</h1><p class="hero__sub">Harmattan Letters · you finished it on 10 November</p></div>
+  </div>
+  <div class="body">
+    <div class="inset v16 pt24">
+      <div class="star-input" aria-label="4 of 5 stars"><button class="ib" aria-label="1 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="2 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="3 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib" aria-label="4 stars"><svg class="ico l fill" aria-hidden="true"><use href="#i-star"/></svg></button><button class="ib off" aria-label="5 stars"><svg class="ico l" aria-hidden="true"><use href="#i-star"/></svg></button></div>
+      <div class="input"><label for="wr-t">Write a review</label><div class="field"><textarea id="wr-t" rows="5">The letters are the best part. I wanted more of Mama Nkem.</textarea></div><span class="hint t-num">58 / 1,000</span></div>
+      <div class="h12"><div class="fill v4"><b class="t-title">Contains spoilers</b><span class="t-xs t-muted">Others tap to reveal your review</span></div><button class="toggle" aria-label="Contains spoilers" aria-pressed="false"></button></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="reviews">Post review</a></div>

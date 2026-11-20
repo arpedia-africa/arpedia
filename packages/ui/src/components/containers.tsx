@@ -30,10 +30,12 @@ export interface SheetProps {
   footer?: ReactNode;
   /** `.panel.bk-bold`: grab and title sit on a main-colour head with petals (`.bk-sheethead`). */
   bold?: boolean;
+  /** `.bk-sheethead__sub`: one line under the title on a bold head. */
+  sub?: string;
 }
 
 /** Bottom sheet that glides up; backdrop fades. Reduced motion: fade only. */
-export function Sheet({ open, onClose, title, locked, children, footer, bold }: SheetProps) {
+export function Sheet({ open, onClose, title, locked, children, footer, bold, sub }: SheetProps) {
   const { c, s, reduceMotion } = useTheme();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(open);
@@ -147,6 +149,16 @@ export function Sheet({ open, onClose, title, locked, children, footer, bold }: 
                 <IconButton icon="x" label="Close" onPress={onClose} color={bold ? c.onOrg : undefined} />
               )}
             </View>
+          ) : null}
+          {sub ? (
+            <Text
+              size={13.5}
+              color={bold ? rgba(c.onOrgRgb, 0.78) : 'ink2'}
+              oneLine
+              style={{ paddingHorizontal: s(18), paddingBottom: s(6) }}
+            >
+              {sub}
+            </Text>
           ) : null}
         </View>
         <ScrollView

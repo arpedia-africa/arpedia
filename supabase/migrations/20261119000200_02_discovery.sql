@@ -312,14 +312,7 @@ revoke insert, update, delete, truncate on public.notifications, public.search_e
 grant insert on public.book_search_text to service_role;
 
 -- ─── Reader helpers ─────────────────────────────────────────────────────────
-create function public._uid() returns uuid
-language plpgsql stable set search_path = '' as $$
-begin
-  if auth.uid() is null then
-    raise exception 'sign in first' using errcode = '42501';
-  end if;
-  return auth.uid();
-end $$;
+-- public._uid() (signed-in user or 42501) comes from flow 03's migration.
 
 -- Distinct readers per book in the last 7 days (flow 04 swaps in reading sessions).
 create function public._readers_7d() returns table (book_id uuid, readers int, unlocks int)
