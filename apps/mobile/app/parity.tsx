@@ -23,6 +23,7 @@ import {
   THEMES,
   Wordmark,
   useTheme,
+  type AvatarTone,
   type ThemeName,
 } from '@arpedia/ui';
 import { LAUNCH_PLANS } from '@arpedia/core';
@@ -48,6 +49,9 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import { AboutView, BackHero, DiscussionLockedView } from '../features/03/AboutViews';
+import { BookPageView, type BookPageModel } from '../features/03/BookViews';
+import { ReviewsView, WriteReviewView, type ReviewItem } from '../features/03/ReviewViews';
 import {
   CommunityHero,
   InboxList,
@@ -72,6 +76,11 @@ const PAGES = [
   's-profile-setup',
   's-plans-onboard',
   's-all-set',
+  's-book',
+  's-book-about',
+  's-reviews',
+  's-write-review',
+  's-book-discussion',
   's-community',
   's-dms',
   's-community-groups',
@@ -159,7 +168,15 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <KitB />
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
-        <View>{FLOW06.has(page) ? <Flow06 page={page} /> : <Flow01 page={page} />}</View>
+        <View>
+          {FLOW06.has(page) ? (
+            <Flow06 page={page} />
+          ) : page.startsWith('s-book') || page.includes('review') ? (
+            <Flow03 page={page} />
+          ) : (
+            <Flow01 page={page} />
+          )}
+        </View>
       )}
     </View>
   );
@@ -302,6 +319,213 @@ function Flow01({ page }: { page: Page }) {
       return null;
   }
 }
+
+// ─── Flow 03 screens with the prototype's values (tools/parity/s-*.html) ────
+const BOOK: BookPageModel = {
+  title: 'Harmattan Letters',
+  author: 'Ifeoma Nwachukwu',
+  tone: 'c1',
+  following: false,
+  meta: 'Christian & Faith · 250 pages · about 5 hr read',
+  rating: '4.7',
+  reads: '18K',
+  comments: '640',
+  mainLabel: 'Start reading · first 10% free',
+  buy: { kind: 'options', price: 125, perChapter: 9, balance: 840 },
+  owned: false,
+  description:
+    "A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage.",
+  tags: ['Family', 'Enugu', 'Kaduna', 'Letters'],
+  reviewCount: 1284,
+  bars: [0.8, 0.14, 0.04, 0.01, 0.01],
+  topReview: {
+    id: 'r1',
+    name: 'Chiamaka Obi',
+    stars: 5,
+    tone: 't',
+    body: 'I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.',
+  },
+  discussionOpen: false,
+  related: [
+    { id: 'b1', title: 'A House Called Grace', author: 'Kemi Ogunleye', tone: 'c6' },
+    { id: 'b2', title: 'Ruth of Ibadan', author: 'Tolu Adebayo', tone: 'c5' },
+    { id: 'b3', title: 'The Alignment', author: 'Adaeze R. Possible', tone: 'c3' },
+    { id: 'b4', title: 'Psalms for the Danfo', author: 'Emeka Obi', tone: 'c7' },
+  ],
+};
+
+function Flow03({ page }: { page: Page }) {
+  switch (page) {
+    case 's-book':
+      return (
+        <BookPageView
+          m={BOOK}
+          a={{
+            onBack: noop,
+            onMore: noop,
+            onFollow: noop,
+            onReviews: noop,
+            onDiscussion: noop,
+            onMain: noop,
+            onUnlockAll: noop,
+            onPayGo: noop,
+            onTopUp: noop,
+            onAbout: noop,
+            onWriteReview: noop,
+          }}
+        />
+      );
+    case 's-book-about':
+      return (
+        <>
+          <BackHero title="About this ebook" sub="Harmattan Letters · Ifeoma Nwachukwu" onBack={noop} />
+          <AboutView
+            description="A widow in Enugu finds her late husband's unsent letters in a biscuit tin and learns he was praying for her years before they met. Over one dusty harmattan season she reads them in order, and each one changes how she sees her marriage, her faith and the man next door who keeps fixing her gate."
+            facts={[
+              { k: 'Language', v: 'English' },
+              { k: 'Age', v: '16+' },
+              { k: 'Author', v: 'Ifeoma Nwachukwu', onPress: noop },
+              { k: 'Publisher', v: 'Arpedia Originals' },
+              { k: 'Published on', v: '3 October 2026' },
+              { k: 'ISBN', v: '978-978-101-2007-1', num: true },
+              { k: 'Genre', v: 'Christian & Faith', onPress: noop },
+              { k: 'Purchases', v: '4,605', num: true },
+              { k: 'Length', v: '62,400 words · 250 pages' },
+              { k: 'Price', v: '125 credits (₦375) · half a credit a page' },
+              { k: 'Chapters', v: '14 · about 4 h 30 min' },
+              { k: 'Size', v: '1.4 MB' },
+            ]}
+            notes={['Grief', 'Prayer', 'Slow-burn romance']}
+            clean
+          />
+        </>
+      );
+    case 's-reviews':
+      return (
+        <>
+          <BackHero title="Ratings & reviews" sub="Harmattan Letters · 1,284 reviews" onBack={noop} />
+          <ReviewsView
+            rating="4.7"
+            count={1284}
+            bars={BOOK.bars}
+            filter={null}
+            onFilter={noop}
+            reviews={REVIEWS}
+            onWrite={noop}
+            writeLabel="Write a review"
+            onMore={noop}
+            onLike={noop}
+          />
+        </>
+      );
+    case 's-write-review':
+      return (
+        <>
+          <Hero
+            barBack
+            bar={<CloseButton />}
+            title="Rate this ebook"
+            sub="Harmattan Letters · you finished it on 10 November"
+          />
+          <WriteReviewView
+            stars={4}
+            onStars={noop}
+            body="The letters are the best part. I wanted more of Mama Nkem."
+            onBody={noop}
+            spoiler={false}
+            onSpoiler={noop}
+          />
+          <Foot>
+            <Btn label="Post review" block />
+          </Foot>
+        </>
+      );
+    case 's-book-discussion':
+      return (
+        <>
+          <BackHero title="Discussion" sub="Harmattan Letters · reader notes and reactions" onBack={noop} />
+          <DiscussionLockedView
+            percent={38}
+            chapter={7}
+            chapters={14}
+            onRead={noop}
+            passage={{ sub: '12 comments on chapter 7 · only up to where you are', onPress: noop }}
+            club={{
+              name: 'Grace Readers',
+              title: 'Grace Readers are on chapter 8',
+              sub: '1,240 members reading together',
+              onPress: noop,
+            }}
+          />
+        </>
+      );
+    default:
+      return null;
+  }
+}
+
+const REVIEWS: ReviewItem[] = [
+  [
+    'Chiamaka Obi',
+    't',
+    5,
+    24,
+    '2 days ago',
+    'I read this in two sittings and then immediately started it again. The Kaduna letters felt like going home to a house I have never lived in.',
+  ],
+  [
+    'Tunji Adebisi',
+    'k',
+    5,
+    18,
+    '5 days ago',
+    'Quiet, observant and deeply moving. Mama Nkem is one of the best mothers-in-law in recent Nigerian fiction.',
+  ],
+  [
+    'Hauwa Musa',
+    'r',
+    4,
+    11,
+    '1 week ago',
+    'The letters structure is brilliant. I was nervous about the ending and the author stuck the landing.',
+  ],
+  [
+    'Kelechi Nwosu',
+    'm',
+    5,
+    7,
+    '2 weeks ago',
+    'The neighbour who fixes the gate deserves his own book. That is all.',
+  ],
+  [
+    'Funke Alabi',
+    'b',
+    4,
+    5,
+    '3 weeks ago',
+    'Beautiful prose. A few slow patches in the middle, but the last two chapters made up for them.',
+  ],
+  [
+    'Ibrahim Lawal',
+    'o',
+    5,
+    3,
+    '1 month ago',
+    'Gave my mother a copy. She called me from Kaduna to talk about it for an hour.',
+  ],
+].map(([name, tone, stars, likes, age, body], i) => ({
+  id: `r${i}`,
+  userId: `u${i}`,
+  name: name as string,
+  tone: tone as AvatarTone,
+  stars: stars as number,
+  likes: likes as number,
+  age: age as string,
+  body: body as string,
+  spoiler: false,
+  liked: false,
+  mine: false,
+}));
 
 // ─── Flow 06 screens with the prototype's values (tools/parity/s-*.html) ────
 const FLOW06 = new Set<Page>([
@@ -664,6 +888,11 @@ function PkRow({ children }: { children: React.ReactNode }) {
 }
 
 const noop = () => {};
+
+function CloseButton() {
+  const { c } = useTheme();
+  return <IconButton icon="x" label="Close" onPress={noop} color={c.onOrg} />;
+}
 
 function KitA() {
   const { s } = useTheme();

@@ -49,6 +49,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"app_config": {
+                  Row: {
+                    "key": string,"updated_at": string,"updated_by": string | null,"value": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "key": string,"updated_at"?: string,"updated_by"?: string | null,"value": NonNullable<Json>
+                  }
+                  Update: {
+                    "key"?: string,"updated_at"?: string,"updated_by"?: string | null,"value"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "app_config_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "app_config_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"appeals": {
                   Row: {
                     "created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"due_at": string,"id": string,"original_decider": string | null,"reduce_to_days": number | null,"status": Database["public"]['Enums']["appeal_status"],"subject_id": string,"subject_type": Database["public"]['Enums']["appeal_subject"],"text": string,"user_id": string
@@ -185,6 +211,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"blocks": {
+                  Row: {
+                    "blocked_id": string,"blocker_id": string,"created_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocked_id": string,"blocker_id": string,"created_at"?: string
+                  }
+                  Update: {
+                    "blocked_id"?: string,"blocker_id"?: string,"created_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "blocks_blocked_id_fkey"
+      columns: ["blocked_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "blocks_blocked_id_fkey"
+      columns: ["blocked_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "blocks_blocker_id_fkey"
+      columns: ["blocker_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "blocks_blocker_id_fkey"
+      columns: ["blocker_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"book_fixes": {
                   Row: {
                     "created_at": string,"flag_id": string | null,"id": string,"inverse": NonNullable<Json>,"op": NonNullable<Json>,"revision_id": string,"staff_id": string | null,"undone_at": string | null,"work_version": number
@@ -255,16 +319,124 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"book_revisions": {
+                },"book_price_history": {
                   Row: {
-                    "anchors_moved": Json | null,"artifact_prefix": string | null,"assigned_to": string | null,"base_revision_id": string | null,"book_id": string,"chapters_confirmed_at": string | null,"converted_key": string | null,"converted_sha256": string | null,"cover_key": string | null,"cover_sha256": string | null,"created_at": string,"created_via": Database["public"]['Enums']["revision_origin"],"desk_claimed_by": string | null,"desk_lease_until": string | null,"desk_reason": string | null,"draft_step": Database["public"]['Enums']["draft_step"] | null,"due_at": string | null,"fast_lane": boolean,"file_bytes": number | null,"free_through_ord": number,"generation": number,"id": string,"last_activity_at": string | null,"late_alerted_at": string | null,"manifest_key": string | null,"meta": NonNullable<Json>,"notify_followers": boolean,"pages": number | null,"preview_cut_chapter_uid": string | null,"preview_cut_para_id": string | null,"preview_percent": number | null,"price_credits": number | null,"published_at": string | null,"published_by": string | null,"readiness": number,"review_opened_at": string | null,"revision_no": number,"routed_at": string | null,"schedule_at": string | null,"sealed_generation": number | null,"sealed_work_version": number | null,"sent_back_note": string | null,"source_key": string | null,"source_sha256": string | null,"source_type": Database["public"]['Enums']["source_type"] | null,"status": Database["public"]['Enums']["revision_status"],"status_reason": string | null,"steps": NonNullable<Json>,"submitted_at": string | null,"updated_at": string,"uploaded_by": string | null,"words": number | null,"work_version": number
+                    "book_id": string,"created_at": string,"id": number,"kind": string,"new_credits": number | null,"old_credits": number | null,"reason": string | null,"revision_id": string | null,"staff_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "anchors_moved"?: Json | null,"artifact_prefix"?: string | null,"assigned_to"?: string | null,"base_revision_id"?: string | null,"book_id": string,"chapters_confirmed_at"?: string | null,"converted_key"?: string | null,"converted_sha256"?: string | null,"cover_key"?: string | null,"cover_sha256"?: string | null,"created_at"?: string,"created_via"?: Database["public"]['Enums']["revision_origin"],"desk_claimed_by"?: string | null,"desk_lease_until"?: string | null,"desk_reason"?: string | null,"draft_step"?: Database["public"]['Enums']["draft_step"] | null,"due_at"?: string | null,"fast_lane"?: boolean,"file_bytes"?: number | null,"free_through_ord"?: number,"generation"?: number,"id"?: string,"last_activity_at"?: string | null,"late_alerted_at"?: string | null,"manifest_key"?: string | null,"meta"?: NonNullable<Json>,"notify_followers"?: boolean,"pages"?: number | null,"preview_cut_chapter_uid"?: string | null,"preview_cut_para_id"?: string | null,"preview_percent"?: number | null,"price_credits"?: number | null,"published_at"?: string | null,"published_by"?: string | null,"readiness"?: number,"review_opened_at"?: string | null,"revision_no": number,"routed_at"?: string | null,"schedule_at"?: string | null,"sealed_generation"?: number | null,"sealed_work_version"?: number | null,"sent_back_note"?: string | null,"source_key"?: string | null,"source_sha256"?: string | null,"source_type"?: Database["public"]['Enums']["source_type"] | null,"status"?: Database["public"]['Enums']["revision_status"],"status_reason"?: string | null,"steps"?: NonNullable<Json>,"submitted_at"?: string | null,"updated_at"?: string,"uploaded_by"?: string | null,"words"?: number | null,"work_version"?: number
+                    "book_id": string,"created_at"?: string,"id"?: never,"kind": string,"new_credits"?: number | null,"old_credits"?: number | null,"reason"?: string | null,"revision_id"?: string | null,"staff_id"?: string | null
                   }
                   Update: {
-                    "anchors_moved"?: Json | null,"artifact_prefix"?: string | null,"assigned_to"?: string | null,"base_revision_id"?: string | null,"book_id"?: string,"chapters_confirmed_at"?: string | null,"converted_key"?: string | null,"converted_sha256"?: string | null,"cover_key"?: string | null,"cover_sha256"?: string | null,"created_at"?: string,"created_via"?: Database["public"]['Enums']["revision_origin"],"desk_claimed_by"?: string | null,"desk_lease_until"?: string | null,"desk_reason"?: string | null,"draft_step"?: Database["public"]['Enums']["draft_step"] | null,"due_at"?: string | null,"fast_lane"?: boolean,"file_bytes"?: number | null,"free_through_ord"?: number,"generation"?: number,"id"?: string,"last_activity_at"?: string | null,"late_alerted_at"?: string | null,"manifest_key"?: string | null,"meta"?: NonNullable<Json>,"notify_followers"?: boolean,"pages"?: number | null,"preview_cut_chapter_uid"?: string | null,"preview_cut_para_id"?: string | null,"preview_percent"?: number | null,"price_credits"?: number | null,"published_at"?: string | null,"published_by"?: string | null,"readiness"?: number,"review_opened_at"?: string | null,"revision_no"?: number,"routed_at"?: string | null,"schedule_at"?: string | null,"sealed_generation"?: number | null,"sealed_work_version"?: number | null,"sent_back_note"?: string | null,"source_key"?: string | null,"source_sha256"?: string | null,"source_type"?: Database["public"]['Enums']["source_type"] | null,"status"?: Database["public"]['Enums']["revision_status"],"status_reason"?: string | null,"steps"?: NonNullable<Json>,"submitted_at"?: string | null,"updated_at"?: string,"uploaded_by"?: string | null,"words"?: number | null,"work_version"?: number
+                    "book_id"?: string,"created_at"?: string,"id"?: never,"kind"?: string,"new_credits"?: number | null,"old_credits"?: number | null,"reason"?: string | null,"revision_id"?: string | null,"staff_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "book_price_history_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "book_price_history_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "book_price_history_revision_id_fkey"
+      columns: ["revision_id"]
+isOneToOne: false
+      referencedRelation: "book_revisions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "book_price_history_staff_id_fkey"
+      columns: ["staff_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "book_price_history_staff_id_fkey"
+      columns: ["staff_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"book_rating_stats": {
+                  Row: {
+                    "avg": number,"book_id": string,"count": number,"h1": number,"h2": number,"h3": number,"h4": number,"h5": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avg"?: number,"book_id": string,"count"?: number,"h1"?: number,"h2"?: number,"h3"?: number,"h4"?: number,"h5"?: number
+                  }
+                  Update: {
+                    "avg"?: number,"book_id"?: string,"count"?: number,"h1"?: number,"h2"?: number,"h3"?: number,"h4"?: number,"h5"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "book_rating_stats_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: true
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "book_rating_stats_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: true
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"book_related": {
+                  Row: {
+                    "book_id": string,"related_book_id": string,"score": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"related_book_id": string,"score": number
+                  }
+                  Update: {
+                    "book_id"?: string,"related_book_id"?: string,"score"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "book_related_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "book_related_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "book_related_related_book_id_fkey"
+      columns: ["related_book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "book_related_related_book_id_fkey"
+      columns: ["related_book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"book_revisions": {
+                  Row: {
+                    "age_rating": string | null,"anchors_moved": Json | null,"artifact_prefix": string | null,"assigned_to": string | null,"base_revision_id": string | null,"book_id": string,"chapters_confirmed_at": string | null,"content_notes": (string)[],"converted_key": string | null,"converted_sha256": string | null,"cover_key": string | null,"cover_sha256": string | null,"created_at": string,"created_via": Database["public"]['Enums']["revision_origin"],"desk_claimed_by": string | null,"desk_lease_until": string | null,"desk_reason": string | null,"draft_step": Database["public"]['Enums']["draft_step"] | null,"due_at": string | null,"fast_lane": boolean,"file_bytes": number | null,"free_through_ord": number,"generation": number,"id": string,"isbn": string | null,"language": string | null,"last_activity_at": string | null,"late_alerted_at": string | null,"manifest_key": string | null,"meta": NonNullable<Json>,"no_explicit": boolean,"notify_followers": boolean,"pages": number | null,"preview_cut_chapter_uid": string | null,"preview_cut_para_id": string | null,"preview_percent": number | null,"price_credits": number | null,"published_at": string | null,"published_by": string | null,"publisher": string | null,"readiness": number,"review_opened_at": string | null,"revision_no": number,"routed_at": string | null,"schedule_at": string | null,"sealed_generation": number | null,"sealed_work_version": number | null,"sent_back_note": string | null,"source_key": string | null,"source_sha256": string | null,"source_type": Database["public"]['Enums']["source_type"] | null,"status": Database["public"]['Enums']["revision_status"],"status_reason": string | null,"steps": NonNullable<Json>,"submitted_at": string | null,"updated_at": string,"uploaded_by": string | null,"words": number | null,"work_version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "age_rating"?: string | null,"anchors_moved"?: Json | null,"artifact_prefix"?: string | null,"assigned_to"?: string | null,"base_revision_id"?: string | null,"book_id": string,"chapters_confirmed_at"?: string | null,"content_notes"?: (string)[],"converted_key"?: string | null,"converted_sha256"?: string | null,"cover_key"?: string | null,"cover_sha256"?: string | null,"created_at"?: string,"created_via"?: Database["public"]['Enums']["revision_origin"],"desk_claimed_by"?: string | null,"desk_lease_until"?: string | null,"desk_reason"?: string | null,"draft_step"?: Database["public"]['Enums']["draft_step"] | null,"due_at"?: string | null,"fast_lane"?: boolean,"file_bytes"?: number | null,"free_through_ord"?: number,"generation"?: number,"id"?: string,"isbn"?: string | null,"language"?: string | null,"last_activity_at"?: string | null,"late_alerted_at"?: string | null,"manifest_key"?: string | null,"meta"?: NonNullable<Json>,"no_explicit"?: boolean,"notify_followers"?: boolean,"pages"?: number | null,"preview_cut_chapter_uid"?: string | null,"preview_cut_para_id"?: string | null,"preview_percent"?: number | null,"price_credits"?: number | null,"published_at"?: string | null,"published_by"?: string | null,"publisher"?: string | null,"readiness"?: number,"review_opened_at"?: string | null,"revision_no": number,"routed_at"?: string | null,"schedule_at"?: string | null,"sealed_generation"?: number | null,"sealed_work_version"?: number | null,"sent_back_note"?: string | null,"source_key"?: string | null,"source_sha256"?: string | null,"source_type"?: Database["public"]['Enums']["source_type"] | null,"status"?: Database["public"]['Enums']["revision_status"],"status_reason"?: string | null,"steps"?: NonNullable<Json>,"submitted_at"?: string | null,"updated_at"?: string,"uploaded_by"?: string | null,"words"?: number | null,"work_version"?: number
+                  }
+                  Update: {
+                    "age_rating"?: string | null,"anchors_moved"?: Json | null,"artifact_prefix"?: string | null,"assigned_to"?: string | null,"base_revision_id"?: string | null,"book_id"?: string,"chapters_confirmed_at"?: string | null,"content_notes"?: (string)[],"converted_key"?: string | null,"converted_sha256"?: string | null,"cover_key"?: string | null,"cover_sha256"?: string | null,"created_at"?: string,"created_via"?: Database["public"]['Enums']["revision_origin"],"desk_claimed_by"?: string | null,"desk_lease_until"?: string | null,"desk_reason"?: string | null,"draft_step"?: Database["public"]['Enums']["draft_step"] | null,"due_at"?: string | null,"fast_lane"?: boolean,"file_bytes"?: number | null,"free_through_ord"?: number,"generation"?: number,"id"?: string,"isbn"?: string | null,"language"?: string | null,"last_activity_at"?: string | null,"late_alerted_at"?: string | null,"manifest_key"?: string | null,"meta"?: NonNullable<Json>,"no_explicit"?: boolean,"notify_followers"?: boolean,"pages"?: number | null,"preview_cut_chapter_uid"?: string | null,"preview_cut_para_id"?: string | null,"preview_percent"?: number | null,"price_credits"?: number | null,"published_at"?: string | null,"published_by"?: string | null,"publisher"?: string | null,"readiness"?: number,"review_opened_at"?: string | null,"revision_no"?: number,"routed_at"?: string | null,"schedule_at"?: string | null,"sealed_generation"?: number | null,"sealed_work_version"?: number | null,"sent_back_note"?: string | null,"source_key"?: string | null,"source_sha256"?: string | null,"source_type"?: Database["public"]['Enums']["source_type"] | null,"status"?: Database["public"]['Enums']["revision_status"],"status_reason"?: string | null,"steps"?: NonNullable<Json>,"submitted_at"?: string | null,"updated_at"?: string,"uploaded_by"?: string | null,"words"?: number | null,"work_version"?: number
                   }
                   Relationships: [
                     {
@@ -285,6 +457,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "book_revisions"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "book_revisions_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
     },{
       foreignKeyName: "book_revisions_book_id_fkey"
       columns: ["book_id"]
@@ -331,14 +509,14 @@ isOneToOne: false
                   ]
                 },"books": {
                   Row: {
-                    "access_removed_at": string | null,"author_id": string,"claim_hold_at": string | null,"created_at": string,"current_revision_id": string | null,"description": string | null,"genres": (string)[],"id": string,"new_arrival_until": string | null,"status": Database["public"]['Enums']["book_status"],"subtitle": string | null,"title": string,"unpublish_reason": Database["public"]['Enums']["unpublish_reason"] | null,"unpublished_at": string | null,"updated_at": string
+                    "access_removed_at": string | null,"author_id": string,"claim_hold_at": string | null,"comments_count": number,"created_at": string,"current_revision_id": string | null,"description": string | null,"genres": (string)[],"id": string,"new_arrival_until": string | null,"preview_override_percent": number | null,"preview_override_reason": string | null,"price_override_credits": number | null,"price_override_reason": string | null,"reads_count": number,"status": Database["public"]['Enums']["book_status"],"subtitle": string | null,"tags": (string)[],"title": string,"unpublish_reason": Database["public"]['Enums']["unpublish_reason"] | null,"unpublished_at": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "access_removed_at"?: string | null,"author_id": string,"claim_hold_at"?: string | null,"created_at"?: string,"current_revision_id"?: string | null,"description"?: string | null,"genres"?: (string)[],"id"?: string,"new_arrival_until"?: string | null,"status"?: Database["public"]['Enums']["book_status"],"subtitle"?: string | null,"title": string,"unpublish_reason"?: Database["public"]['Enums']["unpublish_reason"] | null,"unpublished_at"?: string | null,"updated_at"?: string
+                    "access_removed_at"?: string | null,"author_id": string,"claim_hold_at"?: string | null,"comments_count"?: number,"created_at"?: string,"current_revision_id"?: string | null,"description"?: string | null,"genres"?: (string)[],"id"?: string,"new_arrival_until"?: string | null,"preview_override_percent"?: number | null,"preview_override_reason"?: string | null,"price_override_credits"?: number | null,"price_override_reason"?: string | null,"reads_count"?: number,"status"?: Database["public"]['Enums']["book_status"],"subtitle"?: string | null,"tags"?: (string)[],"title": string,"unpublish_reason"?: Database["public"]['Enums']["unpublish_reason"] | null,"unpublished_at"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "access_removed_at"?: string | null,"author_id"?: string,"claim_hold_at"?: string | null,"created_at"?: string,"current_revision_id"?: string | null,"description"?: string | null,"genres"?: (string)[],"id"?: string,"new_arrival_until"?: string | null,"status"?: Database["public"]['Enums']["book_status"],"subtitle"?: string | null,"title"?: string,"unpublish_reason"?: Database["public"]['Enums']["unpublish_reason"] | null,"unpublished_at"?: string | null,"updated_at"?: string
+                    "access_removed_at"?: string | null,"author_id"?: string,"claim_hold_at"?: string | null,"comments_count"?: number,"created_at"?: string,"current_revision_id"?: string | null,"description"?: string | null,"genres"?: (string)[],"id"?: string,"new_arrival_until"?: string | null,"preview_override_percent"?: number | null,"preview_override_reason"?: string | null,"price_override_credits"?: number | null,"price_override_reason"?: string | null,"reads_count"?: number,"status"?: Database["public"]['Enums']["book_status"],"subtitle"?: string | null,"tags"?: (string)[],"title"?: string,"unpublish_reason"?: Database["public"]['Enums']["unpublish_reason"] | null,"unpublished_at"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -417,6 +595,12 @@ isOneToOne: false
       foreignKeyName: "copyright_claims_book_id_fkey"
       columns: ["book_id"]
 isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "copyright_claims_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
       referencedRelation: "books"
       referencedColumns: ["id"]
     },{
@@ -453,14 +637,14 @@ isOneToOne: false
                   ]
                 },"credit_ledger": {
                   Row: {
-                    "actor_id": string | null,"author_earning_kobo": number,"author_id": string | null,"book_id": string | null,"bucket": Database["public"]['Enums']["ledger_bucket"],"chapter_id": string | null,"created_at": string,"delta": number,"expires_at": string | null,"id": number,"idempotency_key": string | null,"note": string | null,"reason": Database["public"]['Enums']["ledger_reason"],"ref_id": string | null,"ref_type": string | null,"txn_id": string,"user_id": string
+                    "actor_id": string | null,"author_earning_kobo": number,"author_id": string | null,"balance_after": number | null,"book_id": string | null,"bucket": Database["public"]['Enums']["ledger_bucket"],"chapter_id": string | null,"chapter_uid": string | null,"counterparty_user_id": string | null,"created_at": string,"delta": number,"expires_at": string | null,"id": number,"idempotency_key": string | null,"meta": NonNullable<Json>,"note": string | null,"reason": Database["public"]['Enums']["ledger_reason"],"ref_id": string | null,"ref_ledger_id": number | null,"ref_type": string | null,"txn_id": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "actor_id"?: string | null,"author_earning_kobo"?: number,"author_id"?: string | null,"book_id"?: string | null,"bucket": Database["public"]['Enums']["ledger_bucket"],"chapter_id"?: string | null,"created_at"?: string,"delta": number,"expires_at"?: string | null,"id"?: never,"idempotency_key"?: string | null,"note"?: string | null,"reason": Database["public"]['Enums']["ledger_reason"],"ref_id"?: string | null,"ref_type"?: string | null,"txn_id"?: string,"user_id": string
+                    "actor_id"?: string | null,"author_earning_kobo"?: number,"author_id"?: string | null,"balance_after"?: number | null,"book_id"?: string | null,"bucket": Database["public"]['Enums']["ledger_bucket"],"chapter_id"?: string | null,"chapter_uid"?: string | null,"counterparty_user_id"?: string | null,"created_at"?: string,"delta": number,"expires_at"?: string | null,"id"?: never,"idempotency_key"?: string | null,"meta"?: NonNullable<Json>,"note"?: string | null,"reason": Database["public"]['Enums']["ledger_reason"],"ref_id"?: string | null,"ref_ledger_id"?: number | null,"ref_type"?: string | null,"txn_id"?: string,"user_id": string
                   }
                   Update: {
-                    "actor_id"?: string | null,"author_earning_kobo"?: number,"author_id"?: string | null,"book_id"?: string | null,"bucket"?: Database["public"]['Enums']["ledger_bucket"],"chapter_id"?: string | null,"created_at"?: string,"delta"?: number,"expires_at"?: string | null,"id"?: never,"idempotency_key"?: string | null,"note"?: string | null,"reason"?: Database["public"]['Enums']["ledger_reason"],"ref_id"?: string | null,"ref_type"?: string | null,"txn_id"?: string,"user_id"?: string
+                    "actor_id"?: string | null,"author_earning_kobo"?: number,"author_id"?: string | null,"balance_after"?: number | null,"book_id"?: string | null,"bucket"?: Database["public"]['Enums']["ledger_bucket"],"chapter_id"?: string | null,"chapter_uid"?: string | null,"counterparty_user_id"?: string | null,"created_at"?: string,"delta"?: number,"expires_at"?: string | null,"id"?: never,"idempotency_key"?: string | null,"meta"?: NonNullable<Json>,"note"?: string | null,"reason"?: Database["public"]['Enums']["ledger_reason"],"ref_id"?: string | null,"ref_ledger_id"?: number | null,"ref_type"?: string | null,"txn_id"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -491,6 +675,12 @@ isOneToOne: false
       foreignKeyName: "credit_ledger_book_id_fkey"
       columns: ["book_id"]
 isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "credit_ledger_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
       referencedRelation: "books"
       referencedColumns: ["id"]
     },{
@@ -498,6 +688,24 @@ isOneToOne: false
       columns: ["chapter_id"]
 isOneToOne: false
       referencedRelation: "chapters"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "credit_ledger_counterparty_user_id_fkey"
+      columns: ["counterparty_user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "credit_ledger_counterparty_user_id_fkey"
+      columns: ["counterparty_user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "credit_ledger_ref_ledger_id_fkey"
+      columns: ["ref_ledger_id"]
+isOneToOne: false
+      referencedRelation: "credit_ledger"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "credit_ledger_user_id_fkey"
@@ -537,6 +745,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "credit_returns_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
     },{
       foreignKeyName: "credit_returns_book_id_fkey"
       columns: ["book_id"]
@@ -597,6 +811,12 @@ isOneToOne: false
       foreignKeyName: "entitlements_book_id_fkey"
       columns: ["book_id"]
 isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "entitlements_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
       referencedRelation: "books"
       referencedColumns: ["id"]
     },{
@@ -651,6 +871,44 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"follows": {
+                  Row: {
+                    "created_at": string,"followee_id": string,"follower_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"followee_id": string,"follower_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"followee_id"?: string,"follower_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "follows_followee_id_fkey"
+      columns: ["followee_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "follows_followee_id_fkey"
+      columns: ["followee_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "follows_follower_id_fkey"
+      columns: ["follower_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "follows_follower_id_fkey"
+      columns: ["follower_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"genres": {
                   Row: {
                     "created_at": string,"id": string,"merged_into": string | null,"name": string,"position": number,"slug": string,"visible": boolean
@@ -668,6 +926,62 @@ isOneToOne: true
       columns: ["merged_into"]
 isOneToOne: false
       referencedRelation: "genres"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"gifts": {
+                  Row: {
+                    "book_id": string,"created_at": string,"id": string,"ledger_id": number,"message": string | null,"recipient_id": string,"seen_at": string | null,"sender_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"created_at"?: string,"id"?: string,"ledger_id": number,"message"?: string | null,"recipient_id": string,"seen_at"?: string | null,"sender_id": string
+                  }
+                  Update: {
+                    "book_id"?: string,"created_at"?: string,"id"?: string,"ledger_id"?: number,"message"?: string | null,"recipient_id"?: string,"seen_at"?: string | null,"sender_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "gifts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "gifts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gifts_ledger_id_fkey"
+      columns: ["ledger_id"]
+isOneToOne: false
+      referencedRelation: "credit_ledger"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gifts_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gifts_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gifts_sender_id_fkey"
+      columns: ["sender_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gifts_sender_id_fkey"
+      columns: ["sender_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -775,6 +1089,12 @@ isOneToOne: false
       foreignKeyName: "groups_book_id_fkey"
       columns: ["book_id"]
 isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "groups_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
       referencedRelation: "books"
       referencedColumns: ["id"]
     },{
@@ -789,6 +1109,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "groups_weekly_book_id_fkey"
+      columns: ["weekly_book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
     },{
       foreignKeyName: "groups_weekly_book_id_fkey"
       columns: ["weekly_book_id"]
@@ -895,6 +1221,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "help_votes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"hidden_reviewers": {
+                  Row: {
+                    "created_at": string,"hidden_user_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"hidden_user_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"hidden_user_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hidden_reviewers_hidden_user_id_fkey"
+      columns: ["hidden_user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hidden_reviewers_hidden_user_id_fkey"
+      columns: ["hidden_user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hidden_reviewers_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hidden_reviewers_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "public_profiles"
@@ -1111,6 +1475,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"paygo_accounts": {
+                  Row: {
+                    "book_id": string,"created_at": string,"snapshot_price": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"created_at"?: string,"snapshot_price": number,"user_id": string
+                  }
+                  Update: {
+                    "book_id"?: string,"created_at"?: string,"snapshot_price"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "paygo_accounts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "paygo_accounts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "paygo_accounts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "paygo_accounts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"permissions": {
                   Row: {
                     "key": string,"label": string,"matrix_order": number | null,"more": boolean
@@ -1153,17 +1555,55 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"bio": string | null,"country": string,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"full_name": string,"id": string,"interests": (string)[],"is_author": boolean,"is_reader": boolean,"onboarding_step": string,"phone": string | null,"privacy_version": number | null,"signup_intent": Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at": string | null,"terms_version": number | null,"theme": Database["public"]['Enums']["app_theme"],"updated_at": string,"username": string | null
+                    "avatar_url": string | null,"bio": string | null,"country": string,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"full_name": string,"id": string,"interests": (string)[],"is_author": boolean,"is_reader": boolean,"onboarding_step": string,"phone": string | null,"privacy_version": number | null,"reader_settings": NonNullable<Json>,"signup_intent": Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at": string | null,"terms_version": number | null,"theme": Database["public"]['Enums']["app_theme"],"updated_at": string,"username": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"full_name"?: string,"id": string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
+                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"full_name"?: string,"id": string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
                   }
                   Update: {
-                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"full_name"?: string,"id"?: string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
+                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"full_name"?: string,"id"?: string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
                   }
                   Relationships: [
                     
+                  ]
+                },"reading_progress": {
+                  Row: {
+                    "book_id": string,"chapter_ord": number,"finished_at": string | null,"last_opened_at": string,"max_percent": number,"percent": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"chapter_ord"?: number,"finished_at"?: string | null,"last_opened_at"?: string,"max_percent"?: number,"percent"?: number,"user_id": string
+                  }
+                  Update: {
+                    "book_id"?: string,"chapter_ord"?: number,"finished_at"?: string | null,"last_opened_at"?: string,"max_percent"?: number,"percent"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reading_progress_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "reading_progress_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_progress_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_progress_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"reports": {
                   Row: {
@@ -1189,6 +1629,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reports_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
     },{
       foreignKeyName: "reports_book_id_fkey"
       columns: ["book_id"]
@@ -1234,6 +1680,76 @@ isOneToOne: false
     },{
       foreignKeyName: "reports_reporter_id_fkey"
       columns: ["reporter_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"review_likes": {
+                  Row: {
+                    "created_at": string,"review_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"review_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"review_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "review_likes_review_id_fkey"
+      columns: ["review_id"]
+isOneToOne: false
+      referencedRelation: "reviews"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "review_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "review_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"reviews": {
+                  Row: {
+                    "body": string | null,"book_id": string,"created_at": string,"edited_at": string | null,"id": string,"likes_count": number,"spoiler": boolean,"stars": number,"status": string,"user_id": string,"_review_json": Json | null
+                  }
+                  ComputedFields: "_review_json"
+                  Insert: {
+                    "body"?: string | null,"book_id": string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"likes_count"?: number,"spoiler"?: boolean,"stars": number,"status"?: string,"user_id": string
+                  }
+                  Update: {
+                    "body"?: string | null,"book_id"?: string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"likes_count"?: number,"spoiler"?: boolean,"stars"?: number,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reviews_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "reviews_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reviews_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reviews_user_id_fkey"
+      columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
@@ -1471,6 +1987,32 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"subscriptions": {
+                  Row: {
+                    "created_at": string,"id": string,"period_end": string,"period_start": string,"plan_code": string,"status": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"period_end": string,"period_start"?: string,"plan_code": string,"status": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"period_end"?: string,"period_start"?: string,"plan_code"?: string,"status"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"support_macros": {
                   Row: {
                     "body": string,"category": Database["public"]['Enums']["ticket_category"] | null,"created_at": string,"created_by": string | null,"id": string,"title": string,"variables": (string)[]
@@ -1521,6 +2063,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "support_tickets_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
     },{
       foreignKeyName: "support_tickets_book_id_fkey"
       columns: ["book_id"]
@@ -1582,6 +2130,62 @@ isOneToOne: false
       columns: ["ticket_id"]
 isOneToOne: false
       referencedRelation: "support_tickets"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tips": {
+                  Row: {
+                    "author_id": string,"book_id": string | null,"created_at": string,"credits": number,"from_user_id": string,"id": string,"ledger_id": number,"note": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id": string,"book_id"?: string | null,"created_at"?: string,"credits": number,"from_user_id": string,"id"?: string,"ledger_id": number,"note"?: string | null
+                  }
+                  Update: {
+                    "author_id"?: string,"book_id"?: string | null,"created_at"?: string,"credits"?: number,"from_user_id"?: string,"id"?: string,"ledger_id"?: number,"note"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tips_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tips_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tips_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "tips_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tips_from_user_id_fkey"
+      columns: ["from_user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tips_from_user_id_fkey"
+      columns: ["from_user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tips_ledger_id_fkey"
+      columns: ["ledger_id"]
+isOneToOne: false
+      referencedRelation: "credit_ledger"
       referencedColumns: ["id"]
     }
                   ]
@@ -1722,7 +2326,21 @@ isOneToOne: false
                 }
           }
           Views: {
-            "public_profiles": {
+            "book_effective": {
+                  Row: {
+                    "book_id": string,"effective_preview_percent": number | null,"effective_price": number | null,"revision_id": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "books_current_revision_fk"
+      columns: ["revision_id"]
+isOneToOne: false
+      referencedRelation: "book_revisions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"public_profiles": {
                   Row: {
                     "avatar_url": string | null,"bio": string | null,"full_name": string,"id": string,"is_author": boolean,"username": string | null
                   }
@@ -1742,6 +2360,9 @@ isOneToOne: false
             "_actor":
 { Args: { "p_actor": string,"p_allow_system"?: boolean,"p_fn": string,"p_roles": (Database["public"]['Enums']["staff_role"])[] }; Returns: string
                            },
+"_apply_book_price":
+{ Args: { "p_price": number,"p_prices": Json,"p_rev": string }; Returns: undefined
+                           },
 "_apply_counts":
 { Args: { "p_result": Json,"p_rev": string }; Returns: undefined
                            },
@@ -1754,6 +2375,43 @@ isOneToOne: false
 "_audit_as":
 { Args: { "p_action": string,"p_actor": string,"p_after": Json,"p_area": string,"p_before": Json,"p_object_id": string,"p_object_label": string,"p_object_type": string,"p_reason": string,"p_summary": string }; Returns: number
                            },
+"_balance":
+{ Args: { "p_user": string }; Returns: number
+                           },
+"_book_card":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"_buyable_book":
+{ Args: { "p_book": string }; Returns: {
+              "access_removed_at": string | null,
+"author_id": string,
+"claim_hold_at": string | null,
+"comments_count": number,
+"created_at": string,
+"current_revision_id": string | null,
+"description": string | null,
+"genres": (string)[],
+"id": string,
+"new_arrival_until": string | null,
+"preview_override_percent": number | null,
+"preview_override_reason": string | null,
+"price_override_credits": number | null,
+"price_override_reason": string | null,
+"reads_count": number,
+"status": Database["public"]['Enums']["book_status"],
+"subtitle": string | null,
+"tags": (string)[],
+"title": string,
+"unpublish_reason": Database["public"]['Enums']["unpublish_reason"] | null,
+"unpublished_at": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "books"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "_can_claims":
 { Args: { "p_decide": boolean }; Returns: boolean
                            },
@@ -1765,20 +2423,32 @@ isOneToOne: false
               "book_id": string,"chapter_id": string,"charged_at": string,"credits": number,"kobo": number,"txn_id": string,"user_id": string
             }[]
                            },
+"_chapter_paid":
+{ Args: { "p_book": string,"p_user": string }; Returns: number
+                           },
 "_chapter_prices_ok":
 { Args: { "p_rev": string }; Returns: boolean
                            },
 "_charge_undone":
 { Args: { "p_at": string,"p_chapter": string,"p_user": string }; Returns: boolean
                            },
+"_check_spend_rate":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
 "_check_super_admins":
 { Args: { "p_user": string }; Returns: undefined
+                           },
+"_config":
+{ Args: { "p_key": string }; Returns: Json
                            },
 "_do_credit_return":
 { Args: { "p_actor": string,"p_return": string }; Returns: string
                            },
 "_fast_lane_check":
 { Args: { "p_rev": string }; Returns: (string)[]
+                           },
+"_finished":
+{ Args: { "p_book": string,"p_user": string }; Returns: boolean
                            },
 "_has_staff_role":
 { Args: { "p_roles": (Database["public"]['Enums']["staff_role"])[],"p_user": string }; Returns: boolean
@@ -1797,12 +2467,14 @@ isOneToOne: false
                            },
 "_lock_revision":
 { Args: { "p_rev": string }; Returns: {
-              "anchors_moved": Json | null,
+              "age_rating": string | null,
+"anchors_moved": Json | null,
 "artifact_prefix": string | null,
 "assigned_to": string | null,
 "base_revision_id": string | null,
 "book_id": string,
 "chapters_confirmed_at": string | null,
+"content_notes": (string)[],
 "converted_key": string | null,
 "converted_sha256": string | null,
 "cover_key": string | null,
@@ -1819,10 +2491,13 @@ isOneToOne: false
 "free_through_ord": number,
 "generation": number,
 "id": string,
+"isbn": string | null,
+"language": string | null,
 "last_activity_at": string | null,
 "late_alerted_at": string | null,
 "manifest_key": string | null,
 "meta": NonNullable<Json>,
+"no_explicit": boolean,
 "notify_followers": boolean,
 "pages": number | null,
 "preview_cut_chapter_uid": string | null,
@@ -1831,6 +2506,7 @@ isOneToOne: false
 "price_credits": number | null,
 "published_at": string | null,
 "published_by": string | null,
+"publisher": string | null,
 "readiness": number,
 "review_opened_at": string | null,
 "revision_no": number,
@@ -1857,8 +2533,14 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_mid_paygo":
+{ Args: { "p_book": string }; Returns: number
+                           },
 "_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
+                           },
+"_owns_book":
+{ Args: { "p_book": string,"p_user": string }; Returns: boolean
                            },
 "_pipeline_defaults":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -1866,11 +2548,26 @@ isOneToOne: false
 "_pipeline_setting":
 { Args: { "p_section": string }; Returns: Json
                            },
+"_plan_state":
+{ Args: { "p_user": string }; Returns: Json
+                           },
 "_publish_now":
 { Args: { "p_actor": string,"p_mode": string,"p_notify": boolean,"p_rev": string }; Returns: Json
                            },
+"_raise":
+{ Args: { "p_code": string,"p_detail"?: Json }; Returns: undefined
+                           },
+"_refresh_rating_stats":
+{ Args: { "p_book": string }; Returns: undefined
+                           },
+"_remaining":
+{ Args: { "p_book": string,"p_user": string }; Returns: number
+                           },
 "_replace_chapters":
 { Args: { "p_chapters": Json,"p_rev": string }; Returns: undefined
+                           },
+"_report":
+{ Args: { "p_book": string,"p_details": string,"p_reason": Database["public"]['Enums']["report_reason"],"p_snapshot": Json,"p_target": string,"p_type": Database["public"]['Enums']["report_content_type"],"p_user": string }; Returns: string
                            },
 "_report_target":
 { Args: { "p_id": string,"p_type": Database["public"]['Enums']["report_content_type"],"p_viewer": string }; Returns: {
@@ -1880,6 +2577,9 @@ isOneToOne: false
 "_report_visible_to_me":
 { Args: { "r": Omit<Database["public"]['Tables']["reports"]['Row'], Database["public"]['Tables']["reports"]['ComputedFields']> }; Returns: boolean
                            },
+"_require_price_staff":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "_require_service":
 { Args: { "p_fn": string }; Returns: undefined
                            },
@@ -1888,6 +2588,9 @@ isOneToOne: false
                            },
 "_rescore":
 { Args: { "p_rev": string }; Returns: number
+                           },
+"_review_json":
+{ Args: { "r": Omit<Database["public"]['Tables']["reviews"]['Row'], Database["public"]['Tables']["reviews"]['ComputedFields']> }; Returns: Json
                            },
 "_route":
 { Args: { "p_rev": string }; Returns: Database["public"]['Enums']["revision_status"]
@@ -1919,6 +2622,9 @@ isOneToOne: false
 "_trust_staff":
 { Args: { "p_roles": (Database["public"]['Enums']["staff_role"])[] }; Returns: boolean
                            },
+"_uid":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "accept_staff_invite":
 { Args: { "p_token_hash": string,"p_user": string }; Returns: Database["public"]['Enums']["staff_role"]
                            },
@@ -1929,6 +2635,12 @@ isOneToOne: false
                            },
 "add_ticket_note":
 { Args: { "p_body": string,"p_ticket": string }; Returns: string
+                           },
+"admin_book_access":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"admin_book_stats":
+{ Args: { "p_book": string }; Returns: Json
                            },
 "admin_community_stats":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -2006,8 +2718,14 @@ isOneToOne: false
 "admin_return_preview":
 { Args: { "p_ledger": number }; Returns: Json
                            },
+"admin_set_book_price":
+{ Args: { "p_book": string,"p_price": number,"p_prices": Json,"p_reason": string }; Returns: Json
+                           },
 "admin_set_channel_state":
 { Args: { "p_field": string,"p_group": string,"p_reason"?: string,"p_until": string }; Returns: undefined
+                           },
+"admin_set_preview":
+{ Args: { "p_book": string,"p_percent": number,"p_reason": string }; Returns: undefined
                            },
 "admin_ticket_counts":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -2122,6 +2840,9 @@ isOneToOne: false
 "delete_message":
 { Args: { "p_group"?: string,"p_message": string }; Returns: Json
                            },
+"delete_review":
+{ Args: { "p_review": string }; Returns: undefined
+                           },
 "desk_claim":
 { Args: { "p_actor"?: string,"p_rev"?: string }; Returns: Json
                            },
@@ -2147,6 +2868,18 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "avatar_url": string,"created_at": string,"full_name": string,"source_group_id": string,"source_kind": Database["public"]['Enums']["group_kind"],"source_name": string,"user_id": string
             }[]
+                           },
+"get_book_about":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"get_book_discussion":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"get_book_page":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"get_gift_people":
+{ Args: { "p_book": string,"p_query"?: string }; Returns: Json
                            },
 "get_group":
 { Args: { "p_group": string }; Returns: Json
@@ -2186,6 +2919,9 @@ isOneToOne: false
 "get_onboarding_paywall":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"get_reviews":
+{ Args: { "p_book": string,"p_limit"?: number,"p_offset"?: number,"p_stars"?: number }; Returns: Json
+                           },
 "get_revision_status":
 { Args: { "p_rev": string }; Returns: Json
                            },
@@ -2195,6 +2931,9 @@ isOneToOne: false
 "get_staff_invite":
 { Args: { "p_token_hash": string }; Returns: Json
                            },
+"gift_book":
+{ Args: { "p_book": string,"p_expected_price": number,"p_key": string,"p_message": string,"p_recipient": string }; Returns: Json
+                           },
 "has_blocked":
 { Args: { "p_user": string,"p_viewer": string }; Returns: boolean
                            },
@@ -2203,6 +2942,9 @@ isOneToOne: false
                            },
 "has_permission":
 { Args: { "p_permission": string }; Returns: boolean
+                           },
+"hide_reviewer":
+{ Args: { "p_user": string }; Returns: undefined
                            },
 "i_blocked":
 { Args: { "p_user": string }; Returns: boolean
@@ -2282,6 +3024,9 @@ isOneToOne: false
               "reason": string,"until": string
             }[]
                            },
+"post_review":
+{ Args: { "p_body": string,"p_book": string,"p_spoiler": boolean,"p_stars": number }; Returns: Json
+                           },
 "publish_due":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -2302,6 +3047,9 @@ isOneToOne: false
                            },
 "reader_reply_ticket":
 { Args: { "p_body": string,"p_ticket": string }; Returns: undefined
+                           },
+"rebuild_book_related":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "record_automod_hits":
 { Args: { "p_word_ids": (string)[] }; Returns: undefined
@@ -2327,6 +3075,9 @@ isOneToOne: false
 "reply_ticket":
 { Args: { "p_body": string,"p_macro"?: string,"p_solve"?: boolean,"p_ticket": string }; Returns: string
                            },
+"report_book":
+{ Args: { "p_book": string,"p_note"?: string,"p_reason": string }; Returns: string
+                           },
 "report_due_at":
 { Args: { "p_from"?: string,"p_severity": Database["public"]['Enums']["report_severity"] }; Returns: string
                            },
@@ -2335,6 +3086,9 @@ isOneToOne: false
                            },
 "report_reasons_for":
 { Args: { "p_type": Database["public"]['Enums']["report_content_type"] }; Returns: (Database["public"]['Enums']["report_reason"])[]
+                           },
+"report_review":
+{ Args: { "p_note"?: string,"p_reason": string,"p_review": string }; Returns: string
                            },
 "report_severity_for":
 { Args: { "p_reason": Database["public"]['Enums']["report_reason"] }; Returns: Database["public"]['Enums']["report_severity"]
@@ -2394,6 +3148,7 @@ isOneToOne: false
 "onboarding_step": string,
 "phone": string | null,
 "privacy_version": number | null,
+"reader_settings": NonNullable<Json>,
 "signup_intent": Database["public"]['Enums']["signup_intent"] | null,
 "terms_accepted_at": string | null,
 "terms_version": number | null,
@@ -2436,6 +3191,9 @@ isOneToOne: false
 "set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined
                            },
+"set_following":
+{ Args: { "p_follow": boolean,"p_user": string }; Returns: boolean
+                           },
 "set_group_mute":
 { Args: { "p_group": string,"p_until": string }; Returns: undefined
                            },
@@ -2444,6 +3202,9 @@ isOneToOne: false
                            },
 "set_live_count":
 { Args: { "p_count": number,"p_group": string }; Returns: undefined
+                           },
+"set_reader_setting":
+{ Args: { "p_key": string,"p_value": Json }; Returns: Json
                            },
 "set_report_severity":
 { Args: { "p_report": string,"p_severity": Database["public"]['Enums']["report_severity"] }; Returns: undefined
@@ -2456,6 +3217,9 @@ isOneToOne: false
                            },
 "sla_watch":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"spend_credits":
+{ Args: { "p_amount": number,"p_author": string,"p_book": string,"p_chapter_uid": string,"p_counterparty"?: string,"p_key": string,"p_meta"?: Json,"p_reason": Database["public"]['Enums']["ledger_reason"],"p_user": string }; Returns: Json
                            },
 "staff_by_role":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -2480,6 +3244,12 @@ isOneToOne: false
 "submit_revision":
 { Args: { "p_rev": string }; Returns: Json
                            },
+"tip_author":
+{ Args: { "p_book": string,"p_credits": number,"p_key": string,"p_note": string }; Returns: Json
+                           },
+"toggle_review_like":
+{ Args: { "p_review": string }; Returns: boolean
+                           },
 "touch_last_seen":
 { Args: { "p_group": string,"p_user": string }; Returns: undefined
                            },
@@ -2499,6 +3269,12 @@ isOneToOne: false
                            },
 "undo_release_to_review":
 { Args: { "p_actor"?: string,"p_rev": string }; Returns: Json
+                           },
+"unhide_reviewer":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"unlock_book":
+{ Args: { "p_book": string,"p_expected_price": number,"p_key": string }; Returns: Json
                            },
 "unpin_message":
 { Args: { "p_group": string,"p_message": string }; Returns: undefined

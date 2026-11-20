@@ -26,6 +26,8 @@ export interface FieldProps extends Omit<TextInputProps, 'style' | 'placeholderT
   trailing?: ReactNode;
   /** Show the focused look without focus (`.field.focus` specimen). */
   focusedLook?: boolean;
+  /** `<textarea rows>`: multi-line box this many lines tall (14px text, line-height 1.45), top-aligned. */
+  rows?: number;
 }
 
 /** Text box: grey at rest; white with a main-colour border and soft halo on focus; red on error. */
@@ -37,6 +39,7 @@ export function Field({
   leading,
   trailing,
   focusedLook,
+  rows,
   onFocus,
   onBlur,
   ...input
@@ -86,7 +89,7 @@ export function Field({
           style={[
             {
               flexDirection: 'row',
-              alignItems: 'center',
+              alignItems: rows ? 'stretch' : 'center',
               gap: s(10),
               borderRadius: s(12),
               minHeight: s(50),
@@ -99,6 +102,7 @@ export function Field({
           {icon ? <Icon name={icon} size="s" color={c.ink3} /> : null}
           {leading}
           <TextInput
+            {...(rows ? { multiline: true, textAlignVertical: 'top' as const } : null)}
             {...input}
             onFocus={(e) => {
               setFocus(true);
@@ -128,6 +132,7 @@ export function Field({
                 input.secureTextEntry && input.value ? undefined : input.value || input.placeholder,
               ),
               color: c.ink,
+              ...(rows ? { minHeight: s(24) + rows * fs * 1.45, lineHeight: fs * 1.45 } : null),
             }}
           />
           {trailing}
