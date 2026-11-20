@@ -150,10 +150,11 @@ export function locate(pathname: string) {
   const first = pathname.split('/')[1] ?? '';
   // Pages that live under another page's sidebar link (s-roles is a tab of Team and roles).
   // A reader's credit ledger (/credits/<user>) is a tab of the reader, so it sits under People › Readers.
+  // /authors (s-authors, s-author) sit beside Applications under People.
   const page =
     first === 'credits' && pathname.split('/')[2]
       ? 'users'
-      : (({ roles: 'team' } as Record<string, string>)[first] ?? first);
+      : (({ roles: 'team', authors: 'applications' } as Record<string, string>)[first] ?? first);
   if (!page) return { section: nav[0]!, page: undefined };
   for (const section of nav) {
     const sub = section.sub.find(s => s.key === page);
