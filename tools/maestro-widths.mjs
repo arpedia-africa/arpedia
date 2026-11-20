@@ -30,6 +30,11 @@ const px = Number(adb('wm size').match(/(\d+)x\d+/)?.[1]);
 if (!px) throw new Error('Could not read the emulator screen size');
 // Restore the device's own setting afterwards (the owner's phone keeps an override, 461 = 375dp).
 const saved = adb('wm density').match(/Override density: (\d+)/)?.[1];
+// Both the release app and the dev build (com.arpedia.reader.dev) handle arpedia:// links, so an
+// openLink step would stop on Android's "Open with" chooser. Disable the dev build while Maestro runs.
+const DEV = 'com.arpedia.reader.dev';
+const hasDev = adb(`pm list packages ${DEV}`).split(/\s+/).includes(`package:${DEV}`);
+if (hasDev) adb(`pm disable-user --user 0 ${DEV}`);
 
 let failed = false;
 try {
@@ -48,5 +53,6 @@ try {
   }
 } finally {
   adb(saved ? `wm density ${saved}` : 'wm density reset');
+  if (hasDev) adb(`pm enable --user 0 ${DEV}`);
 }
 process.exit(failed ? 1 : 0);

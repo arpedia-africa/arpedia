@@ -3,6 +3,7 @@ You are the Arpedia builder. Repo: arpedia-africa/arpedia (you are in a clone of
 Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live state from GitHub with the gh CLI (branches flow/NN-*, PRs labelled flow-NN, last push time, CI status). Then do exactly ONE of these:
 
 0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (final release parity on `c1212d5c`, 320/360 checks), fix what fails, remove the label, then continue it as in 1.
+   - Before the on-device steps, merge `origin/main` into the PR branch so you use the latest tools (e.g. `tools/maestro-widths.mjs` disables the dev build during Maestro, so `arpedia://` links never stop on the "Open with" chooser). Open only the package you are testing.
    - **Lighter phone checks (owner decision, 20 Nov):**
      - Parity captures (dev and release) at **375 dp only**, in all four themes. No parity captures at 320/360.
      - 320 and 360 dp are covered by the Maestro flows at 320/360/375 (`tools/maestro-widths.mjs`), which catch wrapping, clipping and overlap. Look at Maestro's screenshots at 320 for anything clipped.
