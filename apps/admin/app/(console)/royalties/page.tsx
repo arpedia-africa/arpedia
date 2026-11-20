@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { naira } from '@arpedia/core';
+import { Flash } from '@/components/flash';
 import { Icon } from '@/components/icon';
 import { Empty, guard } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
@@ -33,7 +34,8 @@ interface Data {
 }
 
 /** s-royalties: the month ready to release on top, then one row per month (rule 30). */
-export default async function RoyaltiesPage() {
+export default async function RoyaltiesPage({ searchParams }: { searchParams: Promise<{ done?: string }> }) {
+  const { done } = await searchParams;
   const { denied } = await guard('royalties', 'Author earnings');
   if (denied) return denied;
   const supabase = await serverSupabase();
@@ -149,6 +151,7 @@ export default async function RoyaltiesPage() {
           )}
         </div>
       </div>
+      {done && <Flash msg={done} />}
     </section>
   );
 }

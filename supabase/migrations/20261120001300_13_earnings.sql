@@ -1487,6 +1487,7 @@ begin
   return jsonb_build_object(
     'current', to_jsonb(public._earning_settings()),
     'can_save', public.is_staff('super_admin'),
+    'author_rate_kobo', coalesce((public._rules() ->> 'author_rate_kobo')::int, 160),
     'last_month', c.month,
     'exclusions', (select coalesce(jsonb_object_agg(x.reason, jsonb_build_object('credits', x.credits,
                                                                                  'readers', x.readers)), '{}')
