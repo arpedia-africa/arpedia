@@ -14,7 +14,9 @@ appId: com.arpedia.reader
 - inputText: 'ngozi@example.com'
 - tapOn: 'Your password'
 - inputText: 'arpedia-local'
-- hideKeyboard
+# Tap the heading to drop the keyboard: on MIUI hideKeyboard sends Back, which closes the app
+# when the keyboard is already down.
+- tapOn: 'Welcome back'
 - tapOn: 'Log in'
 - tapOn:
     text: 'Don.t allow'
