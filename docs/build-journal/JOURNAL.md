@@ -99,6 +99,8 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 - **Maestro driver install:** MIUI blocks `adb install` of Maestro's driver until someone taps "Install". Fix used: extract `maestro-app.apk` and `maestro-server.apk` from `maestro-client.jar`, `adb install` them once while the owner watches, then Maestro reuses them. Also allow Maestro to start apps from the background (MIUI permission).
 - **MIUI hide-keyboard = Back:** Maestro's `hideKeyboard` presses Back on MIUI, which closed the app on the sign-in screen. Fix: tap a heading to drop the keyboard instead.
 
+- **Owner decision: emulator first (15:50).** One PR had taken ~4 h of phone time, mostly reruns after the phone was used. Closed every desktop app except the IDE, Claude and Chrome, paused the two idle no-phone builders and the second database (free RAM 0.4 → 3.1 GB), and booted an Android 36 x86_64 emulator at `wm density 461` (375 dp, the same width as the phone). Maestro and parity now run on `emulator-5554`; the owner's phone is only for owner previews. The arm64 phone APK crashes on the emulator, so builds for it use the default x86_64 arch.
+
 **Lesson:** with AI builders, the bottleneck moves to the physical device. Plan device time (a second test phone, overnight runs) as carefully as code.
 
 ---

@@ -2,7 +2,7 @@ You are the Arpedia builder. Repo: arpedia-africa/arpedia (you are in a clone of
 
 Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live state from GitHub with the gh CLI (branches flow/NN-*, PRs labelled flow-NN, last push time, CI status). Then do exactly ONE of these:
 
-0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (final release parity on `c1212d5c`, 320/360 checks), fix what fails, remove the label, then continue it as in 1.
+0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (Maestro at 320/360/375 and final release parity on `emulator-5554`; owner preview on `c1212d5c` when due), fix what fails, remove the label, then continue it as in 1.
    - Before the on-device steps, merge `origin/main` into the PR branch so you use the latest tools (e.g. `tools/maestro-widths.mjs` disables the dev build during Maestro, so `arpedia://` links never stop on the "Open with" chooser). Open only the package you are testing.
    - **Lighter phone checks (owner decision, 20 Nov):**
      - Parity captures (dev and release) at **375 dp only**, in all four themes. No parity captures at 320/360.
@@ -38,13 +38,13 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
   - read or print secrets
 - If a step needs a secret that isn't available yet, use local or mocked services, note it under Notes, and continue.
 
-**Devices:** two are connected; always pass `-s <serial>` (or set `ANDROID_SERIAL`).
-- **`c1212d5c`: the owner's phone** (Redmi Note 13, Android 15, exactly **375 dp wide**). It is the **main test device**, and the visual-parity captures at 375 dp are taken here.
+**Devices (owner decision, 20 Nov: emulator first).** Always pass `-s <serial>` (or set `ANDROID_SERIAL`).
+- **`emulator-5554`: the main test device** (Android 36, x86_64, 1080 px wide, `wm density 461` = **375 dp**). Maestro, parity and all on-device steps run here, so the owner's phone stays free. Builds for it use the default arch: `node tools/android-release.mjs --serial emulator-5554` (x86_64) and `node tools/android-dev.mjs emulator-5554`. Pass `--serial emulator-5554` to `parity.mjs` and `maestro-widths.mjs`.
+  - 320/360 dp: `adb -s emulator-5554 shell wm density 540|480`, then back to `461`. On the emulator you may use `adb reverse` and `127.0.0.1` URLs exactly as on the phone.
+  - If `emulator-5554` is not listed by `adb devices`, start it in the background: `emulator -avd Medium_Phone_API_36.1 -memory 2048 -no-snapshot-save -no-audio -no-boot-anim -gpu host`, wait for `getprop sys.boot_completed` = 1, then `wm density 461`. Leave it running at the end of the run (it is not Metro).
+- **`c1212d5c`: the owner's phone** (Redmi Note 13, Android 15, 375 dp, MIUI). **Only for the owner preview** (every third app flow and the last PR in the queue), arm64 builds (`--arch arm64-v8a --serial c1212d5c`). Never run Maestro or parity on it unless the emulator can't start; note it in the PR if so.
   - The owner approved replacing v25 on it. If an install fails with a signature mismatch, run `adb -s c1212d5c uninstall com.arpedia.reader` once, then install.
-  - Never touch any other app on this phone.
-- **320 and 360 dp checks: on the phone.** The emulator can't start on this PC (not enough RAM). While holding the phone lock, set the width with `adb -s c1212d5c shell wm density <dpi>`: 1080 px ÷ (dpi/160) = dp, so 540 dpi gives 320 dp and 480 dpi gives 360 dp. Afterwards **always** restore the owner's setting, `wm density 461` (375 dp). Never change `wm size`.
-- **`emulator-5554`:** only if it is already running, for anything that may crash or wipe data.
-- If the phone isn't connected, use the emulator only and note it in the PR.
+  - Never touch any other app on this phone. Always restore `wm density 461`; never change `wm size`.
 - **Database lock (builders on one PC share one local Supabase stack, project_id `arpedia`):**
   - Before `supabase start`, `db reset`, pgTAP, smoke tests or local Workers against it, take the lock with `mkdir ~/projects/arpedia-locks/db.lock`. The same 30-minute stale rule applies as for the phone.
   - Run `supabase db reset` first, so the database matches **your** branch's migrations.
