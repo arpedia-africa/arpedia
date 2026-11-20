@@ -1,5 +1,5 @@
 # Flow 02: sign in as the seeded reader, tap a Trending book, go back, search "grace",
-# open the top result. The book page is flow 03: until it ships, a book tap shows a toast.
+# open the top result. A book tap opens the book page (flow 03).
 # Needs the local stack (Supabase, seeded) behind the app.
 # Run: maestro test apps/mobile/.maestro/02-discovery.yaml -e WIDTH=375
 # All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/02-discovery.yaml
@@ -16,6 +16,9 @@ appId: com.arpedia.reader
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
 
 # s-home
 - extendedWaitUntil:
@@ -25,10 +28,12 @@ appId: com.arpedia.reader
 - takeScreenshot: disc-${WIDTH}-home
 - tapOn: 'Harmattan Letters by .*'
 - extendedWaitUntil:
-    visible: 'Book pages are coming soon'
-    timeout: 5000
-- back:
-    optional: true
+    visible: 'Save to library'
+    timeout: 30000
+- tapOn: 'Back'
+- extendedWaitUntil:
+    visible: 'Trending this week'
+    timeout: 10000
 
 # s-see-all (Top 10)
 - scrollUntilVisible:
@@ -65,8 +70,12 @@ appId: com.arpedia.reader
 - takeScreenshot: disc-${WIDTH}-results
 - tapOn: 'Top result.*'
 - extendedWaitUntil:
-    visible: 'Book pages are coming soon'
-    timeout: 5000
+    visible: 'Save to library'
+    timeout: 30000
+- tapOn: 'Back'
+- extendedWaitUntil:
+    visible: 'Clear search'
+    timeout: 10000
 
 # s-search-none → Ask for this book → Request sent
 - tapOn: 'Clear search'
