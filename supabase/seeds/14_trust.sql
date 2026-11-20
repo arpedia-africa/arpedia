@@ -165,3 +165,21 @@ from (values ('00000000-0000-4000-f144-000000000001'::uuid, 7), ('00000000-0000-
              ('00000000-0000-4000-f144-000000000005', 7), ('00000000-0000-4000-f144-000000000006', 8),
              ('00000000-0000-4000-f144-000000000008', 7)) a(id, yes)
 cross join generate_series(1, 9) u;
+
+-- A pay-as-you-read charge for Ngozi (The Alignment, chapter 6, an hour ago) to return from the ticket page.
+with ch as (
+  select c.id, c.chapter_uid, c.price_credits, b.id as book_id, b.author_id
+  from public.chapters c join public.books b on b.current_revision_id = c.revision_id
+  where b.id = '00000000-0000-4000-c000-000000000007' and c.ord = 5
+), l as (
+  insert into public.credit_ledger (user_id, delta, reason, bucket, txn_id, book_id, chapter_id, author_id,
+    author_earning_kobo, idempotency_key, created_at)
+  select '00000000-0000-4000-a000-000000000001', -ch.price_credits, 'chapter', 'plan', gen_random_uuid(), ch.book_id,
+    ch.id, ch.author_id, ch.price_credits * 160, 'seed:chapter:ngozi:alignment:6', now() - interval '1 hour'
+  from ch
+  returning id, book_id
+)
+insert into public.entitlements (user_id, book_id, scope, chapter_uid, source, ledger_id, created_at)
+select '00000000-0000-4000-a000-000000000001', l.book_id, 'chapter', ch.chapter_uid, 'chapter', l.id,
+  now() - interval '1 hour'
+from l, ch;

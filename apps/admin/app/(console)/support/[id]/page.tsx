@@ -4,6 +4,7 @@ import { NoAccess } from '@/components/no-access';
 import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
+import { returnPreview } from '../actions';
 import { TicketView, type Macro, type TicketDetail } from './ticket-view';
 
 export const metadata: Metadata = { title: 'Ticket · Arpedia Admin' };
@@ -14,10 +15,11 @@ export default async function TicketPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; return?: string }>;
 }) {
   const staff = await requireStaff();
-  if (!canOpen('support', staff.permissions)) return <NoAccess page="support" label="Support inbox" role={staff.role} />;
+  if (!canOpen('support', staff.permissions))
+    return <NoAccess page="support" label="Support inbox" role={staff.role} />;
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await serverSupabase();
@@ -34,7 +36,9 @@ export default async function TicketPage({
     supabase.rpc('admin_list_tickets', { p_tab: tab, p_limit: 100 }),
     supabase.from('support_macros').select('id, title, body, category').order('title'),
   ]);
-  const ids = (queue.data ?? []).map(r => r.id);
+  const returnLedger = /^\d+$/.test(sp.return ?? '') ? Number(sp.return) : null;
+  const preview = returnLedger ? await returnPreview(returnLedger) : null;
+  const ids = (queue.data ?? []).map((r) => r.id);
   const at = ids.indexOf(id);
   return (
     <TicketView
@@ -46,6 +50,8 @@ export default async function TicketPage({
       position={at >= 0 ? { n: at + 1, of: Number(queue.data?.[0]?.total ?? ids.length) } : null}
       nextId={at >= 0 ? (ids[at + 1] ?? null) : (ids[0] ?? null)}
       macros={(macros.data ?? []) as Macro[]}
+      returnLedger={returnLedger}
+      returnInitial={preview?.data ?? null}
     />
   );
 }

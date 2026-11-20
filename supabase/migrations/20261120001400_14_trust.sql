@@ -1813,7 +1813,9 @@ begin
     raise exception 'not_chapter_charge' using errcode = '22023';
   end if;
   return jsonb_build_object('ledger_id', p_ledger, 'credits', c.credits, 'charged_at', c.charged_at,
-    'book', (select jsonb_build_object('id', b.id, 'title', b.title) from public.books b where b.id = c.book_id),
+    'reader_name', public.sender_name(c.user_id),
+    'book', (select jsonb_build_object('id', b.id, 'title', b.title, 'author_name', public.sender_name(b.author_id))
+             from public.books b where b.id = c.book_id),
     'chapter', (select jsonb_build_object('id', ch.id, 'ord', ch.ord, 'title', ch.title, 'pages', ceil(ch.pages))
                 from public.chapters ch where ch.id = c.chapter_id),
     'undo_window_open', c.charged_at > now() - interval '10 minutes',

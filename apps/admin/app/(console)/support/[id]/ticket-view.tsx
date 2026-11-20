@@ -7,7 +7,8 @@ import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { initials } from '../../reports/labels';
 import { CATEGORY_LABEL } from '../support-view';
-import { addTicketNote, replyToTicket, updateTicket } from '../actions';
+import { addTicketNote, replyToTicket, updateTicket, type ReturnPreview } from '../actions';
+import { ReturnModal } from '../return-modal';
 
 type Category = keyof typeof CATEGORY_LABEL;
 type Status = 'open' | 'waiting_on_reader' | 'solved';
@@ -27,7 +28,13 @@ export interface TicketDetail {
     created_at: string;
   };
   assignee_name: string | null;
-  messages: { id: string; kind: 'reader' | 'staff' | 'note'; body: string; author_name: string | null; created_at: string }[];
+  messages: {
+    id: string;
+    kind: 'reader' | 'staff' | 'note';
+    body: string;
+    author_name: string | null;
+    created_at: string;
+  }[];
   reader: {
     id: string;
     name: string;
@@ -47,7 +54,11 @@ export interface Macro {
   category: Category | null;
 }
 
-const STATUS_LABEL: Record<Status, string> = { open: 'Open', waiting_on_reader: 'Waiting on reader', solved: 'Solved' };
+const STATUS_LABEL: Record<Status, string> = {
+  open: 'Open',
+  waiting_on_reader: 'Waiting on reader',
+  solved: 'Solved',
+};
 const SELECT: React.CSSProperties = {
   appearance: 'none',
   border: 0,
@@ -63,7 +74,11 @@ const wat = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'Africa/
 /** "yesterday 07:48", "today 10:30", else "11 Nov 07:44" (WAT). */
 function when(iso: string): string {
   const d = new Date(iso);
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+  const time = d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Lagos',
+  });
   const days = Math.round((wat(new Date()).setHours(0, 0, 0, 0) - wat(d).setHours(0, 0, 0, 0)) / 86_400_000);
   if (days === 0) return `today ${time}`;
   if (days === 1) return `yesterday ${time}`;
@@ -85,6 +100,8 @@ export function TicketView({
   position,
   nextId,
   macros,
+  returnLedger = null,
+  returnInitial = null,
 }: {
   detail: TicketDetail | null;
   failed: boolean;
@@ -94,6 +111,9 @@ export function TicketView({
   position: { n: number; of: number } | null;
   nextId: string | null;
   macros: Macro[];
+  /** `?return=<ledger id>` opens Return a chapter charge straight away. */
+  returnLedger?: number | null;
+  returnInitial?: ReturnPreview | null;
 }) {
   const router = useRouter();
   const [toastNode, showToast] = useToast();
@@ -102,6 +122,7 @@ export function TicketView({
   const [text, setText] = useState('');
   const [macro, setMacro] = useState<Macro | null>(null);
   const [menu, setMenu] = useState(false);
+  const [returning, setReturning] = useState<number | null>(returnLedger);
   const menuRef = useRef<HTMLDivElement>(null);
   const draftKey = detail ? `arpedia.ticket.draft.${detail.ticket.id}` : null;
 
@@ -123,7 +144,10 @@ export function TicketView({
     return () => document.removeEventListener('mousedown', close);
   }, [menu]);
 
-  const skip = () => router.push(nextId && nextId !== detail?.ticket.id ? `/support/${nextId}?tab=${tab}` : `/support?tab=${tab}`);
+  const skip = () =>
+    router.push(
+      nextId && nextId !== detail?.ticket.id ? `/support/${nextId}?tab=${tab}` : `/support?tab=${tab}`,
+    );
 
   // J skips to the next ticket (outside text fields).
   useEffect(() => {
@@ -164,8 +188,8 @@ export function TicketView({
   const sla = slaLabel(new Date(t.first_reply_due_at), new Date());
   const late = !t.first_replied_at && t.status === 'open' && sla.late;
   const device = reader?.devices[0];
-  const thread = detail.messages.filter(m => m.kind !== 'note');
-  const notes = detail.messages.filter(m => m.kind === 'note');
+  const thread = detail.messages.filter((m) => m.kind !== 'note');
+  const notes = detail.messages.filter((m) => m.kind === 'note');
 
   const clearDraft = () => {
     setText('');
@@ -188,7 +212,8 @@ export function TicketView({
           t.channel === 'app' && reader ? 'They get an in-app message and an email.' : 'They get it by email.'
         }${solve ? ' Ticket solved.' : ''}`,
       );
-      if (solve) router.push(nextId && nextId !== t.id ? `/support/${nextId}?tab=${tab}` : `/support?tab=${tab}`);
+      if (solve)
+        router.push(nextId && nextId !== t.id ? `/support/${nextId}?tab=${tab}` : `/support?tab=${tab}`);
       else router.refresh();
     });
 
@@ -219,7 +244,10 @@ export function TicketView({
         <div className="ph__row">
           <div className="ph__title">
             <h1>
-              {t.subject} {late ? <span className="st st-err">{`${sla.text.replace(' over', '')}, over SLA`}</span> : null}
+              {t.subject}{' '}
+              {late ? (
+                <span className="st st-err">{`${sla.text.replace(' over', '')}, over SLA`}</span>
+              ) : null}
             </h1>
             <div className="ph__meta">
               <span>{readerName}</span>
@@ -228,7 +256,10 @@ export function TicketView({
             </div>
           </div>
           <div className="ph__acts">
-            <a className="btn btn-p" onClick={() => showToast('Grant credits opens with Credits and plans (flow 09).')}>
+            <a
+              className="btn btn-p"
+              onClick={() => showToast('Grant credits opens with Credits and plans (flow 09).')}
+            >
               Grant credits
             </a>
           </div>
@@ -242,7 +273,7 @@ export function TicketView({
             </div>
             <div className="panel__body">
               <div className="ts-thread">
-                {thread.map(m => {
+                {thread.map((m) => {
                   const name = m.author_name ?? (m.kind === 'reader' ? readerName : 'Arpedia team');
                   return (
                     <div key={m.id} className={`msg${m.kind === 'staff' ? ' staff' : ''}`}>
@@ -255,7 +286,7 @@ export function TicketView({
                   );
                 })}
               </div>
-              {notes.map(n => (
+              {notes.map((n) => (
                 <div key={n.id} className="ts-note">
                   <b>{`Internal note, ${n.author_name ?? 'staff'}, ${when(n.created_at)}`}</b>
                   {n.body}
@@ -266,37 +297,43 @@ export function TicketView({
             <div className="ts-reply">
               <div className="row">
                 <div className="seg" data-single>
-                  <button className={mode === 'reply' ? 'is-selected' : undefined} onClick={() => setMode('reply')}>
+                  <button
+                    className={mode === 'reply' ? 'is-selected' : undefined}
+                    onClick={() => setMode('reply')}
+                  >
                     Reply to reader
                   </button>
-                  <button className={mode === 'note' ? 'is-selected' : undefined} onClick={() => setMode('note')}>
+                  <button
+                    className={mode === 'note' ? 'is-selected' : undefined}
+                    onClick={() => setMode('note')}
+                  >
                     Internal note
                   </button>
                 </div>
                 <span className="grow" />
                 {macros.length ? (
                   <div className="mwrap" ref={menuRef}>
-                    <button className="dd" aria-expanded={menu} onClick={() => setMenu(v => !v)}>
+                    <button className="dd" aria-expanded={menu} onClick={() => setMenu((v) => !v)}>
                       Macro: <b>{macro?.title ?? 'None'}</b>
                       <Icon name="chevd" />
                     </button>
                     {menu ? (
-                    <div className="menu">
-                      {macros.map(m => (
-                        <a
-                          key={m.id}
-                          onClick={() => {
-                            setMacro(m);
-                            setMode('reply');
-                            setText(fill(m.body, firstName, reader?.balance ?? null));
-                            setMenu(false);
-                            showToast('Macro added');
-                          }}
-                        >
-                          {m.title}
-                        </a>
-                      ))}
-                    </div>
+                      <div className="menu">
+                        {macros.map((m) => (
+                          <a
+                            key={m.id}
+                            onClick={() => {
+                              setMacro(m);
+                              setMode('reply');
+                              setText(fill(m.body, firstName, reader?.balance ?? null));
+                              setMenu(false);
+                              showToast('Macro added');
+                            }}
+                          >
+                            {m.title}
+                          </a>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
                 ) : null}
@@ -307,7 +344,7 @@ export function TicketView({
                 aria-label={mode === 'note' ? 'Internal note' : `Reply to ${firstName}`}
                 placeholder={mode === 'note' ? 'Only staff can see notes' : `Write to ${firstName}`}
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={(e) => setText(e.target.value)}
               />
               <div className="row">
                 <span className="grow" />
@@ -317,8 +354,8 @@ export function TicketView({
                     try {
                       if (draftKey) localStorage.setItem(draftKey, text);
                     } catch {
-      // Storage blocked (private window): drafts just aren't kept.
-    }
+                      // Storage blocked (private window): drafts just aren't kept.
+                    }
                     showToast('Draft saved');
                   }}
                 >
@@ -349,9 +386,14 @@ export function TicketView({
                       style={SELECT}
                       value={t.status}
                       disabled={pending}
-                      onChange={e => change({ status: e.target.value as Status }, `Status: ${STATUS_LABEL[e.target.value as Status]}`)}
+                      onChange={(e) =>
+                        change(
+                          { status: e.target.value as Status },
+                          `Status: ${STATUS_LABEL[e.target.value as Status]}`,
+                        )
+                      }
                     >
-                      {(Object.keys(STATUS_LABEL) as Status[]).map(s => (
+                      {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
                         <option key={s} value={s}>
                           {STATUS_LABEL[s]}
                         </option>
@@ -368,7 +410,7 @@ export function TicketView({
                       style={SELECT}
                       value={t.assignee_id === meId ? 'me' : t.assignee_id ? 'other' : 'none'}
                       disabled={pending}
-                      onChange={e =>
+                      onChange={(e) =>
                         change(
                           { assignee: e.target.value as 'me' | 'none' },
                           e.target.value === 'me' ? 'Assigned to you' : 'Unassigned',
@@ -394,9 +436,9 @@ export function TicketView({
                       style={SELECT}
                       value={t.category}
                       disabled={pending}
-                      onChange={e => change({ category: e.target.value as Category }, 'Category changed')}
+                      onChange={(e) => change({ category: e.target.value as Category }, 'Category changed')}
                     >
-                      {(Object.keys(CATEGORY_LABEL) as Category[]).map(c => (
+                      {(Object.keys(CATEGORY_LABEL) as Category[]).map((c) => (
                         <option key={c} value={c}>
                           {CATEGORY_LABEL[c]}
                         </option>
@@ -442,7 +484,11 @@ export function TicketView({
                 <div className="fold__b">
                   <dl className="kv tight">
                     <dt>Device</dt>
-                    <dd>{device ? [device.os, device.model].filter(Boolean).join(' · ') || 'Unknown' : 'No phone signed in'}</dd>
+                    <dd>
+                      {device
+                        ? [device.os, device.model].filter(Boolean).join(' · ') || 'Unknown'
+                        : 'No phone signed in'}
+                    </dd>
                     {device?.app_version ? (
                       <>
                         <dt>App version</dt>
@@ -466,11 +512,25 @@ export function TicketView({
                   <b>Recent transactions</b>
                   <div className="list">
                     {reader.transactions.length ? (
-                      reader.transactions.slice(0, 3).map(x => (
+                      reader.transactions.slice(0, 3).map((x) => (
                         <div key={x.id} className="li">
                           <span className="li__body">
                             <b>{x.note ?? x.reason.replace(/_/g, ' ')}</b>
-                            <small>{when(x.created_at)}</small>
+                            <small>
+                              {when(x.created_at)}
+                              {x.reason === 'chapter' ? (
+                                <>
+                                  {' · '}
+                                  <a
+                                    className="link"
+                                    href="#return"
+                                    onClick={(e) => (e.preventDefault(), setReturning(Number(x.id)))}
+                                  >
+                                    Return
+                                  </a>
+                                </>
+                              ) : null}
+                            </small>
                           </span>
                           <span className="li__trail">{`${x.delta > 0 ? '+' : ''}${num(x.delta)} credits`}</span>
                         </div>
@@ -511,6 +571,18 @@ export function TicketView({
           Skip <span className="kbd">J</span>
         </a>
       </div>
+      {returning !== null ? (
+        <ReturnModal
+          ledgerId={returning}
+          initial={returnInitial?.ledger_id === returning ? returnInitial : null}
+          onClose={() => setReturning(null)}
+          onDone={(msg) => {
+            setReturning(null);
+            showToast(msg);
+            router.refresh();
+          }}
+        />
+      ) : null}
       {toastNode}
     </section>
   );
