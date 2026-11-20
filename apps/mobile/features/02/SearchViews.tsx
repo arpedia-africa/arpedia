@@ -670,6 +670,7 @@ export function TopResultCard({
         borderColor: c.orgTint,
         backgroundColor: c.orgTint2,
         flexDirection: 'row',
+        alignItems: 'flex-start',
         gap: s(14),
       }}
     >
@@ -796,6 +797,7 @@ export function ResultList({
           }
           style={{
             flexDirection: 'row',
+            alignItems: 'flex-start',
             gap: s(12),
             paddingVertical: s(12),
             paddingHorizontal: s(16),

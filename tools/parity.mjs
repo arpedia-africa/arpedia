@@ -630,6 +630,9 @@ try {
           { x: 248, y: 0, width: W - 248, height: 200 },
         ],
       },
+      // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
+      community: { path: '/community', as: 'zainab@arpedia.africa' },
+      channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];

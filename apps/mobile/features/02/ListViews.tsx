@@ -165,7 +165,8 @@ function BookCell({
         <Text size={14.5} weight={600} ellipsis style={{ lineHeight: s(14.5) * 1.3 }}>
           {book.title}
         </Text>
-        <Text size={12.5} weight={700} color="orgInk" ellipsis style={{ lineHeight: s(12.5) * 1.35 }}>
+        {/* `.cell__sub.t-brand.t-strong`: .cell__sub comes later in the prototype CSS, so it draws ink-3 bold. */}
+        <Text size={12.5} weight={700} color="ink3" ellipsis style={{ lineHeight: s(12.5) * 1.35 }}>
           {book.author}
         </Text>
         <Text size={12.5} color="ink3" oneLine style={{ lineHeight: s(12.5) * 1.35 }}>
@@ -360,7 +361,8 @@ export function CatalogueHead({
         {count == null ? (
           <Skeleton width={s(56)} height={s(14)} radius={s(4)} />
         ) : (
-          <Text size={12.5} weight={700} color="orgInk" oneLine>
+          // `.section__sub.t-brand.t-strong`: .section__sub wins the cascade, so ink-3 bold.
+          <Text size={12.5} weight={700} color="ink3" oneLine>
             {`${n(count)} ${count === 1 ? 'book' : 'books'}`}
           </Text>
         )}
@@ -395,6 +397,9 @@ export function OptionRow({
   onPress?: () => void;
 }) {
   const { c, s, bw } = useTheme();
+  // .is-selected: 2px inset ring on the tint (border transparent). The ring is drawn as a 2px border,
+  // so the padding gives back the extra pixel to keep every row the same size as the CSS box.
+  const border = selected ? s(2) : bw(1);
   return (
     <Press
       onPress={onPress}
@@ -406,14 +411,12 @@ export function OptionRow({
         flexDirection: 'row',
         alignItems: 'center',
         gap: s(12),
-        paddingVertical: s(12),
-        paddingHorizontal: s(14),
+        paddingVertical: s(12) + bw(1) - border,
+        paddingHorizontal: s(14) + bw(1) - border,
         minHeight: s(48),
         borderRadius: s(14),
-        // .is-selected: 2px inset ring on the tint, border transparent
-        borderWidth: selected ? s(2) : bw(1),
+        borderWidth: border,
         borderColor: selected ? c.org : c.line,
-        margin: selected ? 0 : s(2) - bw(1),
         backgroundColor: selected ? c.orgTint2 : c.white,
       }}
     >
@@ -426,11 +429,11 @@ export function OptionRow({
           borderColor: selected ? c.org : c.control,
         }}
       />
-      <Text size={15.5} weight={700} oneLine style={{ flex: 1 }}>
+      <Text size={15.5} weight={700} oneLine style={{ flex: 1, lineHeight: s(15.5) * 1.45 }}>
         {title}
       </Text>
       {trail ? (
-        <Text size={16} weight={700} color="ink3" tabular oneLine>
+        <Text size={16} weight={700} color="ink3" tabular oneLine style={{ lineHeight: s(16) * 1.45 }}>
           {trail}
         </Text>
       ) : null}

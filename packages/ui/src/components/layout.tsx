@@ -121,6 +121,8 @@ export interface HeroProps {
   /** Back button variant of the bar: tighter left padding. */
   barBack?: boolean;
   title?: string;
+  /** Keep the title on one line (shrinks to fit on narrow phones instead of wrapping). */
+  titleOneLine?: boolean;
   xl?: boolean;
   sub?: string;
   /** Petals at the bottom-left instead of the top-right. */
@@ -130,7 +132,7 @@ export interface HeroProps {
 }
 
 /** Full-width main-colour band with drifting sunflower petals (`.hero`). */
-export function Hero({ bar, barBack, title, xl, sub, low, children, style }: HeroProps) {
+export function Hero({ bar, barBack, title, titleOneLine, xl, sub, low, children, style }: HeroProps) {
   const { c, s } = useTheme();
   const size = s(260);
   return (
@@ -161,6 +163,7 @@ export function Hero({ bar, barBack, title, xl, sub, low, children, style }: Her
                 variant="display"
                 size={xl ? 36 : 30}
                 color="onOrg"
+                oneLine={titleOneLine}
                 // text-wrap: balance
                 textBreakStrategy="balanced"
                 style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}

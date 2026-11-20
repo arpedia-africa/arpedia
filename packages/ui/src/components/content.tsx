@@ -323,7 +323,7 @@ export interface AvatarProps {
 
 /** First and last word: "Adaeze Rosemary Possible" → "AP" (the prototype's initials). */
 const initials = (name: string) => {
-  const w = name.split(/\s+/).filter((p) => /[\p{L}\p{N}]/u.test(p));
+  const w = name.split(/\s+/).filter((p) => /^[\p{L}\p{N}]/u.test(p)); // "Faith & Books" → FB, not F&
   return (w.length > 1 ? [w[0]!, w[w.length - 1]!] : w).map((p) => [...p][0]!.toUpperCase()).join('');
 };
 

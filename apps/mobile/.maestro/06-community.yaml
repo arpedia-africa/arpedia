@@ -1,0 +1,81 @@
+# Flow 06: log in as the seeded reader, open Community (All, Unread, Groups), Discover,
+# open Grace Readers, send a message, open message actions, open the report sheet and cancel.
+# Needs the local stack (Supabase + api Worker + chat Worker) behind the app, freshly reset
+# (`pnpm db:reset`): Ngozi has 4 unread conversations.
+# Run: maestro test apps/mobile/.maestro/06-community.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/06-community.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- hideKeyboard
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+
+# s-community (All)
+- extendedWaitUntil:
+    visible: 'Community'
+    timeout: 30000
+- tapOn: 'Community'
+- extendedWaitUntil:
+    visible: 'Grace Readers'
+    timeout: 30000
+- assertVisible: 'Read together'
+- takeScreenshot: com-${WIDTH}-all
+
+# s-dms (Unread)
+- tapOn: 'Unread.*'
+- assertVisible: 'Mark all read'
+- takeScreenshot: com-${WIDTH}-unread
+
+# s-community-groups
+- tapOn: 'Groups'
+- assertVisible: 'Grace Readers'
+- takeScreenshot: com-${WIDTH}-groups
+- tapOn: 'All.*'
+
+# s-discover: search needs 2+ characters
+- tapOn: 'Discover communities'
+- extendedWaitUntil:
+    visible: 'Faith & Books'
+    timeout: 15000
+- takeScreenshot: com-${WIDTH}-discover
+- tapOn: 'Back'
+
+# s-channel: send a message over the live socket
+- tapOn: 'Grace Readers'
+- extendedWaitUntil:
+    visible: 'Message Grace Readers'
+    timeout: 30000
+- takeScreenshot: com-${WIDTH}-channel
+- tapOn: 'Message Grace Readers'
+- inputText: 'Maestro says hello'
+- tapOn: 'Send'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Maestro says hello'
+    timeout: 15000
+
+# s-msg-actions on someone else's message, then s-report (Cancel sends nothing)
+- longPressOn: 'Chioma.*'
+- extendedWaitUntil:
+    visible: 'Report or block'
+    timeout: 10000
+- assertNotVisible: 'Delete'
+- takeScreenshot: com-${WIDTH}-actions
+- tapOn: 'Report or block.*'
+- assertVisible: 'Why are you reporting this?'
+- tapOn: 'Spam or scam'
+- takeScreenshot: com-${WIDTH}-report
+- tapOn: 'Cancel'
+- assertNotVisible: 'Why are you reporting this?'

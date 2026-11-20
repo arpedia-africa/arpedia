@@ -144,7 +144,7 @@ function NotifCell({ row, first, onPress }: { row: NotifRow; first: boolean; onP
       ) : null}
       <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
         <Text size={14.5} weight={500} style={{ lineHeight: s(14.5) * 1.3 }}>
-          <Text size={14.5} weight={700}>
+          <Text size={14.5} weight={700} style={{ lineHeight: s(14.5) * 1.3 }}>
             {row.title}
           </Text>
           {` ${row.body}`}
@@ -153,11 +153,8 @@ function NotifCell({ row, first, onPress }: { row: NotifRow; first: boolean; onP
           {row.when}
         </Text>
       </View>
-      {row.unread ? (
-        <View style={{ alignSelf: 'center' }}>
-          <Unread />
-        </View>
-      ) : null}
+      {/* `.cell--top`: the dot sits at the top of the row, like the lead. */}
+      {row.unread ? <Unread /> : null}
     </Press>
   );
 }
