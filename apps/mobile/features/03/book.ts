@@ -139,6 +139,7 @@ export function toModel(d: BookPageData): BookPageModel {
       percent: d.progress?.percent ?? null,
       maxPercent: d.progress?.max_percent ?? null,
       previewPercent: Number(d.preview_percent),
+      owned: d.owns_book,
     }),
     buy:
       d.owns_book || d.coming_soon || d.is_author

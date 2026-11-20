@@ -116,16 +116,18 @@ export const creditsNaira = (credits: number) => credits * CREDIT_NAIRA;
 export const booksCovered = (planCredits: number, price: number) =>
   price > 0 ? Math.floor(planCredits / price) : 0;
 
-/** The main button's label (rule 4). */
+/** The main button's label (rules 4 and 20: an owned book drops the free-preview note). */
 export function mainButton(state: {
   comingSoon: boolean;
   percent: number | null;
   maxPercent: number | null;
   previewPercent: number;
+  owned?: boolean;
 }): string {
   if (state.comingSoon) return 'Notify me';
   if (state.maxPercent != null && state.maxPercent >= 100) return 'Read again';
   if (state.percent != null && state.percent > 0) return `Continue reading · ${Math.floor(state.percent)}%`;
+  if (state.owned) return 'Start reading';
   return `Start reading · first ${state.previewPercent}% free`;
 }
 

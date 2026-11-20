@@ -56,4 +56,5 @@ appId: com.arpedia.reader
     visible: 'Unlocked'
     timeout: 20000
 - assertNotVisible: 'Unlock all'
+- assertVisible: 'Start reading'
 - takeScreenshot: unlock-${WIDTH}-owned

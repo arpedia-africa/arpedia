@@ -113,5 +113,9 @@ describe('main button', () => {
     expect(mainButton({ ...base, percent: 38.4, maxPercent: 40 })).toBe('Continue reading · 38%');
     expect(mainButton({ ...base, percent: 100, maxPercent: 100 })).toBe('Read again');
     expect(mainButton({ ...base, comingSoon: true })).toBe('Notify me');
+    expect(mainButton({ ...base, owned: true })).toBe('Start reading');
+    expect(mainButton({ ...base, owned: true, percent: 38.4, maxPercent: 40 })).toBe(
+      'Continue reading · 38%',
+    );
   });
 });
