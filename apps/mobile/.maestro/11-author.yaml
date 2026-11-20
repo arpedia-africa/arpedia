@@ -121,6 +121,10 @@ appId: com.arpedia.reader
 - tapOn:
     text: 'Photo taken on.*'
     index: 0
+# Android 16's picker selects on tap and waits for Done, even in single-pick mode.
+- tapOn:
+    text: 'Done'
+    optional: true
 - tapOn: 'Fiction'
 - tapOn: 'Two or three sentences readers see first'
 - inputText: 'A market woman, a debt remembered and one long day in Onitsha.'
