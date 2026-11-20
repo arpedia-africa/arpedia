@@ -87,7 +87,13 @@ export function ClaimsView({
             </div>
           ) : rows.length === 0 ? (
             <div className="empty">
-              <b>{tab === 'decided' ? 'Nothing decided yet' : tab === 'waiting' ? 'No claims waiting on an author' : 'No open claims'}</b>
+              <b>
+                {tab === 'decided'
+                  ? 'Nothing decided yet'
+                  : tab === 'waiting'
+                    ? 'No claims waiting on an author'
+                    : 'No open claims'}
+              </b>
               <span>
                 {tab === 'decided'
                   ? 'Decided claims stay here with who decided them.'
@@ -113,7 +119,12 @@ export function ClaimsView({
                     const decided = c.status === 'upheld' || c.status === 'rejected';
                     const pill = STATUS_PILL[c.status];
                     return (
-                      <tr key={c.id} tabIndex={0} onClick={() => go(c.id)} onKeyDown={(e) => e.key === 'Enter' && go(c.id)}>
+                      <tr
+                        key={c.id}
+                        tabIndex={0}
+                        onClick={() => go(c.id)}
+                        onKeyDown={(e) => e.key === 'Enter' && go(c.id)}
+                      >
                         <td>
                           <div className="who">
                             <span className={`cv ${coverClass(c.bookId)} x32`}></span>
@@ -132,8 +143,16 @@ export function ClaimsView({
                           <small className="faint">{TYPE_LABEL[c.type]}</small>
                         </td>
                         <td className="nw">{receivedAt(c.createdAt)}</td>
-                        <td className="nw">{c.late && !decided ? <b>{dayMonth(c.dueAt)}</b> : dayMonth(c.dueAt)}</td>
-                        <td>{pill ? <span className={pill}>{STATUS_LABEL[c.status]}</span> : STATUS_LABEL[c.status]}</td>
+                        <td className="nw">
+                          {c.late && !decided ? <b>{dayMonth(c.dueAt)}</b> : dayMonth(c.dueAt)}
+                        </td>
+                        <td>
+                          {pill ? (
+                            <span className={pill}>{STATUS_LABEL[c.status]}</span>
+                          ) : (
+                            STATUS_LABEL[c.status]
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

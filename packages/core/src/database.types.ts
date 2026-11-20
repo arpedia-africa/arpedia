@@ -831,14 +831,14 @@ isOneToOne: false
                   ]
                 },"help_articles": {
                   Row: {
-                    "category": Database["public"]['Enums']["help_category"],"created_at": string,"current_version_id": string | null,"id": string,"related": (string)[],"shows_in": (string)[],"slug": string,"state": string,"updated_at": string
+                    "category": Database["public"]['Enums']["help_category"],"created_at": string,"current_version_id": string | null,"id": string,"in_search": boolean,"related": (string)[],"shows_in": (string)[],"slug": string,"state": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category": Database["public"]['Enums']["help_category"],"created_at"?: string,"current_version_id"?: string | null,"id"?: string,"related"?: (string)[],"shows_in"?: (string)[],"slug": string,"state"?: string,"updated_at"?: string
+                    "category": Database["public"]['Enums']["help_category"],"created_at"?: string,"current_version_id"?: string | null,"id"?: string,"in_search"?: boolean,"related"?: (string)[],"shows_in"?: (string)[],"slug": string,"state"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "category"?: Database["public"]['Enums']["help_category"],"created_at"?: string,"current_version_id"?: string | null,"id"?: string,"related"?: (string)[],"shows_in"?: (string)[],"slug"?: string,"state"?: string,"updated_at"?: string
+                    "category"?: Database["public"]['Enums']["help_category"],"created_at"?: string,"current_version_id"?: string | null,"id"?: string,"in_search"?: boolean,"related"?: (string)[],"shows_in"?: (string)[],"slug"?: string,"state"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -2438,6 +2438,9 @@ isOneToOne: false
                            },
 "set_group_mute":
 { Args: { "p_group": string,"p_until": string }; Returns: undefined
+                           },
+"set_help_extras":
+{ Args: { "p_article": string,"p_in_search": boolean,"p_related": (string)[] }; Returns: undefined
                            },
 "set_live_count":
 { Args: { "p_count": number,"p_group": string }; Returns: undefined

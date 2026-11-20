@@ -231,6 +231,7 @@ create table public.help_articles (
   current_version_id uuid,
   state text not null default 'draft' check (state in ('draft', 'published')),
   related uuid[] not null default '{}',
+  in_search boolean not null default true, -- offered when readers search in the app
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -1673,6 +1674,24 @@ begin
     jsonb_build_object('version_id', v_version), null);
 end $$;
 
+-- Related articles (shown under the article in the app) and whether search offers it. Live at once.
+create function public.set_help_extras(p_article uuid, p_related uuid[], p_in_search boolean) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public._can_help() then
+    raise exception 'set_help_extras: not allowed' using errcode = 'insufficient_privilege';
+  end if;
+  update public.help_articles
+  set related = case when p_related is null then related
+                     else array(select distinct r from unnest(p_related) r
+                                where r <> p_article and exists (select 1 from public.help_articles x where x.id = r)) end,
+      in_search = coalesce(p_in_search, in_search)
+  where id = p_article;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+end $$;
+
 create function public.unpublish_help_article(p_article uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -1730,7 +1749,8 @@ language sql stable security definer set search_path = '' as $$
   from public.help_articles a join public.help_article_versions v on v.id = a.current_version_id
   where a.state = 'published' and 'app' = any (a.shows_in)
     and (p_category is null or a.category = p_category)
-    and (p_q is null or char_length(btrim(p_q)) < 2 or v.title ilike '%' || btrim(p_q) || '%' or v.body ilike '%' || btrim(p_q) || '%')
+    and (p_q is null or char_length(btrim(p_q)) < 2
+         or a.in_search and (v.title ilike '%' || btrim(p_q) || '%' or v.body ilike '%' || btrim(p_q) || '%'))
   order by a.category, v.title
 $$;
 
@@ -2101,7 +2121,7 @@ begin
       'claim_ask_author', 'respond_to_claim', 'decide_claim', 'create_support_ticket', 'ingest_support_email',
       'reader_reply_ticket', 'admin_list_tickets', 'admin_ticket_counts', 'admin_get_ticket', 'reply_ticket',
       'add_ticket_note', 'update_ticket', 'save_support_macro', '_can_help', 'save_help_draft', 'publish_help_article',
-      'unpublish_help_article', 'admin_list_help', 'admin_get_help', 'get_help_articles', 'get_help_article',
+      'unpublish_help_article', 'set_help_extras', 'admin_list_help', 'admin_get_help', 'get_help_articles', 'get_help_article',
       'vote_help', '_chapter_charge', '_charge_undone', 'admin_return_preview', '_do_credit_return', 'staff_return_chapter_charge',
       'approve_credit_return', 'admin_list_credit_returns', 'get_my_moderation', 'sla_watch', 'sanction_expiry',
       'purge_snapshots', 'trust_queue_read', 'trust_queue_ack'])
@@ -2133,7 +2153,8 @@ grant execute on function
   public.add_ticket_note(uuid, text), public.update_ticket(uuid, uuid, public.ticket_category, public.ticket_status, boolean),
   public.save_support_macro(text, text, public.ticket_category, uuid),
   public.save_help_draft(uuid, text, public.help_category, text[], text, text), public.publish_help_article(uuid, uuid),
-  public.unpublish_help_article(uuid), public.admin_list_help(), public.admin_get_help(uuid),
+  public.unpublish_help_article(uuid), public.set_help_extras(uuid, uuid[], boolean), public.admin_list_help(),
+  public.admin_get_help(uuid),
   public.admin_return_preview(bigint), public.staff_return_chapter_charge(bigint, public.credit_return_reason),
   public.approve_credit_return(uuid, boolean), public.admin_list_credit_returns(public.credit_return_state),
   -- used inside RLS policies

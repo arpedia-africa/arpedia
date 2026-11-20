@@ -7,7 +7,16 @@ import { useToast } from '@/components/toast';
 import { coverClass } from '../../books/shared';
 import { watTime } from '../../reports/labels';
 import { askAuthor, decideClaim } from '../actions';
-import { dayMonth, markRuns, receivedAt, STATUS_LABEL, STATUS_PILL, TYPE_LABEL, type ClaimStatus, type ClaimType } from '../labels';
+import {
+  dayMonth,
+  markRuns,
+  receivedAt,
+  STATUS_LABEL,
+  STATUS_PILL,
+  TYPE_LABEL,
+  type ClaimStatus,
+  type ClaimType,
+} from '../labels';
 
 interface Passage {
   source: string;
@@ -161,17 +170,33 @@ export function ClaimView({
           <div className="ph__title">
             <h1>
               {`${book.title} `}
-              {pill ? <span className={pill}>{STATUS_LABEL[c.status]}</span> : <span className="st">{STATUS_LABEL[c.status]}</span>}
+              {pill ? (
+                <span className={pill}>{STATUS_LABEL[c.status]}</span>
+              ) : (
+                <span className="st">{STATUS_LABEL[c.status]}</span>
+              )}
             </h1>
             <div className="ph__meta">
               <span>{`${TYPE_LABEL[c.type]} · ${c.claimant_name}`}</span>
               <span>{`Received ${receivedAt(c.created_at)}`}</span>
-              <span>{open ? `Due ${dayMonth(c.due_at)}` : c.decided_at ? `Decided ${dayMonth(c.decided_at)}` : 'Decided'}</span>
+              <span>
+                {open
+                  ? `Due ${dayMonth(c.due_at)}`
+                  : c.decided_at
+                    ? `Decided ${dayMonth(c.decided_at)}`
+                    : 'Decided'}
+              </span>
             </div>
           </div>
           <div className="ph__acts">
             <div className="mwrap">
-              <button type="button" className="ib" aria-expanded={menu} aria-label="More actions" onClick={() => setMenu((m) => !m)}>
+              <button
+                type="button"
+                className="ib"
+                aria-expanded={menu}
+                aria-label="More actions"
+                onClick={() => setMenu((m) => !m)}
+              >
                 <Icon name="more" />
               </button>
               {menu ? (
@@ -191,7 +216,9 @@ export function ClaimView({
             <div className="panel">
               <div className="panel__head">
                 <h2>Matching passages</h2>
-                {sim?.chapter && sim.source_title ? <span className="sub">{`${sim.chapter} against ${sim.source_title}`}</span> : null}
+                {sim?.chapter && sim.source_title ? (
+                  <span className="sub">{`${sim.chapter} against ${sim.source_title}`}</span>
+                ) : null}
               </div>
               <div className="panel__body">
                 {sim?.passages?.length ? (
@@ -211,7 +238,9 @@ export function ClaimView({
                           <Passages text={p.source} />
                         </div>
                         <div className="stack s8">
-                          {i === 0 ? <b>{`${book.title}${sim.chapter ? `, ${sim.chapter.toLowerCase()}` : ''}`}</b> : null}
+                          {i === 0 ? (
+                            <b>{`${book.title}${sim.chapter ? `, ${sim.chapter.toLowerCase()}` : ''}`}</b>
+                          ) : null}
                           <Passages text={p.book} />
                         </div>
                       </div>
@@ -219,7 +248,8 @@ export function ClaimView({
                   </>
                 ) : (
                   <span className="muted">
-                    No passage check for this claim. Read the claimant&apos;s evidence and the author&apos;s response in More details.
+                    No passage check for this claim. Read the claimant&apos;s evidence and the author&apos;s
+                    response in More details.
                   </span>
                 )}
               </div>
@@ -235,7 +265,9 @@ export function ClaimView({
                     <div className="file" key={i}>
                       <span className="grow">
                         <b>{f.name}</b>
-                        {f.kind || f.size || f.note ? <small>{[f.kind, f.size, f.note].filter(Boolean).join(' · ')}</small> : null}
+                        {f.kind || f.size || f.note ? (
+                          <small>{[f.kind, f.size, f.note].filter(Boolean).join(' · ')}</small>
+                        ) : null}
                       </span>
                       {f.url ? (
                         <a className="btn btn-g sm" href={f.url} target="_blank" rel="noreferrer">
@@ -348,13 +380,23 @@ export function ClaimView({
         <span className="grow" />
         {open ? (
           <>
-            <button type="button" className="btn btn-g" disabled={pending || !detail.can_decide} onClick={() => setModal('reject')}>
+            <button
+              type="button"
+              className="btn btn-g"
+              disabled={pending || !detail.can_decide}
+              onClick={() => setModal('reject')}
+            >
               Reject claim
             </button>
             <button type="button" className="btn btn-g" disabled={pending} onClick={ask}>
               Ask author
             </button>
-            <button type="button" className="btn btn-d" disabled={pending || !detail.can_decide} onClick={() => setModal('uphold')}>
+            <button
+              type="button"
+              className="btn btn-d"
+              disabled={pending || !detail.can_decide}
+              onClick={() => setModal('uphold')}
+            >
               Uphold and take down
             </button>
           </>
@@ -365,7 +407,9 @@ export function ClaimView({
           <a
             className="btn btn-q sm"
             href={`/claims/${next.id}`}
-            onClick={() => showToast(`Skipped. ${next.ref}${next.waiting ? ' is waiting on the author' : ' is next'}.`)}
+            onClick={() =>
+              showToast(`Skipped. ${next.ref}${next.waiting ? ' is waiting on the author' : ' is next'}.`)
+            }
           >
             Skip <span className="kbd">J</span>
           </a>
@@ -388,7 +432,9 @@ export function ClaimView({
           danger
           title={`Take down ${book.title}?`}
           sub={`It moves to Taken down (copyright). New unlocks stop; ${
-            book.readers ? `the ${num(book.readers)} reader${book.readers === 1 ? '' : 's'} who unlocked it keep access` : 'nobody has unlocked it yet'
+            book.readers
+              ? `the ${num(book.readers)} reader${book.readers === 1 ? '' : 's'} who unlocked it keep access`
+              : 'nobody has unlocked it yet'
           }. Author earnings for it stay held back.`}
           label="Reason, sent to the author and the claimant"
           initial={`We upheld a ${TYPE_LABEL[c.type].toLowerCase()} claim against ${book.title}, so it is taken down.`}
@@ -396,7 +442,9 @@ export function ClaimView({
           typeToConfirm={book.title}
           onClose={() => setModal(null)}
           onConfirm={(note) => decideClaim(c.id, 'uphold', note)}
-          onDone={() => after(`${book.title} is taken down. ${book.author_name} and ${c.claimant_name} told.`)}
+          onDone={() =>
+            after(`${book.title} is taken down. ${book.author_name} and ${c.claimant_name} told.`)
+          }
         />
       ) : null}
       {toastNode}
@@ -442,7 +490,12 @@ function NoteModal({
 
   return (
     <div className="screen overlay">
-      <a className="backdrop" href="#close" aria-label="Close" onClick={(e) => (e.preventDefault(), onClose())} />
+      <a
+        className="backdrop"
+        href="#close"
+        aria-label="Close"
+        onClick={(e) => (e.preventDefault(), onClose())}
+      />
       <div className={`modal${danger ? ' danger' : ''}`} role="dialog" aria-label={title}>
         <div className="modal__h">
           <div className="grow">
@@ -469,7 +522,12 @@ function NoteModal({
             <div className="f">
               <label htmlFor="cl-title">Type the book title to confirm</label>
               <div className="inp">
-                <input id="cl-title" value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Confirm title" />
+                <input
+                  id="cl-title"
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  aria-label="Confirm title"
+                />
               </div>
               {typed ? <span className="hint">{matches ? 'Matches' : 'Doesn’t match yet'}</span> : null}
             </div>

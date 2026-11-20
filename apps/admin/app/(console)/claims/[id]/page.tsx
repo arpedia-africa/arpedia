@@ -13,7 +13,8 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const staff = await requireStaff();
-  if (!canOpen('claims', staff.permissions)) return <NoAccess page="claims" label="Copyright claims" role={staff.role} />;
+  if (!canOpen('claims', staff.permissions))
+    return <NoAccess page="claims" label="Copyright claims" role={staff.role} />;
   const supabase = await serverSupabase();
   const [detail, queue] = await Promise.all([
     supabase.rpc('admin_get_claim', { p_claim: id }),

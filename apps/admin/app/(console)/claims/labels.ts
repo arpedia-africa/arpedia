@@ -16,7 +16,10 @@ export const STATUS_LABEL: Record<ClaimStatus, string> = {
 };
 
 /** Only New and Waiting on author get pills; decided claims are plain text. */
-export const STATUS_PILL: Partial<Record<ClaimStatus, string>> = { new: 'st st-org', waiting_on_author: 'st st-warn' };
+export const STATUS_PILL: Partial<Record<ClaimStatus, string>> = {
+  new: 'st st-org',
+  waiting_on_author: 'st st-warn',
+};
 
 /** "12 Nov, 08:40" for Received; the year only when it isn't this year. */
 export function receivedAt(iso: string, now = new Date()): string {
@@ -28,7 +31,11 @@ export function receivedAt(iso: string, now = new Date()): string {
     ...(year(d) === year(now) ? {} : { year: 'numeric' }),
     timeZone: 'Africa/Lagos',
   });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+  const time = d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Lagos',
+  });
   return `${day}, ${time}`;
 }
 

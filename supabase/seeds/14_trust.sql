@@ -103,3 +103,65 @@ insert into public.copyright_claims (id, book_id, claimant_name, claimant_contac
    'Titles are not protected by copyright and the text does not match.', now() - interval '22 days', now() - interval '28 days');
 
 update public.books set claim_hold_at = now() - interval '3 days' where id = '00000000-0000-4000-c000-000000000002';
+
+-- Help articles as on s-help / s-help-article (bodies use ### headings and - lists), with views and votes.
+insert into public.help_articles (id, slug, category, shows_in, state) values
+  ('00000000-0000-4000-f144-000000000001', 'how-credits-work', 'credits_plans', '{app,web}', 'published'),
+  ('00000000-0000-4000-f144-000000000002', 'getting-started', 'getting_started', '{app,web}', 'published'),
+  ('00000000-0000-4000-f144-000000000003', 'charged-but-no-credits', 'credits_plans', '{app,web}', 'published'),
+  ('00000000-0000-4000-f144-000000000004', 'free-preview', 'reading', '{app,web}', 'published'),
+  ('00000000-0000-4000-f144-000000000005', 'reporting-and-blocking', 'community', '{app}', 'published'),
+  ('00000000-0000-4000-f144-000000000006', 'becoming-an-author', 'authors', '{web}', 'published'),
+  ('00000000-0000-4000-f144-000000000007', 'author-earnings', 'authors', '{app,web}', 'draft'),
+  ('00000000-0000-4000-f144-000000000008', 'delete-account', 'account_privacy', '{app,web}', 'published');
+
+insert into public.help_article_versions (id, article_id, number, title, body, edited_by, created_at) values
+  ('00000000-0000-4000-f145-000000000011', '00000000-0000-4000-f144-000000000001', 1, 'How credits work',
+   E'Credits are how you unlock books beyond the free preview, message authors and send tips. 1 credit is ₦3.',
+   '00000000-0000-4000-b000-000000000001', now() - interval '30 days'),
+  ('00000000-0000-4000-f145-000000000012', '00000000-0000-4000-f144-000000000001', 2, 'How credits work',
+   E'Credits are how you unlock books beyond the free preview, message authors and send tips. 1 credit is ₦3.\n\n### What a book costs\n\n- Every book costs ½ credit per page, shown before you start. A 250-page book is 125 credits.\n- Pay upfront for the whole book, or pay as you read, one chapter at a time. Both add up to the same price.\n- Changed your mind? Undo a chapter within 10 minutes and get the credits back.\n- The first 10% of every book is free, and re-reading is always free.\n\n### Where credits come from\n\nYour plan gives you credits every period: 300 on Monthly, 800 on Quarterly and 3,000 on Yearly. Unused plan credits carry over one period. Subscribers can top up: 200 credits for ₦600, 500 for ₦1,500 or 1,000 for ₦3,000.\n\n### What if my credits are missing?\n\nStore purchases can take a few minutes to arrive. If nothing shows after 30 minutes, open Help and tap "Contact support" with your receipt number.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '10 days'),
+  ('00000000-0000-4000-f145-000000000021', '00000000-0000-4000-f144-000000000002', 1, 'Getting started with Arpedia',
+   E'Welcome to Arpedia. Pick a plan, choose a few genres you like, and your Discover page fills with books for you.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '18 days'),
+  ('00000000-0000-4000-f145-000000000031', '00000000-0000-4000-f144-000000000003', 1, 'Why was I charged but have no credits?',
+   E'Store purchases can take a few minutes to arrive.\n\n- Pull down on your balance to refresh it.\n- If nothing shows after 30 minutes, contact support with your receipt number.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '15 days'),
+  ('00000000-0000-4000-f145-000000000041', '00000000-0000-4000-f144-000000000004', 1, 'Reading with the free 10% preview',
+   E'The first 10% of every book is free to read, so you can try it before you spend credits.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '31 days'),
+  ('00000000-0000-4000-f145-000000000051', '00000000-0000-4000-f144-000000000005', 1, 'Reporting and blocking',
+   E'Long-press a message and tap Report. Our team looks at every report. Blocking someone hides their messages from you.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '8 days'),
+  ('00000000-0000-4000-f145-000000000061', '00000000-0000-4000-f144-000000000006', 1, 'Becoming an Arpedia author',
+   E'Apply from Profile, then Become an author. We reply within 5 working days.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '23 days'),
+  ('00000000-0000-4000-f145-000000000071', '00000000-0000-4000-f144-000000000007', 1, 'How author earnings are paid',
+   E'Authors earn ₦1.60 for every credit readers spend on their books, paid monthly to a Nigerian bank account.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '9 days'),
+  ('00000000-0000-4000-f145-000000000081', '00000000-0000-4000-f144-000000000008', 1, 'Deleting your account and your data',
+   E'Go to Profile, then Account, then Delete account. We remove your data within 30 days.',
+   '00000000-0000-4000-b000-000000000006', now() - interval '19 days');
+
+update public.help_articles a set current_version_id = (select v.id from public.help_article_versions v
+  where v.article_id = a.id order by v.number desc limit 1)
+where a.state = 'published';
+update public.help_articles set related = '{00000000-0000-4000-f144-000000000003}'
+where id = '00000000-0000-4000-f144-000000000001';
+
+insert into public.help_views (article_id, at)
+select a.id, now() - make_interval(hours => g % 700)
+from (values ('00000000-0000-4000-f144-000000000001'::uuid, 482), ('00000000-0000-4000-f144-000000000002', 391),
+             ('00000000-0000-4000-f144-000000000003', 264), ('00000000-0000-4000-f144-000000000004', 210),
+             ('00000000-0000-4000-f144-000000000005', 98), ('00000000-0000-4000-f144-000000000006', 151),
+             ('00000000-0000-4000-f144-000000000008', 64)) a(id, n)
+cross join lateral generate_series(1, a.n) g;
+
+insert into public.help_votes (article_id, user_id, helpful)
+select a.id, ('00000000-0000-4000-a000-' || lpad(u::text, 12, '0'))::uuid, u <= a.yes
+from (values ('00000000-0000-4000-f144-000000000001'::uuid, 7), ('00000000-0000-4000-f144-000000000002', 8),
+             ('00000000-0000-4000-f144-000000000003', 6), ('00000000-0000-4000-f144-000000000004', 8),
+             ('00000000-0000-4000-f144-000000000005', 7), ('00000000-0000-4000-f144-000000000006', 8),
+             ('00000000-0000-4000-f144-000000000008', 7)) a(id, yes)
+cross join generate_series(1, 9) u;

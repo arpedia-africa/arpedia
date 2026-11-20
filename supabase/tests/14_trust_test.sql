@@ -4,7 +4,7 @@
 -- idempotency, author earning, no double return); claims; help; sanction expiry.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(77);
+select plan(80);
 
 create function pg_temp.as_user(p uuid) returns void language plpgsql as $$
 begin
@@ -305,10 +305,10 @@ select pg_temp.as_owner();
 select is((select claimant_name from public.copyright_claims where book_id = '14000000-0000-4000-c000-000000000001'), 'Reader Two',
   'a copyright report opens a claim with the reporter as claimant');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select throws_ok($$ select public.decide_claim((select id from public.copyright_claims limit 1), 'uphold', 'Full copy') $$,
+select throws_ok($$ select public.decide_claim((select id from public.copyright_claims where book_id = '14000000-0000-4000-c000-000000000001'), 'uphold', 'Full copy') $$,
   '42501', null, 'a moderator cannot uphold a claim');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000007');
-select lives_ok($$ select public.decide_claim((select id from public.copyright_claims limit 1), 'uphold', 'Full copy') $$,
+select lives_ok($$ select public.decide_claim((select id from public.copyright_claims where book_id = '14000000-0000-4000-c000-000000000001'), 'uphold', 'Full copy') $$,
   'a Publisher upholds the claim');
 select pg_temp.as_owner();
 select is((select status::text from public.books where id = '14000000-0000-4000-c000-000000000001'), 'taken_down',
@@ -316,14 +316,24 @@ select is((select status::text from public.books where id = '14000000-0000-4000-
 
 -- ─── Help articles ──────────────────────────────────────────────────────────
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000005');
-select set_config('t.help', (public.save_help_draft(null, 'how-credits-work', 'credits_plans', '{app,web}',
-  'How credits work', 'One credit is ₦3.') ->> 'article_id'), true) is not null as drafted;
+select set_config('t.help', (public.save_help_draft(null, 'test-zebra-credits', 'credits_plans', '{app,web}',
+  'Zebra credits test', 'One zebra credit is ₦3.') ->> 'article_id'), true) is not null as drafted;
 select pg_temp.as_user('14000000-0000-4000-a000-000000000001');
-select is((select count(*)::int from public.get_help_articles()), 0, 'drafts are not shown in the app');
+select is((select count(*)::int from public.get_help_articles() where id = current_setting('t.help')::uuid), 0,
+  'drafts are not shown in the app');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000005');
 select lives_ok($$ select public.publish_help_article(current_setting('t.help')::uuid) $$, 'Support publishes');
 select pg_temp.as_user('14000000-0000-4000-a000-000000000001');
-select is((select title from public.get_help_articles('credits_plans')), 'How credits work', 'published articles show in the app');
+select is((select title from public.get_help_articles('credits_plans') where id = current_setting('t.help')::uuid),
+  'Zebra credits test', 'published articles show in the app');
+select pg_temp.as_staff('14000000-0000-4000-b000-000000000005');
+select lives_ok($$ select public.set_help_extras(current_setting('t.help')::uuid, null, false) $$,
+  'Support turns search suggestions off');
+select pg_temp.as_user('14000000-0000-4000-a000-000000000001');
+select is((select count(*)::int from public.get_help_articles(null, 'zebra')), 0,
+  'an article with search suggestions off is not offered in search');
+select is((select count(*)::int from public.get_help_articles('credits_plans') where id = current_setting('t.help')::uuid), 1,
+  'it still shows when browsing its section');
 
 -- ─── Sanction expiry ────────────────────────────────────────────────────────
 select pg_temp.as_owner();

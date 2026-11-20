@@ -8,10 +8,11 @@ import type { ClaimTab } from './labels';
 
 export const metadata: Metadata = { title: 'Copyright claims · Arpedia Admin' };
 
-/** s-claims: Open (new and waiting, soonest due first), Waiting on author, Decided. */
+/** s-claims: Open (new and waiting, newest first), Waiting on author, Decided. */
 export default async function ClaimsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const staff = await requireStaff();
-  if (!canOpen('claims', staff.permissions)) return <NoAccess page="claims" label="Copyright claims" role={staff.role} />;
+  if (!canOpen('claims', staff.permissions))
+    return <NoAccess page="claims" label="Copyright claims" role={staff.role} />;
   const t = (await searchParams).tab;
   const tab: ClaimTab = t === 'waiting' || t === 'decided' ? t : 'open';
   const supabase = await serverSupabase();
