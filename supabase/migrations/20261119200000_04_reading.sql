@@ -115,14 +115,11 @@ create table public.offline_licenses (
 );
 
 -- ─── reports: content problems from the reader (rule 26) ────────────────────
-alter table public.reports drop constraint reports_target_type_check;
-alter table public.reports add constraint reports_target_type_check
-  check (target_type in ('book', 'review', 'user', 'message', 'book_content'));
-alter table public.reports add column context jsonb not null default '{}';
--- A reader may report several problems in one book; the "once while open" rule stays for the rest.
-drop index public.reports_once_idx;
-create unique index reports_once_idx on public.reports (reporter_id, target_type, target_id)
-  where status = 'open' and target_type <> 'book_content';
+-- Rows go into flow 06's `reports` table. A `book_content` row has `book_id` = the book and
+-- `content_id` = its own id, so a reader may report several problems in one book while flow 06's
+-- once-per-item index stays as it is; revision, chapter and CFI are in `snapshot`.
+-- (The new enum value is only used inside function bodies: it can't be used in this transaction.)
+alter type public.report_content_type add value 'book_content';
 
 -- ─── Helpers ────────────────────────────────────────────────────────────────
 -- The revision a reader reads: the book's current one, when the book is live, or when the reader
@@ -749,14 +746,19 @@ begin
   if char_length(p_note) > 500 then
     perform public._raise('bad_note');
   end if;
-  if (select count(*) from public.reports where reporter_id = v_user and target_type = 'book_content'
+  if (select count(*) from public.reports where reporter_id = v_user
+        and content_type = 'book_content'::public.report_content_type
         and created_at > now() - interval '1 hour') >= 20 then
     perform public._raise('rate_limited');
   end if;
-  insert into public.reports (reporter_id, target_type, target_id, reason, note, context)
-  values (v_user, 'book_content', p_book, 'book_content', nullif(btrim(p_note), ''),
-    jsonb_build_object('revision_id', p_revision, 'chapter_uid', p_chapter_uid, 'cfi', left(p_cfi, 2000)))
-  returning id into v_id;
+  v_id := gen_random_uuid();
+  insert into public.reports (id, reporter_id, content_type, content_id, reported_user_id, book_id, reason, details,
+                              severity, due_at, snapshot)
+  select v_id, v_user, 'book_content'::public.report_content_type, v_id, b.author_id, b.id, 'other',
+         nullif(btrim(p_note), ''), public.report_severity_for('other'), now() + interval '3 days',
+         jsonb_build_object('title', b.title, 'revision_id', p_revision, 'chapter_uid', p_chapter_uid,
+                            'cfi', left(p_cfi, 2000))
+  from public.books b where b.id = p_book;
   return v_id;
 end $$;
 
