@@ -1193,6 +1193,62 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"reading_rooms": {
+                  Row: {
+                    "book_id": string,"code": string,"created_at": string,"ended_at": string | null,"ended_by": string | null,"group_id": string,"host_id": string | null,"join_policy": Database["public"]['Enums']["room_join_policy"],"last_activity_at": string,"locked_before_end": string | null,"locked_by_staff": boolean,"max_members": number,"pace": Database["public"]['Enums']["room_pace"],"starts_at": string,"state": Database["public"]['Enums']["room_state"],"transcript_purge_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"code": string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id": string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
+                  }
+                  Update: {
+                    "book_id"?: string,"code"?: string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id"?: string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reading_rooms_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "reading_rooms_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_rooms_ended_by_fkey"
+      columns: ["ended_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_rooms_ended_by_fkey"
+      columns: ["ended_by"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_rooms_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: true
+      referencedRelation: "groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_rooms_host_id_fkey"
+      columns: ["host_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reading_rooms_host_id_fkey"
+      columns: ["host_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"reports": {
                   Row: {
                     "assignee_id": string | null,"book_id": string | null,"content_id": string,"content_type": Database["public"]['Enums']["report_content_type"],"created_at": string,"details": string | null,"due_at": string,"escalated_at": string | null,"first_action_at": string | null,"group_id": string | null,"id": string,"outcome": Database["public"]['Enums']["report_outcome"] | null,"reason": Database["public"]['Enums']["report_reason"],"ref": string,"reported_user_id": string | null,"reporter_id": string | null,"resolved_at": string | null,"severity": Database["public"]['Enums']["report_severity"],"snapshot": Json | null,"status": Database["public"]['Enums']["report_status"]
@@ -1375,6 +1431,108 @@ isOneToOne: true
 isOneToOne: false
       referencedRelation: "permissions"
       referencedColumns: ["key"]
+    }
+                  ]
+                },"room_code_attempts": {
+                  Row: {
+                    "attempted_at": string,"id": number,"success": boolean,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempted_at"?: string,"id"?: never,"success": boolean,"user_id": string
+                  }
+                  Update: {
+                    "attempted_at"?: string,"id"?: never,"success"?: boolean,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_code_attempts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_code_attempts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"room_member_progress": {
+                  Row: {
+                    "chapter_index": number,"finished_at": string | null,"percent": number,"room_id": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "chapter_index"?: number,"finished_at"?: string | null,"percent"?: number,"room_id": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "chapter_index"?: number,"finished_at"?: string | null,"percent"?: number,"room_id"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_member_progress_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "reading_rooms"
+      referencedColumns: ["group_id"]
+    },{
+      foreignKeyName: "room_member_progress_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_member_progress_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"room_members_muted": {
+                  Row: {
+                    "created_at": string,"muted_by": string | null,"room_id": string,"until": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"muted_by"?: string | null,"room_id": string,"until": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"muted_by"?: string | null,"room_id"?: string,"until"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_members_muted_muted_by_fkey"
+      columns: ["muted_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_members_muted_muted_by_fkey"
+      columns: ["muted_by"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_members_muted_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "reading_rooms"
+      referencedColumns: ["group_id"]
+    },{
+      foreignKeyName: "room_members_muted_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_members_muted_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
     }
                   ]
                 },"send_backs": {
@@ -1802,6 +1960,9 @@ isOneToOne: false
 "_book_card":
 { Args: { "p_book": string }; Returns: Json
                            },
+"_book_progress":
+{ Args: { "p_book": string,"p_user": string }; Returns: Record<string, unknown>
+                           },
 "_buyable_book":
 { Args: { "p_book": string }; Returns: {
               "access_removed_at": string | null,
@@ -1847,6 +2008,9 @@ isOneToOne: false
 "_config":
 { Args: { "p_key": string }; Returns: Json
                            },
+"_end_room":
+{ Args: { "p_room": string }; Returns: undefined
+                           },
 "_fast_lane_check":
 { Args: { "p_rev": string }; Returns: (string)[]
                            },
@@ -1856,6 +2020,9 @@ isOneToOne: false
 "_has_staff_role":
 { Args: { "p_roles": (Database["public"]['Enums']["staff_role"])[],"p_user": string }; Returns: boolean
                            },
+"_in_library":
+{ Args: { "p_book": string,"p_user": string }; Returns: boolean
+                           },
 "_insert_flags":
 { Args: { "p_flags": Json,"p_rev": string,"p_source": Database["public"]['Enums']["flag_source"] }; Returns: number
                            },
@@ -1864,6 +2031,9 @@ isOneToOne: false
                            },
 "_is_service":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"_join_room":
+{ Args: { "p_confirm": boolean,"r": Omit<Database["public"]['Tables']["reading_rooms"]['Row'], Database["public"]['Tables']["reading_rooms"]['ComputedFields']> }; Returns: Json
                            },
 "_lock_revision":
 { Args: { "p_rev": string }; Returns: {
@@ -1936,6 +2106,9 @@ isOneToOne: false
 "_mid_paygo":
 { Args: { "p_book": string }; Returns: number
                            },
+"_mute_room_member":
+{ Args: { "p_room": string,"p_until": string,"p_user": string }; Returns: undefined
+                           },
 "_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
                            },
@@ -1950,6 +2123,11 @@ isOneToOne: false
                            },
 "_plan_state":
 { Args: { "p_user": string }; Returns: Json
+                           },
+"_post_block_for_base":
+{ Args: { "p_group": string,"p_user": string }; Returns: {
+              "reason": string,"until": string
+            }[]
                            },
 "_publish_now":
 { Args: { "p_actor": string,"p_mode": string,"p_notify": boolean,"p_rev": string }; Returns: Json
@@ -1981,6 +2159,15 @@ isOneToOne: false
 "_review_json":
 { Args: { "r": Omit<Database["public"]['Tables']["reviews"]['Row'], Database["public"]['Tables']["reviews"]['ComputedFields']> }; Returns: Json
                            },
+"_room_behind":
+{ Args: { "p_chapter": number,"r": Omit<Database["public"]['Tables']["reading_rooms"]['Row'], Database["public"]['Tables']["reading_rooms"]['ComputedFields']> }; Returns: number
+                           },
+"_room_book_card":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"_room_code":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "_route":
 { Args: { "p_rev": string }; Returns: Database["public"]['Enums']["revision_status"]
                            },
@@ -1992,6 +2179,9 @@ isOneToOne: false
                            },
 "_step":
 { Args: { "p_rev": string,"p_step": string }; Returns: undefined
+                           },
+"_sync_room_progress":
+{ Args: { "p_book": string,"p_chapter": number,"p_finished_at"?: string,"p_percent": number,"p_user": string }; Returns: Json
                            },
 "_threshold":
 { Args: { "p_key": string }; Returns: number
@@ -2017,13 +2207,27 @@ isOneToOne: false
 "admin_get_channel":
 { Args: { "p_group": string }; Returns: Json
                            },
+"admin_get_room":
+{ Args: { "p_room": string }; Returns: Json
+                           },
 "admin_list_channels":
 { Args: { "p_kind"?: string,"p_q"?: string,"p_reports"?: boolean,"p_status"?: string }; Returns: {
               "created_at": string,"id": string,"kind": Database["public"]['Enums']["group_kind"],"locked_until": string,"member_count": number,"messages_7d": number,"muted_until": string,"name": string,"open_reports": number,"owner_id": string,"owner_name": string,"slow_mode_seconds": number,"status": string,"visibility": Database["public"]['Enums']["group_visibility"],"who_can_post": Database["public"]['Enums']["group_who_can_post"]
             }[]
                            },
+"admin_list_rooms":
+{ Args: { "p_limit"?: number,"p_offset"?: number,"p_q"?: string,"p_tab"?: string }; Returns: {
+              "book_title": string,"code": string,"ended_at": string,"host_name": string,"live_count": number,"member_count": number,"name": string,"open_reports": number,"room_id": string,"starts_at": string,"state": Database["public"]['Enums']["room_state"],"total": number
+            }[]
+                           },
 "admin_mute_member":
 { Args: { "p_group": string,"p_reason"?: string,"p_until": string,"p_user": string }; Returns: undefined
+                           },
+"admin_room_action":
+{ Args: { "p_action": string,"p_reason"?: string,"p_room": string,"p_until"?: string,"p_user"?: string }; Returns: Json
+                           },
+"admin_room_counts":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "admin_set_book_price":
 { Args: { "p_book": string,"p_price": number,"p_prices": Json,"p_reason": string }; Returns: Json
@@ -2066,6 +2270,9 @@ isOneToOne: false
 "can_quote":
 { Args: { "p_book": string,"p_chapter": number,"p_user": string }; Returns: boolean
                            },
+"can_read_room_annotation":
+{ Args: { "p_room": string }; Returns: boolean
+                           },
 "change_staff_role":
 { Args: { "p_role": Database["public"]['Enums']["staff_role"],"p_user": string }; Returns: undefined
                            },
@@ -2089,6 +2296,9 @@ isOneToOne: false
                            },
 "confirm_chapters":
 { Args: { "p_actor": string,"p_result": Json,"p_rev": string }; Returns: Json
+                           },
+"create_reading_room":
+{ Args: { "p_book": string,"p_join_policy"?: Database["public"]['Enums']["room_join_policy"],"p_name": string,"p_pace"?: Database["public"]['Enums']["room_pace"],"p_starts_at"?: string }; Returns: Json
                            },
 "create_revision":
 { Args: { "p_book"?: string,"p_meta": Json }; Returns: Json
@@ -2116,6 +2326,9 @@ isOneToOne: false
                            },
 "desk_reject_unreadable":
 { Args: { "p_actor"?: string,"p_reason"?: string,"p_rev": string }; Returns: string
+                           },
+"end_reading_room":
+{ Args: { "p_room": string }; Returns: undefined
                            },
 "finalize_revision":
 { Args: { "p_actor": string,"p_files": Json,"p_rev": string }; Returns: Json
@@ -2159,6 +2372,11 @@ isOneToOne: false
               "body": string,"created_at": string,"group_id": string,"id": string,"kind": Database["public"]['Enums']["message_kind"],"my_reaction": string,"pinned": boolean,"quote": Json,"reactions": Json,"reply_to": Json,"reply_to_id": string,"sender_avatar": string,"sender_id": string,"sender_is_author": boolean,"sender_name": string,"state": Database["public"]['Enums']["message_state"]
             }[]
                            },
+"get_my_rooms":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "book": Json,"finished_count": number,"is_host": boolean,"last_activity_at": string,"member_count": number,"my_percent": number,"name": string,"room_id": string,"starts_at": string,"state": Database["public"]['Enums']["room_state"],"unread": boolean
+            }[]
+                           },
 "get_onboarding_paywall":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -2167,6 +2385,22 @@ isOneToOne: false
                            },
 "get_revision_status":
 { Args: { "p_rev": string }; Returns: Json
+                           },
+"get_room":
+{ Args: { "p_room": string }; Returns: Json
+                           },
+"get_room_annotations":
+{ Args: { "p_room": string }; Returns: Json
+                           },
+"get_room_members":
+{ Args: { "p_offset"?: number,"p_room": string }; Returns: {
+              "avatar_url": string,"finished_at": string,"is_host": boolean,"is_me": boolean,"muted_until": string,"name": string,"percent": number,"user_id": string
+            }[]
+                           },
+"get_room_messages":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_limit"?: number,"p_room": string }; Returns: {
+              "body": string,"created_at": string,"group_id": string,"id": string,"kind": Database["public"]['Enums']["message_kind"],"my_reaction": string,"pinned": boolean,"quote": Json,"reactions": Json,"reply_to": Json,"reply_to_id": string,"sender_avatar": string,"sender_id": string,"sender_is_author": boolean,"sender_name": string,"spoiler_chapter": number,"state": Database["public"]['Enums']["message_state"]
+            }[]
                            },
 "get_staff_context":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -2212,6 +2446,9 @@ isOneToOne: false
 "is_minor":
 { Args: { "p_user": string }; Returns: boolean
                            },
+"is_room_host":
+{ Args: { "p_room": string,"p_user"?: string }; Returns: boolean
+                           },
 "is_staff":
 { Args: { "p_role"?: Database["public"]['Enums']["staff_role"] }; Returns: boolean
                            },
@@ -2221,8 +2458,22 @@ isOneToOne: false
 "join_group":
 { Args: { "p_group": string }; Returns: undefined
                            },
+"join_open_room":
+{ Args: { "p_confirm"?: boolean,"p_room": string }; Returns: Json
+                           },
+"join_reading_room":
+{ Args: { "p_code": string,"p_confirm"?: boolean }; Returns: Json
+                           },
 "leave_group":
 { Args: { "p_group": string }; Returns: undefined
+                           },
+"leave_reading_room":
+{ Args: { "p_room": string }; Returns: undefined
+                           },
+"list_open_rooms":
+{ Args: { "p_book"?: string,"p_limit"?: number,"p_offset"?: number }; Returns: {
+              "book": Json,"finished_count": number,"joined": boolean,"member_count": number,"name": string,"room_id": string,"starts_at": string,"state": Database["public"]['Enums']["room_state"]
+            }[]
                            },
 "list_staff":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -2240,6 +2491,12 @@ isOneToOne: false
                            },
 "migrate_anchors":
 { Args: { "p_base": string,"p_new": string }; Returns: Json
+                           },
+"mute_room_member":
+{ Args: { "p_room": string,"p_until": string,"p_user": string }; Returns: undefined
+                           },
+"normalise_room_code":
+{ Args: { "p_code": string }; Returns: string
                            },
 "note_staff_code_failure":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -2275,6 +2532,9 @@ isOneToOne: false
                            },
 "purge_deleted_messages":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"purge_room_transcripts":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "react":
 { Args: { "p_emoji": string,"p_group"?: string,"p_message": string }; Returns: Json
@@ -2335,6 +2595,12 @@ isOneToOne: false
                            },
 "revoke_staff_invite":
 { Args: { "p_invite": string }; Returns: undefined
+                           },
+"room_lifecycle":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"room_staff":
+{ Args: { "p_edit": boolean }; Returns: boolean
                            },
 "save_onboarding_step":
 { Args: { "p_payload"?: Json,"p_step": string }; Returns: {
@@ -2401,6 +2667,9 @@ isOneToOne: false
 "set_reader_setting":
 { Args: { "p_key": string,"p_value": Json }; Returns: Json
                            },
+"set_room_lock":
+{ Args: { "p_locked": boolean,"p_room": string }; Returns: undefined
+                           },
 "set_staff_status":
 { Args: { "p_active": boolean,"p_user": string }; Returns: undefined
                            },
@@ -2460,6 +2729,9 @@ isOneToOne: false
 "unpublish_preview":
 { Args: { "p_book": string }; Returns: Json
                            },
+"update_room_progress":
+{ Args: { "p_book": string,"p_chapter": number,"p_percent": number }; Returns: Json
+                           },
 "use_staff_backup_code":
 { Args: { "p_code": string }; Returns: number
                            },
@@ -2471,7 +2743,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "anchor_method": "exact"|"fuzzy"|"nearest","app_theme": "sunflower"|"palm"|"plum"|"night","book_status": "draft"|"live"|"scheduled"|"unpublished"|"taken_down"|"rejected","chapter_kind": "chapter"|"part","draft_step": "upload"|"converting"|"checking"|"chapters"|"preview","entitlement_scope": "book"|"chapter","entitlement_source": "unlock_all"|"chapter"|"chapter_complete"|"gift"|"staff","fast_lane_result": "pending"|"ok"|"problem","flag_source": "worker"|"desk"|"staff","flag_status": "open"|"fixed"|"dismissed","group_kind": "official"|"club"|"author"|"readalong"|"room"|"dm","group_role": "owner"|"moderator"|"member","group_visibility": "public"|"followers"|"private","group_who_can_post": "members"|"staff"|"owner_and_followers","ledger_bucket": "plan"|"rollover"|"topup"|"promo","ledger_reason": "plan_grant"|"rollover"|"top_up"|"unlock_all"|"chapter"|"undo"|"tip"|"message"|"expiry"|"refund"|"staff_adjust"|"gift_out"|"gift_in"|"promo","message_kind": "text"|"quote"|"system","message_state": "visible"|"auto_hidden"|"removed"|"deleted","permission_level": "allow"|"limited","report_content_type": "message"|"discussion_comment"|"review"|"post_comment"|"author_post"|"profile"|"book"|"dm","report_outcome": "keep"|"removed"|"spoiler"|"actioned"|"dismissed","report_reason": "spam"|"harassment"|"hate"|"sexual"|"violence"|"self_harm"|"copyright"|"spoilers"|"impersonation"|"other","report_severity": "high"|"medium"|"low","report_status": "open"|"auto_hidden"|"resolved","revision_origin": "author"|"staff"|"desk","revision_status": "draft"|"processing"|"with_desk"|"needs_fixes"|"ready_for_review"|"sent_back"|"scheduled"|"live"|"superseded"|"unpublished"|"taken_down"|"rejected","send_back_source": "fixer"|"quick_review"|"desk_auto"|"system","signup_intent": "reader"|"author","source_type": "docx"|"epub"|"pdf","staff_role": "super_admin"|"operations_admin"|"publisher"|"moderator"|"finance"|"support"|"analyst","unpublish_reason": "author_request"|"policy_violation"|"quality"
+            "anchor_method": "exact"|"fuzzy"|"nearest","app_theme": "sunflower"|"palm"|"plum"|"night","book_status": "draft"|"live"|"scheduled"|"unpublished"|"taken_down"|"rejected","chapter_kind": "chapter"|"part","draft_step": "upload"|"converting"|"checking"|"chapters"|"preview","entitlement_scope": "book"|"chapter","entitlement_source": "unlock_all"|"chapter"|"chapter_complete"|"gift"|"staff","fast_lane_result": "pending"|"ok"|"problem","flag_source": "worker"|"desk"|"staff","flag_status": "open"|"fixed"|"dismissed","group_kind": "official"|"club"|"author"|"readalong"|"room"|"dm","group_role": "owner"|"moderator"|"member","group_visibility": "public"|"followers"|"private","group_who_can_post": "members"|"staff"|"owner_and_followers","ledger_bucket": "plan"|"rollover"|"topup"|"promo","ledger_reason": "plan_grant"|"rollover"|"top_up"|"unlock_all"|"chapter"|"undo"|"tip"|"message"|"expiry"|"refund"|"staff_adjust"|"gift_out"|"gift_in"|"promo","message_kind": "text"|"quote"|"system","message_state": "visible"|"auto_hidden"|"removed"|"deleted","permission_level": "allow"|"limited","report_content_type": "message"|"discussion_comment"|"review"|"post_comment"|"author_post"|"profile"|"book"|"dm","report_outcome": "keep"|"removed"|"spoiler"|"actioned"|"dismissed","report_reason": "spam"|"harassment"|"hate"|"sexual"|"violence"|"self_harm"|"copyright"|"spoilers"|"impersonation"|"other","report_severity": "high"|"medium"|"low","report_status": "open"|"auto_hidden"|"resolved","revision_origin": "author"|"staff"|"desk","revision_status": "draft"|"processing"|"with_desk"|"needs_fixes"|"ready_for_review"|"sent_back"|"scheduled"|"live"|"superseded"|"unpublished"|"taken_down"|"rejected","room_join_policy": "code"|"anyone","room_pace": "free"|"three_week"|"one_day","room_state": "scheduled"|"live"|"ended","send_back_source": "fixer"|"quick_review"|"desk_auto"|"system","signup_intent": "reader"|"author","source_type": "docx"|"epub"|"pdf","staff_role": "super_admin"|"operations_admin"|"publisher"|"moderator"|"finance"|"support"|"analyst","unpublish_reason": "author_request"|"policy_violation"|"quality"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -2591,7 +2863,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "anchor_method": ["exact", "fuzzy", "nearest"],"app_theme": ["sunflower", "palm", "plum", "night"],"book_status": ["draft", "live", "scheduled", "unpublished", "taken_down", "rejected"],"chapter_kind": ["chapter", "part"],"draft_step": ["upload", "converting", "checking", "chapters", "preview"],"entitlement_scope": ["book", "chapter"],"entitlement_source": ["unlock_all", "chapter", "chapter_complete", "gift", "staff"],"fast_lane_result": ["pending", "ok", "problem"],"flag_source": ["worker", "desk", "staff"],"flag_status": ["open", "fixed", "dismissed"],"group_kind": ["official", "club", "author", "readalong", "room", "dm"],"group_role": ["owner", "moderator", "member"],"group_visibility": ["public", "followers", "private"],"group_who_can_post": ["members", "staff", "owner_and_followers"],"ledger_bucket": ["plan", "rollover", "topup", "promo"],"ledger_reason": ["plan_grant", "rollover", "top_up", "unlock_all", "chapter", "undo", "tip", "message", "expiry", "refund", "staff_adjust", "gift_out", "gift_in", "promo"],"message_kind": ["text", "quote", "system"],"message_state": ["visible", "auto_hidden", "removed", "deleted"],"permission_level": ["allow", "limited"],"report_content_type": ["message", "discussion_comment", "review", "post_comment", "author_post", "profile", "book", "dm"],"report_outcome": ["keep", "removed", "spoiler", "actioned", "dismissed"],"report_reason": ["spam", "harassment", "hate", "sexual", "violence", "self_harm", "copyright", "spoilers", "impersonation", "other"],"report_severity": ["high", "medium", "low"],"report_status": ["open", "auto_hidden", "resolved"],"revision_origin": ["author", "staff", "desk"],"revision_status": ["draft", "processing", "with_desk", "needs_fixes", "ready_for_review", "sent_back", "scheduled", "live", "superseded", "unpublished", "taken_down", "rejected"],"send_back_source": ["fixer", "quick_review", "desk_auto", "system"],"signup_intent": ["reader", "author"],"source_type": ["docx", "epub", "pdf"],"staff_role": ["super_admin", "operations_admin", "publisher", "moderator", "finance", "support", "analyst"],"unpublish_reason": ["author_request", "policy_violation", "quality"]
+            "anchor_method": ["exact", "fuzzy", "nearest"],"app_theme": ["sunflower", "palm", "plum", "night"],"book_status": ["draft", "live", "scheduled", "unpublished", "taken_down", "rejected"],"chapter_kind": ["chapter", "part"],"draft_step": ["upload", "converting", "checking", "chapters", "preview"],"entitlement_scope": ["book", "chapter"],"entitlement_source": ["unlock_all", "chapter", "chapter_complete", "gift", "staff"],"fast_lane_result": ["pending", "ok", "problem"],"flag_source": ["worker", "desk", "staff"],"flag_status": ["open", "fixed", "dismissed"],"group_kind": ["official", "club", "author", "readalong", "room", "dm"],"group_role": ["owner", "moderator", "member"],"group_visibility": ["public", "followers", "private"],"group_who_can_post": ["members", "staff", "owner_and_followers"],"ledger_bucket": ["plan", "rollover", "topup", "promo"],"ledger_reason": ["plan_grant", "rollover", "top_up", "unlock_all", "chapter", "undo", "tip", "message", "expiry", "refund", "staff_adjust", "gift_out", "gift_in", "promo"],"message_kind": ["text", "quote", "system"],"message_state": ["visible", "auto_hidden", "removed", "deleted"],"permission_level": ["allow", "limited"],"report_content_type": ["message", "discussion_comment", "review", "post_comment", "author_post", "profile", "book", "dm"],"report_outcome": ["keep", "removed", "spoiler", "actioned", "dismissed"],"report_reason": ["spam", "harassment", "hate", "sexual", "violence", "self_harm", "copyright", "spoilers", "impersonation", "other"],"report_severity": ["high", "medium", "low"],"report_status": ["open", "auto_hidden", "resolved"],"revision_origin": ["author", "staff", "desk"],"revision_status": ["draft", "processing", "with_desk", "needs_fixes", "ready_for_review", "sent_back", "scheduled", "live", "superseded", "unpublished", "taken_down", "rejected"],"room_join_policy": ["code", "anyone"],"room_pace": ["free", "three_week", "one_day"],"room_state": ["scheduled", "live", "ended"],"send_back_source": ["fixer", "quick_review", "desk_auto", "system"],"signup_intent": ["reader", "author"],"source_type": ["docx", "epub", "pdf"],"staff_role": ["super_admin", "operations_admin", "publisher", "moderator", "finance", "support", "analyst"],"unpublish_reason": ["author_request", "policy_violation", "quality"]
           }
         }
 } as const

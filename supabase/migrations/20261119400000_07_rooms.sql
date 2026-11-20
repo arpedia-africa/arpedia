@@ -125,7 +125,7 @@ language sql stable security definer set search_path = '' as $$
                    and m.banned_at is null)
 $$;
 
-create function public._book_card(p_book uuid) returns jsonb
+create function public._room_book_card(p_book uuid) returns jsonb
 language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
     'id', b.id, 'title', b.title, 'cover_key', (select v.cover_key from public.book_revisions v where v.id = b.current_revision_id), 'status', b.status,
@@ -423,7 +423,7 @@ create function public.list_open_rooms(p_book uuid default null, p_limit int def
 returns table (room_id uuid, name text, book jsonb, member_count int, finished_count int,
                state public.room_state, starts_at timestamptz, joined boolean)
 language sql stable security definer set search_path = '' as $$
-  select r.group_id, g.name, public._book_card(r.book_id), g.member_count,
+  select r.group_id, g.name, public._room_book_card(r.book_id), g.member_count,
          (select count(*)::int from public.room_member_progress p
           where p.room_id = r.group_id and p.finished_at is not null),
          r.state, r.starts_at, public.is_group_member(r.group_id, auth.uid())
@@ -545,7 +545,7 @@ returns table (room_id uuid, name text, book jsonb, member_count int, finished_c
                state public.room_state, starts_at timestamptz, last_activity_at timestamptz,
                my_percent numeric, unread boolean, is_host boolean)
 language sql stable security definer set search_path = '' as $$
-  select r.group_id, g.name, public._book_card(r.book_id), g.member_count,
+  select r.group_id, g.name, public._room_book_card(r.book_id), g.member_count,
          (select count(*)::int from public.room_member_progress p
           where p.room_id = r.group_id and p.finished_at is not null),
          r.state, r.starts_at, greatest(r.last_activity_at, coalesce(g.last_message_at, r.last_activity_at)),
@@ -581,7 +581,7 @@ begin
   select * into v_block from public.post_block_for(p_room, uid);
   v_large := g.member_count > 100;
   return jsonb_build_object(
-    'id', r.group_id, 'name', g.name, 'code', r.code, 'book', public._book_card(r.book_id),
+    'id', r.group_id, 'name', g.name, 'code', r.code, 'book', public._room_book_card(r.book_id),
     'pace', r.pace, 'join_policy', r.join_policy, 'state', r.state, 'starts_at', r.starts_at,
     'ended_at', r.ended_at, 'host_id', r.host_id, 'is_host', r.host_id = uid,
     'member_count', g.member_count,
@@ -782,7 +782,7 @@ begin
   select * into g from public.groups where id = p_room;
   perform public.write_audit('community', 'room.view', 'room', p_room::text, g.name, 'Opened the room');
   return jsonb_build_object(
-    'id', r.group_id, 'name', g.name, 'code', r.code, 'book', public._book_card(r.book_id),
+    'id', r.group_id, 'name', g.name, 'code', r.code, 'book', public._room_book_card(r.book_id),
     'host_id', r.host_id, 'host_name', public.sender_name(r.host_id),
     'pace', r.pace, 'join_policy', r.join_policy, 'state', r.state, 'starts_at', r.starts_at,
     'ended_at', r.ended_at, 'ended_by_name', case when r.ended_by is not null then public.sender_name(r.ended_by) end,
@@ -910,7 +910,7 @@ end $$;
 -- ─── Grants ─────────────────────────────────────────────────────────────────
 revoke execute on function
   public._room_code(), public._book_progress(uuid, uuid), public._in_library(uuid, uuid),
-  public._book_card(uuid), public._room_behind(public.reading_rooms, int),
+  public._room_book_card(uuid), public._room_behind(public.reading_rooms, int),
   public._sync_room_progress(uuid, uuid, numeric, int, timestamptz),
   public.reading_progress_to_rooms(), public.room_message_spoiler(),
   public._join_room(public.reading_rooms, boolean), public._mute_room_member(uuid, uuid, timestamptz),

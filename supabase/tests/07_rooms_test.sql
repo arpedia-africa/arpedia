@@ -4,7 +4,7 @@
 -- actions, leave hand-over and lifecycle.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(61);
+select plan(64);
 
 -- Hana (host), Mo (member), Obi (outsider, author of the book), Kemi (17, minor), Sam (moderator).
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -115,6 +115,13 @@ update public.reading_rooms set max_members = 100 where group_id = (select id fr
 set local role authenticated;
 
 -- ─── Progress and spoilers ──────────────────────────────────────────────────
+-- Room progress is capped at the reader's own synced position (flow 03 reading_progress). The
+-- sync trigger stays off until its own check below, so these cases go through the RPC.
+reset role;
+alter table public.reading_progress disable trigger reading_progress_to_rooms;
+insert into public.reading_progress (user_id, book_id, percent, max_percent, chapter_ord) values
+  ('70000000-0000-4000-a000-000000000001', '70000000-0000-4000-b000-000000000001', 40, 40, 8);
+set local role authenticated;
 select pg_temp.as_user('70000000-0000-4000-a000-000000000001');
 select is(jsonb_array_length(public.update_room_progress('70000000-0000-4000-b000-000000000001', 40, 8)), 5,
   'progress reaches every room with the book');
@@ -124,6 +131,10 @@ select lives_ok($$select public.update_room_progress('70000000-0000-4000-b000-00
 select is((select percent from public.room_member_progress
            where room_id = (select id from t_room where k = 'a') and user_id = auth.uid()), 40.00::numeric,
   'room progress never goes backwards');
+do $$ begin perform public.update_room_progress('70000000-0000-4000-b000-000000000001', 90, 15); end $$;
+select is((select percent from public.room_member_progress
+           where room_id = (select id from t_room where k = 'a') and user_id = auth.uid()), 40.00::numeric,
+  'room progress is capped at the reader''s own position');
 select throws_ok($$select public.update_room_progress('70000000-0000-4000-b000-000000000001', 101, 2)$$,
   '22023', 'bad_progress', 'percent over 100 refused');
 
@@ -164,11 +175,31 @@ select is((select spoiler_chapter from public.get_room_messages((select id from 
 -- ─── Annotations lock ───────────────────────────────────────────────────────
 select is((public.get_room_annotations((select id from t_room where k = 'a')) ->> 'locked')::boolean, true,
   'annotations locked before finishing');
+do $$ begin perform public.update_room_progress('70000000-0000-4000-b000-000000000001', 100, 20); end $$;
+select is((public.get_room_annotations((select id from t_room where k = 'a')) ->> 'locked')::boolean, true,
+  'claiming 100% without reading it keeps annotations locked');
+reset role;
+insert into public.reading_progress (user_id, book_id, percent, max_percent, chapter_ord, finished_at) values
+  ('70000000-0000-4000-a000-000000000002', '70000000-0000-4000-b000-000000000001', 100, 100, 20, now());
+set local role authenticated;
+select pg_temp.as_user('70000000-0000-4000-a000-000000000002');
 select lives_ok($$select public.update_room_progress('70000000-0000-4000-b000-000000000001', 100, 20)$$, 'Mo finishes');
 select isnt((select finished_at from public.room_member_progress
              where room_id = (select id from t_room where k = 'a') and user_id = auth.uid()), null, 'finished_at set');
 select is((public.get_room_annotations((select id from t_room where k = 'a')) ->> 'locked')::boolean, false,
   'annotations unlock on finishing');
+
+-- Offline progress that syncs later reaches the rooms through the reading_progress trigger.
+reset role;
+alter table public.reading_progress enable trigger reading_progress_to_rooms;
+update public.reading_progress set percent = 60, max_percent = 60, chapter_ord = 12
+ where user_id = '70000000-0000-4000-a000-000000000001' and book_id = '70000000-0000-4000-b000-000000000001';
+select is((select percent from public.room_member_progress
+           where room_id = (select id from t_room where k = 'a')
+             and user_id = '70000000-0000-4000-a000-000000000001'), 60.00::numeric,
+  'synced reading progress moves the reader''s rooms');
+set local role authenticated;
+select pg_temp.as_user('70000000-0000-4000-a000-000000000002');
 
 -- ─── Host actions ───────────────────────────────────────────────────────────
 select throws_ok($$select public.set_room_lock((select id from t_room where k = 'a'), true)$$, '42501', 'not_host',
