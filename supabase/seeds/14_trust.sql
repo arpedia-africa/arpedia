@@ -183,3 +183,44 @@ insert into public.entitlements (user_id, book_id, scope, chapter_uid, source, l
 select '00000000-0000-4000-a000-000000000001', l.book_id, 'chapter', ch.chapter_uid, 'chapter', l.id,
   now() - interval '1 hour'
 from l, ch;
+
+-- Reports on s-reports, from members of the seeded groups (a000-…01 Ngozi · 03 Tolu · 04 Kemi · 05 Chioma
+-- · 06 Musa · 07 Emeka · 08 Adaeze · 09 Halima · 10 Obiageli). Seeded accounts are minutes old, so the
+-- reports are inserted directly as eligible; the trigger auto-hides the High ones as in the app.
+insert into public.messages (id, group_id, sender_id, client_id, kind, body, created_at) values
+  ('00000000-0000-4000-f146-000000000001', '00000000-0000-4000-d000-000000000001', '00000000-0000-4000-a000-000000000003',
+   gen_random_uuid(), 'text', 'Say that again and I will find you after the meetup in Ibadan. You will see.', now() - interval '8 min'),
+  ('00000000-0000-4000-f146-000000000002', '00000000-0000-4000-d000-000000000001', '00000000-0000-4000-a000-000000000006',
+   gen_random_uuid(), 'text', 'People like you should not be allowed to speak in this country', now() - interval '9 hours 10 min'),
+  ('00000000-0000-4000-f146-000000000003', '00000000-0000-4000-d000-000000000002', '00000000-0000-4000-a000-000000000004',
+   gen_random_uuid(), 'text', 'Follow my page for cheap data and Naira exchange, DM me', now() - interval '2 hours 5 min'),
+  ('00000000-0000-4000-f146-000000000004', '00000000-0000-4000-d000-000000000007', '00000000-0000-4000-a000-000000000008',
+   gen_random_uuid(), 'text', 'You are just a bitter spinster, no wonder nobody reads your rubbish', now() - interval '5 hours 5 min'),
+  ('00000000-0000-4000-f146-000000000005', '00000000-0000-4000-d000-000000000008', '00000000-0000-4000-a000-000000000003',
+   gen_random_uuid(), 'text', 'This book is boring abeg, who even wrote this nonsense', now() - interval '2 days 1 hour');
+
+insert into public.reports (id, reporter_id, content_type, content_id, reported_user_id, group_id, book_id, reason,
+  severity, due_at, snapshot, eligible, assignee_id, created_at, reported_at)
+-- Stable ids (md5 of message + reporter) so tools/parity.mjs can open a report: Ngozi's threat report is
+-- fa2beca8-89e1-f451-c526-0c5511ec75c5.
+select md5('seed-report:' || s.content || r)::uuid, ('00000000-0000-4000-a000-' || r)::uuid, s.type, s.content,
+  t.reported_user, t.group_id, t.book_id, s.reason,
+  public.report_severity_setting(s.reason), public.report_due_at(public.report_severity_setting(s.reason), now() - s.ago),
+  t.snapshot, true, s.assignee, now() - s.ago, now() - s.ago
+from (values
+  ('message'::public.report_content_type, '00000000-0000-4000-f146-000000000001'::uuid, 'violence'::public.report_reason,
+   interval '6 min', null::uuid, array['000000000001', '000000000006', '000000000008', '000000000009']),
+  ('message', '00000000-0000-4000-f146-000000000002', 'hate', interval '9 hours', null,
+   array['000000000001', '000000000008', '000000000009']),
+  ('message', '00000000-0000-4000-f146-000000000003', 'spam', interval '2 hours',
+   '00000000-0000-4000-b000-000000000004', array['000000000001', '000000000005']),
+  ('message', '00000000-0000-4000-f146-000000000004', 'harassment', interval '5 hours',
+   '00000000-0000-4000-b000-000000000004', array['000000000003', '000000000004']),
+  ('profile', '00000000-0000-4000-a000-000000000010', 'impersonation', interval '1 day', null,
+   array['000000000001', '000000000002']),
+  ('message', '00000000-0000-4000-f146-000000000005', 'other', interval '2 days',
+   '00000000-0000-4000-b000-000000000004', array['000000000007']),
+  ('book', '00000000-0000-4000-c000-000000000002', 'other', interval '3 days', null, array['000000000009'])
+) as s (type, content, reason, ago, assignee, reporters)
+cross join lateral unnest(s.reporters) as r
+cross join lateral public._report_target(s.type, s.content, ('00000000-0000-4000-a000-' || r)::uuid) as t;

@@ -165,8 +165,22 @@ export function ReportView({
     });
 
   const title = `${REASON_LABELS[r.reason]} · ${TYPE_LABEL[r.content_type].toLowerCase()}`;
-  const ctx = s?.context ?? [];
   const flaggedAt = s?.created_at ?? r.created_at;
+  // Chat context holds the messages either side; the reported one goes in its place by time.
+  const around = s?.context ?? [];
+  const ctx =
+    around.length && !around.some((m) => m.id === r.content_id)
+      ? [
+          ...around,
+          {
+            id: r.content_id,
+            sender_id: null,
+            sender_name: s?.sender_name ?? '',
+            body: s?.body ?? null,
+            created_at: flaggedAt,
+          },
+        ].sort((a, b) => a.created_at.localeCompare(b.created_at))
+      : around;
 
   return (
     <section className="screen enter">

@@ -129,7 +129,9 @@ select pg_temp.as_user('14000000-0000-4000-b000-000000000001');
 select throws_ok($$ select * from public.admin_list_reports() $$, '42501', null,
   'staff without a fresh two-step code cannot read the queue');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000001');
-select is((select count(*)::int from public.admin_list_reports()), 2, 'the queue shows one row per reported item');
+-- Seeded reports (seeds/14_trust.sql) are on 00000000-… content; count only this test's items.
+select is((select count(*)::int from public.admin_list_reports() where content_id::text not like '00000000-0000-4000-%'),
+  2, 'the queue shows one row per reported item');
 select is((select severity::text from public.admin_list_reports() limit 1), 'high', 'High items float to the top');
 select is((select reporters from public.admin_list_reports() where content_id = '14000000-0000-4000-e000-000000000001'), 4,
   'reporters are counted per item');
