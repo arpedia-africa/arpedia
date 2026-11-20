@@ -5,6 +5,7 @@ import { routes } from './routes';
 import { drainPayments } from './routes/09/payments';
 import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
+import { drainPayouts, pollPendingPayouts } from './routes/13/earnings';
 
 const app = new Hono<AppEnv>();
 
@@ -30,8 +31,16 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11) and
-  // outbound payment calls (flow 09).
-  scheduled: (_event, env, ctx) =>
-    ctx.waitUntil(Promise.allSettled([consumeQueue(env), consumeApplicationChecks(env), drainPayments(env)])),
+  // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11), outbound
+  // payment calls (flow 09) and author payouts (flow 13); on the hour, payouts pending over 48 hours.
+  scheduled: (event, env, ctx) =>
+    ctx.waitUntil(
+      Promise.allSettled([
+        consumeQueue(env),
+        consumeApplicationChecks(env),
+        drainPayments(env),
+        drainPayouts(env),
+        ...(new Date(event.scheduledTime).getUTCMinutes() === 0 ? [pollPendingPayouts(env)] : []),
+      ]),
+    ),
 } satisfies ExportedHandler<Env>;

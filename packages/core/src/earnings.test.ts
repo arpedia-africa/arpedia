@@ -5,6 +5,7 @@ import {
   cycleBounds,
   earningKobo,
   earningLine,
+  flwTransferStatus,
   isAccountNumber,
   maskAccount,
   nameMatchScore,
@@ -117,5 +118,17 @@ describe('bank accounts', () => {
     expect(nameMatchScore('Ifeoma Nwachukwo Chinwe', legal)).toBeGreaterThanOrEqual(AUTO_VERIFY_SCORE); // one typo
     expect(nameMatchScore('Tunde Bakare', legal)).toBeLessThan(40);
     expect(nameMatchScore('', legal)).toBe(0);
+  });
+});
+
+describe('flutterwave transfer status', () => {
+  it('maps statuses and splits transient from account failures', () => {
+    expect(flwTransferStatus('NEW')).toEqual({ status: 'pending', transient: false });
+    expect(flwTransferStatus('SUCCESSFUL')).toEqual({ status: 'successful', transient: false });
+    expect(flwTransferStatus('REVERSED')?.status).toBe('reversed');
+    expect(flwTransferStatus('FAILED', 'DISBURSE FAILED: Service unavailable')?.transient).toBe(true);
+    expect(flwTransferStatus('FAILED', 'Account name does not match')?.transient).toBe(false);
+    expect(flwTransferStatus('FAILED', 'Invalid account number')?.transient).toBe(false);
+    expect(flwTransferStatus('WHATEVER')).toBeNull();
   });
 });

@@ -115,6 +115,43 @@ export function autoRetryAfterHours(attempt: number, transient: boolean): number
   return AUTO_RETRY_DELAYS_HOURS[attempt - 1] ?? null;
 }
 
+/** Account and name problems never retry on their own; anything else (bank down, timeouts) may. */
+const PERMANENT_FAILURE =
+  /account|name|invalid|dormant|blocked|restricted|closed|beneficiary|not found|does not exist/i;
+
+/**
+ * A Flutterwave transfer, as re-queried by id, mapped to our status (Flutterwave says NEW, PENDING,
+ * SUCCESSFUL, FAILED, REVERSED). `transient` marks a failure that may retry automatically (rule 20).
+ */
+export function flwTransferStatus(
+  status: string,
+  message?: string | null,
+): { status: Exclude<TransferStatus, 'queued'>; transient: boolean } | null {
+  switch (status.toUpperCase()) {
+    case 'NEW':
+    case 'PENDING':
+      return { status: 'pending', transient: false };
+    case 'SUCCESSFUL':
+      return { status: 'successful', transient: false };
+    case 'REVERSED':
+      return { status: 'reversed', transient: false };
+    case 'FAILED':
+      return { status: 'failed', transient: !PERMANENT_FAILURE.test(message ?? '') };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Flutterwave transfer webhooks carry no event id: one transfer reaching one status is one event, so a
+ * repeated webhook (or a poll that sees the same status) is a duplicate.
+ */
+export const transferEventId = (transferId: string | number, status: TransferStatus) =>
+  `flw-transfer:${transferId}:${status}`;
+
+/** Additional data an encrypted account number is bound to (rule 21). */
+export const accountAad = (authorId: string) => `bank:${authorId}`;
+
 /** Last four digits only (rule 21). */
 export function maskAccount(last4: string): string {
   return `•••• ${last4.slice(-4)}`;

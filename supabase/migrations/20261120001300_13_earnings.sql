@@ -705,7 +705,7 @@ begin
     update public.payouts set waiting_for_account = true where id = p.id;
     return jsonb_build_object('send', false, 'reason', 'account_not_verified');
   end if;
-  return jsonb_build_object('send', true, 'payout_id', p.id, 'reference', p.reference,
+  return jsonb_build_object('send', true, 'payout_id', p.id, 'author_id', p.author_id, 'reference', p.reference,
     'amount_kobo', p.amount_kobo, 'bank_code', b.bank_code,
     'account_number_enc', encode(b.account_number_enc, 'base64'), 'account_name', b.bank_account_name);
 end $$;
