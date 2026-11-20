@@ -24,9 +24,11 @@ function usePostHogTrack(): Track {
 const noop: Track = () => {};
 const useTrack: () => Track = process.env.EXPO_PUBLIC_POSTHOG_KEY ? usePostHogTrack : () => noop;
 
-// Routes that stay open in maintenance mode: books on the phone keep opening (rule 26), and the
-// kit / parity galleries used for screen checks.
-const OPEN_IN_MAINTENANCE = /^\/(book\/[^/]+\/read|read|library|kit|parity)/;
+// Kit / parity galleries used for screen checks never show a notice.
+const KIT_ROUTE = /^\/(kit|parity|gate-preview)(\/|$)/;
+// Routes that stay open in maintenance mode so books on the phone keep opening (rule 26): the
+// Library tab (flow 05) and the reader `/read/<id>` (flow 04).
+const OPEN_IN_MAINTENANCE = /^\/(library|read\/[^/]+|read\/end\/[^/]+)$/;
 
 const storeUrl = () => `market://details?id=${Application.applicationId ?? 'com.arpedia.reader'}`;
 
@@ -45,11 +47,13 @@ export function AppGate({ children }: { children: ReactNode }) {
   const accept = useAcceptPolicies(userId);
   const track = useTrack();
 
-  const forceUpdate = cfg.data?.force_update === true;
-  const maintenance =
-    !forceUpdate && cfg.data?.maintenance.on === true && !OPEN_IN_MAINTENANCE.test(pathname);
-  const policies = !forceUpdate && !maintenance ? (pending.data ?? []) : [];
-  const askPolicies = policies.length > 0 && !OPEN_IN_MAINTENANCE.test(pathname);
+  const kit = KIT_ROUTE.test(pathname);
+  const forceUpdate = !kit && cfg.data?.force_update === true;
+  const maintenanceOn = !kit && !forceUpdate && cfg.data?.maintenance.on === true;
+  const maintenance = maintenanceOn && !OPEN_IN_MAINTENANCE.test(pathname);
+  // Accept-again blocks the whole app (rule 38); held back only while maintenance is on.
+  const policies = !kit && !forceUpdate && !maintenanceOn ? (pending.data ?? []) : [];
+  const askPolicies = policies.length > 0;
 
   useOnShown(forceUpdate, () => track('force_update_shown'));
   useOnShown(maintenance, () => track('maintenance_screen_shown'));

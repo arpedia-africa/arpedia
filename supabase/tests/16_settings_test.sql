@@ -3,7 +3,7 @@
 -- versions immutable, approvals never self-approved, audit log immutable and visible by role.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(65);
+select plan(68);
 
 insert into auth.users (id, email) values
   ('16000000-0000-4000-a000-000000000001', 'sa1@arpedia.africa'),
@@ -174,10 +174,15 @@ select is(public.set_copy('unlock.confirm', 'Unlock for {credits} credits?') ->>
   'Operations admin edits remote copy');
 select throws_ok($$select public.set_copy('unlock.confirm', 'Unlock this book?')$$, 'P0001', 'missing_placeholder',
   'a text that drops a required placeholder is rejected');
+select throws_ok($$select public.set_copy('unlock.confirm', 'Unlock for credits now?')$$, 'P0001', 'missing_placeholder',
+  'the placeholder must keep its braces, not just the word');
+select is(public._try_inet('dead'), null, 'a spoofed non-address IP header is dropped, not an error');
 
 select pg_temp.as_user('16000000-0000-4000-a000-000000000001', '4 minutes');
 select throws_ok($$select public.set_config('maintenance', '{"on": true, "message": "Back in 30 minutes, books are safe."}')$$,
   'P0001', 'stepup_expired', 'maintenance mode needs a fresh code');
+select throws_ok($$select public.set_config('maintenance', '{"message": "Back in 30 minutes, books are safe."}')$$,
+  'P0001', 'bad_value', 'maintenance without on/off is rejected');
 select throws_ok($$select public.set_config('android_min_version', '"25"')$$, 'P0001', 'bad_version',
   'versions must be major.minor');
 select is(public.set_config('android_min_version', '"25.10"') #>> '{}', '25.10', 'Super admin sets the minimum version');

@@ -10,6 +10,15 @@
 -- ─── Audit: request context (rule 22) ───────────────────────────────────────
 -- write_audit now also records request id, IP, device and when two-step was verified, from the
 -- PostgREST request headers. Same signature, so every caller and grant stays as it was.
+-- The IP header is client-controlled: anything that isn't an address becomes null, never an error.
+create function public._try_inet(p text) returns inet
+language plpgsql immutable set search_path = '' as $$
+begin
+  return nullif(p, '')::inet;
+exception when others then
+  return null;
+end $$;
+
 create or replace function public.write_audit(
   p_area text,
   p_action text,
@@ -42,7 +51,7 @@ begin
   select v_uid, p.full_name, s.role, p_area, p_action, p_object_type, p_object_id,
          p_object_label, p_summary, p_before, p_after, p_reason,
          coalesce(h ->> 'x-request-id', h ->> 'cf-ray'),
-         case when v_ip ~ '^[0-9a-fA-F:.]+$' then v_ip::inet end,
+         public._try_inet(v_ip),
          left(h ->> 'user-agent', 300),
          case when v_uid is not null then public.staff_mfa_verified_at() end
   from (select 1) one
@@ -461,7 +470,8 @@ begin
       select bk.id as book_id, r.id as rev_id, r.price_credits as before, n.pages, n.price
       from public.books bk join public.book_revisions r on r.id = bk.current_revision_id
       cross join lateral public._repriced(r.pages, coalesce(v_old, v.rules), v.rules) n
-      where bk.status = 'live' and r.pages is not null
+      -- A staff price override wins over the rules, as in preview_pricing_rules.
+      where bk.status = 'live' and bk.price_override_credits is null and r.pages is not null
         and (r.price_credits is distinct from n.price or r.pages is distinct from n.pages)
     loop
       update public.book_revisions set pages = b.pages, price_credits = b.price where id = b.rev_id;
@@ -528,7 +538,7 @@ insert into public.remote_copy (key, text, required_placeholders) values
   ('paywall.title', 'Read every book, one simple plan', '{}'),
   ('paywall.subtitle', 'Pay in naira. Cancel any time in Google Play or the App Store.', '{}'),
   ('paywall.yearly_badge', 'Best value', '{}'),
-  ('unlock.confirm', 'Unlock this book for {credits} credits? You keep it while your plan is active.', '{{credits}}'),
+  ('unlock.confirm', 'Unlock this book for {credits} credits? You keep it while your plan is active.', array['{credits}']),
   ('credits.empty', 'You''re out of credits. Top up or wait for your next plan period.', '{}');
 
 -- Everything s-config shows. Super admin edits all; Operations admin edits copy and reads the rest.
@@ -575,7 +585,7 @@ begin
       perform public._consume_stepup(p_stepup, 'force_update');
     end if;
   elsif p_key = 'maintenance' then
-    if jsonb_typeof(p_value -> 'on') <> 'boolean'
+    if coalesce(jsonb_typeof(p_value -> 'on'), '') <> 'boolean'
        or char_length(trim(coalesce(p_value ->> 'message', ''))) not between 10 and 280 then
       perform public._raise('bad_value');
     end if;
@@ -1133,10 +1143,12 @@ end $$;
 create function public._mask_pii(p jsonb) returns jsonb
 language sql stable security definer set search_path = '' as $$
   select case
-    when p is null or jsonb_typeof(p) <> 'object' or public.has_permission('edit_readers') then p
-    else (select jsonb_object_agg(k, case when k in ('email', 'phone', 'full_name', 'name', 'bank_account',
+    when p is null or jsonb_typeof(p) not in ('object', 'array') or public.has_permission('edit_readers') then p
+    when jsonb_typeof(p) = 'array' then
+      (select coalesce(jsonb_agg(public._mask_pii(v) order by i), '[]') from jsonb_array_elements(p) with ordinality e(v, i))
+    else (select coalesce(jsonb_object_agg(k, case when k in ('email', 'phone', 'full_name', 'name', 'bank_account',
             'account_number', 'address', 'ip') and jsonb_typeof(v) = 'string' then to_jsonb('••••'::text)
-            else public._mask_pii(v) end) from jsonb_each(p) e(k, v))
+            else public._mask_pii(v) end), '{}') from jsonb_each(p) e(k, v))
   end
 $$;
 

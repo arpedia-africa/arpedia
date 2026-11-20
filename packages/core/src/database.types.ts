@@ -2429,6 +2429,9 @@ isOneToOne: false
 "_threshold":
 { Args: { "p_key": string }; Returns: number
                            },
+"_try_inet":
+{ Args: { "p": string }; Returns: unknown
+                           },
 "_uid":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
