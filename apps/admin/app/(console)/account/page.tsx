@@ -1,18 +1,19 @@
+import type { Metadata } from 'next';
 import { getStaff, roleLabel } from '@/lib/staff';
+import { serverSupabase } from '@/lib/supabase/server';
 import { signOut } from '../../sign-in/actions';
+import { AccountView, type Account } from './client';
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(p => p[0]!.toUpperCase())
-    .join('');
+export const metadata: Metadata = { title: 'My account · Arpedia Admin' };
 
-/** My account (s-account). Flow 00 ships Profile and Sign out; two-step, sessions and alerts come in flow 16. */
+/** My account (s-account): profile, two-step, active sessions, alerts and password. */
 export default async function AccountPage() {
   const staff = await getStaff();
   if (!staff) return null;
+  const supabase = await serverSupabase();
+  const { data, error } = await supabase.rpc('get_my_account');
+  if (error) throw error;
+  const account = data as unknown as Account;
   return (
     <section className="screen enter">
       <div className="band">
@@ -27,24 +28,7 @@ export default async function AccountPage() {
           </form>
         </div>
       </div>
-      <div className="page page--narrow">
-        <div className="panel">
-          <div className="panel__head">
-            <h2>Profile</h2>
-          </div>
-          <div className="panel__body">
-            <div className="row">
-              <span className="av lg g">{initials(staff.name)}</span>
-              <span className="stack s4">
-                <b>{staff.name}</b>
-                <span className="muted">{staff.email}</span>
-              </span>
-              <span className="grow" />
-              <span className="muted">{roleLabel[staff.role]}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AccountView account={account} id={staff.id} roleName={roleLabel[staff.role]} mustKeepTwoStep={staff.role === 'super_admin' || staff.role === 'finance'} />
     </section>
   );
 }
