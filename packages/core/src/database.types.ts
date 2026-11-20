@@ -1735,32 +1735,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"reports_03": {
-                  Row: {
-                    "created_at": string,"id": string,"note": string | null,"reason": string,"reporter_id": string,"status": string,"target_id": string,"target_type": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "created_at"?: string,"id"?: string,"note"?: string | null,"reason": string,"reporter_id": string,"status"?: string,"target_id": string,"target_type": string
-                  }
-                  Update: {
-                    "created_at"?: string,"id"?: string,"note"?: string | null,"reason"?: string,"reporter_id"?: string,"status"?: string,"target_id"?: string,"target_type"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "reports_03_reporter_id_fkey"
-      columns: ["reporter_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "reports_03_reporter_id_fkey"
-      columns: ["reporter_id"]
-isOneToOne: false
-      referencedRelation: "public_profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"review_likes": {
                   Row: {
                     "created_at": string,"review_id": string,"user_id": string
@@ -2614,7 +2588,7 @@ isOneToOne: false
 { Args: { "p_author": string }; Returns: string
                            },
 "_report":
-{ Args: { "p_note": string,"p_reason": string,"p_target": string,"p_type": string }; Returns: string
+{ Args: { "p_book": string,"p_details": string,"p_reason": Database["public"]['Enums']["report_reason"],"p_snapshot": Json,"p_target": string,"p_type": Database["public"]['Enums']["report_content_type"],"p_user": string }; Returns: string
                            },
 "_require_money_staff":
 { Args: Record<PropertyKey, never>; Returns: undefined
