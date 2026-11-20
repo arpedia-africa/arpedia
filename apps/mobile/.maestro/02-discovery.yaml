@@ -5,8 +5,8 @@
 # All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/02-discovery.yaml
 appId: com.arpedia.reader
 ---
-# On MIUI the typed email is sometimes lost (the field shows its placeholder again), so check it
-# and start over if it is missing.
+# On MIUI text typed while the keyboard is still sliding in is sometimes lost (the field shows its
+# placeholder again), so wait for it after each tap and start over if log in doesn't reach Home.
 - retry:
     maxRetries: 2
     commands:
@@ -16,22 +16,24 @@ appId: com.arpedia.reader
           visible: 'Welcome back'
           timeout: 30000
       - tapOn: 'you@example.com'
+      - waitForAnimationToEnd:
+          timeout: 2000
       - inputText: 'ngozi@example.com'
       - tapOn: 'Your password'
+      - waitForAnimationToEnd:
+          timeout: 2000
       - inputText: 'arpedia-local'
       # Tap the heading to drop the keyboard: on MIUI hideKeyboard sends Back, which closes the app
       # when the keyboard is already down.
       - tapOn: 'Welcome back'
-      - assertVisible: 'ngozi@example.com'
-- tapOn: 'Log in'
-- tapOn:
-    text: 'Don.t allow'
-    optional: true
-
-# s-home
-- extendedWaitUntil:
-    visible: 'Trending this week'
-    timeout: 30000
+      - tapOn: 'Log in'
+      - tapOn:
+          text: 'Don.t allow'
+          optional: true
+      # s-home
+      - extendedWaitUntil:
+          visible: 'Trending this week'
+          timeout: 30000
 - assertVisible: 'Good (morning|afternoon|evening), Ngozi\.'
 - takeScreenshot: disc-${WIDTH}-home
 - tapOn: 'Harmattan Letters by .*'
@@ -76,7 +78,12 @@ appId: com.arpedia.reader
     direction: UP
     waitToSettleTimeoutMs: 1000
     timeout: 60000
-- tapOn: 'Search books, authors, topics'
+# The first tap after a fling only stops the scroll, so let it settle and retry the tap.
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: 'Search books, authors, topics'
+    retryTapIfNoChange: true
 - extendedWaitUntil:
     visible: 'Trending searches'
     timeout: 15000
