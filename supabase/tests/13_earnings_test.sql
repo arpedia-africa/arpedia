@@ -6,6 +6,18 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(58);
 
+-- The demo seed (seeds/13_earnings.sql) closes the same months: start from no earnings data.
+set local session_replication_role = replica;
+delete from public.payout_events;
+delete from public.payouts;
+delete from public.payout_runs;
+delete from public.author_earnings;
+delete from public.earning_exclusions;
+delete from public.earning_cycles;
+delete from public.author_bank_accounts;
+delete from public.credit_ledger where idempotency_key like 'seed13:%';
+set local session_replication_role = origin;
+
 -- ─── Fixtures ───────────────────────────────────────────────────────────────
 -- 1 author A (verified bank), 2 author B (below minimum), 3 author C (no bank), 4 reader,
 -- 5 finance, 6 and 7 super admins.
