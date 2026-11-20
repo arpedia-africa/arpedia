@@ -53,22 +53,22 @@ begin
   s2 := public._cycle_start(m2);
 
   -- ─── Bank accounts ─────────────────────────────────────────────────────────
-  insert into public.author_bank_accounts (author_id, bank_code, bank_name, account_last4, account_number_enc,
+  insert into public.author_bank_accounts (id, author_id, bank_code, bank_name, account_last4, account_number_enc,
     bank_account_name, legal_name, match_score, status, verified_at, payouts_resume_at, created_at)
   values
-    (ifeoma, '058', 'GTBank', '4471',
+    ('00000000-0000-4000-e131-000000000001', ifeoma, '058', 'GTBank', '4471',
      '\x0c6f4c617c4b0126a4ef365cd09e99a5222f8f532d07efd3f22711c2e21089f4edfd1b5e5705',
      'NWACHUKWU IFEOMA C.', 'Ifeoma Chinwe Nwachukwu', 97, 'verified', s1 - interval '200 days',
      s1 - interval '198 days', s1 - interval '200 days'),
-    (chioma, '044', 'Access Bank', '2096',
+    ('00000000-0000-4000-e131-000000000002', chioma, '044', 'Access Bank', '2096',
      '\xcba7f457a8688b3eba05a7dcc9e39ff7901f8d82214f99524f5b0ebe946af29bc08c8f67d3ae',
      'OKAFOR CHIOMA GRACE', 'Chioma Grace Okafor', 100, 'verified', s1 - interval '150 days',
      s1 - interval '148 days', s1 - interval '150 days'),
-    (tolu, '058', 'GTBank', '1187',
+    ('00000000-0000-4000-e131-000000000003', tolu, '058', 'GTBank', '1187',
      '\xa0907f9c39ce14d5be9a37b18b9dbd202dcfbf8b87d1527a125065ba8e23c3b7776357e222ae',
      'ADEBAYO TOYIN MARY', 'Tolulope Samson Adebayo', 61, 'replaced', s1 - interval '90 days',
      s1 - interval '88 days', s1 - interval '90 days'),
-    (tolu, '044', 'Access Bank', '9023',
+    ('00000000-0000-4000-e131-000000000004', tolu, '044', 'Access Bank', '9023',
      '\x560af3bfaaa8f3199863e5d4b392ce00122aad3a7ce0f539ff63fb774862494aa3adb9d57271',
      'ADEBAYO TOLULOPE S.', 'Tolulope Samson Adebayo', 82, 'needs_review', null,
      now() - interval '10 days' + interval '48 hours', now() - interval '10 days');
@@ -105,7 +105,8 @@ begin
           s2 + interval '21 days 4 minutes');
 
   -- ─── Two months ago: closed, prepared, released and paid; Chioma's transfer failed ─
-  insert into public.earning_cycles (month, closed_at) values (m1, public._cycle_end(m1) + interval '5 minutes');
+  insert into public.earning_cycles (id, month, closed_at)
+  values ('00000000-0000-4000-e130-000000000001', m1, public._cycle_end(m1) + interval '5 minutes');
   perform public._close_cycle(m1);
   select * into c1 from public.earning_cycles where month = m1;
   update public.earning_cycles set status = 'prepared', prepared_by = chinedu, prepared_at = c1.payout_date - interval '4 days',
@@ -116,9 +117,10 @@ begin
   for e in select ae.*, b.id as account_id from public.author_earnings ae
            join public.author_bank_accounts b on b.author_id = ae.author_id and b.status = 'verified'
            where ae.cycle_id = c1.id and ae.status = 'payable' loop
-    insert into public.payouts (run_id, author_earning_id, author_id, bank_account_id, amount_kobo, attempt, reference,
+    insert into public.payouts (id, run_id, author_earning_id, author_id, bank_account_id, amount_kobo, attempt, reference,
       flutterwave_transfer_id, status, failure_reason, queued_at, sent_at, settled_at)
-    values (v_run, e.id, e.author_id, e.account_id, e.payable_kobo, 1, public._payout_reference(m1, e.author_id, 1),
+    values (case when e.author_id = chioma then '00000000-0000-4000-e132-000000000001'::uuid else gen_random_uuid() end,
+      v_run, e.id, e.author_id, e.account_id, e.payable_kobo, 1, public._payout_reference(m1, e.author_id, 1),
       'seed-' || left(e.author_id::text, 4) || right(e.author_id::text, 4),
       case when e.author_id = chioma then 'failed' else 'successful' end::public.payout_status,
       case when e.author_id = chioma then 'Account name doesn''t match' end,
@@ -136,6 +138,7 @@ begin
   where id = c1.id;
 
   -- ─── Last month: closed on the 1st, on its hold (Tolu's carry comes in) ───
-  insert into public.earning_cycles (month, closed_at) values (m2, public._cycle_end(m2) + interval '5 minutes');
+  insert into public.earning_cycles (id, month, closed_at)
+  values ('00000000-0000-4000-e130-000000000002', m2, public._cycle_end(m2) + interval '5 minutes');
   perform public._close_cycle(m2);
 end $$;

@@ -6,9 +6,10 @@ import { totp } from './totp.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** API_URL, ANON_KEY… of the running local Supabase stack. */
+/** API_URL, ANON_KEY… of the running local Supabase stack (SUPABASE_WORKDIR=.db2 for the second one). */
 export function localEnv() {
-  const out = execSync('pnpm -s exec supabase status -o env', {
+  const wd = process.env.SUPABASE_WORKDIR;
+  const out = execSync(`pnpm -s exec supabase status -o env${wd ? ` --workdir "${wd}"` : ''}`, {
     cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],

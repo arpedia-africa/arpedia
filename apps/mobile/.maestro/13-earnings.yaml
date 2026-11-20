@@ -1,0 +1,58 @@
+# Flow 13: the seeded author Ifeoma opens Earnings (a paid month and a month on its hold, from
+# supabase/seeds/13_earnings.sql) and her Payout account, then opens the bank change sheet and
+# checks a number (the local api Worker resolves names without Flutterwave keys) without saving.
+# Needs the local stack (Supabase + api Worker) behind the app, seeded with `pnpm db:reset`.
+# Run: maestro test apps/mobile/.maestro/13-earnings.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/13-earnings.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ifeoma@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Sign in'
+- extendedWaitUntil:
+    visible: 'Home'
+    timeout: 30000
+
+# s-studio-royalties: the paid month shows Paid, last month shows its release date
+- openLink: arpedia://studio/earnings
+- extendedWaitUntil:
+    visible: 'Earnings'
+    timeout: 15000
+- extendedWaitUntil:
+    visible: 'Paid'
+    timeout: 15000
+- assertVisible: 'Releases .*'
+- assertVisible: '.*credits × ₦1.60'
+- takeScreenshot: earnings-${WIDTH}-royalties
+
+# s-studio-payout: verified GTBank account
+- openLink: arpedia://studio/payout
+- extendedWaitUntil:
+    visible: 'Payout account'
+    timeout: 15000
+- assertVisible: 'GTBank ···· 4471'
+- assertVisible: 'Verified'
+- takeScreenshot: earnings-${WIDTH}-payout
+
+# Bank change sheet: pick a bank, type a number, the bank's name shows before saving
+- tapOn: 'Change account'
+- extendedWaitUntil:
+    visible: 'Change payout account'
+    timeout: 15000
+- tapOn: 'Access Bank'
+- tapOn: '10 digits'
+- inputText: '0123456789'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Name on the account'
+    timeout: 15000
+- assertVisible: 'Changing account pauses payouts for 48 hours for safety.'
+- takeScreenshot: earnings-${WIDTH}-change

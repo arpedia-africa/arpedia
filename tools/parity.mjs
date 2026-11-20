@@ -681,6 +681,31 @@ try {
           { x: 248, y: 0, width: W - 248, height: 60 },
         ],
       },
+      // Flow 13. Shell and page header gated; tables and panels hold the seeded months
+      // (supabase/seeds/13_earnings.sql), compared by eye. Overlays gate the shell and top bar.
+      ...Object.fromEntries(
+        [
+          ['royalties', '/royalties', 150],
+          ['royalty-cycle', '/royalties/00000000-0000-4000-e130-000000000002', 150],
+          ['royalty-settings', '/royalties/settings', 150],
+          ['payouts', '/payouts', 150],
+          ['bank-accounts', '/bank-accounts', 150],
+          ['bank-account', '/bank-accounts/00000000-0000-4000-e131-000000000004', 150],
+          ['author-payout', '/authors/00000000-0000-4000-a000-000000000002/payout', 150],
+          ['royalty-release', '/royalties/00000000-0000-4000-e130-000000000002/release', 60],
+          ['payout-retry', '/payouts/00000000-0000-4000-e132-000000000001/retry', 60],
+        ].map(([id, path, head]) => [
+          id,
+          {
+            path,
+            as: 'amaka@arpedia.africa',
+            regions: [
+              { x: 0, y: 0, width: 248, height: H },
+              { x: 248, y: 0, width: W - 248, height: head },
+            ],
+          },
+        ]),
+      ),
     };
     for (const id of ids) {
       const p = pages[id];

@@ -2,24 +2,49 @@
   "max": 2,
   "results": [
     {
-      "name": "admin-transactions",
+      "name": "admin-royalties",
       "pct": 0.5385572139303483,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-transactions.png"
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-royalties.png"
     },
     {
-      "name": "admin-user-credits",
-      "pct": 3.533582089552239,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-user-credits.png"
+      "name": "admin-royalty-cycle",
+      "pct": 0.9104477611940298,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-royalty-cycle.png"
     },
     {
-      "name": "admin-refunds",
+      "name": "admin-royalty-settings",
       "pct": 0.5385572139303483,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-refunds.png"
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-royalty-settings.png"
     },
     {
-      "name": "admin-subscriptions",
-      "pct": 0.5385572139303483,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-subscriptions.png"
+      "name": "admin-payouts",
+      "pct": 0.6644278606965174,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-payouts.png"
+    },
+    {
+      "name": "admin-bank-accounts",
+      "pct": 0.6651741293532338,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-bank-accounts.png"
+    },
+    {
+      "name": "admin-bank-account",
+      "pct": 0.6425373134328358,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-bank-account.png"
+    },
+    {
+      "name": "admin-author-payout",
+      "pct": 1.2251243781094527,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-author-payout.png"
+    },
+    {
+      "name": "admin-royalty-release",
+      "pct": 0.7345955483170467,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-royalty-release.png"
+    },
+    {
+      "name": "admin-payout-retry",
+      "pct": 0.7345955483170467,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-payout-retry.png"
     }
   ]
 }
