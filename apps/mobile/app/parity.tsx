@@ -16,8 +16,10 @@ import {
   GroupLabel,
   Hero,
   IconButton,
+  KeyValue,
   Pill,
   TabBar,
+  Text,
   ThemeProvider,
   Toggle,
   THEMES,
@@ -64,6 +66,16 @@ import { DiscoverHero, DiscoverRow, TypeChips, type DiscoverRowView } from '../f
 import { Bubble, ComHead, ComPin, Composer, DayMarker, type BubbleView } from '../features/06/ChatViews';
 import { OptionList, ReactionRow, ReportBody } from '../features/06/SheetViews';
 import { BlockedRow } from '../features/06/BlockedViews';
+import { AuthorView, type AuthorModel, type PostCardView } from '../features/08/AuthorViews';
+import { DmComposer, DmHead, DmIntro } from '../features/08/DmViews';
+import {
+  CommentBox,
+  CommentItem,
+  CommentsHead,
+  PostBody,
+  PostHead,
+  type CommentView,
+} from '../features/08/PostViews';
 
 const PAGES = [
   'kit-a',
@@ -89,6 +101,11 @@ const PAGES = [
   's-msg-actions',
   's-report',
   's-blocked',
+  's-author',
+  's-post',
+  's-author-community',
+  's-dm',
+  's-dm-confirm',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -171,6 +188,8 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <View>
           {FLOW06.has(page) ? (
             <Flow06 page={page} />
+          ) : FLOW08.has(page) ? (
+            <Flow08 page={page} />
           ) : page.startsWith('s-book') || page.includes('review') ? (
             <Flow03 page={page} />
           ) : (
@@ -870,6 +889,253 @@ function Flow06({ page }: { page: Page }) {
         />
       )}
     </View>
+  );
+}
+
+// ─── Flow 08 screens with the prototype's values (tools/parity/s-*.html) ────
+const FLOW08 = new Set<Page>(['s-author', 's-post', 's-author-community', 's-dm', 's-dm-confirm']);
+
+const AUTHOR: AuthorModel = {
+  name: 'Ifeoma Nwachukwu',
+  avatarUrl: null,
+  tone: 'm',
+  meta: '3 books · 12 posts · Enugu, Nigeria',
+  bio: 'Christian fiction from Enugu. Writing letters, prayers and second chances. Former banker. Tea drinker.',
+  isMe: false,
+  following: true,
+  messageLabel: 'Message · 5 cr',
+  blockedByMe: false,
+  gone: false,
+  community: { name: "Ifeoma's Readers", sub: 'Joined · public community · 860 members', joined: true },
+  stats: { followers: '3.4k', readers: '5.8k', rating: '4.7★' },
+  postCount: 12,
+  bookCount: 3,
+  about: { bio: null, rows: [] },
+};
+const AUTHOR_POSTS: PostCardView[] = [
+  {
+    id: 'p1',
+    time: '2 days ago',
+    title: 'Why I wrote the letters first',
+    excerpt:
+      'Before there was a story there were twelve letters in a notebook my late uncle gave me. I want to tell you about the third one…',
+    likes: '214',
+    comments: '38',
+  },
+  {
+    id: 'p2',
+    time: '1 week ago',
+    title: 'Chapter 12 is with my editor',
+    excerpt:
+      'Thank you for every message about the gate man. I read every one. Chapter 12 answers more than you think.',
+    likes: '482',
+    comments: '61',
+  },
+];
+
+const comment = (
+  v: Pick<CommentView, 'id' | 'name' | 'tone' | 'time' | 'text'> & Partial<CommentView>,
+): CommentView => ({
+  avatarUrl: null,
+  isAuthor: false,
+  muted: false,
+  review: false,
+  status: null,
+  canReply: true,
+  canMenu: true,
+  reply: false,
+  ...v,
+});
+const COMMENTS: CommentView[] = [
+  comment({
+    id: 'c1',
+    name: 'Chioma Okafor',
+    tone: 'o',
+    time: '1 day ago',
+    text: "Please publish the other nine letters as a short book! I'd unlock it today.",
+  }),
+  comment({
+    id: 'c2',
+    name: 'Ifeoma',
+    tone: 'm',
+    time: '1 day ago',
+    text: 'Working on it, Chioma 🙂',
+    isAuthor: true,
+  }),
+  comment({
+    id: 'c3',
+    name: 'Tobi Ladipo',
+    tone: 't',
+    time: '20 h ago',
+    text: 'The line about the biscuit tin. Wow.',
+  }),
+  comment({
+    id: 'c4',
+    name: 'Hauwa Danjuma',
+    tone: 'k',
+    time: '5 h ago',
+    text: 'Greetings from Kano. You got the harmattan dust exactly right.',
+  }),
+];
+
+const AUTHOR_CHAT: BubbleView[] = [
+  msg({
+    key: 'a1',
+    senderName: 'Ifeoma Nwachukwu',
+    senderTone: 'm',
+    author: true,
+    body: 'A small treat: I will answer three questions on Friday. Drop them here 👇🏾',
+    time: '10:02',
+    reactions: '❤️ 41 · 🙏 12',
+  }),
+  msg({
+    key: 'a2',
+    senderName: 'Emeka A.',
+    senderTone: 'r',
+    body: 'Will there be a sequel for the twins?',
+    time: '10:15',
+  }),
+];
+const DM_CHAT: BubbleView[] = [
+  msg({
+    key: 'd1',
+    me: true,
+    senderName: 'Ngozi',
+    body: "Hi Ifeoma! Is the man who fixes the gate the same one from the third letter? I can't sleep 😅",
+    time: '09:14 · 5 credits',
+  }),
+  msg({
+    key: 'd2',
+    senderName: 'Ifeoma Nwachukwu',
+    senderTone: 'm',
+    body: 'Thank you Ngozi! Chapter 12 will answer that 😊 Keep reading.',
+    time: '11:20',
+  }),
+];
+
+/** `.chat` after a `.com-intro`: gap 10, padding 14 12. */
+function ChatBody({ messages }: { messages: BubbleView[] }) {
+  const { c, s } = useTheme();
+  return (
+    <View style={{ gap: s(10), paddingVertical: s(14), paddingHorizontal: s(12), backgroundColor: c.white }}>
+      <DayMarker label="Today" />
+      {messages.map((m) => (
+        <Bubble key={m.key} m={m} />
+      ))}
+    </View>
+  );
+}
+
+function Flow08({ page }: { page: Page }) {
+  const { s } = useTheme();
+  if (page === 's-dm-confirm')
+    return (
+      <SheetBody>
+        <Text variant="sm" color="ink2">
+          Messages to this author cost 5 credits each. They're private: only Ifeoma sees them. Their replies
+          are free.
+        </Text>
+        <KeyValue
+          rows={[
+            { k: 'Your balance', v: '840 credits' },
+            { k: 'Per message', v: '5 credits' },
+          ]}
+        />
+        <Btn label="Start private chat" block onPress={noop} />
+      </SheetBody>
+    );
+  if (page === 's-post')
+    return (
+      <>
+        <PostHead
+          name="Ifeoma Nwachukwu"
+          tone="m"
+          status="Ifeoma Nwachukwu · 2 days ago"
+          onBack={noop}
+          onShare={noop}
+        />
+        <View style={{ paddingBottom: s(28) }}>
+          <PostBody
+            title="Why I wrote the letters first"
+            body="Before there was a story there were twelve letters in a notebook my late uncle gave me. I wrote one every harmattan for twelve years. When I finally wrote the novel, the letters were already there, waiting for someone to find them in a biscuit tin."
+            likes="214 likes"
+            comments="38 comments"
+            liked={false}
+            onLike={noop}
+            onComments={noop}
+          />
+          <CommentBox
+            value=""
+            onChange={noop}
+            onSend={noop}
+            sendOff={false}
+            placeholder="Write a thoughtful comment…"
+            editable
+          />
+          <CommentsHead total="38 total" />
+          {COMMENTS.map((v) => (
+            <CommentItem key={v.id} v={v} onReply={noop} onMenu={noop} />
+          ))}
+        </View>
+      </>
+    );
+  if (page === 's-author-community' || page === 's-dm') {
+    const dm = page === 's-dm';
+    return (
+      <>
+        <DmHead
+          name={dm ? 'Ifeoma Nwachukwu' : "Ifeoma's Readers"}
+          tone="m"
+          status={dm ? 'Private · Author · usually replies within a day' : 'Public community · 860 members'}
+          onBack={noop}
+          onMore={dm ? noop : undefined}
+          onProfile={dm ? undefined : noop}
+          square={!dm}
+        />
+        <DmIntro
+          name="Ifeoma Nwachukwu"
+          tone="m"
+          avatarUrl={null}
+          sub={dm ? undefined : 'Public community · hosted by this author'}
+          notice={
+            dm
+              ? 'Messages to this author cost 5 credits each. Private, only the author sees them.'
+              : 'Public community chat for readers following this author. Messages here are free.'
+          }
+          onProfile={noop}
+        />
+        <ChatBody messages={dm ? DM_CHAT : AUTHOR_CHAT} />
+        <DmComposer
+          value=""
+          onChange={noop}
+          onSend={noop}
+          price={dm ? '5 credits' : undefined}
+          placeholder={dm ? undefined : 'Message the community…'}
+          max={1000}
+          sending={false}
+          bottom={s(24)}
+        />
+      </>
+    );
+  }
+  return (
+    <AuthorView
+      m={AUTHOR}
+      a={{
+        onBack: noop,
+        onShare: noop,
+        onFollow: noop,
+        onMessage: noop,
+        onTip: noop,
+        onCommunity: noop,
+        onPost: noop,
+        onBook: noop,
+      }}
+      tab="posts"
+      onTab={noop}
+      posts={AUTHOR_POSTS}
+      books={null}
+    />
   );
 }
 

@@ -170,12 +170,16 @@ export function DmIntro({
   );
 }
 
-/** `.composer` without the highlight button: round field, the price beside Send (rule 24), `.send`. */
+/**
+ * `.composer` without the highlight button: round field, the price beside Send (rule 24), `.send`.
+ * s-author-community uses it too (free messages: no price).
+ */
 export function DmComposer({
   value,
   onChange,
   onSend,
   price,
+  placeholder = 'Write a private message…',
   max,
   sending,
   bottom,
@@ -183,8 +187,9 @@ export function DmComposer({
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
-  /** "5 credits" */
-  price: string;
+  /** "5 credits"; omitted where messages are free. */
+  price?: string;
+  placeholder?: string;
   max: number;
   sending: boolean;
   bottom: number;
@@ -221,7 +226,7 @@ export function DmComposer({
         <TextInput
           value={value}
           onChangeText={onChange}
-          placeholder="Write a private message…"
+          placeholder={placeholder}
           placeholderTextColor={c.ink3}
           selectionColor={c.org}
           cursorColor={c.org}
@@ -239,15 +244,17 @@ export function DmComposer({
           }}
         />
       </View>
-      <Text variant="xs" weight={600} color="ink2" oneLine>
-        {price}
-      </Text>
+      {price ? (
+        <Text variant="xs" weight={600} color="ink2" oneLine>
+          {price}
+        </Text>
+      ) : null}
       <Press
         onPress={onSend}
         disabled={!canSend}
         pressScale={0.9}
         accessibilityRole="button"
-        accessibilityLabel={`Send for ${price}`}
+        accessibilityLabel={price ? `Send for ${price}` : 'Send'}
         accessibilityState={{ disabled: !canSend, busy: sending }}
         style={{
           width: s(44),

@@ -8,6 +8,7 @@ import { EmptyState, Sheet, Text, useBottomInset, useTheme, useToast } from '@ar
 import {
   chatTime,
   dayLabel,
+  MESSAGE_MAX,
   memberCount,
   postBlockCopy,
   sendErrorCopy,
@@ -21,7 +22,6 @@ import {
   Bubble,
   ChatSkeleton,
   ComPin,
-  Composer,
   ComposerNote,
   DayMarker,
   type BubbleView,
@@ -43,7 +43,7 @@ import {
   useMergedMessages,
 } from '../../../features/06/chat';
 import { toneFor } from '../../../features/06/data';
-import { DmHead, DmIntro } from '../../../features/08/DmViews';
+import { DmComposer, DmHead, DmIntro } from '../../../features/08/DmViews';
 import { useAuthorProfile } from '../../../features/08/data';
 
 type Item = { key: string; day: string } | { key: string; bubble: BubbleView; msg?: ChatMessage };
@@ -275,14 +275,17 @@ export default function AuthorCommunity() {
   const hostName = a?.name ?? g?.name ?? '';
   const intro = (
     <>
-      <DmIntro
-        name={hostName}
-        tone={avatarTone(authorId || gid)}
-        avatarUrl={a?.avatar_url ?? null}
-        sub="Public community · hosted by this author"
-        notice="Public community chat for readers following this author. Messages here are free."
-        onProfile={profile}
-      />
+      {/* .com-intro sits outside .chat: undo the list's 12px sides; 6 + 4 + gap 10 = .chat's 14 top. */}
+      <View style={{ marginHorizontal: -s(12), marginBottom: s(4) }}>
+        <DmIntro
+          name={hostName}
+          tone={avatarTone(authorId || gid)}
+          avatarUrl={a?.avatar_url ?? null}
+          sub="Public community · hosted by this author"
+          notice="Public community chat for readers following this author. Messages here are free."
+          onProfile={profile}
+        />
+      </View>
       {history.isPending ? (
         <ChatSkeleton />
       ) : history.isError && !history.data ? (
@@ -403,12 +406,14 @@ export default function AuthorCommunity() {
               bottom={bottom}
             />
           ) : (
-            <Composer
+            // s-author-community's composer has no highlight button.
+            <DmComposer
               value={text}
               onChange={setText}
               onSend={send}
-              onPlus={() => toast({ message: 'Share a highlight from the reader.' })}
               placeholder="Message the community…"
+              max={MESSAGE_MAX}
+              sending={false}
               bottom={bottom}
             />
           )}

@@ -352,13 +352,16 @@ function Thread({
             keyExtractor={(i) => i.key}
             ListHeaderComponent={
               <>
-                <DmIntro
-                  name={t.author_name}
-                  tone={avatarTone(authorId)}
-                  avatarUrl={t.author_avatar}
-                  notice={`Messages to this author cost ${price} each. Private, only the author sees them.`}
-                  onProfile={profile}
-                />
+                {/* .com-intro sits outside .chat: undo the list's 12px sides; 6 + 4 + gap 10 = .chat's 14 top. */}
+                <View style={{ marginHorizontal: -s(12), marginBottom: s(4) }}>
+                  <DmIntro
+                    name={t.author_name}
+                    tone={avatarTone(authorId)}
+                    avatarUrl={t.author_avatar}
+                    notice={`Messages to this author cost ${price} each. Private, only the author sees them.`}
+                    onProfile={profile}
+                  />
+                </View>
                 {history.isPending ? (
                   <ChatSkeleton />
                 ) : history.isError && !history.data ? (
