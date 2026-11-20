@@ -11,7 +11,7 @@ export {
 } from './theme';
 export { displayFonts, fontFamily } from './fonts';
 export { OnHero, useOnHero } from './hero';
-export { Text, type TextProps } from './Text';
+export { Text, androidFontSize, androidInputShift, type TextProps } from './Text';
 export { Icon, type IconName, type IconProps, type IconSize } from './Icon';
 export { Press, type PressProps } from './Pressable';
 export { Arrive, useDrift, useFill, ease, easeIO } from './motion';
