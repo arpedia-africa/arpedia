@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Run a Maestro flow on the connected emulator at each check width (CLAUDE.md: 320, 360, 375dp)
+// Run a Maestro flow on the connected emulator at each check width (CLAUDE.md: 320 and 375dp; 360 dropped 21 Nov)
 // by changing the display density, then restore it. Screenshots land in the current directory.
-//   node tools/maestro-widths.mjs apps/mobile/.maestro/00-kit.yaml [320,360,375]
+//   node tools/maestro-widths.mjs apps/mobile/.maestro/00-kit.yaml [320,375]
 //   Device: --serial or ANDROID_SERIAL. CLI: MAESTRO, else .shots/maestro/bin (unzipped release), else `maestro` on PATH.
 //   Other --flags pass through to `maestro test`. MIUI (owner's phone): install the driver once (its
 //   "Install via USB" prompt needs a tap), allow it to start activities from the background
@@ -18,7 +18,7 @@ const serial = si >= 0 ? args.splice(si, 2)[1] : process.env.ANDROID_SERIAL;
 // Other --flags go to `maestro test` (e.g. --no-reinstall-driver on MIUI, see the header).
 const extra = args.filter((a) => a.startsWith('--')).join(' ');
 const [flow, widthArg] = args.filter((a) => !a.startsWith('--'));
-const widths = (widthArg ?? '375,360,320').split(',').map(Number);
+const widths = (widthArg ?? '375,320').split(',').map(Number);
 if (!flow) {
   console.error('usage: node tools/maestro-widths.mjs <flow.yaml> [widths] [--serial <serial>]');
   process.exit(1);
