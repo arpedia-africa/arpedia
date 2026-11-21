@@ -232,7 +232,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
             <Flow02 page={page} />
           ) : FLOW06.has(page) ? (
             <Flow06 page={page} />
-          ) : page.startsWith('s-book') || page.includes('review') ? (
+          ) : page.startsWith('s-book') || page === 's-reviews' || page === 's-write-review' ? (
             <Flow03 page={page} />
           ) : (
             <Flow01 page={page} />
