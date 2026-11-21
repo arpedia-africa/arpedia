@@ -105,6 +105,13 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 
 **Lesson:** with AI builders, the bottleneck moves to the physical device. Plan device time (a second test phone, overnight runs) as carefully as code.
 
+### 20–21 Nov night — two devices, then a full disk
+- **Two device builders** (owner request, 23:10): `build-loop.ps1 -PhoneOnly -Device <serial>`, one loop per device. Each owns `dev-<serial>.lock`, claims its PR with `pr-<n>.lock`, and the phone builder uses the second database with `adb reverse` mapping the app's ports (55321, 8787, 8788) to the second stack's. Also set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`: the CLI cut long Maestro runs off after 10 minutes.
+- **Emulator window closed** (~00:05); restarted, apps and Maestro driver survived.
+- **Disk full (~02:20 → 03:45):** C: had 0.24 GB left and adb hung, so both builders sat idle for ~1.5 h. Cause: Maestro copies its ~90 MB driver APK into the temp folder on every run (`tmp<digits>.apk`) and never deletes it. Deleting them plus stale temp files freed 19.7 GB; `maestro-widths.mjs` now cleans them up after each run.
+
+**Lessons:** watch disk as well as memory; test tools leave files behind. A headless builder that can't kill processes needs a human (or a watchdog) when adb hangs.
+
 ---
 
 ## 4. Lessons so far (for the guide)
