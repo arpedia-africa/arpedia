@@ -5,7 +5,7 @@
 export const GOAL_OPTIONS = [6, 12, 24, 52] as const;
 export const GOAL_MIN = 1;
 export const GOAL_MAX = 365;
-export const BIO_MAX = 160;
+export const PROFILE_BIO_MAX = 160;
 /** Name changes allowed per 30 days (rule 28 default). */
 export const NAME_CHANGES_PER_30_DAYS = 3;
 /** Devices that may hold downloads (rule 31). */

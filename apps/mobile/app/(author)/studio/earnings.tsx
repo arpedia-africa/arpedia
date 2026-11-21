@@ -1,0 +1,62 @@
+import { useEffect } from 'react';
+import { router } from 'expo-router';
+import { Screen, type KeyValueRow } from '@arpedia/ui';
+import { formatKobo } from '@arpedia/core';
+import { isNetworkError, useSession } from '../../../features/01/session';
+import { useTrack } from '../../../features/11/analytics';
+import { monthName, num, payoutOf, useStudioEarnings, type AuthorMonth } from '../../../features/11/studio';
+import { StudioEarningsView, type PayoutRow } from '../../../features/11/StudioViews';
+
+/** s-studio-royalties: this month split into Unlock all and Pay as you read, payout history (rule 27). */
+export default function StudioEarnings() {
+  const track = useTrack();
+  const uid = useSession()?.user.id;
+  const q = useStudioEarnings(uid);
+  useEffect(() => track('studio_earnings_viewed'), [track]);
+  const d = q.data;
+  const state = d ? 'ready' : q.isError ? (isNetworkError(q.error) ? 'offline' : 'failed') : 'loading';
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/studio'));
+
+  return (
+    <Screen top="org" contentStyle={{ flexGrow: 1 }}>
+      <StudioEarningsView
+        sub={d ? `${monthName(d.month.month)} · paid after a 30-day hold` : 'Paid after a 30-day hold'}
+        total={d ? formatKobo(d.month.earned_kobo) : ''}
+        rows={d ? splitRows(d.month) : []}
+        payouts={d ? d.history.filter((m) => m.earned_kobo > 0).map(payoutRow) : []}
+        state={state}
+        onBack={back}
+        onRetry={() => void q.refetch()}
+      />
+    </Screen>
+  );
+}
+
+function splitRows(m: AuthorMonth): KeyValueRow[] {
+  const rows: KeyValueRow[] = [
+    { k: `Unlock all · ${num(m.unlock_all_credits)} credits`, v: formatKobo(m.unlock_all_kobo) },
+    { k: `Pay as you read · ${num(m.paygo_credits)} credits`, v: formatKobo(m.paygo_kobo) },
+  ];
+  if (m.tips_credits) {
+    rows.push({ k: `Tips and messages · ${num(m.tips_credits)} credits`, v: formatKobo(m.tips_kobo) });
+  }
+  if (m.refund_kobo) rows.push({ k: 'Refunds', v: formatKobo(m.refund_kobo) });
+  rows.push({ k: `${num(m.credits)} credits × ₦1.60`, v: formatKobo(m.earned_kobo), total: true });
+  return rows;
+}
+
+function payoutRow(m: AuthorMonth): PayoutRow {
+  const p = payoutOf(m);
+  // Real payout rows (Paid, Failed, held) come with flow 13; until then the date decides.
+  const pill = p.below
+    ? { label: 'Under ₦1,000 · carries over', tone: 'grey' as const }
+    : p.due
+      ? { label: `Due ${p.label}`, tone: 'grey' as const }
+      : { label: `Releases ${p.label}`, tone: 'warn' as const };
+  return {
+    month: monthName(m.month),
+    sub: p.due ? `Payout day ${p.label}` : 'Payout account not set up yet',
+    amount: formatKobo(m.earned_kobo),
+    pill,
+  };
+}

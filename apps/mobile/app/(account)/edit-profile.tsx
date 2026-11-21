@@ -4,7 +4,7 @@ import { router, useNavigation, usePreventRemove } from 'expo-router';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useQuery } from '@tanstack/react-query';
 import { Btn, Cell, Group, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
-import { BIO_MAX, normalisePhone, oldEnough, parseDob, validName } from '@arpedia/core';
+import { PROFILE_BIO_MAX, normalisePhone, oldEnough, parseDob, validName } from '@arpedia/core';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import { pickAndUploadAvatar } from '../../features/01/photo';
@@ -84,7 +84,8 @@ export default function EditProfile() {
   const country = COUNTRIES.find((c) => c.code === values.country) ?? COUNTRIES[0];
   const check: Record<keyof EditValues, () => string | undefined> = {
     name: () => (validName(values.name) ? undefined : 'Enter your name (1 to 80 characters).'),
-    bio: () => (values.bio.length <= BIO_MAX ? undefined : `Keep it to ${BIO_MAX} characters.`),
+    bio: () =>
+      values.bio.length <= PROFILE_BIO_MAX ? undefined : `Keep it to ${PROFILE_BIO_MAX} characters.`,
     phone: () =>
       !values.phone.trim() || normalisePhone(values.phone, country.dial)
         ? undefined

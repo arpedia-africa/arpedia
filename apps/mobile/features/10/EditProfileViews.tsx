@@ -1,7 +1,7 @@
 // Flow 10 · Edit profile (s-edit-profile): photo, name, bio, phone, birthday, country.
 import { View } from 'react-native';
 import { Avatar, Btn, Field, Icon, Press, Text, useBottomInset, useTheme } from '@arpedia/ui';
-import { BIO_MAX } from '@arpedia/core';
+import { PROFILE_BIO_MAX } from '@arpedia/core';
 import { OnbSheet } from '../01/parts';
 import { SubHero } from './SettingsViews';
 
@@ -80,8 +80,8 @@ export function EditProfileView({
             onChangeText={(bio) => onChange({ bio })}
             onBlur={() => onBlur('bio')}
             error={errors.bio}
-            hint={`${values.bio.length} / ${BIO_MAX}`}
-            maxLength={BIO_MAX}
+            hint={`${values.bio.length} / ${PROFILE_BIO_MAX}`}
+            maxLength={PROFILE_BIO_MAX}
           />
           <Field
             label="Phone number"
