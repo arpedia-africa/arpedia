@@ -28,14 +28,14 @@ appId: com.arpedia.reader
 
 # s-credits
 - openLink: arpedia://credits
+# "Top up" shows while the balance is still loading (skeleton); wait for the buckets themselves.
 - extendedWaitUntil:
-    visible: 'Top up'
+    visible: 'Top-up · never expires'
     timeout: 30000
-- assertVisible: 'Top-up · never expires'
-- assertVisible: 'Transactions'
 - takeScreenshot: credits-${WIDTH}-credits
+# Transactions sit below Top up, the promo field (Q15) and What credits buy.
 - scrollUntilVisible:
-    element: 'Promo code'
+    element: 'Transactions'
     direction: DOWN
 - takeScreenshot: credits-${WIDTH}-history
 
