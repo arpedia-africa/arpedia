@@ -55,11 +55,15 @@ appId: com.arpedia.reader
 - takeScreenshot: profile-${WIDTH}-settings
 
 # s-theme-settings: Palm, Done
-- scrollUntilVisible:
-    element: 'App colour.*'
-    direction: DOWN
-    timeout: 60000
-    centerElement: true
+# A bounded scroll loop: scrollUntilVisible times out on slow emulators.
+- repeat:
+    times: 6
+    while:
+      notVisible: 'App colour'
+    commands:
+      - swipe:
+          direction: UP
+          duration: 600
 - tapOn: 'App colour.*'
 - tapOn: 'Palm.*'
 - takeScreenshot: profile-${WIDTH}-colour
@@ -67,11 +71,15 @@ appId: com.arpedia.reader
 - assertVisible: 'Palm'
 
 # s-notif-prefs: turn reading reminders off
-- scrollUntilVisible:
-    element: 'Notifications.*'
-    direction: UP
-    timeout: 60000
-    centerElement: true
+# A bounded scroll loop: scrollUntilVisible times out on slow emulators.
+- repeat:
+    times: 6
+    while:
+      notVisible: 'Notifications'
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 600
 - tapOn: 'Notifications.*'
 - extendedWaitUntil:
     visible: 'Send me'
@@ -81,11 +89,15 @@ appId: com.arpedia.reader
 - back
 
 # Log out
-- scrollUntilVisible:
-    element: 'Log out'
-    direction: DOWN
-    timeout: 60000
-    centerElement: true
+# A bounded scroll loop: scrollUntilVisible times out on slow emulators.
+- repeat:
+    times: 6
+    while:
+      notVisible: 'Log out'
+    commands:
+      - swipe:
+          direction: UP
+          duration: 600
 - tapOn: 'Log out'
 - extendedWaitUntil:
     visible: 'Welcome back'
