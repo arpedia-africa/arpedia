@@ -68,18 +68,28 @@ appId: com.arpedia.reader
 # The toast shows a few seconds after the charge (keys + state refresh) and lives 8 s, while one
 # hierarchy read of the reader takes 4–12 s on the phone. So after every swipe, poll for the
 # toast's Undo for a while ("Undo" shows only in the unlock toast here) instead of checking once.
+# Remember a sighting in a flag: re-checking "Undo" in the loop condition can come after the toast
+# has gone (seen on the emulator, 21 Nov: Undo found at 12:01:18, the condition read at 12:01:36).
+- evalScript: ${output.unlocked = false}
 - repeat:
     while:
-      notVisible: 'Undo'
+      true: ${!output.unlocked}
     times: 40
     commands:
       - swipe:
           direction: LEFT
           duration: 200
-      - extendedWaitUntil:
-          visible: 'Undo'
-          timeout: 6000
-          optional: true
+      - repeat:
+          while:
+            true: ${!output.unlocked}
+          times: 2
+          commands:
+            - runFlow:
+                when:
+                  visible: 'Undo'
+                commands:
+                  - evalScript: ${output.unlocked = true}
+- assertTrue: ${output.unlocked}
 - takeScreenshot: reading-${WIDTH}-unlocked
 
 # Highlight: long-press a word, the toolbar shows, the first swatch highlights at once.
