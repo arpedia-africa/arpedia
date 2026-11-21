@@ -112,6 +112,12 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 
 **Lessons:** watch disk as well as memory; test tools leave files behind. A headless builder that can't kill processes needs a human (or a watchdog) when adb hangs.
 
+### 21 Nov — back to one emulator
+- MIUI refused every USB install of Maestro's driver ("Install canceled by user", instantly, even with the owner tapping), so the owner chose **emulator only**. The phone builder was stopped and its PR went back to the queue.
+- Internet down 08:07–08:51; the loop waited and resumed.
+- **Flow 11 Author Studio merged (10:49)**, after ~15 h across runs (most lost to the disk, adb, emulator restarts and the outage). 19 screens in 4 themes on the emulator; the "blank" preview screen was the parity tool opening the wrong screen. 7 of 18 merged.
+- Owner chose to stay on the local emulator rather than move device checks to GitHub Actions emulators (which would run all PRs in parallel).
+
 ---
 
 ## 4. Lessons so far (for the guide)

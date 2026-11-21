@@ -1,0 +1,14 @@
+<!-- Parity page s-apply: the prototype screen, verbatim from prototype/src/05-money-profile-studio.html.
+     apps/mobile/app/parity.tsx renders the flow 11 view with the same values. -->
+  <div class="hero onb-step"><div class="hero__bar hero__bar--back"><button class="ib" data-go="become-author" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><div class="onb-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="4"><i style="width:25%"></i></div><span class="onb-count">1 of 4</span></div><div class="hero__body"><h1 class="hero__title">Your author profile</h1><p class="hero__sub">Tell us how readers should know you.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="input"><label for="ap-n">Full name</label><div class="field"><input id="ap-n" value="Ngozi Eze"></div><span class="hint">For contracts and payouts. Never shown publicly.</span></div>
+      <div class="input"><label for="ap-e">Email address</label><div class="field"><input id="ap-e" value="ngozi.eze@example.com"></div></div>
+      <div class="input"><label for="ap-p">Phone number (optional)</label><div class="field"><span class="t-soft t-strong">+234</span><input id="ap-p" placeholder="803 000 0000"></div></div>
+      <div class="input"><label for="ap-pn">Pen name (optional)</label><div class="field"><input id="ap-pn" placeholder="Name shown to readers"></div></div>
+      <div class="input"><label for="ap-s">Social media handle (optional)</label><div class="field"><span class="t-soft t-strong">@</span><input id="ap-s" placeholder="yourhandle"></div></div>
+      <span class="h6 t-xs t-muted"><svg class="ico xs" aria-hidden="true"><use href="#i-cloud"/></svg>Draft saves as you type</span>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="apply-2">Continue<svg class="ico s" aria-hidden="true"><use href="#i-arrow"/></svg></a><div class="btn-grid"><button class="btn btn-g">Save draft</button><a class="btn btn-g" data-go="become-author"><svg class="ico s" aria-hidden="true"><use href="#i-x"/></svg>Cancel</a></div></div>

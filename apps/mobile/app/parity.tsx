@@ -49,6 +49,35 @@ import {
   ThemeView,
   type GenreOption,
 } from '../features/01/StepViews';
+import { StudioBooksView, StudioEarningsView, StudioHomeView } from '../features/11/StudioViews';
+import {
+  StudioClubView,
+  StudioPayoutView,
+  StudioProfileFoot,
+  StudioProfileView,
+} from '../features/11/StudioSettingsViews';
+import { StudioInboxView, StudioPostView } from '../features/11/StudioCommsViews';
+import {
+  Apply1View,
+  Apply2View,
+  Apply3View,
+  Apply4Foot,
+  Apply4View,
+  ApplyFoot,
+  ApplySentFoot,
+  ApplySentView,
+  BecomeAuthorFoot,
+  BecomeAuthorView,
+} from '../features/11/ApplyViews';
+import {
+  StepFoot,
+  SubmitChaptersView,
+  SubmitDoneView,
+  SubmitPreviewView,
+  SubmitProcessingFoot,
+  SubmitProcessingView,
+  SubmitUploadView,
+} from '../features/11/SubmitViews';
 import { Flow02, isFlow02 } from '../features/02/parity';
 import { AboutView, BackHero, DiscussionLockedView } from '../features/03/AboutViews';
 import { BookPageView, type BookPageModel } from '../features/03/BookViews';
@@ -78,6 +107,25 @@ const PAGES = [
   's-profile-setup',
   's-plans-onboard',
   's-all-set',
+  's-studio',
+  's-studio-books',
+  's-studio-royalties',
+  's-studio-profile',
+  's-studio-payout',
+  's-studio-community',
+  's-studio-post',
+  's-studio-inbox',
+  's-studio-submit',
+  's-studio-processing',
+  's-studio-chapters',
+  's-studio-preview',
+  's-studio-submitted',
+  's-become-author',
+  's-apply',
+  's-apply-2',
+  's-apply-3',
+  's-apply-4',
+  's-apply-sent',
   's-home',
   's-see-all',
   's-explore',
@@ -204,7 +252,7 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
               onTip={noop}
               onBook={noop}
             />
-          ) : page.startsWith('s-book') || page.includes('review') ? (
+          ) : page.startsWith('s-book') || page === 's-reviews' || page === 's-write-review' ? (
             <Flow03 page={page} />
           ) : (
             <Flow01 page={page} />
@@ -347,6 +395,439 @@ function Flow01({ page }: { page: Page }) {
           />
           <AllSetFoot onHome={noop} />
         </>
+      );
+    default:
+      return <Flow11 page={page} />;
+  }
+}
+
+// ─── Flow 11 screens with the prototype's values (tools/parity/s-studio*.html) ─
+function Flow11({ page }: { page: Page }) {
+  switch (page) {
+    case 's-studio':
+      return (
+        <StudioHomeView
+          go={noop}
+          onDismissBanner={noop}
+          m={{
+            name: 'Ifeoma',
+            stats: { books: '2', minutes: '41.2k', followers: '3.4k', earned: '₦184,304' },
+            banner: true,
+            suspended: null,
+            noBooks: false,
+            books: [
+              { id: 'b1', title: 'Harmattan Letters', earned: '₦143,760', credits: '89,850', share: 0.78 },
+              {
+                id: 'b2',
+                title: 'Morning Prayers, Volume 1',
+                earned: '₦40,544',
+                credits: '25,340',
+                share: 0.22,
+              },
+            ],
+            shortcuts: {
+              messages: { sub: '4 waiting for a reply', count: 4 },
+              club: 'Ifeoma’s Readers · 860 members',
+              books: { sub: '2 live · 1 in review', count: 3 },
+              posts: '12 new comments',
+              earnings: { sub: 'Next payout 15 Dec', trail: '₦162,752' },
+              visibility: 'Public',
+              payout: 'GTBank ···· 2291 · verified',
+              community: 'Who can post, slow mode',
+            },
+          }}
+        />
+      );
+    case 's-studio-books':
+      return (
+        <StudioBooksView
+          sub="2 live · 1 in review · 1 draft"
+          state="ready"
+          onBack={noop}
+          onSubmit={noop}
+          onAction={noop}
+          onRetry={noop}
+          books={[
+            {
+              id: 'b1',
+              title: 'Harmattan Letters',
+              tone: 'c1',
+              status: 'update_in_review',
+              label: 'Live',
+              line: '2,104 readers · 4.7★ · 31.8k min this month',
+              update: 'Update v2 in review · readers still see v1',
+              issues: [],
+              action: null,
+            },
+            {
+              id: 'b2',
+              title: 'Nine More Letters',
+              tone: 'c7',
+              status: 'changes_requested',
+              label: 'Changes requested',
+              line: null,
+              update: null,
+              issues: ['Editor: Chapter 3 repeats a page from chapter 2. Please re-upload.'],
+              action: 'Upload new file',
+            },
+            {
+              id: 'b3',
+              title: 'Kaduna Nights',
+              tone: 'c5',
+              status: 'draft',
+              label: 'Draft',
+              line: 'Uploaded 10 Nov. Confirm your chapters and submit when ready.',
+              update: null,
+              issues: [],
+              action: null,
+            },
+          ]}
+        />
+      );
+    case 's-studio-profile':
+      return (
+        <>
+          <StudioProfileView
+            values={{
+              pen_name: 'Ifeoma Nwachukwu',
+              bio: 'Writes Christian fiction from Enugu. Harmattan Letters began as twelve letters in a notebook.',
+              location: 'Enugu, Nigeria',
+              visibility: 'public',
+            }}
+            photo={null}
+            errors={{}}
+            onChange={noop}
+            onPhoto={noop}
+            onPreview={noop}
+            onBack={noop}
+          />
+          <StudioProfileFoot onSave={noop} />
+        </>
+      );
+    case 's-studio-payout':
+      return (
+        <StudioPayoutView
+          account={{
+            bank: 'GTBank ···· 2291',
+            name: 'IFEOMA C. NWACHUKWU',
+            status: { label: 'Verified', tone: 'ok' },
+          }}
+          onBack={noop}
+          onChange={noop}
+        />
+      );
+    case 's-studio-community':
+      return (
+        <StudioClubView
+          title="Ifeoma's Readers"
+          sub="Club settings · 860 members"
+          values={{ who: 'everyone', publicClub: true, slowMode: false }}
+          mutedSub="3 words"
+          moderatorsSub="Chioma, Kemi"
+          onChange={noop}
+          onBack={noop}
+          onMuted={noop}
+          onModerators={noop}
+        />
+      );
+    case 's-studio-post':
+      return (
+        <StudioPostView
+          values={{
+            title: 'Why I wrote the letters first',
+            body: 'Before there was a story there were twelve letters in a notebook my late uncle gave me…',
+          }}
+          book="Harmattan Letters"
+          audience="3.4k followers + club"
+          errors={{}}
+          onChange={noop}
+          onBook={noop}
+          onPost={noop}
+          onBack={noop}
+        />
+      );
+    case 's-studio-inbox':
+      return (
+        <StudioInboxView
+          filter="waiting"
+          waiting={4}
+          state="ready"
+          rows={[
+            {
+              id: '1',
+              name: 'Ngozi Eze',
+              tone: 'g',
+              preview: 'Is the man who fixes the gate the same one…',
+              time: '09:14',
+            },
+            {
+              id: '2',
+              name: 'Kemi O.',
+              tone: 't',
+              preview: 'Will there be a sequel? My whole fellowship…',
+              time: 'Yesterday',
+            },
+            {
+              id: '3',
+              name: 'Tolu A.',
+              tone: 'b',
+              preview: 'Thank you for chapter 4. I lost my husband in…',
+              time: '10 Nov',
+            },
+          ]}
+          onFilter={noop}
+          onRow={noop}
+          onRetry={noop}
+          onBack={noop}
+        />
+      );
+    case 's-become-author':
+      return (
+        <>
+          <BecomeAuthorView onBack={noop} />
+          <BecomeAuthorFoot label="Start application" onPress={noop} />
+        </>
+      );
+    case 's-apply':
+      return (
+        <>
+          {/* The app adds Date of birth and State (Default Q3); the prototype has neither. */}
+          <Apply1View
+            values={{
+              legal_name: 'Ngozi Eze',
+              email: 'ngozi.eze@example.com',
+              dob: '',
+              state: '',
+              phone: '',
+              pen_name: '',
+              social_handle: '',
+            }}
+            errors={{}}
+            saved="Draft saves as you type"
+            onChange={noop}
+            onBack={noop}
+          />
+          <ApplyFoot onContinue={noop} onSave={noop} onCancel={noop} />
+        </>
+      );
+    case 's-apply-2':
+      return (
+        <>
+          <Apply2View
+            categories={['Christian fiction', 'African stories']}
+            bio="Choir alto from Enugu. I write about faith, family and the small mercies of city life."
+            experience="2 self-published novellas, a church magazine column"
+            errors={{}}
+            saved="Draft saves as you type"
+            onToggle={noop}
+            onBio={noop}
+            onExperience={noop}
+            onBack={noop}
+          />
+          <ApplyFoot onContinue={noop} onSave={noop} onCancel={noop} />
+        </>
+      );
+    case 's-apply-3':
+      return (
+        <>
+          <Apply3View
+            file={{ name: 'the-gatekeeper-ch1.docx', meta: '220 KB · 8 pages' }}
+            sampleText=""
+            saved="Draft saves as you type"
+            onPick={noop}
+            onRemove={noop}
+            onText={noop}
+            onBack={noop}
+          />
+          <ApplyFoot onContinue={noop} onSave={noop} onCancel={noop} />
+        </>
+      );
+    case 's-apply-4':
+      return (
+        <>
+          <Apply4View
+            rows={[
+              { k: 'Name', v: 'Ngozi Eze' },
+              { k: 'Pen name', v: 'N. C. Eze' },
+              { k: 'Writes', v: 'Christian fiction, African stories' },
+              { k: 'Sample', v: 'the-gatekeeper-ch1.docx' },
+            ]}
+            agree
+            onAgree={noop}
+            onBack={noop}
+          />
+          <Apply4Foot canSend onSend={noop} onEdit={noop} />
+        </>
+      );
+    case 's-apply-sent':
+      return (
+        <>
+          <ApplySentView replyBy="Monday 16 November" sentOn="12 November" onClose={noop} />
+          <ApplySentFoot onStudio={noop} />
+        </>
+      );
+    case 's-studio-submit':
+      return (
+        <>
+          <SubmitUploadView
+            values={{
+              source: 'docx',
+              title: 'Market Day in Onitsha',
+              subtitle: '',
+              genres: ['African stories', 'Fiction'],
+              description: '',
+            }}
+            file={{ name: 'market-day-in-onitsha-final.docx', line: '2.1 MB · uploaded' }}
+            cover={null}
+            errors={{}}
+            onChange={noop}
+            onPickFile={noop}
+            onRemoveFile={noop}
+            onPickCover={noop}
+            onRemoveCover={noop}
+            onBack={noop}
+          />
+          <StepFoot label="Continue" onPress={noop} />
+        </>
+      );
+    case 's-studio-processing':
+      return (
+        <>
+          <SubmitProcessingView
+            sub="This takes 1 to 3 minutes."
+            steps={[
+              { label: 'Reading your file', state: 'done' },
+              { label: 'Cleaning text and quotes', state: 'done' },
+              { label: 'Finding chapters', state: 'now' },
+              { label: 'Building the free 10% preview', state: 'todo' },
+              { label: 'Checking cover and content', state: 'todo' },
+            ]}
+            progress={0.5}
+            note="Nothing for you to do here. You can leave this screen; we'll send a notification when your chapters are ready to check."
+            onBack={noop}
+          />
+          <SubmitProcessingFoot ready onReady={noop} onLeave={noop} />
+        </>
+      );
+    case 's-studio-chapters':
+      return (
+        <>
+          <SubmitChaptersView
+            sub="We found 22 chapters in Market Day in Onitsha."
+            flags={[
+              { tone: 'warn', text: 'Chapter 4 has no title. Add one?' },
+              { tone: 'info', text: 'Image on page 41 is too large, we’ll shrink it.' },
+              {
+                tone: 'info',
+                text: 'Chapter 17 runs to 31 pages, so we split it into two parts. Readers who pay as they read pay for it in two smaller steps.',
+              },
+            ]}
+            chapters={[
+              { ord: 0, title: 'The Road to the Market', words: 2940, canMerge: false },
+              { ord: 1, title: 'Mama Nkechi’s Stall', words: 3120, canMerge: false },
+              { ord: 2, title: 'Bargains and Whispers', words: 2780, canMerge: false },
+              { ord: 3, title: null, words: 2610, canMerge: true },
+              { ord: 4, title: 'The Trader from Aba', words: 3350, canMerge: false },
+              { ord: 5, title: 'Rain Over Main Market', words: 2490, canMerge: false },
+              { ord: 6, title: 'A Debt Remembered', words: 180, canMerge: true },
+            ]}
+            note="Showing 7 of 22. Scroll to see all chapters."
+            totals={{ words: '62,400 words', pages: '250 pages', price: '125 credits · ₦375' }}
+            onRename={noop}
+            onMerge={noop}
+            onBack={noop}
+          />
+          <StepFoot label="Looks right, continue" onPress={noop} />
+        </>
+      );
+    case 's-studio-preview':
+      return (
+        <>
+          <SubmitPreviewView
+            pages={[
+              {
+                label: 'First page',
+                title: 'The Road to the Market',
+                paras: [
+                  'Before the cocks had finished their quarrel, Mama Nkechi was already on the road, a basket of yams balanced on her head and the whole of Onitsha stirring around her.',
+                  'She did not look back. Market day waited for no one.',
+                ],
+              },
+              {
+                label: 'Chapter 9, page 3',
+                paras: [
+                  '“You will not sell that cloth for such a price,” the trader said, laughing, and the crowd leaned in to hear what the old woman would answer.',
+                  'She smiled, folded the cloth once, and named a number that made him stop laughing altogether.',
+                ],
+              },
+              {
+                label: 'Chapter 3, page 8',
+                paras: [
+                  'By noon the heat sat on the stalls like a hand. Ada counted the coins twice, then a third time, as if the count itself might change.',
+                ],
+                end: 'The free preview ends here (10%)',
+              },
+            ]}
+            readiness={92}
+            readinessLabel="Ready for review"
+            checklist={[
+              { k: 'File read and cleaned', v: 'Done' },
+              { k: '22 chapters confirmed', v: 'Done' },
+              { k: 'Free 10% preview', v: 'Built' },
+              { k: 'Cover', v: 'Good size' },
+              { k: 'Chapter 4 title', v: 'Still to add' },
+            ]}
+            price={{ k: '62,400 words → 250 pages', v: '125 credits (₦375)' }}
+            earn="₦200"
+            agreed={false}
+            onAgree={noop}
+            onBack={noop}
+          />
+          <StepFoot label="Submit for review" onPress={noop} />
+        </>
+      );
+    case 's-studio-submitted':
+      return (
+        <>
+          <SubmitDoneView
+            title="Market Day in Onitsha is in!"
+            sub="Our team will review it within 3 days. Most reviews take 5 minutes."
+            price={{ k: '62,400 words → 250 pages', v: '125 credits (₦375)' }}
+            earn="₦1.60 a credit · ₦200 a full read"
+            submittedOn="12 November"
+            onClose={noop}
+          />
+          <StepFoot label="Back to My books" onPress={noop} />
+        </>
+      );
+    case 's-studio-royalties':
+      return (
+        <StudioEarningsView
+          sub="October · paid after a 30-day hold"
+          total="₦162,752"
+          state="ready"
+          onBack={noop}
+          onRetry={noop}
+          rows={[
+            { k: 'Unlock all · 78,400 credits', v: '₦125,440' },
+            { k: 'Pay as you read · 23,320 credits', v: '₦37,312' },
+            { k: '101,720 credits × ₦1.60', v: '₦162,752', total: true },
+          ]}
+          payouts={[
+            {
+              month: 'October',
+              sub: 'To GTBank ···· 2291',
+              amount: '₦162,752',
+              pill: { label: 'Releases 15 Dec', tone: 'warn' },
+            },
+            {
+              month: 'September',
+              sub: 'Paid 15 Nov',
+              amount: '₦98,400',
+              pill: { label: 'Paid', tone: 'ok' },
+            },
+          ]}
+        />
       );
     default:
       return null;
