@@ -110,8 +110,10 @@ appId: com.arpedia.reader
 # Restart: same page, the highlight is there (tap it: its menu opens with Delete).
 - stopApp
 - launchApp
+# Wait for Home's data (the greeting), not just the tab label: a link sent in the first second
+# of a cold start reaches Android before JS listens and is dropped (emulator 360dp, 21 Nov).
 - extendedWaitUntil:
-    visible: 'Home'
+    visible: 'Good .*, Ngozi.*'
     timeout: 30000
 - openLink: arpedia://read/00000000-0000-4000-c000-000000000003
 - extendedWaitUntil:
