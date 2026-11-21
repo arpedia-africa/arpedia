@@ -33,7 +33,7 @@ appId: com.arpedia.reader
     visible: 'A House Called Grace'
     timeout: 30000
 - extendedWaitUntil:
-    visible: '.*% read'
+    visible: '\d+%'
     timeout: 30000
 - tapOn:
     text: 'OK'

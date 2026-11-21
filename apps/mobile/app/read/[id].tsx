@@ -58,12 +58,17 @@ export default function ReaderScreen() {
   // Measured card heights: the page leaves exactly this much room at a gate (rules 52–53).
   const [cardH, setCardH] = useState({ preview: s(330), chapter: s(400) });
   const [autoUnlock, setAutoUnlockLocal] = useState(true);
-  const gateRoom = useMemo(
-    () => ({ preview: cardH.preview + s(16), chapter: autoUnlock ? 0 : cardH.chapter + s(16) }),
-    [cardH, autoUnlock, s],
-  );
-  const r = useReader(id, { gateRoom, startCfi: cfi });
+  // Pay as you read chosen (or already paying): the preview cut becomes a chapter gate (rules 52–54).
+  const [payGo, setPayGo] = useState(false);
+  const gateRoom = useMemo(() => {
+    const chapter = autoUnlock ? 0 : cardH.chapter + s(16);
+    return { preview: payGo ? chapter : cardH.preview + s(16), chapter };
+  }, [cardH, autoUnlock, payGo, s]);
+  const r = useReader(id, { gateRoom, startCfi: cfi, payGo });
   useEffect(() => setAutoUnlockLocal(r.settings.auto_unlock), [r.settings.auto_unlock]);
+  useEffect(() => {
+    if ((r.state?.paid_credits ?? 0) > 0) setPayGo(true);
+  }, [r.state?.paid_credits]);
 
   const [chrome, setChrome] = useState(false);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -161,6 +166,8 @@ export default function ReaderScreen() {
   const chapterCount = st?.chapters.filter((c) => c.kind === 'chapter').length ?? 0;
   const gate = r.loc?.at_gate ?? null;
   const gateChapter = gate ? st?.chapters.find((c) => c.chapter_uid === gate.chapter_uid) : null;
+  const previewGate = gate?.kind === 'preview' && !payGo;
+  const chapterGate = gate?.kind === 'chapter' || (gate?.kind === 'preview' && payGo);
   const previewPct =
     st && st.revision.words > 0 && r.manifest?.preview_cut ? r.manifest.preview_cut.percent : 10;
   const perChapter =
@@ -173,9 +180,9 @@ export default function ReaderScreen() {
 
   const sub = !st
     ? ''
-    : gate?.kind === 'preview'
+    : previewGate
       ? 'Free preview'
-      : gate?.kind === 'chapter' && !autoUnlock
+      : chapterGate && !autoUnlock
         ? 'Pay as you read'
         : chapter
           ? chapter.kind === 'chapter'
@@ -436,7 +443,7 @@ export default function ReaderScreen() {
 
         {st ? (
           <PreviewEndCard
-            top={gate?.kind === 'preview' ? (r.loc?.gate_top ?? null) : null}
+            top={previewGate ? (r.loc?.gate_top ?? null) : null}
             onLayout={(h) => setCardH((v) => (Math.abs(v.preview - h) > 1 ? { ...v, preview: h } : v))}
             previewPercent={previewPct}
             author={st.book.author.name ?? 'the author'}
@@ -451,7 +458,7 @@ export default function ReaderScreen() {
         ) : null}
         {st && gateChapter ? (
           <ChapterCard
-            top={gate?.kind === 'chapter' && !autoUnlock ? (r.loc?.gate_top ?? null) : null}
+            top={chapterGate && !autoUnlock ? (r.loc?.gate_top ?? null) : null}
             onLayout={(h) => setCardH((v) => (Math.abs(v.chapter - h) > 1 ? { ...v, chapter: h } : v))}
             number={chapterNumber(st, gateChapter.chapter_uid)}
             title={gateChapter.title}
@@ -767,7 +774,10 @@ export default function ReaderScreen() {
             setSheet(null);
             void r.refresh();
           }}
-          onRead={() => setSheet(null)}
+          onRead={() => {
+            if (sheet === 'paygo') setPayGo(true);
+            setSheet(null);
+          }}
           onPlans={soon}
           onBuyPack={soon}
         />
