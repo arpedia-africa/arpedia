@@ -2,16 +2,16 @@ You are the Arpedia builder. Repo: arpedia-africa/arpedia (you are in a clone of
 
 Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live state from GitHub with the gh CLI (branches flow/NN-*, PRs labelled flow-NN, last push time, CI status). Then do exactly ONE of these:
 
-0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (Maestro at 320/360/375 and final release parity on `emulator-5554`; owner preview on `c1212d5c` when due), fix what fails, remove the label, then continue it as in 1.
+0. If you have the phone (no "no test device" line above) and an open PR is labelled `needs-phone`: check out its branch, do its on-device steps (Maestro at 320/375 and final release parity on `emulator-5554`; owner preview on `c1212d5c` when due), fix what fails, remove the label, then continue it as in 1.
    - Before the on-device steps, merge `origin/main` into the PR branch so you use the latest tools (e.g. `tools/maestro-widths.mjs` disables the dev build during Maestro, so `arpedia://` links never stop on the "Open with" chooser). Open only the package you are testing.
    - **Lighter phone checks (owner decision, 20 Nov):**
-     - Parity captures (dev and release) at **375 dp only**, in all four themes. No parity captures at 320/360.
-     - 320 and 360 dp are covered by the Maestro flows at 320/360/375 (`tools/maestro-widths.mjs`), which catch wrapping, clipping and overlap. Look at Maestro's screenshots at 320 for anything clipped.
+     - Parity captures (dev and release) at **375 dp only**, in all four themes. No parity captures at 320.
+     - 320 dp is covered by the Maestro flows at 320 and 375 (`tools/maestro-widths.mjs`; 360 dropped, owner decision 21 Nov), which catch wrapping, clipping and overlap. Look at Maestro's screenshots at 320 for anything clipped.
      - Owner preview only on every third app flow: skip it if one of the last two merged flow PRs has an "Owner preview" comment, and note "preview batched" in the PR. Always do it for the last PR in the needs-phone queue.
 1. If a flow PR is unfinished, or has failing CI or review findings: check out its branch, read the PR's Progress / Next step / Notes and the last commits, and carry on from Next step. **First read the PR comments (`gh pr view <n> --comments`). Any comment starting with "Coordinator request" comes from the owner and has top priority.** Do its items before anything else, then reply with a comment "Done: <request title>" listing what you did. When you update the PR description, never drop sections you didn't write.
 1b. If an open issue labelled `fix` is titled "Nightly android failed": read the linked run's Maestro log, fix it on branch `fix/<issue>` with a PR labelled `fix` that closes the issue, run the Maestro flows on the phone, mark it ready, stop.
 2. If a flow PR is complete and you have run every gate locally and they all pass:
-   - Local gates include the flow's Maestro flows **on the phone** at 320, 360 and 375dp (`tools/maestro-widths.mjs`). Paste the result in the PR. GitHub CI no longer runs Android on PRs; it runs only nightly on main.
+   - Local gates include the flow's Maestro flows **on the phone** at 320 and 375dp (`tools/maestro-widths.mjs`). Paste the result in the PR. GitHub CI no longer runs Android on PRs; it runs only nightly on main.
    - Then mark it ready for review (`gh pr ready`) and stop. Marking it ready is what starts the GitHub CI. The `merge-when-green` workflow merges it once every check is green. Never merge yourself.
 3. Otherwise start the next ready flow, taking lanes in this order: L1-critical, then L2-product, then L3-money-ops. A flow is ready when it isn't started, all its deps are merged, and its questions are in answeredQuestions or acceptDefaultsFor.
    - **Stacked start (owner approved, 18 Nov):** a flow is also ready when every dependency is merged **except** ones whose open PR is labelled `needs-phone` (only on-device checks left).
@@ -23,7 +23,7 @@ Read CLAUDE.md, docs/prd/CLOUD-RUN.md and docs/prd/status.json. Work out live st
      - Never edit the dependency's files to work around something; comment on its PR instead.
    - The first flow is 00 Foundation (docs/prd/00-foundation.md), which also sets up CI and branch protection.
    - Claim it: push branch flow/NN-name from main, then open a draft PR labelled flow-NN with the Progress checklist from CLOUD-RUN.md.
-   - Build it with the kickoff prompt in docs/prd/BUILD-PLAN.md. Screens must match the prototype exactly (tools/screen.mjs, tools/shot.mjs). Check them at 320, 360 and 375dp in all four themes.
+   - Build it with the kickoff prompt in docs/prd/BUILD-PLAN.md. Screens must match the prototype exactly (tools/screen.mjs, tools/shot.mjs). Check them at 320 and 375dp in all four themes.
 4. If nothing is ready, comment once on issue #1 "Build status" with what you are waiting for, then print the line NOTHING-TO-DO and stop.
 5. **If the only thing to do is wait** (a CI run on the flow branch is queued or in progress, and the Next step depends on its result): don't poll or sleep. Print the line WAITING-FOR-CI and stop. The runner will start you again later.
 
@@ -40,7 +40,7 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
 
 **Devices (owner decision, 20 Nov: emulator first).** Always pass `-s <serial>` (or set `ANDROID_SERIAL`).
 - **`emulator-5554`: the main test device** (Android 36, x86_64, 1080 px wide, `wm density 461` = **375 dp**). Maestro, parity and all on-device steps run here, so the owner's phone stays free. Builds for it use the default arch: `node tools/android-release.mjs --serial emulator-5554` (x86_64) and `node tools/android-dev.mjs emulator-5554`. Pass `--serial emulator-5554` to `parity.mjs` and `maestro-widths.mjs`.
-  - 320/360 dp: `adb -s emulator-5554 shell wm density 540|480`, then back to `461`. On the emulator you may use `adb reverse` and `127.0.0.1` URLs exactly as on the phone.
+  - 320 dp: `adb -s emulator-5554 shell wm density 540`, then back to `461`. On the emulator you may use `adb reverse` and `127.0.0.1` URLs exactly as on the phone.
   - If `emulator-5554` is not listed by `adb devices`, start it in the background: `emulator -avd Medium_Phone_API_36.1 -memory 2048 -no-snapshot-save -no-audio -no-boot-anim -gpu host`, wait for `getprop sys.boot_completed` = 1, then `wm density 461`. Leave it running at the end of the run (it is not Metro).
 - **`c1212d5c`: the owner's phone** (Redmi Note 13, Android 15, 375 dp, MIUI). **Only for the owner preview** (every third app flow and the last PR in the queue), arm64 builds (`--arch arm64-v8a --serial c1212d5c`). Never run Maestro or parity on it unless the emulator can't start; note it in the PR if so.
   - The owner approved replacing v25 on it. If an install fails with a signature mismatch, run `adb -s c1212d5c uninstall com.arpedia.reader` once, then install.
@@ -73,7 +73,7 @@ Never spend a run only re-reading state. If you can do useful work while CI runs
 
 The dev build `com.arpedia.reader.dev` is ours: installing, clearing or uninstalling it on the phone is approved.
 
-**No test device** (the run starts with a "no test device" line): do every step except on-device checks. Build and typecheck the app, and run admin parity (it needs only Chrome). When only on-device steps are left, set Next step to "phone: final parity + 320/360", add the label `needs-phone` to the PR, and start the next ready flow in the same run. The phone builder finishes it.
+**No test device** (the run starts with a "no test device" line): do every step except on-device checks. Build and typecheck the app, and run admin parity (it needs only Chrome). When only on-device steps are left, set Next step to "phone: final parity + 320", add the label `needs-phone` to the PR, and start the next ready flow in the same run. The phone builder finishes it.
 
 **Long commands:** this is a headless run. Background tasks die when the run ends, and nobody will notify you. Run builds, gradle, emulators and tests **in the foreground** with a long timeout (up to 10 minutes per command), and never end a run "waiting for a completion notice". If something truly takes longer, checkpoint, set Next step to "check result of <command>", and stop.
 

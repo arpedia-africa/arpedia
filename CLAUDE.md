@@ -31,7 +31,7 @@ African subscription reading community: Android app (Expo), web admin console (N
   - Design width is 375dp. On narrower phones (320–374dp) every size scales by `width ÷ 375` (minimum 0.85) through the `s()` helper in `packages/ui`: fonts, spacing, radii, icons. Never hard-code sizes without it.
   - At the default font size, single-line text (buttons, titles, labels, chips, tabs, stats, prices, list-row titles) must stay on one line from 320dp up. Use `numberOfLines={1}` with `adjustsFontSizeToFit` (min scale 0.85) as the safety net, and ellipsis only for user-generated text (names, book titles in rows).
   - If the reader turns on large text in Android settings, wrapping is allowed (accessibility comes first), but nothing may clip or overlap.
-  - Check every screen at 320, 360 and 375dp.
+  - Check every screen at 320 and 375dp (owner decision, 21 Nov: 360 dropped to save device time).
 - **Money:**
   - 1 credit = ₦3; book price = ceil(standard pages ÷ 2); standard page = 250 words.
   - Authors earn ₦1.60 per credit spent on their books.
