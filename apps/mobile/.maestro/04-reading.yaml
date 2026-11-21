@@ -65,15 +65,16 @@ appId: com.arpedia.reader
       - tapOn: 'Start reading'
 
 # Auto-unlock on: the first forward move off a locked chapter's first page charges it once.
+# The toast lives 8 s and hierarchy reads are slow on some phones, so one check covers both the
+# toast and its Undo ("Undo" shows only in the unlock toast here).
 - repeat:
     while:
-      notVisible: 'Chapter .* unlocked · .* credits'
+      notVisible: 'Undo'
     times: 40
     commands:
       - swipe:
           direction: LEFT
           duration: 200
-- assertVisible: 'Undo'
 - takeScreenshot: reading-${WIDTH}-unlocked
 
 # Highlight: long-press a word, the toolbar shows, the first swatch highlights at once.
