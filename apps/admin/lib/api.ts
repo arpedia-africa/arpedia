@@ -5,8 +5,8 @@ const API_URL = process.env.ARPEDIA_API_URL ?? 'http://127.0.0.1:8787';
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
-/** POST to the api Worker as the signed-in staff member (their Supabase JWT). */
-export async function api<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+/** POST to the api Worker as the signed-in staff member (their Supabase JWT); `body` undefined makes it a GET. */
+export async function api<T>(path: string, body?: unknown): Promise<ApiResult<T>> {
   const supabase = await serverSupabase();
   const {
     data: { session },
@@ -15,9 +15,9 @@ export async function api<T>(path: string, body: unknown): Promise<ApiResult<T>>
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
-      method: 'POST',
+      method: body === undefined ? 'GET' : 'POST',
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: body === undefined ? undefined : JSON.stringify(body),
       cache: 'no-store',
     });
   } catch {
