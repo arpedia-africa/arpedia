@@ -187,6 +187,8 @@ export function Sheet({ open, onClose, title, locked, children, footer, bold, su
         </View>
         <ScrollView
           bounces={false}
+          // One tap on a button (e.g. Save note) both hides the keyboard and presses it.
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             // .panel.bk-bold > .pb: padding-top 16
             paddingTop: s(bold ? 16 : 4),
