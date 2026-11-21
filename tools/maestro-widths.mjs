@@ -8,8 +8,9 @@
 //   (`appops set dev.mobile.maestro 10021 allow`, else launchApp silently opens nothing), then run
 //   with --no-reinstall-driver so Maestro keeps that driver.
 import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const args = process.argv.slice(2);
 const si = args.indexOf('--serial');
@@ -52,6 +53,13 @@ try {
     }
   }
 } finally {
+  // Maestro copies its driver APK (~90 MB) into the temp folder on every run and never deletes it;
+  // hundreds of runs filled the disk on 21 Nov.
+  // Only copies older than 10 min, so another builder's install in progress is never touched.
+  for (const f of readdirSync(tmpdir())) {
+    const p = join(tmpdir(), f);
+    if (/^tmp\d+\.apk$/.test(f) && Date.now() - statSync(p).mtimeMs > 600_000) rmSync(p, { force: true });
+  }
   adb(saved ? `wm density ${saved}` : 'wm density reset');
   if (hasDev) adb(`pm enable --user 0 ${DEV}`);
 }
