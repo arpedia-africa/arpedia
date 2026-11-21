@@ -137,23 +137,21 @@ export function StudioProfileView({
                 autoCapitalize="words"
                 maxLength={80}
               />
-              <View style={{ marginHorizontal: s(-14) }}>
-                <Cell
-                  title="Public profile"
-                  sub={
-                    values.visibility === 'public'
-                      ? 'Anyone can find and follow you'
-                      : 'Only readers with your link can see your page'
-                  }
-                  trail={
-                    <Toggle
-                      value={values.visibility === 'public'}
-                      onChange={(on) => onChange({ visibility: on ? 'public' : 'private' })}
-                      label="Public profile"
-                    />
-                  }
-                />
-              </View>
+              <Cell
+                title="Public profile"
+                sub={
+                  values.visibility === 'public'
+                    ? 'Anyone can find and follow you'
+                    : 'Only readers with your link can see your page'
+                }
+                trail={
+                  <Toggle
+                    value={values.visibility === 'public'}
+                    onChange={(on) => onChange({ visibility: on ? 'public' : 'private' })}
+                    label="Public profile"
+                  />
+                }
+              />
             </>
           )}
         </View>

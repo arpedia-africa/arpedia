@@ -775,11 +775,19 @@ export function SubmitPreviewView({
           </ScrollView>
         ) : null}
         <Card style={{ gap: s(8) }}>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: s(8) }}>
-            <Text variant="display" size={34} tabular oneLine style={{ letterSpacing: -s(34) * 0.02 }}>
+          {/* .st-meter: baseline row, the number on the body's 1.5 line height. Yoga can't baseline-align
+              text on Android, so the label drops to the number's baseline by hand. */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: s(8) }}>
+            <Text
+              variant="display"
+              size={34}
+              tabular
+              oneLine
+              style={{ letterSpacing: -s(34) * 0.02, lineHeight: s(51) }}
+            >
               {`${readiness}%`}
             </Text>
-            <Text size={15} weight={600} oneLine style={{ flexShrink: 1 }}>
+            <Text size={15} weight={600} oneLine style={{ flexShrink: 1, marginTop: s(23) }}>
               {readinessLabel}
             </Text>
           </View>
