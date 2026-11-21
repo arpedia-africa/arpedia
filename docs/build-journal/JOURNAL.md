@@ -1,6 +1,6 @@
 # Arpedia build journal
 
-A running record of **how Arpedia was built**: the setup, the decisions, what went wrong and how it was fixed. It is the raw material for a tutorial that **teaches people how to build EMRs (electronic medical records) with a team of AI builders**. Arpedia (a reading app) is the worked example: the method transfers, the domain changes. Section 6 maps every part of the method to an EMR.
+A running record of **how Arpedia was built**: the setup, the decisions, what went wrong and how it was fixed. It is the raw material for a build guide and, later, a tutorial ("Build a production app with a team of AI builders").
 
 Each entry has a date, what happened, and the **lesson** (what a reader should copy or avoid). New entries go at the bottom of the timeline. No secrets or personal details here.
 
@@ -132,53 +132,16 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 
 ---
 
-## 5. Tutorial outline (draft): "Build an EMR with AI builders"
+## 5. Tutorial outline (draft)
 
-Each chapter teaches the method on an EMR, with Arpedia as the real case study ("here is what happened when we did this").
-
-1. **Know the clinic first.** Users (front desk, nurse, doctor, lab, pharmacy, billing, admin), their day, the rules (consent, privacy law, retention). Write PRODUCT.md.
-2. **Prototype every screen with the owner/clinicians** before code: registration, triage, consultation note, orders, results, prescriptions, billing, admin. The prototype is the visual source of truth.
-3. **Split the EMR into flows** (one short spec each: goal, screens, data, server, tests) plus rules, architecture, build plan and default answers to open questions.
-4. **Rules that never bend** (the CLAUDE.md idea): patient data access, audit, append-only clinical records, money, exact-replica screens.
-5. **Screen tools:** print a prototype screen, capture references, compare the built screen side by side.
-6. **Foundation:** monorepo, database with row-level security, CI, a free-plan merge gate.
-7. **The builder prompt and the headless loop:** stop words, checkpoints in PRs, GitHub as the memory.
-8. **Several builders at once:** lanes, clones, locks with heartbeats, one owner per scarce resource.
-9. **Testing on devices:** emulators vs real clinic tablets/phones, widths, end-to-end flows (Maestro), parity.
-10. **Quality and clinical safety:** owner/clinician review, "very, very good" bar, every state (empty, loading, error, offline).
-11. **Watching it remotely:** phone notifications, a live checklist issue.
-12. **When things break:** outages, restarts, memory, disk, device quirks (all from this build).
-13. **From merged flows to a release:** staging, secrets, store/hosting, go-live and data migration.
-
----
-
-## 6. Applying this to an EMR
-
-| Arpedia piece | What it is here | EMR equivalent |
-|---|---|---|
-| Flows `docs/prd/NN-*.md` | Sign-in, discovery, book page, reading, library, community… | Patient registration, appointments, triage/vitals, consultation notes, orders (lab/imaging), results, prescriptions and pharmacy, billing/claims, admin and reports |
-| Row-level security on every table | Readers see only their own data | A clinician sees only patients in their facility/care team; patients see only their own record |
-| Staff writes through RPCs that write `audit_log` | Every moderation or money action is logged | **Every view and change of a patient record is logged** (who, what, when, why). Required for privacy law and disputes |
-| Append-only `credit_ledger`, written only inside one database function | Money can't be edited, only added to | **Clinical notes are never edited or deleted**: corrections are new "amendment" rows linked to the original, signed and timed |
-| Each chapter encrypted with its own key; a Worker releases keys only when entitled | Paid content protection | Sensitive records (HIV status, mental health, reproductive health) encrypted separately; keys released only to authorised roles, break-glass access logged |
-| Author uploads are untrusted; a Worker sanitises and recounts | Books from outside | Lab results, referral letters and device data from outside are untrusted: validate, sanitise, map codes before saving |
-| Admin console with staff roles | Super admin, support, analyst… | Facility admin, doctor, nurse, lab scientist, pharmacist, cashier, records officer, each with least privilege |
-| Money rules stated before any tap that spends | ₦ shown before unlocking | Prices and payer (cash, HMO, NHIS) shown before ordering or dispensing |
-| Empty, loading, error and **offline** states on every screen | Patchy mobile data | Clinics lose power and internet: the EMR must work offline and sync safely, without losing or duplicating notes |
-| Owner judges screens | The owner signs off each flow | **Clinicians** sign off each flow; a wrong screen in an EMR is a safety issue, not only a looks issue |
-| Default answers in OPEN-QUESTIONS | Builders never block | Same, but **clinical and legal questions never get a silent default**: they go to a clinician or the owner |
-| Device testing at 320/360/375 dp | Phones readers use | The tablets and cheap phones clinics actually use, in portrait and landscape, with gloves-friendly touch targets |
-| Migration flow 17 | Move v25 users across | Migrate paper or legacy records: map, de-duplicate patients, verify a sample with records staff before go-live |
-
-**What changes for an EMR (add to the specs):**
-- Patient identity: one patient, one record (matching and merging duplicates).
-- Consent and data-protection law (in Nigeria, the NDPA); data stays where the law allows; retention and deletion rules.
-- Clinical coding (ICD-10/11 for diagnoses, LOINC for labs) and, if other systems must connect, HL7 FHIR.
-- Clinical safety checks: allergies, drug interactions and dose limits shown before prescribing.
-- Backups and restore drills from day one.
-
----
-
-## 7. How to ask "how are you building this?"
-
-At any point, ask and you get a plain explanation of the current step: which flow, which builder, which device, what was decided and why. Each answer is also written into the timeline above, so the tutorial writes itself as the build goes on.
+1. Design the product as prototypes, with the owner
+2. Write per-flow specs, rules and default answers
+3. Screen tools: print, capture and compare prototype screens
+4. Foundation: monorepo, CI, a free-plan merge gate
+5. The builder prompt and the headless loop
+6. Running several builders: lanes, clones, locks, heartbeats
+7. Testing on a real phone: widths via density, MIUI quirks, dev vs release builds
+8. Quality: owner review, "very, very good" bar, owner previews
+9. Watching it remotely: phone notifications and a live checklist
+10. When things break: outages, restarts, memory, contention (with the fixes above)
+11. From merged flows to a store release
