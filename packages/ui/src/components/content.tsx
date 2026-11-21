@@ -292,12 +292,20 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid, cent
 }
 
 /* ─── Avatar ─────────────────────────────────────────────────────────────── */
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'x40' | 'x48' | 'lg' | 'person' | 'tile' | 'xl';
 const avatarDims: Record<AvatarSize, [number, number]> = {
   xs: [20, 8],
   sm: [26, 10],
   md: [36, 12],
+  /** Search suggestion rows (`.sr-sugg .av`). */
+  x40: [40, 12],
+  /** Search result rows (48px `.av`). */
+  x48: [48, 12],
   lg: [52, 17],
+  /** `.sr-person .av` (Search: authors readers look for). */
+  person: [60, 18],
+  /** `.avatar-tile .av` (Home's Arpedia authors shelf). */
+  tile: [64, 20],
   xl: [88, 28],
 };
 
@@ -309,18 +317,18 @@ export interface AvatarProps {
   square?: boolean;
   /** White ring (AvatarStack). */
   ring?: boolean;
+  /** Letters to show instead of the first and last initials (club names: "Grace & Glory" → GG). */
+  letters?: string;
 }
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join('');
+/** First and last word: "Adaeze Rosemary Possible" → "AP" (the prototype's initials). */
+const initials = (name: string) => {
+  const w = name.split(/\s+/).filter((p) => /^[\p{L}\p{N}]/u.test(p)); // "Faith & Books" → FB, not F&
+  return (w.length > 1 ? [w[0]!, w[w.length - 1]!] : w).map((p) => [...p][0]!.toUpperCase()).join('');
+};
 
 /** `.av`: photo or initials on a tone. */
-export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring }: AvatarProps) {
+export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring, letters }: AvatarProps) {
   const { c, s } = useTheme();
   const [d, fs] = avatarDims[size];
   const style: ViewStyle = {
@@ -338,7 +346,7 @@ export function Avatar({ name, uri, size = 'md', tone = 'm', square, ring }: Ava
         <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
       ) : (
         <Text size={fs} weight={700} color="#FFFFFF" oneLine>
-          {initials(name)}
+          {letters ?? initials(name)}
         </Text>
       )}
     </View>

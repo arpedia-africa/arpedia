@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, View, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +22,10 @@ export interface ScreenProps {
   header?: ReactNode;
   children?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Pull to refresh on the scrolling body. */
+  refreshControl?: ScrollViewProps['refreshControl'];
+  /** Scroll events on the scrolling body (infinite lists), throttled to 100 ms. */
+  onScroll?: ScrollViewProps['onScroll'];
 }
 
 /** Safe-area screen: status bar colour, optional fixed header and footer, scrolling body. */
@@ -32,6 +36,8 @@ export function Screen({
   header,
   children,
   contentStyle,
+  refreshControl,
+  onScroll,
 }: ScreenProps) {
   const { c, name } = useTheme();
   const onOrg = top === 'org';
@@ -45,7 +51,13 @@ export function Screen({
         <Body
           style={{ flex: 1, backgroundColor: c.white }}
           {...(scroll
-            ? { contentContainerStyle: contentStyle, showsVerticalScrollIndicator: false }
+            ? {
+                contentContainerStyle: contentStyle,
+                showsVerticalScrollIndicator: false,
+                refreshControl,
+                onScroll,
+                scrollEventThrottle: onScroll ? 100 : undefined,
+              }
             : { style: [{ flex: 1, backgroundColor: c.white }, contentStyle] })}
         >
           {children}
@@ -82,10 +94,12 @@ export interface PetalsProps {
   opacity?: number;
   style?: StyleProp<ViewStyle>;
   reverse?: boolean;
+  /** Petal colour instead of the theme petal (search genre tiles). */
+  fill?: string;
 }
 
 /** Sunflower petal ring that drifts (one turn per 140 s; still under reduced motion). */
-export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse }: PetalsProps) {
+export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse, fill }: PetalsProps) {
   const { c } = useTheme();
   const drift = useDrift(undefined, reverse);
   return (
@@ -94,7 +108,7 @@ export function Petals({ size, alpha = 0.72, opacity = 0.55, style, reverse }: P
       style={[{ position: 'absolute', width: size, height: size, opacity }, style, drift]}
     >
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Path d={petalPath(size)} fill={rgba(c.petalRgb, alpha * c.petalK)} />
+        <Path d={petalPath(size)} fill={fill ?? rgba(c.petalRgb, alpha * c.petalK)} />
       </Svg>
     </Animated.View>
   );
@@ -107,16 +121,31 @@ export interface HeroProps {
   /** Back button variant of the bar: tighter left padding. */
   barBack?: boolean;
   title?: string;
+  /** Keep the title on one line (shrinks to fit on narrow phones instead of wrapping). */
+  titleOneLine?: boolean;
   xl?: boolean;
   sub?: string;
   /** Petals at the bottom-left instead of the top-right. */
   low?: boolean;
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Overrides for `.hero__body` (e.g. `.bk-hero .hero__body`: centred, padding 0 16 46). */
+  bodyStyle?: StyleProp<ViewStyle>;
 }
 
 /** Full-width main-colour band with drifting sunflower petals (`.hero`). */
-export function Hero({ bar, barBack, title, xl, sub, low, children, style }: HeroProps) {
+export function Hero({
+  bar,
+  barBack,
+  title,
+  titleOneLine,
+  xl,
+  sub,
+  low,
+  children,
+  style,
+  bodyStyle,
+}: HeroProps) {
   const { c, s } = useTheme();
   const size = s(260);
   return (
@@ -141,12 +170,18 @@ export function Hero({ bar, barBack, title, xl, sub, low, children, style }: Her
           </View>
         ) : null}
         {title || sub || children ? (
-          <View style={{ paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) }}>
+          <View
+            style={[
+              { paddingTop: s(4), paddingHorizontal: s(16), paddingBottom: s(20), gap: s(12) },
+              bodyStyle,
+            ]}
+          >
             {title ? (
               <Text
                 variant="display"
                 size={xl ? 36 : 30}
                 color="onOrg"
+                oneLine={titleOneLine}
                 // text-wrap: balance
                 textBreakStrategy="balanced"
                 style={{ lineHeight: s(xl ? 36 : 30) * 1.02 }}

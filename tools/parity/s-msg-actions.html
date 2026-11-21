@@ -1,0 +1,15 @@
+<!-- Parity page s-msg-actions: the sheet's panel body, verbatim from prototype/src/04-library-social.html,
+     laid flat (no backdrop, grab or slide; the kit Sheet chrome is the same as every other sheet).
+     apps/mobile/app/parity.tsx renders ReactionRow + OptionList inside the same .pb padding. -->
+ <div class="panel" style="position:relative;inset:auto;box-shadow:none;animation:none;max-height:none;border-radius:0">
+ <div class="pb pt8">
+ <div class="com-reacts" aria-label="React"><button aria-label="Thumbs up">👍</button><button aria-label="Love">❤️</button><button aria-label="Laugh">😂</button><button aria-label="Wow">😮</button><button aria-label="Sad">😢</button><button aria-label="Fire">🔥</button></div>
+ <div class="option-list option-list--flush">
+ <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Reply</span></span></a>
+ <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Share</span></span></a>
+ <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Pin</span><span class="option__sub">Club admins only</span></span></a>
+ <a class="option option--compact" data-go="channel"><span class="option__body"><span class="option__title">Copy text</span></span></a>
+ <a class="option option--compact" data-go="report"><span class="option__body"><span class="option__title com-danger">Report or block</span><span class="option__sub">Chioma Okafor</span></span></a>
+ </div>
+ </div>
+ </div>

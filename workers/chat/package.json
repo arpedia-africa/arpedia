@@ -8,13 +8,15 @@
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
     "typecheck": "tsc -p tsconfig.json",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@arpedia/core": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261117.1",
+    "vitest": "^5.1.0",
     "wrangler": "^4.164.0"
   }
 }

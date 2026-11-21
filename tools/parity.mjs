@@ -565,6 +565,32 @@ try {
           { x: 544, y: 107, width: 600, height: 343 },
         ],
       },
+      // Flow 03. Harmattan Letters' Details, Pricing and access and Stats tabs: shell, page header and
+      // tabs are gated; the panels hold seeded data (no Discover shelves or history yet), compared by eye.
+      book: {
+        path: '/books/00000000-0000-4000-c000-000000000001',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'book-access': {
+        path: '/books/00000000-0000-4000-c000-000000000001/access',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'book-stats': {
+        path: '/books/00000000-0000-4000-c000-000000000001/stats',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
       // Revisions of the seeded update (The Alignment r4): shell, page header, tabs and the revisions
       // table head. Rows, panels and the fast-lane list hold seeded data, compared by eye.
       'book-revisions': {
@@ -591,6 +617,48 @@ try {
         fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();await new Promise(r=>setTimeout(r,300));`,
         regions: [{ x: 0, y: 0, width: W, height: H }],
       },
+      // Flow 02. Shell and page header; sections, books and counts below hold seeded data.
+      curation: {
+        path: '/curation',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'curation-trending': {
+        path: '/curation/trending',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // The Coming soon drawer over Discover curation (the page behind is gated above).
+      'curation-coming': {
+        path: '/curation/coming',
+        as: 'amaka@arpedia.africa',
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
+      genres: {
+        path: '/genres',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'search-tuning': {
+        path: '/search-tuning',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
+      community: { path: '/community', as: 'zainab@arpedia.africa' },
+      channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
     };
     for (const id of ids) {
       const p = pages[id];
