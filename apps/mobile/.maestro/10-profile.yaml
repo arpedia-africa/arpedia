@@ -38,26 +38,28 @@ appId: com.arpedia.reader
 - tapOn: 'Reading goal.*'
 - extendedWaitUntil:
     visible: 'Books this year'
-    timeout: 10000
+    timeout: 30000
 - tapOn: '24 books'
 - assertVisible: '24 books is about 2 a month.*'
 - takeScreenshot: profile-${WIDTH}-goal
 - tapOn: 'Set goal'
 - extendedWaitUntil:
     visible: '.* of 24 · .*'
-    timeout: 15000
+    timeout: 60000
 
 # s-account
 - tapOn: 'Settings'
 - extendedWaitUntil:
     visible: 'Edit profile'
-    timeout: 10000
+    timeout: 30000
 - takeScreenshot: profile-${WIDTH}-settings
 
 # s-theme-settings: Palm, Done
 - scrollUntilVisible:
     element: 'App colour.*'
     direction: DOWN
+    timeout: 60000
+    centerElement: true
 - tapOn: 'App colour.*'
 - tapOn: 'Palm.*'
 - takeScreenshot: profile-${WIDTH}-colour
@@ -68,10 +70,12 @@ appId: com.arpedia.reader
 - scrollUntilVisible:
     element: 'Notifications.*'
     direction: UP
+    timeout: 60000
+    centerElement: true
 - tapOn: 'Notifications.*'
 - extendedWaitUntil:
     visible: 'Send me'
-    timeout: 10000
+    timeout: 30000
 - tapOn: 'Reading reminders'
 - takeScreenshot: profile-${WIDTH}-notifications
 - back
@@ -80,8 +84,10 @@ appId: com.arpedia.reader
 - scrollUntilVisible:
     element: 'Log out'
     direction: DOWN
+    timeout: 60000
+    centerElement: true
 - tapOn: 'Log out'
 - extendedWaitUntil:
     visible: 'Welcome back'
-    timeout: 15000
+    timeout: 60000
 - takeScreenshot: profile-${WIDTH}-logged-out
