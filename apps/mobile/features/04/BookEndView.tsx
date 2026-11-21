@@ -52,7 +52,7 @@ export function BookEndView({
   return (
     <>
       {/* .hero--low: the pill sits above the title, so the title and sub are drawn here, as Hero does */}
-      <Hero low barBack bar={<IconButton icon="x" label="Close" onPress={onClose} />}>
+      <Hero low barBack bar={<IconButton icon="x" label="Close" onPress={onClose} color={c.onOrg} />}>
         {m.yearCount ? (
           <View style={{ flexDirection: 'row' }}>
             <Pill tone="night" iconName="trophy" label={`Book ${m.yearCount} this year`} />
