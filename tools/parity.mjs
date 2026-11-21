@@ -617,6 +617,45 @@ try {
         fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();await new Promise(r=>setTimeout(r,300));`,
         regions: [{ x: 0, y: 0, width: W, height: H }],
       },
+      // Flow 02. Shell and page header; sections, books and counts below hold seeded data.
+      curation: {
+        path: '/curation',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'curation-trending': {
+        path: '/curation/trending',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // The Coming soon drawer over Discover curation (the page behind is gated above).
+      'curation-coming': {
+        path: '/curation/coming',
+        as: 'amaka@arpedia.africa',
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
+      genres: {
+        path: '/genres',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'search-tuning': {
+        path: '/search-tuning',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
