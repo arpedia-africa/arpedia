@@ -128,6 +128,13 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 
 **Lessons:** on a laptop, power settings are part of the build system. A merge gate needs someone to watch for PRs that silently stop being mergeable.
 
+### 22 Nov evening — speed-ups, then the weekly limit
+- Owner: "apply all the things that can be done to save time". Added: Gradle build cache; a **prep builder** (`-Prep`) that keeps waiting PRs merged with main and green on the second database; **owner-tagged locks** that the loop clears after every run (dead runs had blocked the device for 30 min, 4–5 times); an **emulator watchdog**; and a **cloud device-check workflow** (`device-check.yml`, dispatched on main with the PR branch as input) so PRs can be checked in parallel on GitHub's emulators.
+- First cloud run: build, emulator and tools worked; the app did not reach its sign-in screen in time (slow first start or a crash), so a second run collects a warm-up screenshot, logcat and Maestro debug output.
+- **~19:20: the Claude account hit its weekly limit** (resets Tue 24 Nov, 18:00). The loop's stop check did not know the "weekly limit" wording and kept retrying; fixed. All builders, the emulator and the watchdog stopped until the reset or an account switch.
+
+**Lesson:** budget the AI account like any other resource. Several Opus builders running day and night use a week's allowance in a few days; plan model mix (Sonnet for routine runs) and a second account before the crunch.
+
 ---
 
 ## 4. Lessons so far (for the guide)
