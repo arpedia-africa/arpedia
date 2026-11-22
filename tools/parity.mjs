@@ -662,6 +662,19 @@ try {
       // Flow 07: seeded rooms (supabase/seeds/07_rooms.sql).
       rooms: { path: '/community/rooms', as: 'zainab@arpedia.africa' },
       room: { path: '/community/rooms/00000000-0000-4000-f070-000000000001', as: 'zainab@arpedia.africa' },
+      // Flow 10 · Readers. Seeded data differs from the prototype's sample readers; compare by eye.
+      users: { path: '/users', as: 'amaka@arpedia.africa' },
+      user: { path: '/users/00000000-0000-4000-a000-000000000001', as: 'amaka@arpedia.africa' },
+      'user-activity': {
+        path: '/users/00000000-0000-4000-a000-000000000001/activity',
+        as: 'amaka@arpedia.africa',
+      },
+      // Open the ⋯ menu, then Delete account….
+      'user-delete': {
+        path: '/users/00000000-0000-4000-a000-000000000001',
+        as: 'amaka@arpedia.africa',
+        fill: `const m=document.querySelector('.ph__acts .mwrap button');for(let k=0;k<50&&!Object.keys(m).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));m.click();await new Promise(r=>setTimeout(r,200));document.querySelector('.menu a.danger').click();await new Promise(r=>setTimeout(r,400));`,
+      },
       // Flow 09. Shell and page header are gated; tables and panels hold seeded data
       // (supabase/seeds/09_credits.sql), compared by eye.
       ...Object.fromEntries(

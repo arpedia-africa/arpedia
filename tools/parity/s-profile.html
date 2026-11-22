@@ -1,0 +1,33 @@
+<!-- Parity page s-profile: the prototype screen, verbatim from prototype/src/05-money-profile-studio.html.
+     apps/mobile/app/parity.tsx renders the flow 10 view with the same values. -->
+<div class="body">
+    <div class="hero">
+      <div class="hero__bar"><h1 class="hero__title fill">Profile</h1><button class="ib" data-go="account" aria-label="Settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg></button></div>
+      <div class="hero__body">
+        <div class="pro-who"><span class="av xl g ring-night">NE</span><div class="v4"><span class="t-h2">Ngozi Eze</span><span class="t-sm">ngozi.eze@example.com</span></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="stats">
+        <div class="stat"><span class="stat__value">14</span><span class="stat__label">Books read</span></div>
+        <div class="stat"><span class="stat__value">23</span><span class="stat__label">Following</span></div>
+        <a class="stat" data-go="my-highlights"><span class="stat__value">86</span><span class="stat__label">Highlights</span></a>
+      </div>
+    </div>
+    <div class="band">
+      <a class="pro-goal inset" data-go="goal"><div class="ring" style="--p:58"><b class="t-xs t-num">14/24</b></div><div class="fill v4"><span class="t-label">Reading goal</span><span class="t-h3">Books this year</span><span class="t-sm">14 of 24 · 10 to go, on track</span></div><svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></a>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">My collection</h2></div>
+      <div class="group">
+        <a class="cell cell--tap" data-go="my-highlights"><span class="ic-bub "><svg class="ico s" aria-hidden="true"><use href="#i-bookmark"/></svg></span><div class="cell__body"><span class="cell__title">My bookmarks</span></div><span class="cell__trail"><span class="t-num">12</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="my-highlights"><span class="ic-bub b"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg></span><div class="cell__body"><span class="cell__title">My highlights</span></div><span class="cell__trail"><span class="t-num">86</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+        <a class="cell cell--tap" data-go="my-highlights"><span class="ic-bub g"><svg class="ico s" aria-hidden="true"><use href="#i-file"/></svg></span><div class="cell__body"><span class="cell__title">My notes</span></div><span class="cell__trail"><span class="t-num">12</span><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a>
+      </div>
+    </div>
+    <div class="section body-end">
+      <div class="section__head"><h2 class="section__title">Author</h2></div>
+      <div class="group"><a class="cell cell--tap" data-go="become-author"><span class="ic-bub n"><svg class="ico s" aria-hidden="true"><use href="#i-pen"/></svg></span><div class="cell__body"><span class="cell__title">Become an Arpedia author</span><span class="cell__sub">Publish, meet readers, earn monthly</span></div><span class="cell__trail"><svg class="ico s" aria-hidden="true"><use href="#i-chev"/></svg></span></a></div>
+    </div>
+  </div>
+  <nav class="tabbar"><a class="tab" data-go="home"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg>Home</a><a class="tab" data-go="library"><svg class="ico" aria-hidden="true"><use href="#i-lib"/></svg>Library</a><a class="tab" data-go="community"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Community</a><a class="tab on" data-go="profile"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></nav>

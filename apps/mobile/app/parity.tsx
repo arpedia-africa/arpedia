@@ -28,6 +28,7 @@ import {
 } from '@arpedia/ui';
 import { LAUNCH_PLANS } from '@arpedia/core';
 import { kitEnabled } from '@/lib/kit';
+import { Flow10, isFlow10 } from '../features/10/parity';
 import { LoginView, SignupView } from '../features/01/AuthViews';
 import {
   AllSetBody,
@@ -155,6 +156,16 @@ const PAGES = [
   's-create-room',
   's-join-code',
   's-room',
+  's-profile',
+  's-goal',
+  's-my-highlights',
+  's-account',
+  's-theme-settings',
+  's-notif-prefs',
+  's-edit-profile',
+  's-security',
+  's-about',
+  's-delete-account',
   's-credits',
   's-plans',
   's-checkout',
@@ -242,6 +253,8 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
         <View>
           {FLOW07.has(page) ? (
             <Flow07 page={page} />
+          ) : isFlow10(page) ? (
+            <Flow10 page={page} />
           ) : isFlow02(page) ? (
             <Flow02 page={page} />
           ) : isFlow09(page) ? (
