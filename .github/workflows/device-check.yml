@@ -1,0 +1,124 @@
+# On-device checks for one PR branch, on a GitHub-hosted Android emulator (owner decision, 22 Nov:
+# run device checks in the cloud so several PRs are checked in parallel). Same checks as the local
+# emulator: the flow's Maestro file at 375 and 320 dp, and release parity at 375 dp in four themes.
+# Start it with:
+#   gh workflow run device-check.yml --ref <branch> -f flow=10-profile -f ids="s-profile s-settings"
+# Results: the run's summary, and the "device-check-<flow>" artifact (.shots/parity, .shots/maestro).
+name: Device check
+
+on:
+  workflow_dispatch:
+    inputs:
+      flow:
+        description: Maestro file name in apps/mobile/.maestro without .yaml (e.g. 10-profile); empty to skip Maestro
+        required: false
+        default: ''
+      ids:
+        description: Parity screen ids, space separated (e.g. s-profile s-settings); empty to skip parity
+        required: false
+        default: ''
+      widths:
+        description: Maestro widths in dp
+        required: false
+        default: '375,320'
+
+concurrency:
+  group: device-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  device:
+    name: device (${{ inputs.flow || 'parity' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/powershell /opt/hostedtoolcache/CodeQL
+          df -h /
+      - uses: actions/checkout@v4
+      - name: Take the device-check script from main (PR branches may predate it)
+        run: |
+          git fetch --depth=1 origin main
+          git show origin/main:tools/device-check.sh > tools/device-check.sh
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: pnpm install --frozen-lockfile
+
+      - name: Local stack (migrations + seed) and env files
+        run: |
+          pnpm exec supabase start -x studio,mailpit,imgproxy,vector,logflare,supavisor
+          pnpm dev:vars
+      - name: Workers (api :8787, chat :8788)
+        run: |
+          (cd workers/api && npx wrangler dev --port 8787 --local > /tmp/api.log 2>&1 &)
+          (cd workers/chat && npx wrangler dev --port 8788 --local > /tmp/chat.log 2>&1 &)
+          for i in $(seq 1 90); do curl -sf http://127.0.0.1:8787/health && break; sleep 2; done
+
+      - name: Prebuild (CNG)
+        working-directory: apps/mobile
+        run: CI=1 npx expo prebuild --platform android --no-install
+      - name: Build release APK (x86_64, kit and parity screens on)
+        working-directory: apps/mobile/android
+        env:
+          EXPO_PUBLIC_KIT: '1'
+          NODE_ENV: production
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+      - name: Keep the APK, drop build intermediates
+        run: |
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/"
+          rm -rf apps/mobile/android/app/build apps/mobile/android/build
+          df -h /
+
+      - name: Install Maestro
+        if: inputs.flow != ''
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Maestro and parity on an Android emulator (375 dp)
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_SERIAL: emulator-5554
+          FLOW: ${{ inputs.flow }}
+          IDS: ${{ inputs.ids }}
+          WIDTHS: ${{ inputs.widths }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: bash tools/device-check.sh
+      - name: Summary
+        if: always()
+        run: |
+          { echo "## Device check: ${{ inputs.flow }}"; echo; echo '```'; cat .shots/device-check.log 2>/dev/null | tail -80; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: device-check-${{ inputs.flow || 'parity' }}
+          path: |
+            .shots/parity/*.png
+            .shots/maestro/**/*.png
+            .shots/device-check.log
+            /tmp/api.log
+            /tmp/chat.log
+          if-no-files-found: ignore
