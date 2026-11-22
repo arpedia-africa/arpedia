@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import type { AppEnv, Env } from './env';
 import { routes } from './routes';
 import { indexSearchText } from './routes/02/search-text';
+import { erasePending } from './routes/10/account';
 import { drainPayments } from './routes/09/payments';
 import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
@@ -33,12 +34,13 @@ app.onError((err, c) => {
 export default {
   fetch: app.fetch,
   // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11),
-  // the story search index (flow 02), outbound payment calls (flow 09) and pushes,
-  // campaigns and exports (flow 15).
+  // the story search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09)
+  // and pushes, campaigns and exports (flow 15).
   scheduled: (event, env, ctx) => {
     ctx.waitUntil(consumeQueue(env));
     ctx.waitUntil(consumeApplicationChecks(env));
     ctx.waitUntil(indexSearchText(env));
+    ctx.waitUntil(erasePending(env));
     ctx.waitUntil(drainPayments(env));
     ctx.waitUntil(engageCron(env, event.scheduledTime));
   },

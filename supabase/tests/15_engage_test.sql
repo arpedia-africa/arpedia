@@ -38,6 +38,10 @@ insert into public.user_devices (user_id, device_key, push_token)
 select id, 'device-key-' || id, 'ExponentPushToken[' || id || ']' from auth.users where email like 'r_@test.local';
 update public.profiles set date_of_birth = current_date - interval '16 years'
   where id = '15000000-0000-4000-a000-000000000015';
+-- Flow 10's table is in: offers default to off, so these readers opt in to marketing.
+insert into public.notification_preferences (user_id, offers)
+select id, true from auth.users where email like 'r_@test.local'
+  on conflict (user_id) do update set offers = true;
 
 create function pg_temp.as_user(uid text) returns void
 language sql as $$
@@ -155,6 +159,9 @@ insert into public.user_genres (user_id, genre_id)
 select id, '15000000-0000-4000-b000-000000000002' from auth.users where email like 'bulk%@test.local';
 insert into public.user_devices (user_id, device_key, push_token)
 select id, 'device-key-' || id, 'ExponentPushToken[' || id || ']' from auth.users where email like 'bulk%@test.local';
+insert into public.notification_preferences (user_id, offers)
+select id, true from auth.users where email like 'bulk%@test.local'
+  on conflict (user_id) do update set offers = true;
 set local role authenticated;
 select pg_temp.as_user('15000000-0000-4000-a000-000000000001');
 create temp table c16 on commit drop as

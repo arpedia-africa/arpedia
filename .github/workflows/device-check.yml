@@ -66,7 +66,8 @@ jobs:
       - name: Local stack (migrations + seed) and env files
         run: |
           pnpm exec supabase start -x studio,mailpit,imgproxy,vector,logflare,supavisor
-          pnpm dev:vars
+          # 127.0.0.1 URLs: the app reaches the runner through adb reverse (kit builds allow http there only).
+          node tools/dev-vars.mjs --phone
       - name: Workers (api :8787, chat :8788)
         run: |
           (cd workers/api && npx wrangler dev --port 8787 --local > /tmp/api.log 2>&1 &)
@@ -75,6 +76,9 @@ jobs:
 
       - name: Prebuild (CNG)
         working-directory: apps/mobile
+        # EXPO_PUBLIC_KIT at prebuild adds the release network config that allows http to 127.0.0.1.
+        env:
+          EXPO_PUBLIC_KIT: '1'
         run: CI=1 npx expo prebuild --platform android --no-install
       - name: Build release APK (x86_64, kit and parity screens on)
         working-directory: apps/mobile/android
