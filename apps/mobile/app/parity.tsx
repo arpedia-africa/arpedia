@@ -28,6 +28,7 @@ import {
 } from '@arpedia/ui';
 import { LAUNCH_PLANS } from '@arpedia/core';
 import { kitEnabled } from '@/lib/kit';
+import { Flow10, isFlow10 } from '../features/10/parity';
 import { LoginView, SignupView } from '../features/01/AuthViews';
 import {
   AllSetBody,
@@ -150,6 +151,16 @@ const PAGES = [
   's-msg-actions',
   's-report',
   's-blocked',
+  's-profile',
+  's-goal',
+  's-my-highlights',
+  's-account',
+  's-theme-settings',
+  's-notif-prefs',
+  's-edit-profile',
+  's-security',
+  's-about',
+  's-delete-account',
   's-credits',
   's-plans',
   's-checkout',
@@ -235,7 +246,9 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          {isFlow02(page) ? (
+          {isFlow10(page) ? (
+            <Flow10 page={page} />
+          ) : isFlow02(page) ? (
             <Flow02 page={page} />
           ) : isFlow09(page) ? (
             <Flow09 page={page} />
