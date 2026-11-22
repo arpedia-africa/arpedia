@@ -6,6 +6,11 @@ appId: com.arpedia.reader
 - launchApp:
     clearState: true
 # Since flow 01 the app starts at Log in; kit builds open the gallery by link.
+# launchApp returns before the JS bundle is up, and a link sent while it is still
+# loading is dropped (nightly #11 on the slow hosted emulator), so wait for Log in first.
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 60000
 - openLink: arpedia://kit
 - extendedWaitUntil:
     visible:

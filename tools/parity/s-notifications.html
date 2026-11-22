@@ -1,0 +1,26 @@
+<!-- Parity page s-notifications: the prototype screen, verbatim from prototype/src/02-auth-discovery.html.
+     apps/mobile/app/parity.tsx renders the flow 02 Notifications views with the same values. -->
+  <div class="hero">
+    <div class="hero__bar hero__bar--back"><button class="ib" data-go="home" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><button class="ib" data-go="notif-prefs" aria-label="Notification settings"><svg class="ico" aria-hidden="true"><use href="#i-cog"/></svg></button></div>
+    <div class="hero__body">
+      <h1 class="hero__title">Notifications</h1>
+      <div class="between"><p class="hero__sub">3 new since you last checked</p><button class="pill night"><svg class="ico xs" aria-hidden="true"><use href="#i-check"/></svg>Mark all read</button></div>
+    </div>
+    <div class="hero__tabs" data-single><button class="on">All <span class="count">3</span></button><button>Books</button><button>Authors</button><button>Community</button></div>
+  </div>
+  <div class="body body-end">
+    <div class="group-label">New</div>
+    <div class="group group--flush">
+      <a class="cell cell--tap cell--top cell--hl" data-go="book"><span class="cell__lead"><span class="cv c8 x40"><b>Bread on Water</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>New in the library.</b> Bread on Water by Halima Bello is now available.</span><span class="cell__sub">2 h ago</span></span><span class="unread"></span></a>
+      <a class="cell cell--tap cell--top cell--hl" data-go="discuss"><span class="cell__lead"><span class="cv c1 x40"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>New reply to your note.</b> Hauwa Musa replied to your note in Harmattan Letters.</span><span class="cell__sub">5 h ago</span></span><span class="unread"></span></a>
+      <a class="cell cell--tap cell--top cell--hl" data-go="post"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Ifeoma Nwachukwu posted.</b> Why Kemi had to take the train.</span><span class="cell__sub">7 h ago</span></span><span class="unread"></span></a>
+    </div>
+    <div class="group-label">Earlier</div>
+    <div class="group group--flush">
+      <a class="cell cell--tap cell--top" data-go="channel"><span class="cell__lead"><span class="av sq n">GR</span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Grace Readers.</b> Amaka: What is everyone reading this weekend?</span><span class="cell__sub">10 h ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="dm"><span class="cell__lead"><span class="av m">IN</span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Reply from Ifeoma Nwachukwu.</b> She is a little bit of three women I knew in Kano.</span><span class="cell__sub">2 days ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="reader"><span class="cell__lead"><span class="cv c1 x40"><b>Harmattan Letters</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Pick up where you left off.</b> You are 34% through Harmattan Letters.</span><span class="cell__sub">2 days ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="profile"><span class="cell__body"><span class="cell__title cell__title--reg"><b>Reading challenge.</b> Finish one book this month to enter the free-year draw.</span><span class="cell__sub">4 days ago</span></span></a>
+      <a class="cell cell--tap cell--top" data-go="book"><span class="cell__lead"><span class="cv c4 x40"><b>Seven Bridges to Jos</b></span></span><span class="cell__body"><span class="cell__title cell__title--reg"><b>Coming soon.</b> Seven Bridges to Jos has a new chapter excerpt.</span><span class="cell__sub">6 days ago</span></span></a>
+    </div>
+  </div>
