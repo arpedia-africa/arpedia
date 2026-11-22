@@ -483,15 +483,22 @@ export default function RoomScreen() {
             ) : null}
             {room && behindLine(room.behind) ? <NoteLine>{behindLine(room.behind)!}</NoteLine> : null}
             {history.isPending ? (
-              <ChatSkeleton />
+              <View style={{ flex: 1 }}>
+                <ChatSkeleton />
+              </View>
             ) : history.isError && !history.data ? (
-              <EmptyState
-                title="Couldn't load messages"
-                body="Check your connection and try again."
-                action={{ label: 'Try again', onPress: () => void history.refetch() }}
-              />
+              <View style={{ flex: 1 }}>
+                <EmptyState
+                  title="Couldn't load messages"
+                  body="Check your connection and try again."
+                  action={{ label: 'Try again', onPress: () => void history.refetch() }}
+                />
+              </View>
             ) : items.length === 0 ? (
-              <EmptyState title="Say hello." body="Everyone's progress is above." />
+              // Fill the chat area so the composer stays at the bottom.
+              <View style={{ flex: 1 }}>
+                <EmptyState title="Say hello." body="Everyone's progress is above." />
+              </View>
             ) : (
               <FlatList
                 ref={listRef}
