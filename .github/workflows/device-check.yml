@@ -37,7 +37,7 @@ jobs:
   device:
     name: device (${{ inputs.ref }})
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 75
     steps:
       - name: Free disk space
         run: |
