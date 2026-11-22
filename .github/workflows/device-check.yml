@@ -2,13 +2,17 @@
 # run device checks in the cloud so several PRs are checked in parallel). Same checks as the local
 # emulator: the flow's Maestro file at 375 and 320 dp, and release parity at 375 dp in four themes.
 # Start it with:
-#   gh workflow run device-check.yml --ref <branch> -f flow=10-profile -f ids="s-profile s-settings"
+#   gh workflow run device-check.yml -f ref=<pr branch> -f flow=10-profile -f ids="s-profile s-settings"
+# (always dispatched on main, so PR branches don't need this file)
 # Results: the run's summary, and the "device-check-<flow>" artifact (.shots/parity, .shots/maestro).
 name: Device check
 
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: PR branch to check (e.g. flow/10-profile)
+        required: true
       flow:
         description: Maestro file name in apps/mobile/.maestro without .yaml (e.g. 10-profile); empty to skip Maestro
         required: false
@@ -23,7 +27,7 @@ on:
         default: '375,320'
 
 concurrency:
-  group: device-check-${{ github.ref }}
+  group: device-check-${{ inputs.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -31,7 +35,7 @@ permissions:
 
 jobs:
   device:
-    name: device (${{ inputs.flow || 'parity' }})
+    name: device (${{ inputs.ref }})
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -41,6 +45,8 @@ jobs:
             /usr/share/swift /usr/local/share/powershell /opt/hostedtoolcache/CodeQL
           df -h /
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - name: Take the device-check script from main (PR branches may predate it)
         run: |
           git fetch --depth=1 origin main
@@ -110,7 +116,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          { echo "## Device check: ${{ inputs.flow }}"; echo; echo '```'; cat .shots/device-check.log 2>/dev/null | tail -80; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "## Device check: ${{ inputs.ref }} (${{ inputs.flow }})"; echo; echo '```'; cat .shots/device-check.log 2>/dev/null | tail -80; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
