@@ -118,6 +118,16 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 - **Flow 11 Author Studio merged (10:49)**, after ~15 h across runs (most lost to the disk, adb, emulator restarts and the outage). 19 screens in 4 themes on the emulator; the "blank" preview screen was the parity tool opening the wrong screen. 7 of 18 merged.
 - Owner chose to stay on the local emulator rather than move device checks to GitHub Actions emulators (which would run all PRs in parallel).
 
+### 21–22 Nov — sleep, crashes and conflicts
+- Phone builder stopped for good (owner: "the phone is a distraction"); everything on the emulator, owner previews deferred.
+- 360 dp dropped (owner decision): Maestro at 320 and 375 only.
+- What looked like emulator crashes and phone disconnects was mostly **the laptop sleeping** (18:00, 20:32 lid, 23:32 hibernate): ~5 h lost. Real emulator crashes (GPU, then window) fixed by running it headless with software graphics (`-no-window -gpu swiftshader_indirect`), at a high CPU cost.
+- **Flow 04 merged (01:10)** after a CI failure: the generated types file had been formatted, and CI diffs it against raw `supabase gen types` output. Rule: commit it raw, regenerate after merging main.
+- **Flow 09 merged (06:22)** after sitting ~3 h: once flow 04 merged, #14 conflicted with main and GitHub runs no CI on a conflicting PR. Rule: device builders first merge main into ready PRs that conflict.
+- PC restarted (~10:05 local clock); Docker, emulator and loops restarted. 9 of 18 merged.
+
+**Lessons:** on a laptop, power settings are part of the build system. A merge gate needs someone to watch for PRs that silently stop being mergeable.
+
 ---
 
 ## 4. Lessons so far (for the guide)
