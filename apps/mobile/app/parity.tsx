@@ -95,6 +95,7 @@ import { DiscoverHero, DiscoverRow, TypeChips, type DiscoverRowView } from '../f
 import { Bubble, ComHead, ComPin, Composer, DayMarker, type BubbleView } from '../features/06/ChatViews';
 import { OptionList, ReactionRow, ReportBody } from '../features/06/SheetViews';
 import { BlockedRow } from '../features/06/BlockedViews';
+import { BookEndView } from '../features/04/BookEndView';
 
 const PAGES = [
   'kit-a',
@@ -159,6 +160,7 @@ const PAGES = [
   's-security',
   's-about',
   's-delete-account',
+  's-book-end',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -245,6 +247,24 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
             <Flow02 page={page} />
           ) : FLOW06.has(page) ? (
             <Flow06 page={page} />
+          ) : page === 's-book-end' ? (
+            <BookEndView
+              m={{
+                title: 'Harmattan Letters',
+                timeLine: '4 h 26 min across 9 days.',
+                yearCount: 14,
+                stars: 0,
+                discussionSub: '212 readers who finished · spoilers allowed',
+                author: { name: 'Ifeoma Nwosu', tone: 'm' },
+                tipFrom: 20,
+                next: { id: 'grace', title: 'A House Called Grace', author: 'Kemi Ogunleye', tone: 'c6' },
+              }}
+              onClose={noop}
+              onRate={noop}
+              onDiscussion={noop}
+              onTip={noop}
+              onBook={noop}
+            />
           ) : page.startsWith('s-book') || page === 's-reviews' || page === 's-write-review' ? (
             <Flow03 page={page} />
           ) : (
