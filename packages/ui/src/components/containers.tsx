@@ -7,7 +7,16 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Modal, Pressable, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Keyboard,
+  Modal,
+  Pressable,
+  ScrollView,
+  View,
+  useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../Icon';
@@ -41,6 +50,21 @@ export function Sheet({ open, onClose, title, locked, children, footer, bold, su
   const [mounted, setMounted] = useState(open);
   const t = useSharedValue(0);
   const [h, setH] = useState(600);
+  // A Modal window doesn't resize for the keyboard on Android, so the panel lifts itself above it
+  // (else a field near the bottom and its button sit under the keyboard).
+  const [kb, setKb] = useState(0);
+  const win = useWindowDimensions();
+
+  useEffect(() => {
+    if (!mounted) return;
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setKb(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKb(0));
+    return () => {
+      show.remove();
+      hide.remove();
+      setKb(0);
+    };
+  }, [mounted]);
 
   useEffect(() => {
     if (open) {
@@ -91,8 +115,8 @@ export function Sheet({ open, onClose, title, locked, children, footer, bold, su
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 0,
-            maxHeight: '88%',
+            bottom: kb,
+            maxHeight: kb ? win.height * 0.88 - kb : '88%',
             backgroundColor: c.white,
             borderTopLeftRadius: s(20),
             borderTopRightRadius: s(20),
@@ -163,6 +187,8 @@ export function Sheet({ open, onClose, title, locked, children, footer, bold, su
         </View>
         <ScrollView
           bounces={false}
+          // One tap on a button (e.g. Save note) both hides the keyboard and presses it.
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             // .panel.bk-bold > .pb: padding-top 16
             paddingTop: s(bold ? 16 : 4),

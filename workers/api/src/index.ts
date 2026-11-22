@@ -2,6 +2,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppEnv, Env } from './env';
 import { routes } from './routes';
+import { indexSearchText } from './routes/02/search-text';
+import { drainPayments } from './routes/09/payments';
+import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
 
 const app = new Hono<AppEnv>();
@@ -28,6 +31,12 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  // Every minute: the book pipeline's safety net (flow 12).
-  scheduled: (_event, env, ctx) => ctx.waitUntil(consumeQueue(env)),
+  // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11),
+  // the story search index (flow 02) and outbound payment calls (flow 09).
+  scheduled: (_event, env, ctx) => {
+    ctx.waitUntil(consumeQueue(env));
+    ctx.waitUntil(consumeApplicationChecks(env));
+    ctx.waitUntil(indexSearchText(env));
+    ctx.waitUntil(drainPayments(env));
+  },
 } satisfies ExportedHandler<Env>;

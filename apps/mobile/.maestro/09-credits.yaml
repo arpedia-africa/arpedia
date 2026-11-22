@@ -1,0 +1,58 @@
+# Flow 09: sign in as Ngozi (Quarterly on Google Play, seeded top-up and chapter charge), open
+# Credits, see the balance, buckets and history, then Your plan, then the paywall's checkout.
+# Subscribe itself needs Google Play sandbox and the RevenueCat SDK (not installed yet:
+# features/09/purchases.ts answers "Google Play is not responding"), so this path stops at the
+# Subscribe button. Add the purchase steps when the SDK lands.
+# Needs the local stack (Supabase + api Worker) behind the app, freshly reset (`pnpm db:reset`).
+# Run: maestro test apps/mobile/.maestro/09-credits.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/09-credits.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Home'
+    timeout: 30000
+
+# s-credits
+- openLink: arpedia://credits
+# "Top up" shows while the balance is still loading (skeleton); wait for the buckets themselves.
+- extendedWaitUntil:
+    visible: 'Top-up · never expires'
+    timeout: 30000
+- takeScreenshot: credits-${WIDTH}-credits
+# Transactions sit below Top up, the promo field (Q15) and What credits buy.
+- scrollUntilVisible:
+    element: 'Transactions'
+    direction: DOWN
+    # A loaded emulator needs minutes per scroll (22 Nov); the heading is reached, just late.
+    timeout: 240000
+    visibilityPercentage: 50
+- takeScreenshot: credits-${WIDTH}-history
+
+# s-plans: Your plan (Quarterly, Google Play)
+- openLink: arpedia://plan
+- extendedWaitUntil:
+    visible: 'Quarterly.*'
+    timeout: 30000
+- takeScreenshot: credits-${WIDTH}-plan
+
+# Paywall → checkout: the price is stated before the Subscribe tap.
+- openLink: arpedia://checkout?plan=monthly
+- extendedWaitUntil:
+    visible: 'Subscribe with Google Play'
+    timeout: 30000
+- assertVisible: '.*₦900.*'
+- takeScreenshot: credits-${WIDTH}-checkout
