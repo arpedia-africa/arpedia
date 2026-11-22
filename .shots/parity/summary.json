@@ -2,104 +2,84 @@
   "max": 2,
   "results": [
     {
-      "name": "s-edit-profile-sunflower",
-      "pct": 2.614915533580552,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-edit-profile-sunflower.png"
+      "name": "s-rooms-sunflower",
+      "pct": 5.3975757575757575,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-rooms-sunflower.png"
     },
     {
-      "name": "s-edit-profile-palm",
-      "pct": 2.666337041615163,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-edit-profile-palm.png"
+      "name": "s-rooms-palm",
+      "pct": 5.815353535353536,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-rooms-palm.png"
     },
     {
-      "name": "s-edit-profile-plum",
-      "pct": 2.6894107952204367,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-edit-profile-plum.png"
+      "name": "s-rooms-plum",
+      "pct": 5.884848484848485,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-rooms-plum.png"
     },
     {
-      "name": "s-edit-profile-night",
-      "pct": 2.7672023073753604,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-edit-profile-night.png"
+      "name": "s-rooms-night",
+      "pct": 6.128888888888889,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-rooms-night.png"
     },
     {
-      "name": "s-security-sunflower",
-      "pct": 3.983480825958702,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-security-sunflower.png"
+      "name": "s-create-room-sunflower",
+      "pct": 5.02,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-create-room-sunflower.png"
     },
     {
-      "name": "s-security-palm",
-      "pct": 4.035004916420846,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-security-palm.png"
+      "name": "s-create-room-palm",
+      "pct": 5.177543859649123,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-create-room-palm.png"
     },
     {
-      "name": "s-security-plum",
-      "pct": 4.052704031465093,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-security-plum.png"
+      "name": "s-create-room-plum",
+      "pct": 5.211228070175439,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-create-room-plum.png"
     },
     {
-      "name": "s-security-night",
-      "pct": 4.114847590953786,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-security-night.png"
+      "name": "s-create-room-night",
+      "pct": 5.386315789473684,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-create-room-night.png"
     },
     {
-      "name": "s-about-sunflower",
-      "pct": 3.378127046496398,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-about-sunflower.png"
+      "name": "s-join-code-sunflower",
+      "pct": 4.032027850304613,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-join-code-sunflower.png"
     },
     {
-      "name": "s-about-palm",
-      "pct": 3.449901768172888,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-about-palm.png"
+      "name": "s-join-code-palm",
+      "pct": 4.193559617058312,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-join-code-palm.png"
     },
     {
-      "name": "s-about-plum",
-      "pct": 3.475049115913556,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-about-plum.png"
+      "name": "s-join-code-plum",
+      "pct": 4.263185378590078,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-join-code-plum.png"
     },
     {
-      "name": "s-about-night",
-      "pct": 3.5656843483955467,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-about-night.png"
+      "name": "s-join-code-night",
+      "pct": 4.5013054830287205,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-join-code-night.png"
     },
     {
-      "name": "s-delete-account-sunflower",
-      "pct": 13.9375,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-delete-account-sunflower.png"
+      "name": "s-room-sunflower",
+      "pct": 13.298690835850957,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-room-sunflower.png"
     },
     {
-      "name": "s-delete-account-palm",
-      "pct": 13.972222222222221,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-delete-account-palm.png"
+      "name": "s-room-palm",
+      "pct": 13.298288016112789,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-room-palm.png"
     },
     {
-      "name": "s-delete-account-plum",
-      "pct": 14.00925925925926,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-delete-account-plum.png"
+      "name": "s-room-plum",
+      "pct": 13.484390735146022,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-room-plum.png"
     },
     {
-      "name": "s-delete-account-night",
-      "pct": 14.099537037037036,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-delete-account-night.png"
-    },
-    {
-      "name": "s-my-highlights-sunflower",
-      "pct": 7.329446064139941,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-my-highlights-sunflower.png"
-    },
-    {
-      "name": "s-my-highlights-palm",
-      "pct": 7.505928085519923,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-my-highlights-palm.png"
-    },
-    {
-      "name": "s-my-highlights-plum",
-      "pct": 7.555685131195335,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-my-highlights-plum.png"
-    },
-    {
-      "name": "s-my-highlights-night",
-      "pct": 7.662585034013605,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-my-highlights-night.png"
+      "name": "s-room-night",
+      "pct": 12.30171198388721,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-room-night.png"
     }
   ]
 }
