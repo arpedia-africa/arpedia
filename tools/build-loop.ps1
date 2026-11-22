@@ -91,7 +91,7 @@ while ($true) {
 
   # only the CLI's own limit messages (a run report may legitimately talk about "rate limits" in code)
   $tail = ($lines | Select-Object -Last 5 | Out-String)
-  if ($tail -match "(?i)(usage limit reached|you've hit your( usage)? limit|you have hit your( usage)? limit|claude ai usage limit|credit balance is too low)") {
+  if ($tail -match "(?i)(usage limit reached|you've hit your( usage| weekly| daily)? limit|you have hit your( usage| weekly| daily)? limit|claude ai usage limit|credit balance is too low)") {
     Write-Host "`nThis Claude account has hit its limit." -ForegroundColor Red
     Write-Host "Switch account with:  claude /login   then run this script again. Work continues from GitHub." -ForegroundColor Red
     break
