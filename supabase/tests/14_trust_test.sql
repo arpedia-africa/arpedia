@@ -259,7 +259,8 @@ insert into public.chapters (id, revision_id, chapter_uid, ord, title, words, pa
   ('14000000-0000-4000-c200-000000000002', '14000000-0000-4000-c100-000000000001', '14000000-0000-4000-c300-000000000002', 2, 'Two', 30000, 120, 60),
   ('14000000-0000-4000-c200-000000000003', '14000000-0000-4000-c100-000000000001', '14000000-0000-4000-c300-000000000003', 3, 'Three', 1000, 4, 2);
 insert into public.credit_ledger (user_id, delta, reason, bucket, created_at) values
-  ('14000000-0000-4000-a000-000000000001', 100, 'top_up', 'topup', now() - interval '1 day');
+  ('14000000-0000-4000-a000-000000000001', 99, 'top_up', 'topup', now() - interval '1 day'),
+  ('14000000-0000-4000-a000-000000000001', 1, 'plan_grant', 'plan', now() - interval '1 day');
 -- Chapter One: 3 credits split over two buckets in one charge, 20 minutes ago.
 insert into public.credit_ledger (user_id, delta, reason, bucket, txn_id, book_id, chapter_id, author_id, author_earning_kobo, created_at) values
   ('14000000-0000-4000-a000-000000000001', -1, 'chapter', 'plan', '14000000-0000-4000-f000-000000000001', '14000000-0000-4000-c000-000000000001', '14000000-0000-4000-c200-000000000001', '14000000-0000-4000-a000-000000000007', 160, now() - interval '20 minutes'),

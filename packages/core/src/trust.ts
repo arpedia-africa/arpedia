@@ -2,8 +2,17 @@
 // muted-word matcher the moderate-text Worker runs, and sanction end dates. Postgres holds the same
 // rules (report_severity_setting, report_due_at, _apply_sanction); these mirror them for the screens.
 
+// book_content: a problem a reader reports from inside a book (flow 04).
 export type ReportContentType =
-  'message' | 'discussion_comment' | 'review' | 'post_comment' | 'author_post' | 'profile' | 'book' | 'dm';
+  | 'message'
+  | 'discussion_comment'
+  | 'review'
+  | 'post_comment'
+  | 'author_post'
+  | 'profile'
+  | 'book'
+  | 'dm'
+  | 'book_content';
 
 export type ReportReason =
   | 'spam'

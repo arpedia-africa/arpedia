@@ -36,6 +36,7 @@ export const TYPE_LABEL: Record<ReportContentType, string> = {
   profile: 'Profile',
   book: 'Book',
   dm: 'DM',
+  book_content: 'Book content',
 };
 
 export const SEVERITY_LABEL: Record<Severity, string> = { high: 'High', medium: 'Medium', low: 'Low' };
