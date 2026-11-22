@@ -14,6 +14,11 @@ adb install -r "$RUNNER_TEMP/app-release.apk" | tee -a "$LOG"
 for p in 55321 8787 8788; do adb reverse "tcp:$p" "tcp:$p"; done
 # Pixel 6 is 1080 px wide: density 461 gives 375 dp, the prototype's width.
 adb shell wm density 461
+# Warm up: the first cold start on a hosted emulator can take over a minute.
+adb shell monkey -p com.arpedia.reader -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+sleep 60
+adb exec-out screencap -p > .shots/warmup.png
+adb shell am force-stop com.arpedia.reader
 
 status=0
 if [ -n "${FLOW:-}" ]; then
@@ -36,5 +41,7 @@ if [ -n "${IDS:-}" ]; then
   [ "${PIPESTATUS[0]}" -eq 0 ] || log "(parity percentages are advisory: review the side-by-sides)"
 fi
 
+adb logcat -d > .shots/logcat.txt 2>/dev/null
+cp -r "$HOME/.maestro/tests" .shots/maestro-debug 2>/dev/null
 log "== Done, status $status"
 exit $status
