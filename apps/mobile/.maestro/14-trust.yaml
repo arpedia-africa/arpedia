@@ -1,10 +1,10 @@
 # Flow 14: log in as the seeded reader, open Grace Readers, report Chioma's message with Also block
 # (create_report through the chat Worker), then unblock her on s-blocked so the flow can run again.
 # Needs the local stack (Supabase + api Worker + chat Worker) behind the app, freshly reset
-# (`pnpm db:reset`). The first width sends the report; later widths see "You already reported this."
-# (one report per reader per item, rule 5).
+# (`pnpm db:reset`) before EACH width: the reporter no longer sees a message they reported, so a
+# second width finds no Chioma message to long-press.
 # Run: maestro test apps/mobile/.maestro/14-trust.yaml -e WIDTH=375
-# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/14-trust.yaml
+# Per width: pnpm db:reset && node tools/maestro-widths.mjs apps/mobile/.maestro/14-trust.yaml 320
 appId: com.arpedia.reader
 ---
 - launchApp:

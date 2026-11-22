@@ -470,7 +470,7 @@ export default function Chat() {
                   },
                   true,
                 ).then(
-                  () => (setReporting(null), toast({ message: REPORT_SAVED })),
+                  () => (setReporting(null), toast({ message: REPORT_SAVED, duration: 6000 })),
                   (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
                 );
                 return;
@@ -487,7 +487,8 @@ export default function Chat() {
                   onSuccess: () => {
                     setReporting(null);
                     void history.refetch();
-                    toast({ message: REPORT_SENT });
+                    // Long copy: 6 s so it can be read (the 4 s default is for short toasts).
+                    toast({ message: REPORT_SENT, duration: 6000 });
                   },
                   onError: (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
                 },
