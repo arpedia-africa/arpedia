@@ -2,24 +2,84 @@
   "max": 2,
   "results": [
     {
-      "name": "admin-transactions",
-      "pct": 0.5385572139303483,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-transactions.png"
+      "name": "s-credits-sunflower",
+      "pct": 7.155170992995467,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-credits-sunflower.png"
     },
     {
-      "name": "admin-user-credits",
-      "pct": 3.533582089552239,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-user-credits.png"
+      "name": "s-credits-palm",
+      "pct": 7.396126905644829,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-credits-palm.png"
     },
     {
-      "name": "admin-refunds",
-      "pct": 0.5385572139303483,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-refunds.png"
+      "name": "s-credits-plum",
+      "pct": 7.440296662546354,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-credits-plum.png"
     },
     {
-      "name": "admin-subscriptions",
-      "pct": 0.5385572139303483,
-      "file": "C:\\Users\\PC\\projects\\arpedia-builder-L2-product\\.shots\\parity\\admin-subscriptions.png"
+      "name": "s-credits-night",
+      "pct": 7.776184590028842,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-credits-night.png"
+    },
+    {
+      "name": "s-plans-sunflower",
+      "pct": 9.000741656365884,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plans-sunflower.png"
+    },
+    {
+      "name": "s-plans-palm",
+      "pct": 9.115451174289246,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plans-palm.png"
+    },
+    {
+      "name": "s-plans-plum",
+      "pct": 9.150721054800165,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plans-plum.png"
+    },
+    {
+      "name": "s-plans-night",
+      "pct": 9.293119077049855,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plans-night.png"
+    },
+    {
+      "name": "s-checkout-sunflower",
+      "pct": 5.518170878459687,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-checkout-sunflower.png"
+    },
+    {
+      "name": "s-checkout-palm",
+      "pct": 5.636101083032491,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-checkout-palm.png"
+    },
+    {
+      "name": "s-checkout-plum",
+      "pct": 5.691456077015644,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-checkout-plum.png"
+    },
+    {
+      "name": "s-checkout-night",
+      "pct": 6.073164861612515,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-checkout-night.png"
+    },
+    {
+      "name": "s-plan-cancel-sunflower",
+      "pct": 17.73788617886179,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plan-cancel-sunflower.png"
+    },
+    {
+      "name": "s-plan-cancel-palm",
+      "pct": 17.39490514905149,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plan-cancel-palm.png"
+    },
+    {
+      "name": "s-plan-cancel-plum",
+      "pct": 17.455609756097562,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plan-cancel-plum.png"
+    },
+    {
+      "name": "s-plan-cancel-night",
+      "pct": 17.715338753387535,
+      "file": "C:\\Users\\PC\\projects\\arpedia-builder-f06\\.shots\\parity\\s-plan-cancel-night.png"
     }
   ]
 }

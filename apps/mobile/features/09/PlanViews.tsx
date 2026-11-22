@@ -283,7 +283,10 @@ export function CheckoutBody({
           {error}
         </Text>
       ) : null}
-      <View style={{ alignItems: 'center', minHeight: s(44), justifyContent: 'center' }}>
+      {/* 44 touch target without the extra height: the prototype's link line is ~22 tall. */}
+      <View
+        style={{ alignItems: 'center', minHeight: s(44), justifyContent: 'center', marginVertical: -s(11) }}
+      >
         {restoring ? (
           <ActivityIndicator accessibilityLabel="Restoring purchases" />
         ) : (
