@@ -21,6 +21,8 @@ export interface Env {
   RESEND_API_KEY?: string;
   /** The chat Worker's ConversationDO (flow 06), for room progress events (flow 07). */
   CHAT_ROOMS?: DurableObjectNamespace;
+  /** Resend inbound-email webhook signing secret (whsec_…), flow 14; unset locally. */
+  RESEND_WEBHOOK_SECRET?: string;
   /** Flow 09: shared Authorization header RevenueCat sends on webhooks (secret). Unset → 503. */
   REVENUECAT_WEBHOOK_AUTH?: string;
   /** Flow 09: RevenueCat secret API key, for promotional days (secret). */
