@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Screenshot a running page (the built admin console) for side-by-side checks with tools/shot.mjs.
 //   node tools/shot-url.mjs <url> <out.png> [width] [height] [--as <email>]
+//   add --db2 for the second local stack.
 // --as signs in a seeded local user (password arpedia-local) and sends the @supabase/ssr session
 // cookie, so console pages can be captured. Uses Chrome's DevTools protocol (no extra packages).
 import { spawn } from 'node:child_process';
@@ -14,6 +15,9 @@ const as = ai !== -1 ? args.splice(ai, 2)[1] : null;
 // --workdir .shots/sb15: sign in on a private Supabase stack (see tools/staff-session.mjs).
 const wi = args.indexOf('--workdir');
 if (wi !== -1) process.env.SUPABASE_WORKDIR = args.splice(wi, 2)[1];
+// --db2: sign in against the second local stack (tools/db2.mjs), as builders without the phone use.
+const di = args.indexOf('--db2');
+if (di !== -1) (args.splice(di, 1), (process.env.DB2 = '1'));
 const [url, out, w = '1440', h = '900'] = args;
 if (!url || !out) {
   console.error('usage: node tools/shot-url.mjs <url> <out.png> [width] [height] [--as email]');

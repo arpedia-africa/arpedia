@@ -8,8 +8,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** API_URL, ANON_KEY… of the running local Supabase stack. */
 export function localEnv() {
-  // SUPABASE_WORKDIR points at a private stack (e.g. .shots/sb15) when db.lock is held by someone else.
-  const workdir = process.env.SUPABASE_WORKDIR ? ` --workdir ${process.env.SUPABASE_WORKDIR}` : '';
+  // SUPABASE_WORKDIR points at a private stack (e.g. .shots/sb15) when db.lock is held by someone else;
+  // DB2=1 reads the second stack (tools/db2.mjs) for builders without the phone.
+  const workdir = process.env.SUPABASE_WORKDIR
+    ? ` --workdir ${process.env.SUPABASE_WORKDIR}`
+    : process.env.DB2
+      ? ' --workdir .db2'
+      : '';
   const out = execSync(`pnpm -s exec supabase status -o env${workdir}`, {
     cwd: root,
     encoding: 'utf8',
