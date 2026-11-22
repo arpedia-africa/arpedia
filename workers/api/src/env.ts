@@ -19,6 +19,16 @@ export interface Env {
   ADMIN_URL?: string;
   /** Sends staff invite emails; unset locally (the link is logged instead). */
   RESEND_API_KEY?: string;
+  /** Flow 09: shared Authorization header RevenueCat sends on webhooks (secret). Unset → 503. */
+  REVENUECAT_WEBHOOK_AUTH?: string;
+  /** Flow 09: RevenueCat secret API key, for promotional days (secret). */
+  REVENUECAT_API_KEY?: string;
+  /** Flow 09: RevenueCat entitlement id (default "premium"). */
+  REVENUECAT_ENTITLEMENT?: string;
+  /** Flow 09: Flutterwave secret key, for verify, refund and subscription calls (secret). */
+  FLUTTERWAVE_SECRET_KEY?: string;
+  /** Flow 09: Flutterwave webhook `verif-hash` (secret). */
+  FLUTTERWAVE_WEBHOOK_HASH?: string;
 }
 
 export interface Vars {
