@@ -14,7 +14,7 @@ import {
   type PaywallBook,
 } from '../../features/01/PaywallViews';
 import { useTrack } from '../../features/01/analytics';
-import { NO_PLAN_FOUND, STORE_UNAVAILABLE, loadStore, purchase, restore } from '../../features/01/billing';
+import { NO_PLAN_FOUND, STORE_UNAVAILABLE, loadStore, restore } from '../../features/01/billing';
 import { finishOnboarding } from '../../features/01/finish';
 import { COPY, isNetworkError } from '../../features/01/session';
 import { saveStep } from '../../features/01/steps';
@@ -95,7 +95,8 @@ export default function Plans() {
     setError(null);
     try {
       if (kind === 'buy') {
-        if (await purchase(selected.id)) router.replace('/(onboarding)/all-set');
+        // Flow 09's checkout buys the plan, waits for the credits, then goes on to all-set.
+        router.push({ pathname: '/checkout', params: { plan: selected.id, from: 'onboarding' } });
       } else {
         const found = await restore();
         track('restore_tapped', { result: found });

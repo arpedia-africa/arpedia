@@ -1,0 +1,128 @@
+# Flow 02: sign in as the seeded reader, tap a Trending book, go back, search "grace",
+# open the top result. A book tap opens the book page (flow 03).
+# Needs the local stack (Supabase, seeded) behind the app.
+# Run: maestro test apps/mobile/.maestro/02-discovery.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/02-discovery.yaml
+appId: com.arpedia.reader
+---
+# On MIUI text typed while the keyboard is still sliding in is sometimes lost (the field shows its
+# placeholder again), so wait for it after each tap and start over if log in doesn't reach Home.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: 'Welcome back'
+          timeout: 30000
+      - tapOn: 'you@example.com'
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - inputText: 'ngozi@example.com'
+      - tapOn: 'Your password'
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - inputText: 'arpedia-local'
+      # Tap the heading to drop the keyboard: on MIUI hideKeyboard sends Back, which closes the app
+      # when the keyboard is already down.
+      - tapOn: 'Welcome back'
+      - tapOn: 'Log in'
+      - tapOn:
+          text: 'Don.t allow'
+          optional: true
+      # s-home
+      - extendedWaitUntil:
+          visible: 'Trending this week'
+          timeout: 30000
+- assertVisible: 'Good (morning|afternoon|evening), Ngozi\.'
+- takeScreenshot: disc-${WIDTH}-home
+- tapOn: 'Harmattan Letters by .*'
+- extendedWaitUntil:
+    visible: 'Save to library'
+    timeout: 30000
+- tapOn: 'Back'
+- extendedWaitUntil:
+    visible: 'Trending this week'
+    timeout: 10000
+
+# s-see-all (Top 10)
+# The Top 10 rail carries the heading as its label and is wider than the screen, so scroll to the
+# band's subtitle instead. Home keeps animating (rails, petals), so cap the settle wait: otherwise
+# each swipe waits ~19 s for a still screen and the scroll times out after one swipe. Slow, short
+# swipes and half visibility: at 320 dp a full-speed swipe flung the subtitle past the screen.
+- scrollUntilVisible:
+    element: 'Most read on Arpedia this week'
+    direction: DOWN
+    speed: 20
+    visibilityPercentage: 50
+    waitToSettleTimeoutMs: 1000
+    timeout: 60000
+# Its See all sits on the heading row, beside the "Top 10 books" heading. (`above`/`below` picked
+# New arrivals' See all: they don't choose the nearest match.)
+- tapOn:
+    text: 'See all'
+    childOf:
+      containsChild: 'Top 10 books'
+- extendedWaitUntil:
+    notVisible: 'Coming soon'
+    timeout: 15000
+- extendedWaitUntil:
+    visible: 'Most read on Arpedia this week'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-top10
+- back
+
+# s-search → typing → results → top result
+- scrollUntilVisible:
+    element: 'Search books, authors, topics'
+    direction: UP
+    waitToSettleTimeoutMs: 1000
+    timeout: 60000
+# The first tap after a fling only stops the scroll, so let it settle and retry the tap.
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: 'Search books, authors, topics'
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: 'Trending searches'
+    timeout: 30000
+- takeScreenshot: disc-${WIDTH}-search
+- inputText: 'grace'
+- extendedWaitUntil:
+    visible: 'Search for grace'
+    timeout: 10000
+- takeScreenshot: disc-${WIDTH}-typing
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: 'Top result.*'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-results
+# Enter also hides the keyboard; a tap during that relayout was lost once at 360 dp.
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: 'Top result.*'
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: 'Save to library'
+    timeout: 30000
+- tapOn: 'Back'
+- extendedWaitUntil:
+    visible: 'Clear search'
+    timeout: 10000
+
+# s-search-none → Ask for this book → Request sent
+- tapOn: 'Clear search'
+- inputText: 'things fall apart'
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: 'Ask for this book'
+    timeout: 15000
+- takeScreenshot: disc-${WIDTH}-none
+- tapOn: 'Ask for this book'
+- extendedWaitUntil:
+    visible: 'Request sent'
+    timeout: 10000
+- takeScreenshot: disc-${WIDTH}-request
+- tapOn: 'Done'

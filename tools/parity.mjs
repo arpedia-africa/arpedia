@@ -620,6 +620,45 @@ try {
         fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();await new Promise(r=>setTimeout(r,300));`,
         regions: [{ x: 0, y: 0, width: W, height: H }],
       },
+      // Flow 02. Shell and page header; sections, books and counts below hold seeded data.
+      curation: {
+        path: '/curation',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'curation-trending': {
+        path: '/curation/trending',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      // The Coming soon drawer over Discover curation (the page behind is gated above).
+      'curation-coming': {
+        path: '/curation/coming',
+        as: 'amaka@arpedia.africa',
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
+      genres: {
+        path: '/genres',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
+      'search-tuning': {
+        path: '/search-tuning',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 200 },
+        ],
+      },
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
@@ -641,6 +680,67 @@ try {
       analytics: { path: '/analytics?p=30', as: 'amaka@arpedia.africa' },
       'analytics-growth': { path: '/analytics/growth?p=30', as: 'amaka@arpedia.africa' },
       'analytics-reading': { path: '/analytics/reading?p=30', as: 'amaka@arpedia.africa' },
+      // Flow 09. Shell and page header are gated; tables and panels hold seeded data
+      // (supabase/seeds/09_credits.sql), compared by eye.
+      ...Object.fromEntries(
+        [
+          ['pricing', '/pricing'],
+          ['pricing-rules', '/pricing-rules'],
+          ['promos', '/promos'],
+          ['credits', '/credits'],
+          ['revenue', '/revenue'],
+          ['transactions', '/transactions'],
+          ['refunds', '/refunds'],
+          ['subscriptions', '/subscriptions'],
+          ['subscription', '/subscriptions/00000000-0000-4000-e920-000000000001'],
+          ['user-credits', '/credits/00000000-0000-4000-a000-000000000001'],
+        ].map(([id, path]) => [
+          id,
+          {
+            path,
+            as: 'amaka@arpedia.africa',
+            regions: [
+              { x: 0, y: 0, width: 248, height: H },
+              { x: 248, y: 0, width: W - 248, height: 150 },
+            ],
+          },
+        ]),
+      ),
+      // Modals: shell and topbar gated, the modal box compared by eye (its size follows real data).
+      'plan-edit': {
+        path: '/pricing/quarterly',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+        ],
+      },
+      'promo-new': {
+        path: '/promos/new',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+        ],
+      },
+      'unlock-return': {
+        path: '/credits/00000000-0000-4000-a000-000000000001/return/900001',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+        ],
+      },
+      // Words per page typed as 275, then "Review and save" opens the confirm step.
+      'pricing-rules-confirm': {
+        path: '/pricing-rules',
+        as: 'amaka@arpedia.africa',
+        fill: `const i=document.getElementById('pr-w');for(let k=0;k<50&&!Object.keys(i).some(x=>x.startsWith('__reactProps'));k++)await new Promise(r=>setTimeout(r,100));${typeInto}('#pr-w','275');await new Promise(r=>setTimeout(r,300));[...document.querySelectorAll('.ph__acts .btn-p')][0].click();for(let k=0;k<50&&!document.querySelector('.modal');k++)await new Promise(r=>setTimeout(r,100));await new Promise(r=>setTimeout(r,300));`,
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 60 },
+        ],
+      },
     };
     for (const id of ids) {
       const p = pages[id];

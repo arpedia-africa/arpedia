@@ -15,6 +15,7 @@
     "@arpedia/convert": "workspace:*",
     "@arpedia/core": "workspace:*",
     "@supabase/supabase-js": "^2.119.0",
+    "fflate": "^0.8.3",
     "hono": "^4.13.19",
     "zod": "^4.6.7"
   },
