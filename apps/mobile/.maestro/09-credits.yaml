@@ -37,6 +37,9 @@ appId: com.arpedia.reader
 - scrollUntilVisible:
     element: 'Transactions'
     direction: DOWN
+    # A loaded emulator needs minutes per scroll (22 Nov); the heading is reached, just late.
+    timeout: 240000
+    visibilityPercentage: 50
 - takeScreenshot: credits-${WIDTH}-history
 
 # s-plans: Your plan (Quarterly, Google Play)
