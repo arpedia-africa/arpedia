@@ -16,7 +16,6 @@ import {
   Skeleton,
   Text,
   useTheme,
-  Icon,
 } from '@arpedia/ui';
 import { HeroSub } from '../01/parts';
 import {
@@ -410,7 +409,7 @@ function TxCell({
   expanded?: boolean;
   onPress?: () => void;
 }) {
-  const { c, s } = useTheme();
+  const { s } = useTheme();
   const body = (
     <>
       <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
@@ -426,18 +425,16 @@ function TxCell({
           {sub}
         </Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
-        <Text
-          size={child ? 13 : 14}
-          weight={700}
-          tabular
-          oneLine
-          color={child ? 'ink2' : delta > 0 ? 'ok' : 'err'}
-        >
-          {amount(delta, unit)}
-        </Text>
-        {parent ? <Icon name={expanded ? 'down' : 'chev'} size="s" color={c.ink3} /> : null}
-      </View>
+      {/* No chevron on the book row: no icons in list rows (the prototype has none). */}
+      <Text
+        size={child ? 13 : 14}
+        weight={700}
+        tabular
+        oneLine
+        color={child ? 'ink2' : delta > 0 ? 'ok' : 'err'}
+      >
+        {amount(delta, unit)}
+      </Text>
     </>
   );
   const style = {

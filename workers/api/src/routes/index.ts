@@ -5,7 +5,11 @@ import health from './00/health';
 import avatars from './01/avatars';
 import staffInvites from './01/staff-invites';
 import staffSignIn from './01/staff-sign-in';
+import account from './10/account';
+import reading from './04/reading';
+import authorApplications from './11/applications';
 import books from './12/books';
+import trust from './14/trust';
 import payments from './09/payments';
 import authors from './08/authors';
 
@@ -14,7 +18,11 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/avatars', avatars],
   ['/v1/staff-invites', staffInvites],
   ['/v1/staff-sign-in', staffSignIn],
+  ['/v1/author-applications', authorApplications],
   ['/v1/books', books],
+  ['/v1/trust', trust],
+  ['/v1/account', account],
   ['/v1/payments', payments],
+  ['/v1/reader', reading],
   ['/v1/authors', authors],
 ];

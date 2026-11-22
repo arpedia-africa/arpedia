@@ -266,14 +266,14 @@ select is(public.undo_release_to_review('12000000-0000-4000-e000-000000000007') 
 
 -- ═══ 4. Update: anchors move, pointer swaps atomically ══════════════════════
 select pg_temp.as_owner();
-create table public.annotations (id serial primary key, book_id uuid, start_para_id text, end_para_id text,
-                                 moved boolean not null default false);
-create table public.passage_comments (id serial primary key, book_id uuid, para_id text);
-insert into public.annotations (book_id, start_para_id, end_para_id)
-select id, 'p_aaaaaaaaa3', 'p_aaaaaaaaa3' from public.books where title = 'Harmattan Test'
-union all select id, 'p_aaaaaaaaa4', 'p_aaaaaaaaa4' from public.books where title = 'Harmattan Test';
-insert into public.passage_comments (book_id, para_id)
-select id, 'p_aaaaaaaaa3' from public.books where title = 'Harmattan Test';
+-- annotations / passage_comments are flow 04's tables.
+insert into public.annotations (client_id, user_id, book_id, kind, color, cfi_range, start_para_id, end_para_id)
+select gen_random_uuid(), '12000000-0000-4000-a000-000000000001', id, 'highlight', 'yellow', 'epubcfi(/6/2)',
+  p, p
+from public.books, unnest(array['p_aaaaaaaaa3', 'p_aaaaaaaaa4']) p where title = 'Harmattan Test';
+insert into public.passage_comments (book_id, para_id, user_id, body)
+select id, 'p_aaaaaaaaa3', '12000000-0000-4000-a000-000000000001', 'Moves with its paragraph'
+from public.books where title = 'Harmattan Test';
 
 -- revision 2: paragraph 3 removed, paragraph 5 added; both a big edit and a 1% edit are tried.
 insert into public.book_revisions (id, book_id, revision_no, status, words, pages, price_credits, preview_percent,
@@ -316,10 +316,13 @@ select is((select status::text from public.book_revisions where id = (select bas
   where id = '12000000-0000-4000-e000-000000000002')), 'superseded', 'the old revision is superseded');
 select is((select count(*)::int from public.book_revisions r join public.books b on b.id = r.book_id
   where b.title = 'Harmattan Test' and r.status = 'live'), 1, 'exactly one live revision');
-select is((select start_para_id from public.annotations where start_para_id <> 'p_aaaaaaaaa4'), 'p_aaaaaaaaa2',
+select is((select a.start_para_id from public.annotations a join public.books b on b.id = a.book_id
+  where b.title = 'Harmattan Test' and a.start_para_id <> 'p_aaaaaaaaa4'), 'p_aaaaaaaaa2',
   'a highlight on a removed paragraph moves to the nearest kept one');
-select is((select count(*)::int from public.annotations where moved), 1, 'only the moved highlight is flagged');
-select is((select para_id from public.passage_comments), 'p_aaaaaaaaa2', 'passage comments move too');
+select is((select count(*)::int from public.annotations a join public.books b on b.id = a.book_id
+  where b.title = 'Harmattan Test' and a.moved), 1, 'only the moved highlight is flagged');
+select is((select c.para_id from public.passage_comments c join public.books b on b.id = c.book_id
+  where b.title = 'Harmattan Test'), 'p_aaaaaaaaa2', 'passage comments move too');
 
 -- ─── Fast lane: a 1% edit publishes itself ──────────────────────────────────
 insert into public.book_revisions (id, book_id, revision_no, status, words, pages, price_credits, preview_percent,

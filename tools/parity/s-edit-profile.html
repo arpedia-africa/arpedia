@@ -1,0 +1,14 @@
+<!-- Parity page s-edit-profile: the prototype screen, verbatim from prototype/src/05-money-profile-studio.html.
+     apps/mobile/app/parity.tsx renders the flow 10 view with the same values. -->
+<div class="hero sub-hero"><div class="hero__bar hero__bar--back"><button class="ib" data-go="account" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span></div><div class="hero__body"><h1 class="hero__title">Edit profile</h1><p class="hero__sub">Only your name, photo and bio are public.</p></div></div>
+  <div class="body onb-sheet">
+    <div class="form body-end">
+      <div class="onb-avatar"><span class="av xl g">NE</span><button class="btn btn-s sm"><svg class="ico xs" aria-hidden="true"><use href="#i-image"/></svg>Change photo</button></div>
+      <div class="input"><label for="ep-n">Full name</label><div class="field"><input id="ep-n" value="Ngozi Eze"></div></div>
+      <div class="input"><label for="ep-b">Bio</label><div class="field"><input id="ep-b" value="Choir alto. Reads on the BRT."></div><span class="hint t-num">30 / 160</span></div>
+      <div class="input"><label for="ep-p">Phone number</label><div class="field"><span class="t-soft t-strong">+234</span><input id="ep-p" value="803 412 7781"></div><span class="hint">Private. For account recovery only.</span></div>
+      <div class="input"><label for="ep-d">Date of birth</label><div class="field"><input id="ep-d" value="14 / 03 / 1996"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-cal"/></svg></div><span class="hint">Private.</span></div>
+      <div class="input"><label for="ep-c">Country</label><div class="field"><input id="ep-c" value="Nigeria"><svg class="ico s t-muted" aria-hidden="true"><use href="#i-chevd"/></svg></div></div>
+    </div>
+  </div>
+  <div class="foot"><a class="btn btn-p block" data-go="account">Save changes</a></div>
