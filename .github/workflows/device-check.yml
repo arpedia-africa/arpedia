@@ -125,6 +125,9 @@ jobs:
             .shots/parity/*.png
             .shots/maestro/**/*.png
             .shots/device-check.log
+            .shots/warmup.png
+            .shots/logcat.txt
+            .shots/maestro-debug/**
             /tmp/api.log
             /tmp/chat.log
           if-no-files-found: ignore
