@@ -7,6 +7,7 @@ export * from './preview';
 export * from './readiness';
 export * from './anchors';
 export * from './seal';
+export * from './trust';
 export * from './studio';
 export * from './discovery';
 export * from './unlock';

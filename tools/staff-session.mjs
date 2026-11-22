@@ -6,10 +6,11 @@ import { totp } from './totp.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** API_URL, ANON_KEY… of the running local Supabase stack (SUPABASE_WORKDIR=.db2 for the second one). */
+/** API_URL, ANON_KEY… of the running local Supabase stack. */
 export function localEnv() {
-  const wd = process.env.SUPABASE_WORKDIR;
-  const out = execSync(`pnpm -s exec supabase status -o env${wd ? ` --workdir "${wd}"` : ''}`, {
+  // DB2=1 reads the second stack (tools/db2.mjs) for builders without the phone.
+  const wd = process.env.DB2 ? ' --workdir .db2' : '';
+  const out = execSync(`pnpm -s exec supabase status -o env${wd}`, {
     cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],

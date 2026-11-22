@@ -35,6 +35,8 @@ const opt = (name, def) => {
 };
 const admin = argv.includes('--admin');
 const dev = argv.includes('--dev');
+// --db2 signs staff in against the second local stack (tools/db2.mjs), as DB2=1 does.
+if (argv.includes('--db2')) process.env.DB2 = '1';
 const keepRaw = argv.includes('--raw'); // also save the full-resolution captures (<name>-ref/-build.png in raw/)
 const refOn = opt('ref', 'phone');
 const RELEASE_PACKAGE = 'com.arpedia.reader';
@@ -659,6 +661,28 @@ try {
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
+      // Flow 14. Shell, band, tabs, toolbar and table head; rows hold the seeded reports, tickets,
+      // appeals, claims and articles (compared by eye).
+      ...Object.fromEntries(
+        [
+          ['reports', '/reports', 297],
+          ['support', '/support', 297],
+          ['appeals', '/appeals', 240],
+          ['claims', '/claims', 240],
+          ['help', '/help', 297],
+          ['automod', '/automod', 200],
+        ].map(([id, path, h]) => [
+          id,
+          {
+            path,
+            as: 'amaka@arpedia.africa',
+            regions: [
+              { x: 0, y: 0, width: 248, height: H },
+              { x: 248, y: 0, width: W - 248, height: h },
+            ],
+          },
+        ]),
+      ),
       // Flow 10 · Readers. Seeded data differs from the prototype's sample readers; compare by eye.
       users: { path: '/users', as: 'amaka@arpedia.africa' },
       user: { path: '/users/00000000-0000-4000-a000-000000000001', as: 'amaka@arpedia.africa' },
@@ -698,6 +722,44 @@ try {
           },
         ]),
       ),
+      // The seeded threat in Grace Readers (High, auto-hidden), by its stable seed id.
+      report: {
+        path: '/reports/fa2beca8-89e1-f451-c526-0c5511ec75c5',
+        as: 'amaka@arpedia.africa',
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 150 },
+        ],
+      },
+      // Take action over it, Mute 7 days picked as in the prototype: only the modal box is gated.
+      'report-action': {
+        path: '/reports/fa2beca8-89e1-f451-c526-0c5511ec75c5',
+        as: 'amaka@arpedia.africa',
+        fill: `const f=()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('act on user'));for(let k=0;k<300&&!(f()&&Object.keys(f()).some(x=>x.startsWith('__react')));k++)await new Promise(r=>setTimeout(r,100));f()?.click();await new Promise(r=>setTimeout(r,800));`,
+        regions: [{ x: 464, y: 120, width: 760, height: 760 }],
+      },
+      // Opened by its assignee (Bisi, as in the prototype), so "Ticket N of M" walks her Mine tab.
+      ticket: { path: '/support/00000000-0000-4000-f140-000000000001', as: 'bisi@arpedia.africa' },
+      // The return modal over the ticket (the prototype draws it over the reader's Credits tab, flow 16),
+      // for the seeded chapter charge: only the modal box is gated.
+      'ticket-return': {
+        ref: 'unlock-return',
+        path: '/support/00000000-0000-4000-f140-000000000001?return=4',
+        as: 'bisi@arpedia.africa',
+        fill: `await new Promise(r=>setTimeout(r,1500));`,
+        regions: [{ x: 544, y: 120, width: 600, height: 600 }],
+      },
+      appeal: {
+        path: '/appeals',
+        as: 'amaka@arpedia.africa',
+        fill: `for(let k=0;k<50&&!document.querySelector('.tbl tbody tr');k++)await new Promise(r=>setTimeout(r,100));const tr=document.querySelector('.tbl tbody tr');for(let k=0;k<50&&!Object.keys(tr).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));tr.click();for(let k=0;k<80&&location.pathname==='/appeals';k++)await new Promise(r=>setTimeout(r,100));await new Promise(r=>setTimeout(r,1500));`,
+        regions: [
+          { x: 0, y: 0, width: 248, height: H },
+          { x: 248, y: 0, width: W - 248, height: 150 },
+        ],
+      },
+      claim: { path: '/claims/00000000-0000-4000-f143-000000000001', as: 'amaka@arpedia.africa' },
+      'help-article': { path: '/help/00000000-0000-4000-f144-000000000003', as: 'amaka@arpedia.africa' },
       // Modals: shell and topbar gated, the modal box compared by eye (its size follows real data).
       'plan-edit': {
         path: '/pricing/quarterly',
@@ -762,7 +824,7 @@ try {
     for (const id of ids) {
       const p = pages[id];
       if (!p) throw new Error(`no admin parity page "${id}" (have: ${Object.keys(pages).join(', ')})`);
-      const ref = await adminRef(id);
+      const ref = await adminRef(p.ref ?? id);
       // PARITY_MEASURE=<selector> prints the matching elements' top, height, line height and font in
       // the reference and the build, to find where a layout drifts.
       const M = process.env.PARITY_MEASURE;
