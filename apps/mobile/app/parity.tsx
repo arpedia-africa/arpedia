@@ -28,6 +28,7 @@ import {
 } from '@arpedia/ui';
 import { LAUNCH_PLANS } from '@arpedia/core';
 import { kitEnabled } from '@/lib/kit';
+import { Flow10, isFlow10 } from '../features/10/parity';
 import { LoginView, SignupView } from '../features/01/AuthViews';
 import {
   AllSetBody,
@@ -78,6 +79,7 @@ import {
   SubmitProcessingView,
   SubmitUploadView,
 } from '../features/11/SubmitViews';
+import { Flow02, isFlow02 } from '../features/02/parity';
 import { AboutView, BackHero, DiscussionLockedView } from '../features/03/AboutViews';
 import { BookPageView, type BookPageModel } from '../features/03/BookViews';
 import { ReviewsView, WriteReviewView, type ReviewItem } from '../features/03/ReviewViews';
@@ -93,6 +95,8 @@ import { DiscoverHero, DiscoverRow, TypeChips, type DiscoverRowView } from '../f
 import { Bubble, ComHead, ComPin, Composer, DayMarker, type BubbleView } from '../features/06/ChatViews';
 import { OptionList, ReactionRow, ReportBody } from '../features/06/SheetViews';
 import { BlockedRow } from '../features/06/BlockedViews';
+import { Flow09, isFlow09 } from '../features/09/parity';
+import { BookEndView } from '../features/04/BookEndView';
 
 const PAGES = [
   'kit-a',
@@ -124,6 +128,16 @@ const PAGES = [
   's-apply-3',
   's-apply-4',
   's-apply-sent',
+  's-home',
+  's-see-all',
+  's-explore',
+  's-explore-filter',
+  's-search',
+  's-search-typing',
+  's-search-results',
+  's-search-none',
+  's-search-request',
+  's-notifications',
   's-book',
   's-book-about',
   's-reviews',
@@ -137,6 +151,21 @@ const PAGES = [
   's-msg-actions',
   's-report',
   's-blocked',
+  's-profile',
+  's-goal',
+  's-my-highlights',
+  's-account',
+  's-theme-settings',
+  's-notif-prefs',
+  's-edit-profile',
+  's-security',
+  's-about',
+  's-delete-account',
+  's-credits',
+  's-plans',
+  's-checkout',
+  's-plan-cancel',
+  's-book-end',
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -217,9 +246,33 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          {FLOW06.has(page) ? (
+          {isFlow10(page) ? (
+            <Flow10 page={page} />
+          ) : isFlow02(page) ? (
+            <Flow02 page={page} />
+          ) : isFlow09(page) ? (
+            <Flow09 page={page} />
+          ) : FLOW06.has(page) ? (
             <Flow06 page={page} />
-          ) : page.startsWith('s-book') || page.includes('review') ? (
+          ) : page === 's-book-end' ? (
+            <BookEndView
+              m={{
+                title: 'Harmattan Letters',
+                timeLine: '4 h 26 min across 9 days.',
+                yearCount: 14,
+                stars: 0,
+                discussionSub: '212 readers who finished · spoilers allowed',
+                author: { name: 'Ifeoma Nwosu', tone: 'm' },
+                tipFrom: 20,
+                next: { id: 'grace', title: 'A House Called Grace', author: 'Kemi Ogunleye', tone: 'c6' },
+              }}
+              onClose={noop}
+              onRate={noop}
+              onDiscussion={noop}
+              onTip={noop}
+              onBook={noop}
+            />
+          ) : page.startsWith('s-book') || page === 's-reviews' || page === 's-write-review' ? (
             <Flow03 page={page} />
           ) : (
             <Flow01 page={page} />

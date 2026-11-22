@@ -149,8 +149,8 @@ export function navFor(permissions: readonly string[]): NavSection[] {
 export function locate(pathname: string) {
   const first = pathname.split('/')[1] ?? '';
   // Pages that live under another page's sidebar link (s-roles is a tab of Team and roles).
-  // A reader's credit ledger (/credits/<user>) is a tab of the reader, so it sits under People › Readers.
   // /authors (s-authors, s-author) sit beside Applications under People.
+  // A reader's credit ledger (/credits/<user>) is a tab of the reader, so it sits under People › Readers.
   const page =
     first === 'credits' && pathname.split('/')[2]
       ? 'users'

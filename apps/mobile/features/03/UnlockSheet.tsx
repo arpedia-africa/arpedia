@@ -14,6 +14,7 @@ import {
 } from '@arpedia/core';
 import { Sheet, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
+import { downloadBook } from '../04/download';
 import { useTrack } from './analytics';
 import { bookKey, type BookPageData } from './book';
 import { LowBody, NoSubBody, PayGoBody, UnlockAllBody, type UnlockMode } from './UnlockViews';
@@ -153,6 +154,8 @@ export function UnlockSheet({
         mode: d.paid_credits > 0 ? 'rest' : 'upfront',
       });
       toast({ message: `Unlocked · ${n(r.balance)} credits left` });
+      // Rule 20: the whole book downloads for offline in the background; a failure retries later.
+      void downloadBook(d.book.id).catch(() => undefined);
     },
     onError: async (e) => {
       const { code, detail } = rpcError(e);

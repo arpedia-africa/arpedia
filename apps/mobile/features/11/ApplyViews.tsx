@@ -102,6 +102,12 @@ export interface Step1Values {
 }
 export type Step1Errors = Partial<Record<keyof Step1Values, string>>;
 
+/** The number pad has no "/": digits typed into the date of birth become "DD / MM / YYYY". */
+export function typeDob(text: string): string {
+  const d = text.replace(/\D/g, '').slice(0, 8);
+  return [d.slice(0, 2), d.slice(2, 4), d.slice(4)].filter(Boolean).join(' / ');
+}
+
 /** `.form.body-end` inside the sheet: padding 22 20 24, gap 16 (+28 end). */
 function Form({ children, question }: { children: React.ReactNode; question?: string | null }) {
   const { s } = useTheme();
@@ -175,7 +181,7 @@ export function Apply1View({
           label="Date of birth"
           placeholder="DD / MM / YYYY"
           value={values.dob}
-          onChangeText={(dob) => onChange({ dob })}
+          onChangeText={(dob) => onChange({ dob: typeDob(dob) })}
           onBlur={() => onBlur?.('dob')}
           error={errors.dob}
           hint="Authors must be 18 or older. Never shown publicly."
