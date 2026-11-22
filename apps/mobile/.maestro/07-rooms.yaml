@@ -84,6 +84,12 @@ appId: com.arpedia.reader
     visible: 'Maestro Book Club'
     timeout: 30000
 - pressKey: back
+# If the share sheet had not opened (or closed itself), Back left the room: open it again.
+- runFlow:
+    when:
+      visible: 'Your rooms'
+    commands:
+      - tapOn: 'Maestro Book Club'
 - extendedWaitUntil:
     visible: 'Message the room'
     timeout: 15000

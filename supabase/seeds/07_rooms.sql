@@ -37,6 +37,11 @@ insert into seed_room_members values
   (3, 'a000-000000000006', 0, 0, null), (3, 'a000-000000000003', 0, 0, null), (3, 'a000-000000000004', 0, 0, null),
   (4, 'a000-000000000004', 100, 12, 3), (4, 'a000-000000000005', 100, 12, 2), (4, 'a000-000000000009', 75, 9, null);
 
+-- Seeded readers are created at reset time, so the 7-day new-account rule would stop every
+-- non-host from posting in a room. Make the room members established accounts.
+update auth.users u set created_at = least(u.created_at, now() - interval '30 days')
+where u.id in (select ('00000000-0000-4000-' || m.u)::uuid from seed_room_members m);
+
 insert into public.group_members (group_id, user_id, role, joined_at, last_read_at)
 select ('00000000-0000-4000-f070-' || lpad(m.n::text, 12, '0'))::uuid, ('00000000-0000-4000-' || m.u)::uuid,
        case when m.u = r.host then 'owner' else 'member' end::public.group_role,

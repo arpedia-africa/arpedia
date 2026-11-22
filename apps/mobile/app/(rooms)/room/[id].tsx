@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, ScrollView, Share, View } from 'react-native';
+import { FlatList, Keyboard, ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -111,6 +111,21 @@ export default function RoomScreen() {
   const net = useNetInfo();
   const offline = net.isConnected === false;
   const bottom = useBottomInset(24);
+  // Lift the composer above the keyboard ourselves. KeyboardAvoidingView (height) kept a stale
+  // height when the room opened while the create form's keyboard was closing, leaving the
+  // composer stuck mid-screen.
+  const win = useWindowDimensions();
+  const [kb, setKb] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) =>
+      setKb(Math.max(0, win.height - e.endCoordinates.screenY)),
+    );
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKb(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [win.height]);
 
   const roomQ = useRoom(gid);
   const room = roomQ.data;
@@ -458,7 +473,7 @@ export default function RoomScreen() {
         />
 
         {tab === 'chat' ? (
-          <KeyboardAvoidingView behavior="height" style={{ flex: 1, backgroundColor: c.white }}>
+          <View style={{ flex: 1, backgroundColor: c.white, paddingBottom: kb }}>
             {offline ? (
               <View style={{ backgroundColor: c.warnT, paddingVertical: s(8), paddingHorizontal: s(16) }}>
                 <Text size={13} color={c.warnInk} oneLine>
@@ -547,9 +562,9 @@ export default function RoomScreen() {
             {composerNote ? (
               <ComposerNote text={composerNote} bottom={bottom} />
             ) : room ? (
-              <RoomComposer value={text} onChange={setText} onSend={send} bottom={bottom} />
+              <RoomComposer value={text} onChange={setText} onSend={send} bottom={kb ? s(8) : bottom} />
             ) : null}
-          </KeyboardAvoidingView>
+          </View>
         ) : (
           <ScrollView
             style={{ flex: 1, backgroundColor: c.white }}
