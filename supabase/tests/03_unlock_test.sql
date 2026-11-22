@@ -211,17 +211,23 @@ select isnt(public.report_review((select id from public.reviews where user_id = 
   'another reader reports the review');
 select is(public.report_review((select id from public.reviews where user_id = '30300000-0000-4000-a000-000000000001'), 'spoilers_abuse_or_spam'), null,
   'reporting the same review twice is a no-op');
+-- Reporters can't read severity or who was reported (flow 14), so these checks read as the owner.
+reset role;
 select results_eq($$select content_type::text, reason::text, severity::text, reported_user_id::text, book_id::text
-                    from public.reports where content_type = 'review'$$,
+                    from public.reports where content_type = 'review'
+                      and reporter_id = '30300000-0000-4000-a000-000000000002'$$,
   $$values ('review', 'other', 'low', '30300000-0000-4000-a000-000000000001', '30300000-0000-4000-c000-000000000001')$$,
   'review report names the reviewer and the book');
+set local role authenticated;
 select throws_ok($$select public.report_book('30300000-0000-4000-c000-000000000001', 'boring')$$,
   'P0001', 'bad_reason', 'book reports take the three reasons only');
 select lives_ok($$select public.report_book('30300000-0000-4000-c000-000000000001', 'copyright')$$,
   'reader reports a book for copyright');
+reset role;
 select results_eq($$select reason::text, severity::text, snapshot ->> 'reason' from public.reports
-                    where content_type = 'book'$$,
+                    where content_type = 'book' and reporter_id = '30300000-0000-4000-a000-000000000002'$$,
   $$values ('copyright', 'medium', 'copyright')$$, 'copyright report is medium severity');
+set local role authenticated;
 select pg_temp.as_user('30300000-0000-4000-a000-000000000001');
 
 -- ─── Admin price override ───────────────────────────────────────────────────
