@@ -102,7 +102,7 @@ function accessMap(
   return out;
 }
 
-export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?: string }) {
+export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?: string; payGo?: boolean }) {
   const qc = useQueryClient();
   const q = useReaderState(bookId);
   const state = q.data;
@@ -143,6 +143,8 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
   const lastChapter = useRef<string | null>(null);
   const gateRoom = useRef(opts.gateRoom);
   gateRoom.current = opts.gateRoom;
+  const payGo = useRef(!!opts.payGo);
+  payGo.current = !!opts.payGo;
 
   const send = useCallback((m: NativeToWeb & { reply_to?: string }) => {
     web.current?.postMessage(JSON.stringify({ v: BRIDGE_VERSION, ...m }));
@@ -571,7 +573,9 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         case 'advance.request': {
           const id = m.id!;
           const { gate_kind, from_chapter_uid } = m.payload;
-          if (gate_kind === 'preview') {
+          // The preview cut holds until the reader picks a way to pay; with Pay as you read it charges
+          // the rest of that chapter like any locked chapter (rules 52, 54).
+          if (gate_kind === 'preview' && !payGo.current) {
             send({ type: 'advance.decision', reply_to: id, payload: { allow: false, reason: 'preview' } });
             return;
           }

@@ -68,7 +68,7 @@ export default function BookEnd() {
       // Loading: the band and Close at once, the rest arrives with the data.
       return (
         <Screen top="org" contentStyle={{ backgroundColor: c.white }}>
-          <Hero low barBack bar={<IconButton icon="x" label="Close" onPress={close} />}>
+          <Hero low barBack bar={<IconButton icon="x" label="Close" onPress={close} color={c.onOrg} />}>
             <Skeleton width="80%" height={36} />
             <Skeleton width="50%" height={18} />
           </Hero>

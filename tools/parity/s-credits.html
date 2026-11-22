@@ -1,0 +1,35 @@
+<!-- Parity page s-credits: the prototype screen, verbatim from prototype/src/05-money-profile-studio.html.
+     The app adds a Promo code section between Top up and What credits buy (Default Q15); the parity screen leaves it out.
+     apps/mobile/app/parity.tsx renders the flow 09 views with the same values. -->
+  <div class="body">
+    <div class="hero">
+      <div class="hero__bar hero__bar--back"><button class="ib" data-go="profile" aria-label="Back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="fill"></span><a class="pill night" data-go="plans"><svg class="ico xs" aria-hidden="true"><use href="#i-cal"/></svg>Your plan</a></div>
+      <div class="hero__body">
+        <span class="t-label">Available balance</span>
+        <span class="sub-balance">840<small>credits</small></span>
+        <p class="hero__sub">≈ 6 books. Unlock a whole book or pay as you read, chapter by chapter.</p>
+        <div class="st-grid"><div class="hero-panel"><span class="stat__value">800</span><span class="t-xs">This quarter · refills 12 Feb</span></div><div class="hero-panel"><span class="stat__value">40</span><span class="t-xs">Rolled over · use by 12 Feb</span></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">Top up</h2><span class="t-sm t-soft">₦3 a credit · for subscribers</span></div>
+      <div class="inset v12">
+        <div class="option-list" data-single><button class="option"><span class="option__body"><span class="option__title">200 credits</span><span class="option__sub">≈ 1½ books</span></span><span class="option__trail">₦600</span></button><button class="option is-selected"><span class="option__body"><span class="option__title">500 credits</span><span class="option__sub">≈ 4 books</span></span><span class="option__trail">₦1,500</span></button><button class="option"><span class="option__body"><span class="option__title">1,000 credits</span><span class="option__sub">≈ 8 books</span></span><span class="option__trail">₦3,000</span></button></div>
+        <p class="cn-note">Unused credits roll over for one more quarter, up to 800. Books you unlock stay yours for good, even if you cancel.</p>
+        <a class="btn btn-p block" data-go="pack-sheet">Buy 500 credits · ₦1,500</a>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section__head"><h2 class="section__title">What credits buy</h2></div>
+      <div class="group">
+        <div class="cell"><div class="cell__body"><span class="cell__title">Books</span><span class="cell__sub">Half a credit a page · a 250-page book is 125</span></div><span class="cell__trail"><span class="t-strong">All at once or as you read</span></span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Messages to authors</span><span class="cell__sub">Replies are free</span></div><span class="cell__trail"><span class="t-num t-strong">5 each</span></span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Tips</span><span class="cell__sub">₦1.60 of each credit reaches the author</span></div><span class="cell__trail"><span class="t-num t-strong">From 20</span></span></div>
+        <div class="cell"><div class="cell__body"><span class="cell__title">Gifts</span><span class="cell__sub">A book for a friend</span></div><span class="cell__trail"><span class="t-strong">Book price</span></span></div>
+      </div>
+    </div>
+    <div class="section body-end">
+      <div class="section__head"><h2 class="section__title">Transactions</h2></div>
+      <div class="group"><div class="cell"><div class="cell__body"><span class="cell__title">Harmattan Letters</span><span class="cell__sub">Pay as you read · 36 of 125 paid</span></div><span class="cell__trail sub-amt minus">−36 cr</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 5</span><span class="cell__sub">13 Nov, 21:40</span></div><span class="cell__trail sub-amt minus">−9</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 4</span><span class="cell__sub">12 Nov, 22:05</span></div><span class="cell__trail sub-amt minus">−9</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 3</span><span class="cell__sub">11 Nov, 21:12</span></div><span class="cell__trail sub-amt minus">−9</span></div><div class="cell cell--child"><div class="cell__body"><span class="cell__title cell__title--reg">Chapter 2</span><span class="cell__sub">10 Nov, 20:30</span></div><span class="cell__trail sub-amt minus">−9</span></div></div><div class="group"><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Message to Ifeoma Nwachukwu</span><span class="cell__sub">12 Nov 2026, 09:14</span></div><span class="cell__trail sub-amt minus">−5 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Plan credits · Quarterly</span><span class="cell__sub">12 Nov 2026</span></div><span class="cell__trail sub-amt plus">+800 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Rolled over from last quarter</span><span class="cell__sub">12 Nov 2026 · unused credits carried in</span></div><span class="cell__trail sub-amt plus">+40 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Unlocked all · A House Called Grace</span><span class="cell__sub">2 Nov 2026, 13:32</span></div><span class="cell__trail sub-amt minus">−110 cr</span></div><div class="cell"><div class="cell__body"><span class="cell__title cell__title--reg">Top-up · 200 credits</span><span class="cell__sub">29 Oct 2026, 18:10</span></div><span class="cell__trail sub-amt plus">+200 cr</span></div></div>
+    </div>
+  </div>

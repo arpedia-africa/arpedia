@@ -3,7 +3,8 @@
 # Auto-unlock on (charged once, toast with Undo), highlight a passage, restart the app and come back
 # to the same place with the highlight there.
 # Needs the local stack (Supabase + api Worker with sealed seed files in local R2) behind the app,
-# freshly reset (`pnpm db:reset`): the first width pays for the chapter, later widths re-read it free.
+# freshly reset (`pnpm db:reset`, then `node tools/seed-reader-files.mjs` to seal the seed books into
+# local R2 and seed their chapter keys; `--supabase http://127.0.0.1:55621` for the second stack): the first width pays for the chapter, later widths re-read it free.
 # Run: maestro test apps/mobile/.maestro/04-reading.yaml -e WIDTH=375
 # All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/04-reading.yaml
 appId: com.arpedia.reader
@@ -32,7 +33,7 @@ appId: com.arpedia.reader
     visible: 'A House Called Grace'
     timeout: 30000
 - extendedWaitUntil:
-    visible: '.*% read'
+    visible: '\d+%'
     timeout: 30000
 - tapOn:
     text: 'OK'
@@ -64,15 +65,31 @@ appId: com.arpedia.reader
       - tapOn: 'Start reading'
 
 # Auto-unlock on: the first forward move off a locked chapter's first page charges it once.
+# The toast shows a few seconds after the charge (keys + state refresh) and lives 8 s, while one
+# hierarchy read of the reader takes 4–12 s on the phone. So after every swipe, poll for the
+# toast's Undo for a while ("Undo" shows only in the unlock toast here) instead of checking once.
+# Remember a sighting in a flag: re-checking "Undo" in the loop condition can come after the toast
+# has gone (seen on the emulator, 21 Nov: Undo found at 12:01:18, the condition read at 12:01:36).
+- evalScript: ${output.unlocked = false}
 - repeat:
     while:
-      notVisible: 'Chapter .* unlocked · .* credits'
+      true: ${!output.unlocked}
     times: 40
     commands:
       - swipe:
           direction: LEFT
           duration: 200
-- assertVisible: 'Undo'
+      - repeat:
+          while:
+            true: ${!output.unlocked}
+          times: 2
+          commands:
+            - runFlow:
+                when:
+                  visible: 'Undo'
+                commands:
+                  - evalScript: ${output.unlocked = true}
+- assertTrue: ${output.unlocked}
 - takeScreenshot: reading-${WIDTH}-unlocked
 
 # Highlight: long-press a word, the toolbar shows, the first swatch highlights at once.
@@ -93,8 +110,10 @@ appId: com.arpedia.reader
 # Restart: same page, the highlight is there (tap it: its menu opens with Delete).
 - stopApp
 - launchApp
+# Wait for Home's data (the greeting), not just the tab label: a link sent in the first second
+# of a cold start reaches Android before JS listens and is dropped (emulator 360dp, 21 Nov).
 - extendedWaitUntil:
-    visible: 'Home'
+    visible: 'Good .*, Ngozi.*'
     timeout: 30000
 - openLink: arpedia://read/00000000-0000-4000-c000-000000000003
 - extendedWaitUntil:
