@@ -1,0 +1,117 @@
+# Flow 07: log in as the seeded reader, open Reading rooms, try a wrong code, join with a code she is
+# already in (just opens the room), create a room, see its code, send a message, open Members.
+# A second account joining with the new code is a two-phone check (docs/prd/07 Done when); one
+# account covers the rest. Needs the local stack (Supabase + api Worker + chat Worker) behind the
+# app, freshly reset (`pnpm db:reset`): Ngozi is in two live rooms (supabase/seeds/07_rooms.sql).
+# Run: maestro test apps/mobile/.maestro/07-rooms.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/07-rooms.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- hideKeyboard
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Community'
+    timeout: 30000
+
+# s-rooms
+- openLink: arpedia://rooms
+- extendedWaitUntil:
+    visible: 'Your rooms'
+    timeout: 30000
+- assertVisible: 'A book club that lives beside the page.'
+- assertVisible: 'Ruth of Ibadan, chapter 9'
+- takeScreenshot: rooms-${WIDTH}-list
+
+# s-join-code: a wrong code keeps the boxes and says why (rule 13)
+- tapOn: 'Join with code'
+- extendedWaitUntil:
+    visible: 'Join a reading room'
+    timeout: 10000
+- inputText: 'zzzz-zzzz'
+- hideKeyboard
+- assertVisible: 'Join room'
+- takeScreenshot: rooms-${WIDTH}-join
+- tapOn: 'Join room'
+- extendedWaitUntil:
+    visible: "We couldn't find a room with that code."
+    timeout: 10000
+- takeScreenshot: rooms-${WIDTH}-join-error
+
+# a code for a room she is already in just opens it (no consent step)
+- tapOn: 'Room code.*'
+- eraseText: 20
+- inputText: 'RUTH9X4K'
+- hideKeyboard
+- tapOn: 'Join room'
+- extendedWaitUntil:
+    visible: 'Message the room'
+    timeout: 30000
+- assertVisible: 'Ruth of Ibadan, chapter 9'
+- takeScreenshot: rooms-${WIDTH}-room
+- tapOn: 'Back'
+
+# s-create-room
+- extendedWaitUntil:
+    visible: 'Your rooms'
+    timeout: 15000
+- tapOn: 'Create room'
+- extendedWaitUntil:
+    visible: 'Create a reading room'
+    timeout: 10000
+- tapOn: 'Room name'
+- inputText: 'Maestro Book Club'
+- hideKeyboard
+- tapOn:
+    below: 'Choose the book'
+- takeScreenshot: rooms-${WIDTH}-create
+- tapOn: 'Create room'
+
+# the new room opens (the system share sheet with the code opens over it)
+- extendedWaitUntil:
+    visible: 'Maestro Book Club'
+    timeout: 30000
+- pressKey: back
+# If the share sheet had not opened (or closed itself), Back left the room: open it again.
+- runFlow:
+    when:
+      visible: 'Your rooms'
+    commands:
+      - tapOn: 'Maestro Book Club'
+- extendedWaitUntil:
+    visible: 'Message the room'
+    timeout: 15000
+- assertVisible: 'Maestro Book Club'
+- assertVisible: 'You · .*'
+- takeScreenshot: rooms-${WIDTH}-created
+
+# send a message over the live socket
+- tapOn: 'Message the room'
+- inputText: 'Maestro says hello'
+- tapOn: 'Send'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Maestro says hello'
+    timeout: 15000
+
+# Members tab: the host label, host actions
+- tapOn: 'Members.*'
+- extendedWaitUntil:
+    visible: 'Host'
+    timeout: 15000
+- assertVisible: 'Lock chat'
+- assertVisible: 'End room'
+- assertVisible: 'Leave room'
+- takeScreenshot: rooms-${WIDTH}-members
