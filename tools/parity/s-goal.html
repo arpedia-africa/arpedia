@@ -1,0 +1,12 @@
+<!-- Parity page s-goal: the sheet's panel body, verbatim from prototype/src/05-money-profile-studio.html,
+     laid flat (no backdrop, grab, title row or slide; the kit Sheet chrome is the same as every other sheet).
+     apps/mobile/app/parity.tsx renders GoalBody inside the same .pb padding. -->
+<div id="s-goal" class="panel" style="position:relative;inset:auto;box-shadow:none;animation:none;max-height:none;border-radius:0">
+    <div class="pb">
+      <p class="t-sm t-soft">Finishing a book counts towards your goal.</p>
+      <div class="amounts" data-single><button class="amount"><b class="t-num">6</b></button><button class="amount"><b class="t-num">12</b></button><button class="amount is-selected"><b class="t-num">24</b></button><button class="amount"><b class="t-num">52</b></button></div>
+      <div class="field"><input placeholder="Or enter your own number" aria-label="Your own number" inputmode="numeric"></div>
+      <p class="t-sm t-soft t-center">24 books is about 2 a month. You've read 14 so far.</p>
+      <a class="btn btn-p block" data-go="profile"><svg class="ico s" aria-hidden="true"><use href="#i-trophy"/></svg>Set goal</a>
+    </div>
+  </div>
