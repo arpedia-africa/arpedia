@@ -43,7 +43,8 @@ const HIGHLIGHTS: CollectionPage = {
   counts: { bookmark: 12, highlight: 86, note: 12 },
   groups: [
     {
-      book_id: 'harmattan',
+      // Ids chosen so the hashed cover tone matches the prototype (c1, c3).
+      book_id: 'harmattan-3',
       title: 'Harmattan Letters',
       author: 'Ifeoma Nwachukwu',
       highlights: 6,
@@ -76,7 +77,7 @@ const HIGHLIGHTS: CollectionPage = {
       ],
     },
     {
-      book_id: 'alignment',
+      book_id: 'alignment-4',
       title: 'The Alignment',
       author: 'Adaeze Rosemary Possible',
       highlights: 11,
