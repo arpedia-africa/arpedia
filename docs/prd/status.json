@@ -254,8 +254,8 @@
       "branch": "flow/16-admin-settings"
     },
     "17": {
-      "name": "Migration and launch",
-      "file": null,
+      "name": "Launch",
+      "file": "17-launch.md",
       "deps": [
         "02",
         "04",

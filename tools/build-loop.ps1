@@ -14,6 +14,8 @@ param(
   [string]$Topic = '',             # ntfy topic: each run's final report is pushed to your phone
   [string]$Lane = '',              # e.g. L2-product, or 'L1-critical,L3-money-ops': only those lanes (one loop per lane set)
   [string]$Flows = '',             # e.g. '06' or '06,10': only these flows (one extra loop per flow when several are ready)
+  [string]$TaskFile = '',          # file in the repo with extra instructions, e.g. to split one flow between two builders
+  [string]$LockOwner = '',         # owner name this builder writes in its locks, so the loop can clear them
   [switch]$NoPhone,                # builder that never uses the phone: hands on-device checks back (label needs-phone)
   [switch]$Prep,                   # code-only builder: keeps needs-phone PRs merged with main and green, so device runs never wait on code work
   [switch]$PhoneOnly,              # device builder: only finishes on-device steps of needs-phone PRs
@@ -54,7 +56,7 @@ function Test-Online {
 }
 
 # The lock folders this loop's builder owns (each lock holds an "owner" file).
-$owner = if ($PhoneOnly) { "dev-$Device" } elseif ($Prep) { 'prep' } else { '' }
+$owner = if ($PhoneOnly) { "dev-$Device" } elseif ($Prep) { 'prep' } else { $LockOwner }
 function Get-OwnLocks {
   if (-not $owner) { return }
   Get-ChildItem $LockDir -Directory -ErrorAction SilentlyContinue | Where-Object {
@@ -90,6 +92,8 @@ while ($true) {
   }
   if ($Prep) { $prompt = "You are the PREP builder: no test device, never run adb, never use the emulator or db.lock. Use only the second database (tools/db2.mjs, db2.lock). Your job is to keep every open PR labelled needs-phone ready for the device builder, so its runs never wait on code work. Each run, take ONE such PR, oldest first, that is not claimed (skip it if ~/projects/arpedia-locks/pr-<number>.lock exists and is under 30 minutes old; claim yours with mkdir pr-<number>.lock, then echo prep > pr-<number>.lock/owner, and remove it before the run ends; do the same owner file for db2.lock): merge origin/main into it, resolve conflicts (usually keep both sides), regenerate packages/core/src/database.types.ts raw with node tools/db2.mjs reset then types, run typecheck, lint, format:check, Vitest and pgTAP (node tools/db2.mjs test), fix what fails, push, and note in the PR: prepped on <date>, gates green, merged main at <sha>. Keep the needs-phone label. Skip a PR that is already up to date with main and green. Also handle any ready (non-draft) PR that GitHub reports as CONFLICTING the same way. Never mark a PR ready and never remove needs-phone. Run shell commands with the Bash tool (git, mkdir, rm, node), not PowerShell. End every run with the clone back on main. If nothing needs prepping, print NOTHING-TO-DO.`n`n" + $prompt }
   if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below. For the database use the second stack (tools/db2.mjs, db2.lock), never db.lock.`n`n" + $prompt }
+  if ($TaskFile) { $prompt = (Get-Content -Raw "$WorkDir$TaskFile") + "`n`n" + $prompt }
+  if ($LockOwner) { $prompt = "Every lock you create gets an owner file right after mkdir: echo $LockOwner > <lock>/owner. Remove all your locks before the run ends.`n`n" + $prompt }
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
   Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' })$(if ($resumes) { " - resuming ($resumes)" }) ===" -ForegroundColor Yellow
 
