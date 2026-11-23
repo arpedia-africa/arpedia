@@ -5,12 +5,7 @@
 import { storeProductId } from './payments';
 
 export type PurchaseFailure =
-  | 'store_unavailable'
-  | 'declined'
-  | 'linked_elsewhere'
-  | 'already_owned'
-  | 'network'
-  | 'unknown';
+  'store_unavailable' | 'declined' | 'linked_elsewhere' | 'already_owned' | 'network' | 'unknown';
 
 export type PurchaseResult =
   | { status: 'purchased' }
@@ -97,14 +92,21 @@ const RC: Record<string, PurchaseFailure | 'cancelled' | 'pending'> = {
 
 /** What a thrown SDK error means for the reader. */
 export function purchaseOutcome(err: unknown): PurchaseResult {
-  const e = (err ?? {}) as { code?: unknown; message?: unknown; underlyingErrorMessage?: unknown; userCancelled?: unknown };
+  const e = (err ?? {}) as {
+    code?: unknown;
+    message?: unknown;
+    underlyingErrorMessage?: unknown;
+    userCancelled?: unknown;
+  };
   const mapped = e.userCancelled === true ? 'cancelled' : RC[String(e.code ?? '')];
   if (mapped === 'cancelled') return { status: 'cancelled' };
   if (mapped === 'pending') return { status: 'pending' };
   const code = mapped ?? 'unknown';
   const message =
     code === 'declined'
-      ? [e.underlyingErrorMessage, e.message].find((m): m is string => typeof m === 'string' && m.trim() !== '')
+      ? [e.underlyingErrorMessage, e.message].find(
+          (m): m is string => typeof m === 'string' && m.trim() !== '',
+        )
       : undefined;
   return message ? { status: 'error', code, message } : { status: 'error', code };
 }
@@ -151,7 +153,8 @@ export function createStore({ sdk, catalog, currentUser, timeoutMs = 10_000 }: S
   async function load(s: StoreSdk) {
     await ensureUser(s);
     const c = await catalog();
-    const ids = (rows: Catalog['plans']) => rows.map((r) => r.play_product_id).filter((x): x is string => !!x);
+    const ids = (rows: Catalog['plans']) =>
+      rows.map((r) => r.play_product_id).filter((x): x is string => !!x);
     const [subs, packs] = await withTimeout(
       Promise.all([s.getProducts(ids(c.plans), 'subscription'), s.getProducts(ids(c.topups), 'one_time')]),
       timeoutMs,
@@ -207,7 +210,9 @@ export function createStore({ sdk, catalog, currentUser, timeoutMs = 10_000 }: S
         product = (await products(sdk)).get(productKey(item));
       } catch (e) {
         const r = purchaseOutcome(e);
-        return r.status === 'error' && r.code === 'network' ? r : { status: 'error', code: 'store_unavailable' };
+        return r.status === 'error' && r.code === 'network'
+          ? r
+          : { status: 'error', code: 'store_unavailable' };
       }
       if (!product) return { status: 'error', code: 'store_unavailable' };
       try {

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, PixelRatio, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
-import { approxBooks, formatNaira, perMonthNaira, type Plan, type PlanId } from '@arpedia/core';
+import { approxBooks, planMonthText, planPriceText, type Plan, type PlanId } from '@arpedia/core';
 import {
   Avatar,
   Btn,
@@ -287,13 +287,13 @@ function PlanCard({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () 
         oneLine
         style={{ letterSpacing: s(28) * -0.02, lineHeight: s(28) * 1.05, marginTop: s(4) }}
       >
-        {formatNaira(perMonthNaira(plan))}
+        {planMonthText(plan)}
         <Text family="ui" size={13} weight={600} color="ink2" style={{ letterSpacing: 0 }}>
           {' /month'}
         </Text>
       </Text>
       <Text size={12.5} color="ink2" style={line(12.5)}>
-        {`${formatNaira(plan.priceNaira)} ${PERIOD[plan.id].every}`}
+        {`${planPriceText(plan)} ${PERIOD[plan.id].every}`}
       </Text>
       {/* .gets: margin-top 10, padding-top 10, 1px dashed rule */}
       <View style={{ marginTop: s(10), paddingTop: bw(1) + s(10) }}>
@@ -544,7 +544,7 @@ export function PaywallFoot({
         <Btn label="Continue offline" size="lg" block onPress={onOffline} />
       ) : (
         <Btn
-          label={plan ? `Continue · ${formatNaira(plan.priceNaira)}` : 'Continue'}
+          label={plan ? `Continue · ${planPriceText(plan)}` : 'Continue'}
           size="lg"
           block
           disabled={disabled || !plan}
@@ -578,7 +578,7 @@ function PlanRow({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () =
   const sub =
     plan.id === 'monthly'
       ? `${n(plan.credits)} credits · ≈ ${books} books a month`
-      : `${n(plan.credits)} credits ≈ ${books} books · ${formatNaira(perMonthNaira(plan))} a month`;
+      : `${n(plan.credits)} credits ≈ ${books} books · ${planMonthText(plan)} a month`;
   const line = (size: number) => ({ lineHeight: s(size) * 1.45 });
   return (
     <Press
@@ -606,7 +606,7 @@ function PlanRow({ plan, on, onPress }: { plan: Plan; on: boolean; onPress: () =
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text size={15} weight={800} oneLine style={line(15)}>
-          {formatNaira(plan.priceNaira)}
+          {planPriceText(plan)}
         </Text>
         <Text size={12.5} weight={500} color="ink2" oneLine style={line(12.5)}>
           {PERIOD[plan.id].every}

@@ -15,7 +15,7 @@ import {
   type PillTone,
 } from '@arpedia/ui';
 import { HeroSub } from '../01/parts';
-import { everyLabel, n, type PlanJson, type SubscriptionJson } from './data';
+import { everyLabel, n, planPerMonth, planPrice, type PlanJson, type SubscriptionJson } from './data';
 import { Benefits, Legal, OfflineNote, OptionRow, OptionSkeleton } from './parts';
 
 // s-plans, s-checkout and s-plan-cancel (`node tools/screen.mjs s-plans s-checkout s-plan-cancel --css`).
@@ -91,7 +91,7 @@ export function PlanHero({
   );
 }
 
-const perMonth = (p: PlanJson) => naira(Math.round(p.price_play_kobo / p.months));
+const perMonth = planPerMonth;
 
 /** The plan ladder (`.option-list` with radios): prices as Google Play charges them. */
 export function PlanOptions({
@@ -122,7 +122,7 @@ export function PlanOptions({
                     : undefined
               }
               sub={`${n(p.total_credits)} credits ≈ ${aboutBooks(p.total_credits)} ${aboutBooks(p.total_credits) === 1 ? 'book' : 'books'} · ${perMonth(p)} a month`}
-              trail={naira(p.price_play_kobo)}
+              trail={planPrice(p)}
               selected={p.code === selected}
               onPress={() => onSelect(p.code)}
             />
@@ -209,7 +209,7 @@ export function CheckoutHero({ plan, onBack }: { plan: PlanJson | null; onBack: 
           oneLine
           style={{ letterSpacing: s(44) * -0.03, lineHeight: s(44) }}
         >
-          {`Pay ${naira(plan.price_play_kobo)}`}
+          {`Pay ${planPrice(plan)}`}
         </Text>
       ) : (
         <Skeleton width={s(180)} height={44} radius={10} />
@@ -231,7 +231,7 @@ export function CheckoutSummary({ plan }: { plan: PlanJson | null }) {
       rows={[
         { k: `Credits ${everyLabel(plan.months)}`, v: n(plan.total_credits) },
         { k: 'About', v: `${books} ${books === 1 ? 'book' : 'books'} of 250 pages` },
-        { k: 'Today', v: naira(plan.price_play_kobo), total: true },
+        { k: 'Today', v: planPrice(plan), total: true },
       ]}
     />
   );

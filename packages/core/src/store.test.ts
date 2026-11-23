@@ -16,7 +16,11 @@ function mockSdk(over: Partial<StoreSdk> = {}) {
     logOut: vi.fn(async () => ({})),
     getProducts: vi.fn(async (ids: string[], category: 'subscription' | 'one_time') =>
       category === 'subscription'
-        ? ids.map((id) => ({ identifier: `${id}:base`, priceString: `₦${id.length}00`, pricePerMonthString: '₦800' }))
+        ? ids.map((id) => ({
+            identifier: `${id}:base`,
+            priceString: `₦${id.length}00`,
+            pricePerMonthString: '₦800',
+          }))
         : ids.map((id) => ({ identifier: id, priceString: '₦600.00' })),
     ),
     purchase: vi.fn(async () => ({})),
@@ -66,7 +70,10 @@ describe('createStore', () => {
     const s = make(null);
     expect(await s.isAvailable()).toBe(false);
     expect(await s.prices()).toEqual({});
-    expect(await s.purchase({ kind: 'plan', code: 'monthly' })).toEqual({ status: 'error', code: 'store_unavailable' });
+    expect(await s.purchase({ kind: 'plan', code: 'monthly' })).toEqual({
+      status: 'error',
+      code: 'store_unavailable',
+    });
     expect(await s.restore()).toEqual({ status: 'error', code: 'store_unavailable' });
   });
 
@@ -124,7 +131,10 @@ describe('createStore', () => {
 
   it('offline while loading products is a network error', async () => {
     const sdk = mockSdk({ getProducts: vi.fn(async () => Promise.reject(fail('10'))) });
-    expect(await make(sdk).purchase({ kind: 'plan', code: 'monthly' })).toEqual({ status: 'error', code: 'network' });
+    expect(await make(sdk).purchase({ kind: 'plan', code: 'monthly' })).toEqual({
+      status: 'error',
+      code: 'network',
+    });
   });
 
   it('never buys without a signed-in user', async () => {
@@ -135,7 +145,9 @@ describe('createStore', () => {
   });
 
   it('restore: restored, none, linked to another account, offline', async () => {
-    const active = mockSdk({ restore: vi.fn(async () => ({ activeSubscriptions: ['arpedia_monthly:base'] })) });
+    const active = mockSdk({
+      restore: vi.fn(async () => ({ activeSubscriptions: ['arpedia_monthly:base'] })),
+    });
     expect(await make(active).restore()).toEqual({ status: 'restored' });
     const v25 = mockSdk({ restore: vi.fn(async () => ({ activeSubscriptions: ['v25_monthly'] })) });
     expect(await make(v25).restore()).toEqual({ status: 'none' });

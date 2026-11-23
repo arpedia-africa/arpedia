@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { Linking, View } from 'react-native';
 import { router } from 'expo-router';
-import { naira } from '@arpedia/core';
 import { Btn, EmptyState, Link, Screen, Skeleton, useTheme, useToast } from '@arpedia/ui';
 import { OnbSheet } from '../features/01/parts';
-import { errCode, manageUrl, playManageUrl, useOnline, usePlanScreen, useResume } from '../features/09/data';
+import {
+  errCode,
+  manageUrl,
+  planPrice,
+  playManageUrl,
+  useOnline,
+  usePlanScreen,
+  useResume,
+} from '../features/09/data';
 import { Foot, OfflineNote, SubPad } from '../features/09/parts';
 import { PlanBody, PlanHero } from '../features/09/PlanViews';
 
@@ -33,7 +40,7 @@ export default function Plan() {
     const store = sub?.store === 'web' ? 'on the web' : 'in Google Play';
     if (!live || !sub) {
       return {
-        label: `Subscribe to ${target.name} · ${naira(target.price_play_kobo)}`,
+        label: `Subscribe to ${target.name} · ${planPrice(target)}`,
         needsNet: true,
         run: () => router.push({ pathname: '/checkout', params: { plan: target.code } }),
       };
@@ -57,9 +64,7 @@ export default function Plan() {
     }
     return {
       label:
-        target.code === sub.plan.code
-          ? `Manage ${store}`
-          : `Switch to ${target.name} · ${naira(target.price_play_kobo)}`,
+        target.code === sub.plan.code ? `Manage ${store}` : `Switch to ${target.name} · ${planPrice(target)}`,
       needsNet: false,
       // A switch is made in the store and starts at the next renewal.
       run: () => open(sub.store === 'web' ? manageUrl(sub) : playManageUrl(target.play_product_id)),
