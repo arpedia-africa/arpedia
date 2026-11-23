@@ -1,0 +1,93 @@
+# Flow 17 rule 8 · nightly encrypted database backup to R2, kept 30 days (Q5: the free plan has no
+# automatic backups and pauses when idle). 02:00 Lagos: dump, encrypt, upload, prune, and a REST
+# query so the project never idles. 14:00 Lagos: the missed-backup alarm (also catches a nightly run
+# that never started). Failures alert the owner on ntfy.
+# Secrets in the `backup` environment: SUPABASE_DB_URL, BACKUP_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, NTFY_TOPIC; variables: SUPABASE_URL, SUPABASE_ANON_KEY.
+# The restore drill is a person's job: docs/launch/RUNBOOK.md#restore-drill.
+name: Backup
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: backup or check
+        type: choice
+        options: [backup, check]
+        default: backup
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: github.event.schedule == '0 1 * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'backup')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: backup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Postgres 17 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump, encrypt, upload, keep 30 days
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: PATH="/usr/lib/postgresql/17/bin:$PATH" node tools/launch/backup.mjs nightly --target production
+      - name: Keep the project awake
+        if: always()
+        env:
+          URL: ${{ vars.SUPABASE_URL }}
+          KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          curl -sf -o /dev/null -H "apikey: $KEY" "$URL/rest/v1/genres?select=id&limit=1"
+      - name: Alert
+        if: failure()
+        env:
+          TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl -sf -H "Priority: high" -H "Title: Arpedia backup failed" \
+            --data-binary "Nightly database backup failed: $RUN" "https://ntfy.sh/$TOPIC"
+
+  check:
+    if: github.event.schedule == '0 13 * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'check')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: backup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Newest backup under 26 hours old
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: node tools/launch/backup.mjs check --target production
+      - name: Alert
+        if: failure()
+        env:
+          TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl -sf -H "Priority: high" -H "Title: Arpedia backup missed" \
+            --data-binary "No database backup in the last 26 hours: $RUN" "https://ntfy.sh/$TOPIC"

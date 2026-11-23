@@ -1,0 +1,17 @@
+{
+  "name": "@arpedia/launch",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Launch tools (flow 17): set-up, preflight, nightly backups and restore, unmatched store events",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  }
+}

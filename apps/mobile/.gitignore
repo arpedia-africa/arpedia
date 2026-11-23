@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# fastlane run output (fastlane/validate.sh, CI)
+/fastlane/report.xml
+/fastlane/README.md
