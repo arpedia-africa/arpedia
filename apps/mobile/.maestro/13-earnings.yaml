@@ -53,9 +53,12 @@ appId: com.arpedia.reader
 - tapOn: 'Access Bank'
 - tapOn: '10 digits'
 - inputText: '0123456789'
-- hideKeyboard
+# No hideKeyboard here: on Android it presses Back, which closes the sheet.
 - extendedWaitUntil:
     visible: 'Name on the account'
     timeout: 15000
-- assertVisible: 'Changing account pauses payouts for 48 hours for safety.'
+# With the keyboard up the callout sits below the fold of the sheet's scroll.
+- scrollUntilVisible:
+    element: 'Changing account pauses payouts for 48 hours for safety.'
+    direction: DOWN
 - takeScreenshot: earnings-${WIDTH}-change
