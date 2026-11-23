@@ -78,6 +78,8 @@ export interface BookPageActions {
   onBack: () => void;
   onSave?: () => void;
   onShare?: () => void;
+  /** The book is on the reader's Saved shelf. */
+  saved?: boolean;
   onMore: () => void;
   onAuthor?: () => void;
   onFollow?: () => void;
@@ -352,7 +354,13 @@ function BookHead({ m, a }: { m: BookPageModel; a: BookPageActions }) {
           <>
             <IconButton icon="back" label="Back" onPress={a.onBack} color={c.onOrg} />
             <View style={{ flex: 1 }} />
-            <IconButton icon="bookmark" label="Save to library" onPress={a.onSave} color={c.onOrg} />
+            <IconButton
+              icon="bookmark"
+              label={a.saved ? 'Remove from Saved' : 'Save to library'}
+              onPress={a.onSave}
+              color={c.onOrg}
+              pressed={a.onSave ? !!a.saved : undefined}
+            />
             <IconButton icon="share" label="Share" onPress={a.onShare} color={c.onOrg} />
             <IconButton icon="more" label="More options" onPress={a.onMore} color={c.onOrg} />
           </>
