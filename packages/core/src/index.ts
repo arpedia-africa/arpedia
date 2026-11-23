@@ -11,6 +11,7 @@ export * from './trust';
 export * from './studio';
 export * from './discovery';
 export * from './unlock';
+export * from './rooms';
 export * from './credits';
 export * from './payments';
 export * from './authors';

@@ -15,9 +15,12 @@
     "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-local" }],
-  // Flow 08: paid author messages are broadcast through the chat Worker's Durable Object.
+  // Paid author messages (flow 08) and room progress events (flow 07) go out through the chat Worker's conversation Durable Object.
   "durable_objects": {
-    "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" }],
+    "bindings": [
+      { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+      { "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+    ],
   },
   "env": {
     "staging": {
@@ -30,6 +33,7 @@
       "durable_objects": {
         "bindings": [
           { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat-staging" },
+          { "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat-staging" },
         ],
       },
     },
@@ -43,6 +47,7 @@
       "durable_objects": {
         "bindings": [
           { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+          { "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
         ],
       },
     },

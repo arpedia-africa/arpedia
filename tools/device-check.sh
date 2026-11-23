@@ -37,7 +37,7 @@ if [ -n "${IDS:-}" ]; then
   adb shell wm density 461
   log "== Parity at 375 dp: $IDS"
   # shellcheck disable=SC2086
-  node tools/parity.mjs $IDS --serial emulator-5554 2>&1 | tee -a "$LOG"
+  timeout 1200 node tools/parity.mjs $IDS --serial emulator-5554 2>&1 | tee -a "$LOG"
   [ "${PIPESTATUS[0]}" -eq 0 ] || log "(parity percentages are advisory: review the side-by-sides)"
 fi
 

@@ -107,6 +107,7 @@ import {
   PostHead,
   type CommentView,
 } from '../features/08/PostViews';
+import { Flow07, FLOW07 } from '../features/07/parity';
 import { Flow09, isFlow09 } from '../features/09/parity';
 import { BookEndView } from '../features/04/BookEndView';
 
@@ -168,6 +169,10 @@ const PAGES = [
   's-author-community',
   's-dm',
   's-dm-confirm',
+  's-rooms',
+  's-create-room',
+  's-join-code',
+  's-room',
   's-profile',
   's-goal',
   's-my-highlights',
@@ -263,7 +268,9 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
       ) : (
         // A screen at its natural height, like the reference's height:auto .screen (body, then foot).
         <View>
-          {isFlow10(page) ? (
+          {FLOW07.has(page) ? (
+            <Flow07 page={page} />
+          ) : isFlow10(page) ? (
             <Flow10 page={page} />
           ) : isFlow02(page) ? (
             <Flow02 page={page} />
