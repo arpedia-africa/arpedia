@@ -15,9 +15,12 @@
     "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-local" }],
-  // Room progress events go out through the chat Worker's conversation Durable Object (flow 07).
+  // Paid author messages (flow 08) and room progress events (flow 07) go out through the chat Worker's conversation Durable Object.
   "durable_objects": {
-    "bindings": [{ "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat" }],
+    "bindings": [
+      { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+      { "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+    ],
   },
   "env": {
     "staging": {
@@ -29,6 +32,7 @@
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-staging" }],
       "durable_objects": {
         "bindings": [
+          { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat-staging" },
           { "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat-staging" },
         ],
       },
@@ -41,7 +45,10 @@
       },
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books" }],
       "durable_objects": {
-        "bindings": [{ "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat" }],
+        "bindings": [
+          { "name": "CONVERSATION", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+          { "name": "CHAT_ROOMS", "class_name": "ConversationDO", "script_name": "arpedia-chat" },
+        ],
       },
     },
   },

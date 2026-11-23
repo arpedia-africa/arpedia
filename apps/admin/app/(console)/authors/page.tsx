@@ -5,8 +5,18 @@ import { serverSupabase } from '@/lib/supabase/server';
 import { NoAccess } from '@/components/no-access';
 import { Icon } from '@/components/icon';
 import { Menu } from '../books/menu';
-import { AuthorsHeader, applicationCount, avClass, gate, loadAuthors, monthName, n0, naira } from './shared';
-import { ToastLink } from './toast-link';
+import {
+  AuthorsHeader,
+  applicationCount,
+  avClass,
+  followers,
+  gate,
+  loadAuthors,
+  loadFollowers,
+  monthName,
+  n0,
+  naira,
+} from './shared';
 
 interface Search {
   q?: string;
@@ -29,7 +39,11 @@ export default async function AuthorsPage({ searchParams }: { searchParams: Prom
   if ('denied' in g) return g.denied;
   const sp = await searchParams;
   const supabase = await serverSupabase();
-  const [{ rows: all, denied, failed }, waiting] = await Promise.all([loadAuthors(supabase), applicationCount(supabase)]);
+  const [{ rows: all, denied, failed }, waiting, follows] = await Promise.all([
+    loadAuthors(supabase),
+    applicationCount(supabase),
+    loadFollowers(supabase),
+  ]);
   if (denied) return <NoAccess page="applications" label="Authors and applications" role={g.staff.role} />;
   if (failed) throw new Error('Could not load authors');
 
@@ -130,7 +144,12 @@ export default async function AuthorsPage({ searchParams }: { searchParams: Prom
                             <span>
                               <b>{a.pen_name}</b>
                               <small>
-                                {[a.genres.slice(0, 2).join(', ') || 'No books yet', `Joined ${joined}`, a.status === 'suspended' ? 'Suspended' : '']
+                                {[
+                                  a.genres.slice(0, 2).join(', ') || 'No books yet',
+                                  followers(follows.get(a.user_id) ?? 0),
+                                  joined,
+                                  a.status === 'suspended' ? 'Suspended' : '',
+                                ]
                                   .filter(Boolean)
                                   .join(' · ')}
                               </small>
@@ -151,9 +170,9 @@ export default async function AuthorsPage({ searchParams }: { searchParams: Prom
                         </td>
                         <td>
                           {a.club_group_id ? (
-                            <ToastLink msg="Community channels open from here once the community part of the build is in (flow 06).">
+                            <Link className="link" href={`/community/${a.club_group_id}`}>
                               Open
-                            </ToastLink>
+                            </Link>
                           ) : (
                             <span className="faint">None yet</span>
                           )}
