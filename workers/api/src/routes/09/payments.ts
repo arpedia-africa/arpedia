@@ -9,6 +9,7 @@ import {
   type Ignored,
   type Json,
 } from '@arpedia/core';
+import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 
@@ -66,6 +67,48 @@ payments.post('/revenuecat', async (c) => {
   const res = await ingest(serviceDb(c.env), mapped, body);
   if (res.error) return c.json({ error: 'apply_failed', id: res.id }, 500);
   return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
+});
+
+// Local test store (flow 17 whole-app check): until the RevenueCat SDK lands, a local build
+// (EXPO_PUBLIC_TEST_STORE) "buys" through here. It builds the event Google Play + RevenueCat would
+// send and applies it through the same normalise + ingest path as the webhook. Never on staging or
+// production: anything but APP_ENV local answers 404.
+payments.post('/test-store', requireUser, async (c) => {
+  if (c.env.APP_ENV !== 'local') return c.json({ error: 'not_found' }, 404);
+  const body = await c.req.json<{ kind?: unknown; code?: unknown }>().catch(() => ({}) as Record<string, unknown>);
+  const kind = body.kind === 'plan' || body.kind === 'topup' ? body.kind : null;
+  const code = typeof body.code === 'string' ? body.code : '';
+  if (!kind || !code) return c.json({ error: 'bad_request' }, 400);
+  const db = serviceDb(c.env);
+  const { data: product } = await db
+    .from(kind === 'plan' ? 'plans' : 'topup_products')
+    .select('play_product_id')
+    .eq('code', code)
+    .maybeSingle();
+  const kobo = await lowestPriceKobo(db, kind, code);
+  if (!product || kobo == null) return c.json({ error: 'unknown_product' }, 404);
+  const now = Date.now();
+  const txn = `GPA.test-${crypto.randomUUID()}`;
+  const event = {
+    id: crypto.randomUUID(),
+    type: kind === 'plan' ? 'INITIAL_PURCHASE' : 'NON_RENEWING_PURCHASE',
+    app_user_id: c.get('user').sub!,
+    product_id: product.play_product_id,
+    transaction_id: txn,
+    original_transaction_id: txn,
+    purchased_at_ms: now,
+    expiration_at_ms: kind === 'plan' ? now + 30 * 86_400_000 : null,
+    event_timestamp_ms: now,
+    price_in_purchased_currency: kobo / 100,
+    currency: 'NGN',
+    store: 'PLAY_STORE',
+    environment: 'SANDBOX',
+  };
+  const mapped = normalizeRevenueCat({ event });
+  if (isIgnored(mapped)) return c.json({ error: 'ignored', reason: mapped.ignore }, 400);
+  const res = await ingest(db, mapped, { event });
+  if (res.error) return c.json({ error: 'apply_failed', id: res.id }, 500);
+  return c.json({ ok: true, outcome: res.outcome });
 });
 
 /** A Flutterwave answer that wasn't a success; 4xx is final, 5xx may pass on a retry. */

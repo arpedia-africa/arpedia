@@ -53,6 +53,8 @@ writeFileSync(
 const host = process.argv.includes('--phone') ? '127.0.0.1' : '10.0.2.2';
 writeFileSync(
   join(root, 'apps/mobile/.env.local'),
-  `EXPO_PUBLIC_SUPABASE_URL=${env.API_URL.replace('127.0.0.1', host)}\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nEXPO_PUBLIC_API_URL=http://${host}:${apiPort}\nEXPO_PUBLIC_CHAT_URL=http://${host}:${chatPort}\n`,
+  `EXPO_PUBLIC_SUPABASE_URL=${env.API_URL.replace('127.0.0.1', host)}\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${env.ANON_KEY}\nEXPO_PUBLIC_API_URL=http://${host}:${apiPort}\nEXPO_PUBLIC_CHAT_URL=http://${host}:${chatPort}\n` +
+    // Local builds buy through the api Worker's local test store (features/09/purchases.ts).
+    `EXPO_PUBLIC_TEST_STORE=1\n`,
 );
 console.log('Wrote workers/*/.dev.vars, apps/admin/.env.local and apps/mobile/.env.local');
