@@ -188,7 +188,12 @@ export default function BookPage() {
         onClose={() => setSheet(null)}
         onRead={() => router.push({ pathname: '/read/[id]', params: { id } })}
         onPlans={toPlans}
-        onBuyPack={(p) => void pack.buy(p)}
+        // A gift or tip shortfall closes once the credits land, so the reader can send it again.
+        onBuyPack={(p) =>
+          void pack.buy(p).then((ok) => {
+            if (ok && sheet === 'short') setSheet(null);
+          })
+        }
       />
       <Sheet open={overlay === 'more'} onClose={() => setOverlay(null)} bold title={d.book.title}>
         <MenuBody

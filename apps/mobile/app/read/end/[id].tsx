@@ -7,12 +7,13 @@ import { useQuery } from '@tanstack/react-query';
 import { TIP_PRESETS } from '@arpedia/core';
 import { EmptyState, Hero, IconButton, Screen, Skeleton, useTheme } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
-import { useBookPage, useOnline } from '../../../features/03/book';
+import { bookKey, useBookPage, useOnline } from '../../../features/03/book';
 import { avatarTone, coverTone } from '../../../features/03/BookViews';
 import { TipSheet } from '../../../features/03/GiftSheet';
 import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import { useTrack } from '../../../features/04/analytics';
 import { BookEndView } from '../../../features/04/BookEndView';
+import { useBuyPack } from '../../../features/09/buyPack';
 
 const n = (v: number) => v.toLocaleString('en-NG');
 
@@ -34,6 +35,7 @@ export default function BookEnd() {
   const d = page.data;
   const [tip, setTip] = useState(false);
   const [short, setShort] = useState(0);
+  const pack = useBuyPack([bookKey(id)]);
 
   const stats = useQuery({
     queryKey: ['book-end', id],
@@ -136,8 +138,18 @@ export default function BookEnd() {
         need={short}
         onClose={() => setShort(0)}
         onRead={() => setShort(0)}
-        onPlans={() => setShort(0)}
-        onBuyPack={() => setShort(0)}
+        onPlans={() => {
+          setShort(0);
+          router.push('/plan');
+        }}
+        // Once the credits land, back to the tip sheet with the new balance; nothing is sent yet.
+        onBuyPack={(p) =>
+          void pack.buy(p).then((ok) => {
+            if (!ok) return;
+            setShort(0);
+            setTip(true);
+          })
+        }
       />
     </Screen>
   );
