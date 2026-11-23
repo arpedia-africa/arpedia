@@ -250,3 +250,31 @@ _In progress._
 Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notification settings toasts) are fixed on `origin/flow/17-journeys` and dropped; they stay open until that branch merges.
 
 68 rules checked, 16 gaps.
+## 06 · Community
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 06-1 | Server: Push | The chat DO never enqueues `push_fanout` when a message is persisted (no group, sender, recipients, mention or reply flags). The dispatcher has a `club_message` type but nothing produces it, so nobody gets chat push. | `workers/chat/src/conversation.ts:238` | should fix | A |
+| - [ ] | 06-2 | 6, 7 | The inbox "Reading rooms" header button, the Read together card and the empty-state Reading rooms button only show the toast "Reading rooms come in a later part of the build." The route `app/(rooms)/rooms.tsx` exists but is not linked. | `apps/mobile/app/(tabs)/community.tsx:68` | should fix | B |
+| - [ ] | 06-3 | 6 | The Read together card is never given `rooms` data, so it shows no stacked avatars, no "N friends reading now" and no book titles. | `apps/mobile/app/(tabs)/community.tsx:93` | should fix | B |
+| - [ ] | 06-4 | 2 | Every inbox row opens `/chat/{id}`. Author communities, read-along rooms and DMs do not go to `s-author-community`, `s-room` or `s-dm`. | `apps/mobile/app/(tabs)/community.tsx:91` | should fix | B |
+| - [ ] | 06-5 | 5 | The Community tab has no unread badge ("9+" cap, muted groups excluded). `get_inbox_counts` returns `tab` and `tabBadgeLabel` exists, but nothing uses either. | `apps/mobile/app/(tabs)/_layout.tsx:26` | should fix | B |
+| - [ ] | 06-6 | 18 | The pinned weekly reading banner onPress shows a toast, "The reader comes in a later part of the build", instead of opening the book in the reader. | `apps/mobile/app/(community)/chat/[id].tsx:323` | should fix | B |
+| - [ ] | 06-7 | 18 | Nothing can set `weekly_book_id`, `weekly_from_chapter`, `weekly_to_chapter` or `weekly_note`. There is no owner RPC, and `admin_update_channel` does not patch them, so the banner never appears. | `supabase/migrations/20261119000600_06_community.sql:1152` | should fix | A |
+| - [ ] | 06-8 | 19 | A shared highlight (quote card) can never be sent. The "+" button only toasts "Share a highlight from the reader.", `send()` never passes `quote`, and the quote card has no Open button. | `apps/mobile/app/(community)/chat/[id].tsx:417` | should fix | B |
+| - [ ] | 06-9 | States: offline | The inbox has no "Offline" bar. The inbox is cached through the persisted query client, but nothing tells the user they are offline. | `apps/mobile/app/(tabs)/community.tsx:72` | should fix | B |
+| - [ ] | 06-10 | Server: moderate-text | The DO uses its own regexes and the channel's muted words. It never calls the flow 14 `moderate-text` Worker, so global safety rules (Hide, edit-and-resend) do not apply to chat. | `workers/chat/src/conversation.ts:179` | should fix | A |
+| - [ ] | 06-11 | Data: moderator role | Nothing can appoint a moderator (no RPC or screen sets `role = 'moderator'`, and the maximum of 5 is not enforced). Moderator-only Pin in chat and the admin "Chosen by the author. Maximum 5." text therefore have no path. | `supabase/migrations/20261119000600_06_community.sql:74` | should fix | A |
+| - [ ] | 06-12 | Server: InboxDO | No per-user `InboxDO` exists. The inbox only polls every 20 s, so there are no live unread counts and no "reading now" push. | `workers/chat/wrangler.jsonc:16` | later | A |
+| - [ ] | 06-13 | Server: enforce push-down | There is no `POST /do/{group_id}/enforce`. A generic `/refresh` re-reads access instead, and the admin actions call it. Moderator removal and ban in live clients depend on that refresh. | `workers/chat/src/index.ts:67` | later | A |
+| - [ ] | 06-14 | Analytics (all 13 events) | `community_opened`, `inbox_filter_changed`, `group_joined`, `group_left`, `message_sent`, `message_reacted`, `message_pinned`, `message_deleted`, `discover_searched`, `report_started`, `report_sent`, `user_blocked` and `user_unblocked` are never fired. There is no analytics call in the mobile app, workers or SQL. | `apps/mobile/features/06/chat.ts` (absent) | later | B |
+| - [ ] | 06-15 | Admin: community | The "Reading rooms" tab and the KPI link on the Community page only show the toast "Reading rooms arrive with a later part of the build." | `apps/admin/app/(console)/community/community-view.tsx:97` | later | A |
+| - [ ] | 06-16 | Done when: Maestro | The E2E stops at the report sheet and taps Cancel. It never joins from Discover, reacts, reports with Also block, or opens Blocked people and taps Undo. | `apps/mobile/.maestro/06-community.yaml:76` | later | B |
+| - [ ] | 06-17 | 3 | The Groups filter shows no conversation count. `get_inbox_counts` returns `groups`, but the hero is only given `all` and `unread`. | `apps/mobile/features/06/InboxViews.tsx:77` | later | B |
+| - [ ] | 06-18 | States: offline | When offline, Pin and Delete stay enabled and fail with a generic toast. The spec wants them disabled with "Connect to do this"; only the reaction row is disabled. | `apps/mobile/app/(community)/chat/[id].tsx:236` | later | B |
+| - [ ] | 06-19 | States: offline | Queued messages (up to 5) live only in component state (`pending`). If the app is killed while offline they are lost instead of sending on reconnect. | `apps/mobile/features/06/chat.ts:111` | later | B |
+| - [ ] | 06-20 | 9 | Private clubs are meant to be joined by invitation link, but there is no invite link, token or RPC. `join_group` accepts public groups only. | `supabase/migrations/20261119000600_06_community.sql:640` | later | A |
+| - [ ] | 06-21 | States: deleted accounts | `erase_account` scrubs the profile but leaves `group_members` and `messages` rows, so erased users still count toward `member_count` and their message text stays. | `supabase/migrations/20261119300000_10_profile.sql:647` | later | A |
+| - [ ] | 06-22 | 30 | Block and Unblock on the Blocked people screen call the RPC directly instead of the chat Worker, so a live conversation's cached block list is stale for up to 60 s (Undo can show a blocked person's new messages). | `apps/mobile/app/(community)/blocked.tsx:34` | later | B |
+
+97 rules checked, 22 gaps.
