@@ -28,7 +28,10 @@ function harness() {
   const fake = fakeDb();
   const applied: string[] = [];
   const app = new Hono<AppEnv>();
-  app.route('/v1/payments', storeEventsRouter(() => fake.db));
+  app.route(
+    '/v1/payments',
+    storeEventsRouter(() => fake.db),
+  );
   // Flow 09's webhook: anything that reaches it would be applied (subscription, credits).
   const payments = new Hono<AppEnv>();
   payments.post('/revenuecat', async (c) => {
@@ -40,7 +43,11 @@ function harness() {
   const send = (event: Record<string, unknown>, auth = 'rc-secret') =>
     app.request(
       '/v1/payments/revenuecat',
-      { method: 'POST', headers: { Authorization: auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ event }) },
+      {
+        method: 'POST',
+        headers: { Authorization: auth, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event }),
+      },
       { REVENUECAT_WEBHOOK_AUTH: 'rc-secret' },
     );
   return { ...fake, applied, send };

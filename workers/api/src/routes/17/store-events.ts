@@ -13,7 +13,10 @@ import type { AppEnv, Env } from '../../env';
 type Db = ReturnType<typeof serviceDb>;
 
 /** The product an event is about when it is not one we sell, or null to let flow 09 apply it. */
-export function unmatchedProduct(event: RevenueCatEvent | undefined, known: ReadonlySet<string>): string | null {
+export function unmatchedProduct(
+  event: RevenueCatEvent | undefined,
+  known: ReadonlySet<string>,
+): string | null {
   if (!event?.id || !event.type || event.type === 'TEST') return null;
   const product = event.product_id?.trim();
   if (!product) return null;
