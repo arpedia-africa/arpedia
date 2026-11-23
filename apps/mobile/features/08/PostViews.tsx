@@ -15,6 +15,7 @@ import {
   useTheme,
   type AvatarTone,
 } from '@arpedia/ui';
+import { AuthorBadge } from '../06/InboxViews';
 
 // s-post. Pure views for app/(authors)/post/[id].tsx (`node tools/screen.mjs s-post --css`).
 
@@ -241,24 +242,6 @@ export function CommentsHead({ total }: { total: string }) {
   );
 }
 
-/** `.badge-auth` */
-function AuthorBadge() {
-  const { c, s, name } = useTheme();
-  return (
-    <View
-      style={{
-        backgroundColor: name === 'night' ? 'rgba(255,246,234,0.16)' : c.night,
-        borderRadius: s(5),
-        paddingVertical: s(1),
-        paddingHorizontal: s(5),
-      }}
-    >
-      <Text size={10} weight={700} color={name === 'night' ? '#FFF6EA' : '#FFD9A8'} oneLine>
-        Author
-      </Text>
-    </View>
-  );
-}
 
 /** `.au-comment`: avatar, name (+ Author badge), time, more, text, Reply. Replies sit one step in. */
 export function CommentItem({
