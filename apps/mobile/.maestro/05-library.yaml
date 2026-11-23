@@ -38,7 +38,7 @@ appId: com.arpedia.reader
 # Continue a book from Reading: the reader opens at the saved place.
 - tapOn: 'Harmattan Letters, Ifeoma.*'
 - extendedWaitUntil:
-    visible: '.*% read'
+    visible: '.*min left in chapter'
     timeout: 30000
 - back
 
@@ -88,11 +88,15 @@ appId: com.arpedia.reader
     visible: 'Chapter \d+ of \d+ · unlocked|Pay as you read · Paid .* of .* credits'
     timeout: 30000
 - takeScreenshot: library-${WIDTH}-list
+# Seeded Harmattan Letters (pay as you read, row below Grace) keeps its own Pay the rest, so the
+# steps key on Grace's row: owned Grace reads "Chapter n of m · unlocked" and is skipped.
 - runFlow:
     when:
-      visible: 'Pay the rest · .*'
+      notVisible: 'Chapter \d+ of \d+ · unlocked'
     commands:
-      - tapOn: 'Pay the rest · .*'
+      - tapOn:
+          text: 'Pay the rest · .*'
+          index: 0
       - extendedWaitUntil:
           visible: 'Left to pay'
           timeout: 10000
@@ -103,7 +107,9 @@ appId: com.arpedia.reader
       - extendedWaitUntil:
           visible: 'Paid .* credits · A House Called Grace is yours to keep'
           timeout: 20000
-      - assertNotVisible: 'Pay the rest · .*'
+      - extendedWaitUntil:
+          visible: 'Chapter \d+ of \d+ · unlocked'
+          timeout: 10000
 
 # The whole book downloads: it shows on the Offline shelf with days left and space used.
 - tapOn: 'Grid view'
