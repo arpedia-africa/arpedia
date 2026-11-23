@@ -1,7 +1,7 @@
 // Library data (rules 1–11, 26–35): get_library pages per shelf, the books on this phone, and the
 // local state that must answer offline. The mirror is the persisted TanStack cache (src/lib/query):
 // the screen paints from it at once, offline included, then fetches changes.
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { create } from 'zustand';
@@ -179,6 +179,17 @@ export function useOfflineShelf() {
     gcTime: 0,
   });
   const data = q.data;
+  // Titles come from the library mirror, which can arrive after the files are listed (after a fresh
+  // sign-in the cache is empty): recompute when a library page lands, or rows stay "Downloaded book".
+  const [mirrorVersion, setMirrorVersion] = useState(0);
+  useEffect(
+    () =>
+      qc.getQueryCache().subscribe((e) => {
+        if (e.type === 'updated' && e.action.type === 'success' && e.query.queryKey[0] === 'library')
+          setMirrorVersion((v) => v + 1);
+      }),
+    [qc],
+  );
   const entries = useMemo<OfflineEntry[]>(() => {
     const mirror = mirrorBooks(qc);
     return (data ?? [])
@@ -193,7 +204,8 @@ export function useOfflineShelf() {
         };
       })
       .sort((a, b) => b.downloadedAt - a.downloadedAt);
-  }, [data, qc]);
+    // mirrorVersion: re-read the mirror when it changes (see above).
+  }, [data, qc, mirrorVersion]);
   return { ...q, entries };
 }
 

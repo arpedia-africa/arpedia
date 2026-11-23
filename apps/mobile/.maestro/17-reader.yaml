@@ -76,18 +76,22 @@ appId: com.arpedia.reader
 - takeScreenshot: reader-${WIDTH}-checkout
 - tapOn: 'Subscribe with Google Play'
 - extendedWaitUntil:
-    visible: 'Top-up . never expires|Top up'
+    visible: 'This month . refills.*'
     timeout: 60000
-- extendedWaitUntil:
-    visible: '300'
-    timeout: 30000
+- assertVisible: '300'
 - scrollUntilVisible:
     element: 'Buy .* credits . ₦.*'
     direction: DOWN
     timeout: 60000
 - tapOn: 'Buy .* credits . ₦.*'
-- extendedWaitUntil:
-    visible: '.* credits added'
+# The toast lives a few seconds, shorter than one hierarchy read on a busy emulator: best effort.
+- assertVisible:
+    text: '.* credits added'
+    optional: true
+# The top-up bucket shows only once the ledger has the credits.
+- scrollUntilVisible:
+    element: 'Top-up . never expires'
+    direction: UP
     timeout: 60000
 - takeScreenshot: reader-${WIDTH}-credits
 
@@ -118,8 +122,24 @@ appId: com.arpedia.reader
       - swipe:
           direction: LEFT
           duration: 200
-- longPressOn:
-    point: '50%,45%'
+# A long press between words or on a paragraph gap selects nothing; try a few spots.
+- repeat:
+    times: 3
+    while:
+      notVisible: 'Discuss'
+    commands:
+      - longPressOn:
+          point: '35%,40%'
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - runFlow:
+          when:
+            notVisible: 'Discuss'
+          commands:
+            - longPressOn:
+                point: '55%,55%'
+            - waitForAnimationToEnd:
+                timeout: 3000
 - extendedWaitUntil:
     visible: 'Discuss'
     timeout: 10000
@@ -134,7 +154,7 @@ appId: com.arpedia.reader
 - back
 
 # ─── Library and the offline copy ────────────────────────────────────────────
-- tapOn: 'Library'
+- openLink: arpedia://library
 - extendedWaitUntil:
     visible: 'Reading \d+'
     timeout: 30000
@@ -185,6 +205,15 @@ appId: com.arpedia.reader
     visible: 'Good .*, Kemi.*'
     timeout: 30000
 - tapOn: 'Library'
+- extendedWaitUntil:
+    visible: 'Offline downloads'
+    timeout: 30000
+# The offline copy keeps its title after signing in again (found by this journey: it read "Downloaded book").
+- extendedWaitUntil:
+    visible: 'Harmattan Letters.*'
+    timeout: 30000
+- takeScreenshot: reader-${WIDTH}-back-in-offline
+- tapOn: 'Reading \d+'
 - extendedWaitUntil:
     visible: 'Harmattan Letters.*'
     timeout: 30000

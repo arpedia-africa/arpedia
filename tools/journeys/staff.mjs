@@ -162,6 +162,18 @@ const commands = {
     console.log(`✓ ${PUBLISHER} published "${title}" (${price} credits): ${JSON.stringify(vars)}`);
   },
 
+  /** Pay as you read: one chapter charge was undone (credits back, author earning taken back). */
+  async 'check-undo'(email) {
+    const rows = sql(
+      `select count(*) filter (where reason = 'undo') || '|' || count(*) filter (where reason = 'chapter') ` +
+        `from public.credit_ledger where user_id = ${q(userId(email))} and created_at > now() - interval '1 hour'`,
+    ).split('|');
+    if (rows[0] === '0') fail(`${email}: no undo row in the ledger`);
+    if (Number(rows[1]) < 2)
+      fail(`${email}: expected the charge and the charge after the undo, got ${rows[1]}`);
+    console.log(`✓ ${email}: ${rows[0]} undo, ${rows[1]} chapter charges`);
+  },
+
   async 'check-report'(email) {
     const me = userId(email);
     const reports = Number(sql(`select count(*) from public.reports where reporter_id = ${q(me)}`));

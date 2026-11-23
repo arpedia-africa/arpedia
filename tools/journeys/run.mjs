@@ -29,8 +29,8 @@ const m = (file) => ({ maestro: file });
 const staff = (...a) => ({ node: ['tools/journeys/staff.mjs', ...a] });
 export const JOURNEYS = {
   reader: [m('17-reader.yaml')],
-  payg: [m('17-payg.yaml')],
-  community: [m('17-community.yaml'), staff('check-report')],
+  payg: [m('17-payg.yaml'), staff('check-undo', 'ngozi@example.com')],
+  community: [m('17-community.yaml'), staff('check-report', 'ngozi@example.com')],
   author: [
     m('17-author-apply.yaml'),
     staff('approve-author', 'tobi@example.com'),
@@ -96,6 +96,8 @@ if (!names.length) {
   process.exit(1);
 }
 execSync(`adb -s ${serial} shell input keyevent KEYCODE_WAKEUP`);
+// The release app talks to 127.0.0.1 (dev-vars --phone); a restarted emulator forgets the reverses.
+for (const port of [55321, 8787, 8788]) execSync(`adb -s ${serial} reverse tcp:${port} tcp:${port}`);
 const list = existing
   ? names.map((n) => [n, [m(n.endsWith('.yaml') ? n : `${n}.yaml`)]])
   : (names[0] === 'all' ? Object.keys(JOURNEYS) : names).map((n) => {
