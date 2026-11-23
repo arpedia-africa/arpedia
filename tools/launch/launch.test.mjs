@@ -16,7 +16,13 @@ import {
   objectKey,
 } from './backup.mjs';
 import { r2Client, signV4 } from './r2.mjs';
-import { NON_RELEASE_MARKERS, REQUIRED_SETTINGS, readReleaseBundle, runPreflight } from './preflight.mjs';
+import {
+  NON_RELEASE_MARKERS,
+  REQUIRED_SETTINGS,
+  isKitBuild,
+  readReleaseBundle,
+  runPreflight,
+} from './preflight.mjs';
 import { CONFIG_CHECKS, runSetup } from './setup.mjs';
 import { toCsv } from './unmatched.mjs';
 
@@ -267,6 +273,21 @@ describe('preflight.mjs', () => {
     const b = readReleaseBundle(aab);
     expect(b.entries.sort()).toEqual(['base/assets/index.android.bundle', 'base/res/xml/kit_network.xml']);
     expect(NON_RELEASE_MARKERS.some((m) => b.text.includes(m))).toBe(true);
+    expect(isKitBuild(b)).toBe(true);
+  });
+
+  it('finds a kit build in an APK, whose resource file names are shortened', () => {
+    const apk = zipSync({
+      'assets/index.android.bundle': new TextEncoder().encode('https://api.arpedia.africa'),
+      'res/Zq.xml': new Uint8Array([1]),
+      'resources.arsc': new TextEncoder().encode('\u0000kit_network\u0000'),
+    });
+    expect(isKitBuild(readReleaseBundle(apk))).toBe(true);
+    const store = zipSync({
+      'assets/index.android.bundle': new TextEncoder().encode('https://api.arpedia.africa'),
+      'resources.arsc': new TextEncoder().encode('\u0000ic_launcher\u0000'),
+    });
+    expect(isKitBuild(readReleaseBundle(store))).toBe(false);
   });
 });
 

@@ -79,12 +79,24 @@ async function guard(key, fn) {
 /** Read an .aab or .apk: its JS bundle as text and the list of entries. */
 export function readReleaseBundle(bytes) {
   const files = unzipSync(bytes, {
-    filter: (f) => /(^|\/)assets\/index\.android\.bundle$|(^|\/)res\/xml\//.test(f.name),
+    filter: (f) =>
+      /(^|\/)assets\/index\.android\.bundle$|(^|\/)res\/xml\/|(^|\/)resources\.(arsc|pb)$/.test(f.name),
   });
   const bundle = Object.entries(files).find(([n]) => n.endsWith('index.android.bundle'));
   if (!bundle) throw new Error('no index.android.bundle in this file');
-  return { entries: Object.keys(files), text: Buffer.from(bundle[1]).toString('latin1') };
+  // An APK shortens resource file names; the resource table (arsc, or pb in an .aab) keeps them.
+  const table = Object.entries(files).find(([n]) => /resources\.(arsc|pb)$/.test(n));
+  return {
+    entries: Object.keys(files),
+    text: Buffer.from(bundle[1]).toString('latin1'),
+    resources: table ? Buffer.from(table[1]).toString('latin1') : '',
+  };
 }
+
+/** Kit builds (EXPO_PUBLIC_KIT=1) carry the kit_network security config (plugins/kit-localhost.js). */
+export const isKitBuild = (bundle) =>
+  bundle.entries.some((e) => e.endsWith('res/xml/kit_network.xml')) ||
+  (bundle.resources ?? '').includes('kit_network');
 
 /**
  * All checks. Each dependency may throw; that check then fails with the message.
@@ -244,7 +256,7 @@ export async function runPreflight({
         ? `local or staging endpoints in the bundle: ${found.join(', ')}`
         : 'no staging or local endpoints',
     });
-    const kit = bundle.entries.some((e) => e.endsWith('res/xml/kit_network.xml'));
+    const kit = isKitBuild(bundle);
     items.push({
       key: 'expo_public_kit',
       status: kit ? 'fail' : 'pass',
