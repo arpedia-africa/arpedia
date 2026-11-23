@@ -125,10 +125,10 @@ cross join generate_series(1, 9) g;
 insert into public.exports (kind, params, columns, includes_pii, reason, created_by, status, row_count, file_key,
                             created_at, finished_at, expires_at)
 values
-  ('author_earnings', jsonb_build_object('from', current_date - 30, 'to', current_date), '{}', false, null,
+  ('author_earnings', jsonb_build_object('from', (now() at time zone 'Africa/Lagos')::date - 30, 'to', (now() at time zone 'Africa/Lagos')::date), '{}', false, null,
    '00000000-0000-4000-b000-000000000005', 'ready', 64, 'exports/seed-1/author-earnings.csv',
    now() - interval '40 minutes', now() - interval '39 minutes', now() + interval '7 days'),
-  ('readers', jsonb_build_object('from', current_date - 30, 'to', current_date), '{reader_id,joined_at,state,email}',
+  ('readers', jsonb_build_object('from', (now() at time zone 'Africa/Lagos')::date - 30, 'to', (now() at time zone 'Africa/Lagos')::date), '{reader_id,joined_at,state,email}',
    true, 'Welcome-back email list', '00000000-0000-4000-b000-000000000001', 'building', null, null,
    now() - interval '2 minutes', null, now() + interval '7 days'),
   ('books', jsonb_build_object('from', current_date - 7, 'to', current_date), '{}', false, null,

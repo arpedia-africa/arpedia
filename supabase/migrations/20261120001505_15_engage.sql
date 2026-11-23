@@ -1598,7 +1598,7 @@ begin
   select * into e from public.exports where id = p_id;
   if not found then raise exception 'Unknown export' using errcode = 'P0002'; end if;
   v_from := coalesce((e.params ->> 'from')::date, '2000-01-01'::date)::timestamp at time zone 'Africa/Lagos';
-  v_to := (coalesce((e.params ->> 'to')::date, current_date) + 1)::timestamp at time zone 'Africa/Lagos';
+  v_to := (coalesce((e.params ->> 'to')::date, (now() at time zone 'Africa/Lagos')::date) + 1)::timestamp at time zone 'Africa/Lagos';
   if e.kind = 'readers' then
     select jsonb_agg(x) into v_rows from (
       select jsonb_build_object('reader_id', p.id, 'joined_at', p.created_at,

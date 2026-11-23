@@ -19,6 +19,8 @@ export interface Env {
   ADMIN_URL?: string;
   /** Sends staff invite emails; unset locally (the link is logged instead). */
   RESEND_API_KEY?: string;
+  /** The chat Worker's ConversationDO (flow 06), for room progress events (flow 07). */
+  CHAT_ROOMS?: DurableObjectNamespace;
   /** Resend webhook signing secret (whsec_…): inbound email (flow 14), opens and bounces (flow 15); unset locally. */
   RESEND_WEBHOOK_SECRET?: string;
   /** Expo push access token (secret), when push security is on for the Expo project. */

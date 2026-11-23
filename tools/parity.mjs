@@ -682,6 +682,9 @@ try {
       analytics: { path: '/analytics?p=30', as: 'amaka@arpedia.africa' },
       'analytics-growth': { path: '/analytics/growth?p=30', as: 'amaka@arpedia.africa' },
       'analytics-reading': { path: '/analytics/reading?p=30', as: 'amaka@arpedia.africa' },
+      // Flow 07: seeded rooms (supabase/seeds/07_rooms.sql).
+      rooms: { path: '/community/rooms', as: 'zainab@arpedia.africa' },
+      room: { path: '/community/rooms/00000000-0000-4000-f070-000000000001', as: 'zainab@arpedia.africa' },
       // Flow 14. Shell, band, tabs, toolbar and table head; rows hold the seeded reports, tickets,
       // appeals, claims and articles (compared by eye).
       ...Object.fromEntries(
