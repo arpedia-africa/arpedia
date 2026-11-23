@@ -1,0 +1,64 @@
+# Flow 17 rule 10 · Author journey, part 3: the book is live (staff.mjs publish-book wrote BOOK_ID,
+# PRICE and NAIRA), the seeded reader Ngozi unlocks it, and the author's Earnings show exactly
+# PRICE credits × ₦1.60 = ₦NAIRA. The money check after the journey proves the ledger.
+appId: com.arpedia.reader
+---
+# ─── A reader spends ────────────────────────────────────────────────────────
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Ngozi.*'
+    timeout: 30000
+- openLink: arpedia://book/${BOOK_ID}
+- extendedWaitUntil:
+    visible: '.*Journey Book.*'
+    timeout: 30000
+- takeScreenshot: author-${WIDTH}-live-book
+- tapOn: 'Unlock all, .*'
+- extendedWaitUntil:
+    visible: 'Unlock for ${PRICE} credits'
+    timeout: 10000
+- tapOn: 'Unlock for ${PRICE} credits'
+- extendedWaitUntil:
+    visible: 'Unlocked'
+    timeout: 30000
+
+# ─── The author sees the right naira ────────────────────────────────────────
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'you@example.com'
+- inputText: 'journey.author@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-e2e'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Tobi.*'
+    timeout: 30000
+- openLink: arpedia://studio/earnings
+- extendedWaitUntil:
+    visible: 'Earnings'
+    timeout: 15000
+- extendedWaitUntil:
+    visible: '₦${NAIRA}'
+    timeout: 30000
+- assertVisible: '${PRICE} credits × ₦1.60'
+- takeScreenshot: author-${WIDTH}-earnings

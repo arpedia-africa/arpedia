@@ -1,0 +1,82 @@
+# Flow 17 rule 10 · Author journey, part 2: the approved author (staff.mjs approve-author) opens Author
+# Studio and submits the journey EPUB (staff.mjs book-files pushed it and a cover) for review.
+# Then staff.mjs publish-book reviews and publishes it as the Publisher.
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'you@example.com'
+- inputText: 'journey.author@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-e2e'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Tobi.*'
+    timeout: 30000
+
+# Profile's author button now opens the Studio (it was a "coming soon" toast before flow 17).
+- tapOn: 'Profile'
+- extendedWaitUntil:
+    visible: 'Books read'
+    timeout: 30000
+- takeScreenshot: author-${WIDTH}-profile
+- openLink: arpedia://studio
+- extendedWaitUntil:
+    visible: 'Author Studio'
+    timeout: 15000
+- takeScreenshot: author-${WIDTH}-studio
+- tapOn: 'Submit a book for review'
+- assertVisible: 'Upload your book'
+- tapOn: 'EPUB'
+- tapOn: 'Choose your file'
+- tapOn: 'journey-book.epub'
+- tapOn: 'Add cover image'
+# Android's photo picker shows thumbnails, not names: the pushed cover is the newest photo.
+- tapOn:
+    text: 'Photo taken on.*'
+    index: 0
+- tapOn:
+    text: 'Done'
+    optional: true
+- scrollUntilVisible:
+    element: 'Fiction'
+- tapOn: 'Fiction'
+- scrollUntilVisible:
+    element: 'Two or three sentences readers see first'
+- tapOn: 'Two or three sentences readers see first'
+- inputText: 'One harmattan market day in Ibadan, told stall by stall.'
+- hideKeyboard
+- takeScreenshot: author-${WIDTH}-submit
+- tapOn: 'Continue'
+- extendedWaitUntil:
+    visible: 'Getting your book ready'
+    timeout: 60000
+- extendedWaitUntil:
+    visible: 'Chapters are ready'
+    timeout: 180000
+- tapOn: 'Chapters are ready'
+- extendedWaitUntil:
+    visible: 'Check your chapters'
+    timeout: 15000
+- takeScreenshot: author-${WIDTH}-chapters
+- tapOn: 'Looks right, continue'
+- extendedWaitUntil:
+    visible: 'Preview on a phone'
+    timeout: 30000
+- scrollUntilVisible:
+    element: 'I agree'
+- tapOn: 'I agree'
+- tapOn: 'Submit for review'
+- extendedWaitUntil:
+    visible: '.* is in!'
+    timeout: 30000
+- takeScreenshot: author-${WIDTH}-submitted
+- tapOn: 'Back to My books'
+- assertVisible: 'In review'

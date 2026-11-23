@@ -157,7 +157,7 @@ const commands = {
         `from public.books b ` +
         `join public.book_revisions r on r.book_id = b.id where r.id = ${q(rev)}`,
     ).split('|');
-    const vars = { BOOK_ID: bookId, BOOK_TITLE: title, PRICE: price, NAIRA: naira(Number(price) * 160) };
+    const vars = { BOOK_ID: bookId, PRICE: price, NAIRA: naira(Number(price) * 160) };
     writeFileSync(varsFile, JSON.stringify(vars, null, 2));
     console.log(`✓ ${PUBLISHER} published "${title}" (${price} credits): ${JSON.stringify(vars)}`);
   },
@@ -166,7 +166,8 @@ const commands = {
   async 'check-undo'(email) {
     const rows = sql(
       `select count(*) filter (where reason = 'undo') || '|' || count(*) filter (where reason = 'chapter') ` +
-        `from public.credit_ledger where user_id = ${q(userId(email))} and created_at > now() - interval '1 hour'`,
+        `from public.credit_ledger where user_id = ${q(userId(email))} ` +
+        `and created_at > ${q(process.env.JOURNEY_START ?? new Date(Date.now() - 3600_000).toISOString())}`,
     ).split('|');
     if (rows[0] === '0') fail(`${email}: no undo row in the ledger`);
     if (Number(rows[1]) < 2)
@@ -176,8 +177,14 @@ const commands = {
 
   async 'check-report'(email) {
     const me = userId(email);
-    const reports = Number(sql(`select count(*) from public.reports where reporter_id = ${q(me)}`));
-    const blocks = Number(sql(`select count(*) from public.user_blocks where blocker_id = ${q(me)}`));
+    // Seeded reports and blocks are older than the journey (run.mjs sets JOURNEY_START after the reset).
+    const recent = `created_at > ${q(process.env.JOURNEY_START ?? new Date(Date.now() - 3600_000).toISOString())}`;
+    const reports = Number(
+      sql(`select count(*) from public.reports where reporter_id = ${q(me)} and ${recent}`),
+    );
+    const blocks = Number(
+      sql(`select count(*) from public.user_blocks where blocker_id = ${q(me)} and ${recent}`),
+    );
     if (!reports) fail(`no report stored for ${email}`);
     if (!blocks) fail(`no block stored for ${email}`);
     console.log(`✓ ${email}: ${reports} report(s), ${blocks} block(s) stored`);
@@ -203,9 +210,13 @@ const commands = {
   },
 };
 
-/** ₦ with two decimals, as the app shows it (e.g. ₦80.00). */
+/** Naira as the app shows it (packages/core formatKobo, without the ₦): 80, 81.60, 1,600. */
 function naira(kobo) {
-  return `₦${(kobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const n = kobo / 100;
+  return n.toLocaleString('en-NG', {
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
