@@ -9,6 +9,7 @@ import {
   backupKey,
   collect,
   copyCounts,
+  dbIdentity,
   decryptFile,
   encryptStream,
   expired,
@@ -129,6 +130,21 @@ describe('setup.mjs', () => {
     expect(t.state.migrations).toBe(0);
     expect(t.state.invites).toEqual([]);
     expect(res.items.find((i) => i.key === 'migrations').status).toBe('fail');
+  });
+
+  it('never re-invites once a Super admin has signed up without two-step', async () => {
+    const t = fakeTarget({ applied: VERSIONS });
+    const rpc = t.db.rpc;
+    t.db.rpc = async (fn, args) => {
+      const out = await rpc(fn, args);
+      if (fn !== 'launch_check') return out;
+      return out.map((i) =>
+        i.key === 'super_admin' ? { ...i, status: 'warn', detail: 'signed up; two-step not on yet' } : i,
+      );
+    };
+    const res = await setup(t, { resendInvite: true });
+    expect(t.state.invites).toEqual([]);
+    expect(res.items.find((i) => i.key === 'super_admin')).toMatchObject({ status: 'pass' });
   });
 
   it('needs the admin email and name to invite', async () => {
@@ -340,6 +356,20 @@ describe('backup.mjs', () => {
       "SELECT pg_catalog.setval('public.credit_ledger_id_seq', 1, false);",
     ].join('\n');
     expect(copyCounts(sql)).toEqual({ 'auth.users': 2, 'public.credit_ledger': 0 });
+  });
+
+  it('knows the live database behind any URL form', () => {
+    const direct = 'postgresql://postgres:pw@db.abcdefghijkl.supabase.co:5432/postgres';
+    const pooler =
+      'postgresql://postgres.abcdefghijkl:pw@aws-0-eu-west-2.pooler.supabase.com:6543/postgres?sslmode=require';
+    expect(dbIdentity(direct)).toBe('supabase:abcdefghijkl');
+    expect(dbIdentity(pooler)).toBe(dbIdentity(direct));
+    expect(
+      dbIdentity('postgresql://postgres.zzzzzzzzzzzz:pw@aws-0-eu-west-2.pooler.supabase.com:5432/postgres'),
+    ).not.toBe(dbIdentity(direct));
+    expect(dbIdentity('postgresql://postgres:postgres@127.0.0.1:55622/postgres')).toBe(
+      dbIdentity('postgres://u@localhost:55622'),
+    );
   });
 
   it('keeps 30 days', () => {

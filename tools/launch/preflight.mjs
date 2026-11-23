@@ -280,10 +280,9 @@ const cf = (env) => async (path) => {
 
 function workerName(worker, target) {
   const cfg = wranglerConfig(worker);
-  return {
-    name: cfg.env?.[target]?.name ?? cfg.name,
-    vars: Object.keys({ ...cfg.vars, ...cfg.env?.[target]?.vars }),
-  };
+  // Wrangler environments don't inherit top-level vars: only the environment's own count.
+  const env = cfg.env?.[target];
+  return { name: env?.name ?? cfg.name, vars: Object.keys((env ? env.vars : cfg.vars) ?? {}) };
 }
 
 async function main(argv) {

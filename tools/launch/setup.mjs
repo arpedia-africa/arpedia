@@ -119,11 +119,15 @@ export async function runSetup({
   const sa = check?.find((i) => i.key === 'super_admin');
   if (sa?.status === 'pass') {
     items.push({ key: 'super_admin', status: 'pass', detail: sa.detail });
-  } else if (sa?.status === 'warn' && !resendInvite) {
+  } else if (sa?.status === 'warn' && (!resendInvite || sa.detail?.startsWith('signed up'))) {
+    // Someone is on the way: a fresh invite would only replace their link (or, once they have
+    // signed up, be refused).
     items.push({
       key: 'super_admin',
       status: 'pass',
-      detail: 'invite sent; waiting for them to sign in and turn on two-step',
+      detail: sa.detail?.startsWith('signed up')
+        ? 'signed up; waiting for them to turn on two-step'
+        : 'invite sent; waiting for them to sign in and turn on two-step',
     });
   } else if (!apply || !sa) {
     items.push({

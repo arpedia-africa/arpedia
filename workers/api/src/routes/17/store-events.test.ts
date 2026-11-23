@@ -70,6 +70,15 @@ describe('unmatchedProduct', () => {
     expect(unmatchedProduct(event({ type: 'TRANSFER', product_id: undefined }) as never, known)).toBeNull();
     expect(unmatchedProduct(event({ type: 'TEST', product_id: 'v25_monthly' }) as never, known)).toBeNull();
   });
+  it('leaves a change onto one of our products to flow 09', () => {
+    const change = { type: 'PRODUCT_CHANGE', product_id: 'v25_monthly' };
+    expect(
+      unmatchedProduct(event({ ...change, new_product_id: 'arpedia_yearly' }) as never, known),
+    ).toBeNull();
+    expect(unmatchedProduct(event({ ...change, new_product_id: 'v25_yearly' }) as never, known)).toBe(
+      'v25_monthly',
+    );
+  });
   it('flags a product we do not sell', () => {
     expect(unmatchedProduct(event({ product_id: 'v25_monthly' }) as never, known)).toBe('v25_monthly');
   });

@@ -190,11 +190,16 @@ begin
   select count(*) into v_n from public.staff_roles s
   where s.role = 'super_admin' and s.active
     and exists (select 1 from auth.mfa_factors f where f.user_id = s.user_id and f.status = 'verified');
+  -- warn while one is on the way: invited, or signed up but two-step not on yet.
   out := out || jsonb_build_object('key', 'super_admin', 'status',
     case when v_n > 0 then 'pass'
+         when exists (select 1 from public.staff_roles s where s.role = 'super_admin' and s.active) then 'warn'
          when exists (select 1 from public.staff_invites i where i.role = 'super_admin' and i.accepted_at is null
                       and i.revoked_at is null and i.expires_at > now()) then 'warn' else 'fail' end,
-    'detail', case when v_n > 0 then v_n || ' with two-step on' else 'none with two-step on yet' end);
+    'detail', case when v_n > 0 then v_n || ' with two-step on'
+                   when exists (select 1 from public.staff_roles s where s.role = 'super_admin' and s.active)
+                     then 'signed up; two-step not on yet'
+                   else 'none with two-step on yet' end);
 
   -- Launch content (rule 9, Q3).
   select count(*) into v_n from public.books where status = 'live';

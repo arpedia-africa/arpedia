@@ -19,8 +19,11 @@ export function unmatchedProduct(
 ): string | null {
   if (!event?.id || !event.type || event.type === 'TEST') return null;
   const product = event.product_id?.trim();
-  if (!product) return null;
-  return known.has(product) ? null : product;
+  if (!product || known.has(product)) return null;
+  // A change onto one of our products is flow 09's to apply (the reader now pays for it).
+  const next = event.new_product_id?.trim();
+  if (event.type === 'PRODUCT_CHANGE' && next && known.has(next)) return null;
+  return product;
 }
 
 /** Every Play product id we sell, active or not (an old plan's renewals still apply). */

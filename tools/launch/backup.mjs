@@ -227,6 +227,23 @@ export function expired(objects, now = Date.now()) {
     .sort((a, b) => a.lastModified - b.lastModified);
 }
 
+/**
+ * Which database a URL reaches, whatever the form: a Supabase project by its ref (direct host
+ * db.<ref>.supabase.co, or the pooler's user postgres.<ref>), otherwise host:port/database.
+ */
+export function dbIdentity(url) {
+  const u = new URL(url);
+  const ref =
+    /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(u.hostname)?.[1] ??
+    /^[^.]+\.([a-z0-9]+)$/i.exec(decodeURIComponent(u.username))?.[1];
+  if (ref && (u.hostname.endsWith('.supabase.co') || u.hostname.endsWith('.supabase.com')))
+    return `supabase:${ref.toLowerCase()}`;
+  const host = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(u.hostname)
+    ? 'localhost'
+    : u.hostname.toLowerCase();
+  return `${host}:${u.port || '5432'}/${(u.pathname.slice(1) || 'postgres').toLowerCase()}`;
+}
+
 /** The newest encrypted backup in a listing, or undefined. */
 export const newest = (objects) =>
   objects.filter((o) => o.key.endsWith('.enc')).sort((a, b) => b.lastModified - a.lastModified)[0];
@@ -285,13 +302,23 @@ async function main(argv) {
       throw new Error('restore empties the target database first: add --yes-wipe');
     const into = args.into;
     if (typeof into !== 'string') throw new Error('restore needs --into <scratch database url>');
-    if (process.env.SUPABASE_DB_URL && into === process.env.SUPABASE_DB_URL && args['into-live'] !== true) {
+    const live = process.env.SUPABASE_DB_URL;
+    if (live && dbIdentity(into) === dbIdentity(live) && args['into-live'] !== true) {
       throw new Error(
         '--into is the live database (SUPABASE_DB_URL). Restore into a scratch database, or add --into-live after an incident.',
       );
     }
+    // A hosted target must be named on purpose: --confirm-ref <its project ref>.
+    const target = dbIdentity(into);
+    if (target.startsWith('supabase:') && args['confirm-ref'] !== target.slice('supabase:'.length)) {
+      throw new Error(
+        `--into is Supabase project ${target.slice(9)}: add --confirm-ref ${target.slice(9)} to wipe it`,
+      );
+    }
     let file = args.file;
     if (typeof args.key === 'string') {
+      if (!['staging', 'production'].includes(args.target))
+        throw new Error('restore --key needs --target staging|production (which bucket)');
       const r2 = r2FromEnv(
         requireEnv(process.env, ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY']),
       );
