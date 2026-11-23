@@ -46,6 +46,9 @@ const max = Number(opt('max', '2'));
 const themes = opt('themes', admin ? 'light' : 'sunflower,palm,plum,night').split(',');
 const serial = opt('serial', process.env.ANDROID_SERIAL || 'c1212d5c');
 const baseUrl = opt('url', process.env.ADMIN_URL ?? 'http://127.0.0.1:3000');
+// --workdir .shots/sb15: sign staff in on a private Supabase stack (see tools/staff-session.mjs).
+const workdir = opt('workdir');
+if (workdir) process.env.SUPABASE_WORKDIR = workdir;
 const ids = argv.filter((a) => !a.startsWith('--'));
 const outDir = resolve(root, '.shots/parity');
 mkdirSync(outDir, { recursive: true });
@@ -661,6 +664,24 @@ try {
       // Flow 06: seeded channels (real names and counts differ from the prototype's sample data).
       community: { path: '/community', as: 'zainab@arpedia.africa' },
       channel: { path: '/community/00000000-0000-4000-d000-000000000002', as: 'zainab@arpedia.africa' },
+      // Flow 15: seeded pushes (supabase/seeds/15_engage.sql); the composer opens the seeded draft
+      // with Schedule picked, as in the prototype.
+      campaigns: { path: '/campaigns', as: 'amaka@arpedia.africa' },
+      'campaign-new': {
+        path: '/campaigns/00000000-0000-4000-f150-000000000005',
+        as: 'amaka@arpedia.africa',
+        fill: `for(let k=0;k<50&&!document.querySelectorAll('.radios.h .radio')[1];k++)await new Promise(r=>setTimeout(r,100));const r=document.querySelectorAll('.radios.h .radio')[1];for(let k=0;k<50&&!Object.keys(r).some(x=>x.startsWith('__react'));k++)await new Promise(r=>setTimeout(r,100));r.click();await new Promise(r=>setTimeout(r,300));`,
+        regions: [{ x: 0, y: 0, width: W, height: H }],
+      },
+      banners: { path: '/banners', as: 'amaka@arpedia.africa' },
+      'banner-edit': { path: '/banners/00000000-0000-4000-f151-000000000001', as: 'amaka@arpedia.africa' },
+      emails: { path: '/emails', as: 'amaka@arpedia.africa' },
+      'email-template': { path: '/emails/payout_sent', as: 'amaka@arpedia.africa' },
+      exports: { path: '/exports', as: 'amaka@arpedia.africa' },
+      // Insights at 30 days as in the prototype; reading charts stay empty until flow 04 merges.
+      analytics: { path: '/analytics?p=30', as: 'amaka@arpedia.africa' },
+      'analytics-growth': { path: '/analytics/growth?p=30', as: 'amaka@arpedia.africa' },
+      'analytics-reading': { path: '/analytics/reading?p=30', as: 'amaka@arpedia.africa' },
       // Flow 07: seeded rooms (supabase/seeds/07_rooms.sql).
       rooms: { path: '/community/rooms', as: 'zainab@arpedia.africa' },
       room: { path: '/community/rooms/00000000-0000-4000-f070-000000000001', as: 'zainab@arpedia.africa' },
