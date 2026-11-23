@@ -146,7 +146,7 @@ begin
   return 'active';
 end $$;
 
-create function public._author_name(p_author uuid) returns text
+create function public._author_pen_name(p_author uuid) returns text
 language sql stable security definer set search_path = '' as $$
   select coalesce(nullif(btrim(public._author_extra(p_author) ->> 'pen_name'), ''),
                   nullif(btrim(p.full_name), ''), 'Author')
@@ -325,7 +325,7 @@ begin
 
   return jsonb_build_object(
     'id', p.id,
-    'name', public._author_name(p_author),
+    'name', public._author_pen_name(p_author),
     'avatar_url', coalesce(x ->> 'photo_url', p.avatar_url),
     'bio', coalesce(nullif(x ->> 'bio', ''), p.bio),
     'location', x ->> 'location',
@@ -404,7 +404,7 @@ begin
     perform public._raise('not_found');
   end if;
   return jsonb_build_object(
-    'id', a.id, 'author_id', a.author_id, 'author_name', public._author_name(a.author_id),
+    'id', a.id, 'author_id', a.author_id, 'author_name', public._author_pen_name(a.author_id),
     'author_avatar', (select p.avatar_url from public.profiles p where p.id = a.author_id),
     'title', a.title, 'body', a.body, 'state', a.state, 'published_at', a.published_at,
     'like_count', a.like_count, 'comment_count', a.comment_count,
@@ -618,7 +618,7 @@ begin
   v_group := public._author_dm(v_user, p_author);
   if v_group is null then
     v_name := left(coalesce(nullif(split_part(public.sender_name(v_user), ' ', 1), ''), 'Reader')
-                   || ' and ' || public._author_name(p_author), 60);
+                   || ' and ' || public._author_pen_name(p_author), 60);
     insert into public.groups (kind, name, owner_id, visibility, who_can_post)
     values ('dm', case when char_length(v_name) >= 3 then v_name else 'Reader and author' end,
             p_author, 'private', 'members')
@@ -656,7 +656,7 @@ begin
   end if;
   return jsonb_build_object(
     'author_id', p_author,
-    'author_name', public._author_name(p_author),
+    'author_name', public._author_pen_name(p_author),
     'author_avatar', coalesce(public._author_extra(p_author) ->> 'photo_url',
                               (select p.avatar_url from public.profiles p where p.id = p_author)),
     'author_state', public._author_state(p_author),
@@ -901,7 +901,7 @@ revoke all on public.author_stats, public.author_posts, public.post_likes, publi
 grant select on public.author_stats, public.author_posts, public.post_likes, public.post_comments
   to authenticated;
 
-revoke execute on function public._author_extra(uuid), public._author_state(uuid), public._author_name(uuid),
+revoke execute on function public._author_extra(uuid), public._author_state(uuid), public._author_pen_name(uuid),
   public._reply_label(uuid), public._author_dm(uuid, uuid), public._dm_block(uuid, uuid),
   public._is_new_account(uuid), public._set_author_follow(uuid, boolean),
   public._comment_row(public.post_comments, uuid, uuid), public.author_stats_refresh(),

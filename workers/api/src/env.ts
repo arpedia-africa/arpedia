@@ -39,6 +39,8 @@ export interface Env {
   FLUTTERWAVE_WEBHOOK_HASH?: string;
   /** Flow 08: the chat Worker's ConversationDO (script arpedia-chat), to broadcast paid messages. */
   CONVERSATION?: DurableObjectNamespace;
+  /** Flow 13: base64 256-bit key that encrypts author bank account numbers (secret). Local falls back to a fixed key. */
+  PAYOUT_ACCOUNT_KEY?: string;
 }
 
 export interface Vars {

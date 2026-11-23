@@ -7,6 +7,7 @@ import { erasePending } from './routes/10/account';
 import { drainPayments } from './routes/09/payments';
 import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
+import { drainPayouts, pollPendingPayouts } from './routes/13/earnings';
 import { engageCron } from './routes/15/engage';
 
 const app = new Hono<AppEnv>();
@@ -33,15 +34,20 @@ app.onError((err, c) => {
 
 export default {
   fetch: app.fetch,
-  // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11),
-  // the story search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09)
-  // and pushes, campaigns and exports (flow 15).
-  scheduled: (event, env, ctx) => {
-    ctx.waitUntil(consumeQueue(env));
-    ctx.waitUntil(consumeApplicationChecks(env));
-    ctx.waitUntil(indexSearchText(env));
-    ctx.waitUntil(erasePending(env));
-    ctx.waitUntil(drainPayments(env));
-    ctx.waitUntil(engageCron(env, event.scheduledTime));
-  },
+  // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11), the story
+  // search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09) and
+  // author payouts (flow 13) and pushes, campaigns and exports (flow 15); on the hour, payouts pending over 48 hours.
+  scheduled: (event, env, ctx) =>
+    ctx.waitUntil(
+      Promise.allSettled([
+        consumeQueue(env),
+        consumeApplicationChecks(env),
+        indexSearchText(env),
+        erasePending(env),
+        drainPayments(env),
+        drainPayouts(env),
+        engageCron(env, event.scheduledTime),
+        ...(new Date(event.scheduledTime).getUTCMinutes() === 0 ? [pollPendingPayouts(env)] : []),
+      ]),
+    ),
 } satisfies ExportedHandler<Env>;
