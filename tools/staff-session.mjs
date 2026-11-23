@@ -6,13 +6,16 @@ import { totp } from './totp.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** API_URL, ANON_KEY… of the running local Supabase stack. */
+/**
+ * API_URL, ANON_KEY… of the running local Supabase stack. SUPABASE_WORKDIR points at another
+ * project folder (a private stack used while db.lock is held).
+ */
 export function localEnv() {
   // SUPABASE_WORKDIR picks another stack; DB2=1 reads the second stack (tools/db2.mjs, .db2).
   const dir = process.env.SUPABASE_WORKDIR ?? (process.env.DB2 ? '.db2' : '');
   const wd = dir ? ` --workdir "${dir}"` : '';
   const out = execSync(`pnpm -s exec supabase status -o env${wd}`, {
-    cwd: root,
+    cwd: process.env.SUPABASE_WORKDIR ?? root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
