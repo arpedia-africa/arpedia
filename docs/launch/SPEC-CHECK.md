@@ -375,3 +375,38 @@ Ids 10-5, 10-7, 10-8, 10-17 (Privacy, Downloads/Credits/Subscription rows, Becom
 Id 08-3 (DM Report toast) is fixed on `origin/flow/17-journeys` and dropped; it stays open until that branch merges.
 
 80 rules checked, 19 gaps.
+## 16 · Admin access and settings
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 16-1 | 38 | No public legal pages: nothing serves arpedia.africa/legal/<slug> (app links to it, Delete-account page required by Google Play is not live anywhere) | `apps/mobile/features/16/AppGate.tsx:72` (no web page in repo, absent) | blocks launch | A |
+| - [ ] | 16-2 | 17 | Plan price change is not two-person: `save_plan` lets Finance save directly (no Finance-proposes / Super-admin-confirms); `request_approval`/`decide_approval` are called by nothing except pgTAP | `supabase/migrations/20261120000000_09_credits.sql:1304` | blocks launch | A |
+| - [ ] | 16-3 | 6 | Step-up scopes `release_payout`, `confirm_price_change`, `export_personal` are never consumed; payout release and plan price use a 10-minute AAL2 check (reusable, not single-use 5 min) | `supabase/migrations/20261120001300_13_earnings.sql:280` | should fix | A |
+| - [ ] | 16-4 | 22 | Audit IP, device and request id come from PostgREST headers, but the console calls Supabase from the Next.js server, so every entry records the Vercel server, not the staff browser; browser IP/UA never forwarded | `apps/admin/lib/supabase/server.ts:10` | should fix | A |
+| - [ ] | 16-5 | Server: check_integrations cron | `triggers.crons` is only top-level in wrangler; `env.staging` and `env.production` do not inherit it, so the every-minute health check never runs when deployed | `workers/api/wrangler.jsonc:12` | should fix | A |
+| - [ ] | 16-6 | 39 | Only supabase, r2, revenuecat, flutterwave_checkout are checked; google_play, app_store, flutterwave_transfers, fcm, expo_updates, resend never get status, last event or error rate | `workers/api/src/routes/16/integrations.ts:28` | should fix | A |
+| - [ ] | 16-7 | 39 | "Check all now" only writes `integration_check_requested`; no Worker reads it, so nothing runs sooner | `supabase/migrations/20261120001600_16_settings.sql:993` | should fix | A |
+| - [ ] | 16-8 | 27 | Feature flags are never read by the app (`useFlag` has no callers) and no server RPC/Worker checks them, so gifts, tips, rooms, downloads etc. cannot be switched off | `apps/mobile/features/16/config.ts:61` | should fix | B |
+| - [ ] | 16-9 | 29 | Remote copy never shown: `useRemoteCopy` has no callers; paywall, unlock confirm and empty-credits screens use bundled text | `apps/mobile/features/16/config.ts:55` | should fix | B |
+| - [ ] | 16-10 | 27 | Rollout percentage and minimum app version cannot be edited: `saveFlag` sends only enabled; the rollout bar is display only | `apps/admin/app/(console)/config/actions.ts:50` | should fix | A |
+| - [ ] | 16-11 | 25 | Force update does not show how many readers it locks out (share of app opens below minimum in last 7 days); static text only, no app-open data | `apps/admin/app/(console)/config/client.tsx:291` | should fix | A |
+| - [ ] | 16-12 | 28 | OTA panel has no source: nothing ever writes `app_config.ota` current/previous/published/reach; rollback only swaps JSON and nothing tells expo-updates | `supabase/migrations/20261120001600_16_settings.sql:611` | should fix | owner |
+| - [ ] | 16-13 | 26 | Maintenance mode only draws an overlay; reading non-downloaded books via /read and offline sync are not blocked, and no Worker/RPC refuses requests | `apps/mobile/features/16/AppGate.tsx:31` | should fix | B |
+| - [ ] | 16-14 | 40 | Alert preferences are stored but no job creates staff alerts or sends urgent email for high-severity reports, failed payouts, copyright claims, waiting applications or system health | `supabase/migrations/20261120001600_16_settings.sql:1018` | should fix | A |
+| - [ ] | 16-15 | 7 | Reset link lives 1 hour (`otp_expiry = 3600`), spec says 30 minutes; the new-password page copy claims 30 | `supabase/config.toml:245` | should fix | A |
+| - [ ] | 16-16 | 14 | Inviting an email that already has an auth user (staff who is also a reader) returns `account_exists`; shown as generic "invite didn't send" and the invite row stays open | `workers/api/src/routes/01/staff-invites.ts:151` | should fix | A |
+| - [ ] | 16-17 | States: offline | Offline banner and disabled saves exist only on config, integrations, policies, account; missing on pricing rules (Save, Undo), team, roles, audit | `apps/admin/app/(console)/pricing-rules/client.tsx:235` | should fix | A |
+| - [ ] | 16-18 | 14 | Invite email goes out only when `RESEND_API_KEY` is set (else the link is only logged); Resend account and sender domain needed | `workers/api/src/routes/01/staff-invites.ts:56` | should fix | owner |
+| - [ ] | 16-19 | Migration: policy v1 | Version 1 of every policy is a one-line stub; real Terms and Privacy text still has to be copied in | `supabase/migrations/20261120001600_16_settings.sql:777` | should fix | owner |
+| - [ ] | 16-20 | Open Q3 | Changing the author rate does not create a new Author agreement version or force re-accept (default is yes) | `supabase/migrations/20261120001600_16_settings.sql:367` | should fix | A |
+| - [ ] | 16-21 | 4 | No server-side 12-hour session cap (Auth `timebox` commented out); the limit is only cookie lifetime and the two-step age check | `supabase/config.toml:287` | later | A |
+| - [ ] | 16-22 | 9 | Auth password minimum is 8 in Supabase config; the 12-character rule is only checked in console forms and the invite Worker | `supabase/config.toml:189` | later | A |
+| - [ ] | 16-23 | 25 | "Latest" Android/iOS versions are seeded constants; nothing reads them from the store | `supabase/migrations/20261120001600_16_settings.sql:500` | later | owner |
+| - [ ] | 16-24 | 31 | Pay as you read is a hard-coded locked-on switch, not a saved rule | `apps/admin/app/(console)/pricing-rules/client.tsx:349` | later | A |
+| - [ ] | 16-25 | Admin side | "Preview as" (Super admin views another role's sidebar and Home, audited) is absent | `apps/admin/components/shell.tsx` (absent) | later | A |
+| - [ ] | 16-26 | Server: access token hook / Analytics | No custom access token hook (`staff_role`, `aal` claims; `config.toml` hook commented out) and no Sentry `staff_role` tag in admin | `supabase/config.toml:297` | later | A |
+| - [ ] | 16-27 | Data: audit_log | `audit_log` is not partitioned by month; list shows IP only, no place | `supabase/migrations/20261117000000_00_foundation.sql:95` | later | A |
+| - [ ] | 16-28 | Open Q4 | One-Super-admin warning shows on Roles page only, not on every Super admin's Home | `apps/admin/app/(console)/page.tsx:10` | later | A |
+| - [ ] | 16-29 | 17 | Pending approval requests are never moved to `expired` by any job (only when someone tries to decide) | `supabase/migrations/20261120001600_16_settings.sql:248` | later | A |
+
+78 rules checked, 29 gaps.
