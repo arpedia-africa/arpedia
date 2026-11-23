@@ -13,6 +13,7 @@ import books from './12/books';
 import trust from './14/trust';
 import payments from './09/payments';
 import authors from './08/authors';
+import engage from './15/engage';
 
 export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/health', health],
@@ -27,4 +28,5 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/payments', payments],
   ['/v1/reader', reading],
   ['/v1/authors', authors],
+  ['/v1/engage', engage],
 ];

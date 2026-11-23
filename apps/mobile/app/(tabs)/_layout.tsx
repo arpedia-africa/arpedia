@@ -2,9 +2,11 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { TabBar } from '@arpedia/ui';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { usePushHandling } from '../../features/15/push';
 
 // Main tabs. Each product flow owns its tab's screens (BUILD-PLAN ownership).
 export default function TabsLayout() {
+  usePushHandling();
   return (
     <View style={{ flex: 1 }}>
       <Tabs
