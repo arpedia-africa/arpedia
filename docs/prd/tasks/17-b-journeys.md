@@ -1,4 +1,4 @@
-Flow 17 is split between two builders. You are builder B (whole-app check on `emulator-5554`). Work only on branch `flow/17-journeys` and its PR (title "Flow 17: whole-app journeys", label `flow-17`). Builder A does the rest on `flow/17-launch`; never touch that branch or its PR.
+Flow 17 is split between two builders. You are builder B (whole-app check on `emulator-5554`). Work on branch `flow/17-journeys` and its PR (title "Flow 17: whole-app journeys", label `flow-17`), then on the fixes in the last bullet. Builder A does the rest on `flow/17-launch`; never touch that branch or its PR.
 
 Build rules 10 and 11 of docs/prd/17-launch.md:
 
@@ -9,4 +9,5 @@ Build rules 10 and 11 of docs/prd/17-launch.md:
 - Look at each screenshot as a demanding designer would (CLAUDE.md bar). Fix what a person would notice.
 - Use the main database and Workers (`db.lock`), the device lock `~/projects/arpedia-locks/dev-emulator-5554.lock`, and touch both every 10 minutes. Never touch any other device. Never start an emulator; the watchdog does.
 - Run Maestro, gradle and parity in the FOREGROUND (timeout up to 600000 ms, split long jobs).
-- When everything passes, run `/code-review`, mark the PR ready and stop. When it is merged, print NOTHING-TO-DO.
+- When everything passes, run `/code-review`, mark the PR ready and stop. When it is merged, continue with the last bullet; print NOTHING-TO-DO only when that is done too.
+- After the journeys: fix the rows marked **B** in `docs/launch/SPEC-CHECK.md` (builder C writes it, branch `fix/17-spec-check`, then main), and check on the emulator the app changes builder A lists in comments on #23 or labels `needs-phone`. Owner, 23 Nov: "please fix all". Keep the journeys PR for the journeys; put spec fixes in their own `fix/NN-<topic>` PRs, label `fix`.

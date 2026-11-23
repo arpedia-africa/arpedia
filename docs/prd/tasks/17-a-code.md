@@ -9,6 +9,9 @@ Do the tasks in order, one PR each, label `fix`, from `origin/main`:
    - Prices show the store's own price text. Show skeletons until it loads.
    - Unit tests with a mocked SDK for every result. `/code-review`, then mark the PR ready. Real buying and refunding is an owner step on a real phone: list the exact steps in `docs/launch/RUNBOOK.md`, with the products to create in Play Console and RevenueCat (ids, type, price).
 
-2. **Spec check, branch `fix/17-spec-check`.** Go through flow files 00 to 16 and compare every numbered rule with the code on main (and on `origin/flow/17-journeys`, which already wires many leftovers). Write `docs/launch/SPEC-CHECK.md`: one line per rule that is missing, stubbed or a dead end ("coming soon" toasts, TODOs, jobs that never send, mocked services), with file, how serious it is (blocks launch / should fix / later), and whether it needs the owner. Skip rules that are fine. Fix the ones that block launch and don't need the owner, unless B's branch touches the same files; leave those for B by commenting on #23.
+2. **Fix everything in the spec check (owner: "please fix all", 23 Nov).** Builder C writes `docs/launch/SPEC-CHECK.md` (branch `fix/17-spec-check`, then main). Fix every row that isn't marked "owner" and isn't assigned to B: launch blockers first, then "should fix", then "later". Group rows by flow, one branch and PR per group (`fix/NN-<topic>`, label `fix`), each small enough to merge the same day, with tests. Tick the row in SPEC-CHECK.md in the same PR. If a row turns out to be wrong, say why in the row instead of fixing it.
+   - Work that needs a phone to verify: build it, test what you can, and add a line to #23 so B checks it on the emulator. Don't mark a visible app change ready until B has confirmed it there (or B takes the PR over with the label `needs-phone`).
+   - A row that would change a price, a money rule or who can see private data is the owner's: leave it and list it.
+   - Never edit a merged migration.
 
-Database: second stack only (`tools/db2.mjs`, `db2.lock`). When a PR is merged, take the next task. When both are merged, print NOTHING-TO-DO.
+Database: second stack only (`tools/db2.mjs`, `db2.lock`). When a PR is merged, take the next task. When every row is done, print NOTHING-TO-DO.
