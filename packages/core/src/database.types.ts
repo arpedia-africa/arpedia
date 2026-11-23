@@ -5326,6 +5326,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"unmatched_store_events": {
+                  Row: {
+                    "app_user_id": string | null,"event_id": string,"id": number,"note": string | null,"product_id": string | null,"provider": string,"received_at": string,"resolved_at": string | null,"resolved_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "app_user_id"?: string | null,"event_id": string,"id"?: never,"note"?: string | null,"product_id"?: string | null,"provider": string,"received_at"?: string,"resolved_at"?: string | null,"resolved_by"?: string | null
+                  }
+                  Update: {
+                    "app_user_id"?: string | null,"event_id"?: string,"id"?: never,"note"?: string | null,"product_id"?: string | null,"provider"?: string,"received_at"?: string,"resolved_at"?: string | null,"resolved_by"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"user_blocks": {
                   Row: {
                     "blocked_id": string,"blocker_id": string,"created_at": string,"source_group_id": string | null
@@ -7331,6 +7345,9 @@ isOneToOne: false
 "ingest_support_email":
 { Args: { "p_attachments"?: Json,"p_body": string,"p_from": string,"p_in_reply_to"?: string,"p_message_id": string,"p_subject": string }; Returns: Json
                            },
+"invite_first_super_admin":
+{ Args: { "p_email": string,"p_name": string,"p_token_hash": string }; Returns: string
+                           },
 "invite_staff":
 { Args: { "p_actor"?: string,"p_email": string,"p_name": string,"p_role": Database["public"]['Enums']["staff_role"],"p_token_hash": string }; Returns: string
                            },
@@ -7378,6 +7395,9 @@ isOneToOne: false
                            },
 "join_reading_room":
 { Args: { "p_code": string,"p_confirm"?: boolean }; Returns: Json
+                           },
+"launch_check":
+{ Args: { "p_live_target"?: number }; Returns: Json
                            },
 "leave_group":
 { Args: { "p_group": string }; Returns: undefined
@@ -7433,6 +7453,9 @@ isOneToOne: false
                            },
 "log_shelf_taps":
 { Args: { "p_taps": Json }; Returns: undefined
+                           },
+"log_unmatched_store_event":
+{ Args: { "p_app_user_id": string,"p_event_id": string,"p_product_id": string,"p_provider": string }; Returns: boolean
                            },
 "make_username":
 { Args: { "p_name": string }; Returns: string
@@ -7779,6 +7802,9 @@ isOneToOne: false
                            },
 "resolve_audience":
 { Args: { "p_campaign": string }; Returns: string[]
+                           },
+"resolve_unmatched_store_event":
+{ Args: { "p_id": number,"p_note": string }; Returns: undefined
                            },
 "respond_to_claim":
 { Args: { "p_claim": string,"p_response": string }; Returns: undefined

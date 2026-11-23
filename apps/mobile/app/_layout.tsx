@@ -22,6 +22,7 @@ import { QueryProvider } from '@/lib/query';
 import { Telemetry, initSentry, wrapRoot } from '@/lib/telemetry';
 import { useUi } from '@/lib/ui-store';
 import { AppGate } from '../features/16/AppGate';
+import { FirstOpen } from '../features/17/FirstOpen';
 
 initSentry();
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -50,6 +51,7 @@ function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <Telemetry>
+          <FirstOpen />
           <QueryProvider>
             <ThemeProvider theme={theme}>
               <ToastProvider>

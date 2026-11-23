@@ -3,6 +3,7 @@ packages:
   - packages/*
   - workers/*
   - tools/desk
+  - tools/launch
 
 allowBuilds:
   '@sentry/cli': true

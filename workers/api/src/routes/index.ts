@@ -17,6 +17,7 @@ import authors from './08/authors';
 import earnings from './13/earnings';
 import engage from './15/engage';
 import dataExport from './17/export';
+import storeEvents from './17/store-events';
 
 export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/health', health],
@@ -28,6 +29,8 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/books', books],
   ['/v1/trust', trust],
   ['/v1/account', account],
+  // Before flow 09's webhook: products we don't sell (v25) are recorded, never applied.
+  ['/v1/payments', storeEvents],
   ['/v1/payments', payments],
   ['/v1/reader', reading],
   ['/v1/app-config', appConfig],

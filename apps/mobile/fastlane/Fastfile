@@ -1,5 +1,6 @@
 # Arpedia app builds and store uploads. No EAS: native projects come from `expo prebuild` (CNG).
 # Run from apps/mobile:  bundle exec fastlane android internal   |   bundle exec fastlane ios beta
+# Android lanes: build, internal, closed, production percent:N, halt (see "Flow 17 release lanes").
 #
 # Android signing (v25 upload key; never committed):
 #   ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
@@ -14,9 +15,61 @@ def expo_prebuild(platform)
   sh("cd ../ios && pod install") if platform == "ios"
 end
 
+# Flow 17 release lanes (rule 13). A build goes up once, to internal; the same binary is then
+# promoted: internal → closed (beta) → production in steps (5, 20, 50, 100%). `halt` stops a
+# production rollout. Play can't put a phone back on an older version (docs/launch/RUNBOOK.md).
+#   DRY_RUN=1        print what each lane would send to Play; no build, no network (validation)
+#   VALIDATE_ONLY=1  send to Play with validate_only (checks the change, publishes nothing)
+#   PLAY_CLOSED_TRACK (default "alpha", Play's closed testing track)
+PLAY_SKIP = { skip_upload_metadata: true, skip_upload_images: true, skip_upload_screenshots: true,
+              skip_upload_changelogs: true }.freeze
+ROLLOUT_STEPS = [5, 20, 50, 100].freeze
+# v25's last version code; every new upload must be above it (rule 1).
+V25_VERSION_CODE = 25
+
+def dry_run?
+  ENV["DRY_RUN"] == "1"
+end
+
+def closed_track
+  ENV.fetch("PLAY_CLOSED_TRACK", "alpha")
+end
+
+# Upload or change a release through supply, or print it in a dry run.
+def play(params)
+  params = params.merge(json_key: ENV["PLAY_JSON_KEY_PATH"]) if ENV["PLAY_JSON_KEY_PATH"]
+  params = params.merge(validate_only: true) if ENV["VALIDATE_ONLY"] == "1"
+  if dry_run?
+    UI.message("supply #{params.reject { |k, _| k == :json_key }.sort.to_h}")
+  else
+    supply(**PLAY_SKIP, **params)
+  end
+  params
+end
+
+# Highest version code on a track (0 when empty); a dry run reads DRY_RUN_<TRACK> instead of Play.
+def track_code(track)
+  return ENV.fetch("DRY_RUN_#{track.upcase}", "0").to_i if dry_run?
+  (google_play_track_version_codes(track: track, json_key: ENV["PLAY_JSON_KEY_PATH"]) || []).max || 0
+rescue StandardError => e
+  UI.important("No releases on #{track} yet (#{e.message})")
+  0
+end
+
+def next_version_code
+  return ENV["VERSION_CODE"].to_i if ENV["VERSION_CODE"]
+  ([V25_VERSION_CODE] + ["internal", closed_track, "production"].map { |t| track_code(t) }).max + 1
+end
+
 platform :android do
-  desc "Signed release bundle (.aab) from a clean prebuild"
+  desc "Signed release bundle (.aab) from a clean prebuild, version code above every track's"
   lane :build do
+    code = next_version_code
+    UI.user_error!("Version code #{code} must be above v25's #{V25_VERSION_CODE}") if code <= V25_VERSION_CODE
+    if dry_run?
+      UI.message("gradle bundleRelease versionCode=#{code}")
+      next code
+    end
     expo_prebuild("android")
     keystore = File.expand_path(ENV.fetch("ANDROID_KEYSTORE_PATH"))
     gradle(
@@ -24,25 +77,61 @@ platform :android do
       task: "bundle",
       build_type: "Release",
       properties: {
+        "android.injected.version.code" => code,
         "android.injected.signing.store.file" => keystore,
         "android.injected.signing.store.password" => ENV.fetch("ANDROID_KEYSTORE_PASSWORD"),
         "android.injected.signing.key.alias" => ENV.fetch("ANDROID_KEY_ALIAS"),
         "android.injected.signing.key.password" => ENV.fetch("ANDROID_KEY_PASSWORD"),
       },
     )
+    code
   end
 
   desc "Build and upload to the Play internal track"
   lane :internal do
-    build
-    supply(
+    code = build
+    play(
       track: "internal",
-      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
+      aab: dry_run? ? "app-release.aab" : lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      version_code: code,
       release_status: "completed",
     )
+  end
+
+  desc "Promote the newest internal build to the closed beta track (no rebuild)"
+  lane :closed do
+    code = track_code("internal")
+    UI.user_error!("Nothing on internal to promote") if code.zero?
+    UI.user_error!("#{code} is already on #{closed_track}") if track_code(closed_track) >= code
+    play(track: "internal", track_promote_to: closed_track, version_code: code, release_status: "completed",
+         skip_upload_aab: true, skip_upload_apk: true)
+  end
+
+  desc "Production rollout step: fastlane android production percent:5 (5, 20, 50 or 100)"
+  lane :production do |options|
+    percent = options[:percent].to_i
+    UI.user_error!("percent must be one of #{ROLLOUT_STEPS.join(', ')}") unless ROLLOUT_STEPS.include?(percent)
+    beta = track_code(closed_track)
+    live = track_code("production")
+    UI.user_error!("Nothing on #{closed_track} to release") if beta.zero? && live.zero?
+    status = percent == 100 ? "completed" : "inProgress"
+    params = { version_code: [beta, live].max, release_status: status, skip_upload_aab: true, skip_upload_apk: true }
+    params[:rollout] = (percent / 100.0).to_s unless percent == 100
+    if beta > live
+      # First step for this version: the beta build moves to production.
+      UI.user_error!("A new version starts at #{ROLLOUT_STEPS.first}%") unless percent == ROLLOUT_STEPS.first
+      play(**params, track: closed_track, track_promote_to: "production")
+    else
+      # Later steps change the share of the release already rolling out.
+      play(**params, track: "production")
+    end
+  end
+
+  desc "Halt the production rollout (phones that have it keep it; see the runbook)"
+  lane :halt do
+    live = track_code("production")
+    UI.user_error!("Nothing on production to halt") if live.zero?
+    play(track: "production", version_code: live, release_status: "halted", skip_upload_aab: true, skip_upload_apk: true)
   end
 end
 
