@@ -118,3 +118,23 @@ _In progress._
 | - [ ] | 03-23 | Done when 7 | pgTAP has no test that concurrent `spend_credits` calls serialise (advisory lock). The other listed cases (replay, price_changed, already_unlocked, tip presets and own book, reviews RLS, ledger and entitlements grants, admin role check) are covered. | `supabase/tests/03_unlock_test.sql` | later | A |
 
 95 rules checked, 23 gaps.
+## 09 · Credits and plans
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 09-1 | 5, 7, Done when 1 | Purchases are a stub: `isAvailable()` returns false and `purchase()`/`restore()` always return `store_unavailable`; no RevenueCat SDK, so nobody can subscribe, top up or restore in the app (`origin/flow/17-journeys` adds only a local-only test store, `APP_ENV local`) | `apps/mobile/features/09/purchases.ts:32-44` | blocks launch | A + owner (RevenueCat, Play products) |
+| - [ ] | 09-2 | 22, Server: notifications | `user_notify` messages (renewal_reminder, billing_issue, refund_done, refund_declined, plan_extended) have no consumer: flow 15 reads only `push_fanout` and `export_jobs`, so no renewal push, grace push, refund email or extend push is ever sent | `supabase/migrations/20261120000000_09_credits.sql:769,1204,1253,1275,1469` | blocks launch | A |
+| - [ ] | 09-3 | 8, Done when 3 | Nothing starts a Flutterwave checkout (no route builds the `arp:{kind}:{code}:{user}:{nonce}` tx_ref, creates the hosted payment or payment plan, or applies a promo); no web checkout or web account page exists in the repo, so the webhook has nothing to receive | `workers/api/src/routes/09/payments.ts` (absent: checkout initiator) | should fix | A |
+| - [ ] | 09-4 | 34 | Promo kinds `plan_discount` and `trial_days` can be created in admin but nothing applies them (in-app `redeem_promo` rejects them as web only, and there is no web checkout) | `supabase/migrations/20261120000000_09_credits.sql:1039` | should fix | A |
+| - [ ] | 09-5 | Server: store_reconcile, Done when 9 | Weekly `store_reconcile` (RevenueCat and Flutterwave lists vs `transactions`) does not exist: no cron, no Worker | `workers/api/src/index.ts:42` (absent) | should fix | A |
+| - [ ] | 09-6 | 25 | `save_pricing_rules` queues `reprice_all` on `book_verify` but the pipeline has no handler, so books are never repriced at 00:00 WAT; the unknown message is also retried every minute as a poison message | `workers/api/src/routes/12/pipeline.ts:357-384` | should fix | A |
+| - [ ] | 09-7 | States: Duplicate web charge | Nothing ever sets `transactions.flag = 'duplicate_charge'` (only `lapsed_subscriber`), so a duplicate is never marked and "Refund the duplicate" never appears | `supabase/migrations/20261120000000_09_credits.sql:675-679` | should fix | A |
+| - [ ] | 09-8 | States: Chargeback | Finance alert for a chargeback is only `console.warn`; no email or push to Finance | `workers/api/src/routes/09/payments.ts:293-296` | should fix | A |
+| - [ ] | 09-9 | 7 | "This Google Play subscription is linked to another Arpedia account" is not detected: a purchase event for a store txn id owned by another user makes `grant_plan_credits` raise `no_subscription`, so the webhook answers 500 and RevenueCat retries forever; the app has only a dead `linked_elsewhere` string | `supabase/migrations/20261120000000_09_credits.sql:714-745` | should fix | A |
+| - [ ] | 09-10 | 31 | "Resend receipt" for web payments does not exist (no button, RPC or email) on transactions or subscription screens | `apps/admin/app/(console)/transactions/page.tsx` (absent) | should fix | A |
+| - [ ] | 09-11 | Analytics: plan_selected, paywall_viewed | `plan_selected` fires only on the onboarding paywall (not `s-plans-all`/`s-plans`); `paywall_viewed` sends `{plan, genres_count}` instead of `{source, plan_shown}` | `apps/mobile/app/(onboarding)/plans.tsx:59,90` | later | B |
+| - [ ] | 09-12 | Analytics: cancel_confirmed, renewal_reminder_sent | `cancel_confirmed` is never fired and `renewal_reminder_sent` is never fired (reminder job only queues; no sender) | `apps/mobile/app/plan-cancel.tsx:55-58` | later | B |
+| - [ ] | 09-13 | Server: refund webhook | Flutterwave refund events started outside the app (dashboard) are acknowledged and ignored, so such refunds never claw back credits | `workers/api/src/routes/09/payments.ts:187-189` | later | A |
+| - [ ] | 09-14 | States: failed and pending payments | `transactions.status` `pending` and `failed` are never written by any event, so the admin Failed and Pending pills never show | `supabase/migrations/20261120000000_09_credits.sql:667-737` | later | A |
+
+90 rules checked, 14 gaps.
