@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Application from 'expo-application';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Petals, Press, Text, useTheme } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { openTarget, type Target } from './push';
 
 // Home announcement card (flow 15 rule 21), mirroring the admin preview `.sy-bcard`
-// (`node tools/screen.mjs --admin banner-edit --css`). Flow 02 places <HomeAnnouncements /> on Home.
+// (`node tools/screen.mjs --admin banner-edit --css`). Home places <HomeAnnouncements /> under the hero.
 
 export interface Banner {
   id: string;
@@ -18,7 +18,8 @@ export interface Banner {
   dismissible: boolean;
 }
 
-const KEY = ['banners', 'home_top'];
+export const BANNERS_KEY = ['banners', 'home_top'];
+const KEY = BANNERS_KEY;
 
 /** Live Home banners for this reader (audience, dates and dismissals applied by the server). */
 export function useHomeBanners() {
@@ -103,7 +104,7 @@ export function AnnouncementCard({
 }
 
 /** Up to two live Home banners; counts shown and tapped, dismiss hides it for good. Nothing when none. */
-export function HomeAnnouncements() {
+export function HomeAnnouncements({ style }: { style?: StyleProp<ViewStyle> }) {
   const { s } = useTheme();
   const qc = useQueryClient();
   const { data } = useHomeBanners();
@@ -122,7 +123,7 @@ export function HomeAnnouncements() {
   }, [ids]);
   if (!data?.length) return null;
   return (
-    <View style={{ gap: s(12) }}>
+    <View style={[{ gap: s(12) }, style]}>
       {data.map((b) => (
         <AnnouncementCard
           key={b.id}
