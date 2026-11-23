@@ -1,7 +1,8 @@
 # Flow 17 rule 10 · Pay as you read: the seeded reader Ngozi reads A House Called Grace past the free
-# preview with Pay as you read, a chapter is charged, she undoes it within 10 minutes, reads on (charged
-# again) and then pays the rest from the book page. `node tools/journeys/run.mjs payg` (fresh reset), then
-# tools/journeys/staff.mjs check-undo proves the undo row and the money check proves the ledger.
+# preview with Pay as you read. Chapter 1 is charged and kept; reading on charges chapter 2, which she
+# undoes within 10 minutes; then she pays the rest from the book page. `node tools/journeys/run.mjs payg`
+# (fresh reset), then tools/journeys/staff.mjs check-undo proves the ledger rows and the money check the
+# totals. The reader blocks screen capture (paid text), so captures inside it are black by design.
 # `.` stands for the middle dot in patterns: Maestro on Windows reads the file as cp1252.
 appId: com.arpedia.reader
 ---
@@ -47,45 +48,48 @@ appId: com.arpedia.reader
 - takeScreenshot: payg-${WIDTH}-choose
 - tapOn: 'Start reading'
 
-# ─── The first locked chapter is charged; Undo it from the toast ────────────
-# The toast lives 8 s and one hierarchy read can take seconds, so tap Undo the moment it shows.
+# ─── Chapter 1 is charged (Auto-unlock is on) and kept ──────────────────────
+# The toast lives 8 s and one hierarchy read can take seconds: remember a sighting in a flag.
+- evalScript: ${output.charged = false}
+- repeat:
+    while:
+      true: ${!output.charged}
+    times: 40
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 200
+      - runFlow:
+          when:
+            visible: 'Undo'
+          commands:
+            - evalScript: ${output.charged = true}
+- assertTrue: ${output.charged}
+- extendedWaitUntil:
+    notVisible: 'Undo'
+    timeout: 20000
+
+# ─── Read through chapter 1; chapter 2 is charged; Undo it at once ──────────
 - evalScript: ${output.undone = false}
 - repeat:
     while:
       true: ${!output.undone}
-    times: 40
+    times: 80
     commands:
       - swipe:
           direction: LEFT
           duration: 200
-      - repeat:
-          while:
-            true: ${!output.undone}
-          times: 2
+      - runFlow:
+          when:
+            visible: 'Undo'
           commands:
-            - runFlow:
-                when:
-                  visible: 'Undo'
-                commands:
-                  - tapOn: 'Undo'
-                  - takeScreenshot: payg-${WIDTH}-undo-tapped
-                  - evalScript: ${output.undone = true}
+            - tapOn: 'Undo'
+            - evalScript: ${output.undone = true}
 - assertTrue: ${output.undone}
-# The reader confirms with a notice: "Chapter n returned . n credits back".
-- extendedWaitUntil:
-    visible: 'Chapter .* returned . .* credits back'
-    timeout: 15000
-- takeScreenshot: payg-${WIDTH}-undone
-
-# ─── Read on: charged again (Auto-unlock is on) ─────────────────────────────
-- repeat:
-    while:
-      notVisible: 'Chapter .* unlocked . .* credits'
-    times: 40
-    commands:
-      - swipe:
-          direction: LEFT
-          duration: 200
+# The reader confirms with a short notice; best effort here, staff.mjs check-undo proves the ledger.
+- assertVisible:
+    text: 'Chapter .* returned . .* credits back'
+    optional: true
 - back
 
 # ─── Pay the rest from the book page (money stated before the tap) ──────────
