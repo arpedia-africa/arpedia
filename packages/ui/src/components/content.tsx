@@ -300,8 +300,6 @@ export function Cover({
               size={7.5}
               color={tone === 'c3' ? '#222222' : fg}
               center={center}
-              numberOfLines={titleOneLine ? 1 : undefined}
-              ellipsizeMode="clip"
               style={{
                 opacity: 0.85,
                 letterSpacing: s(7.5) * 0.05,
