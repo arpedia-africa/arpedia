@@ -16,5 +16,6 @@ export * from './credits';
 export * from './payments';
 export * from './settings';
 export * from './reading';
+export * from './push';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
 export * from './profile';
