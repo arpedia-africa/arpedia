@@ -79,6 +79,10 @@ describe('unmatchedProduct', () => {
       'v25_monthly',
     );
   });
+  it('matches a Play subscription with its base plan suffix', () => {
+    expect(unmatchedProduct(event({ product_id: 'arpedia_monthly:p1m' }) as never, known)).toBeNull();
+    expect(unmatchedProduct(event({ product_id: 'v25_monthly:base' }) as never, known)).toBe('v25_monthly');
+  });
   it('flags a product we do not sell', () => {
     expect(unmatchedProduct(event({ product_id: 'v25_monthly' }) as never, known)).toBe('v25_monthly');
   });

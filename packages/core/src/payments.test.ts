@@ -4,6 +4,7 @@ import {
   normalizeRevenueCat,
   parseTxRef,
   safeEqual,
+  storeProductId,
   type IngestInput,
 } from './payments';
 
@@ -88,6 +89,17 @@ describe('RevenueCat', () => {
       rc('RENEWAL', { app_user_id: 'alias', original_app_user_id: USER }),
     ) as IngestInput;
     expect(r.normalized.user_id).toBe(USER);
+  });
+
+  it('drops the Play base plan from subscription product ids', () => {
+    const r = normalizeRevenueCat(rc('INITIAL_PURCHASE', { product_id: 'arpedia_quarterly:p3m' })) as IngestInput;
+    expect(r.normalized.product_id).toBe('arpedia_quarterly');
+    const c = normalizeRevenueCat(
+      rc('PRODUCT_CHANGE', { product_id: 'arpedia_monthly:p1m', new_product_id: 'arpedia_yearly:p1y' }),
+    ) as IngestInput;
+    expect([c.normalized.product_id, c.normalized.new_product_id]).toEqual(['arpedia_monthly', 'arpedia_yearly']);
+    expect(storeProductId('arpedia_topup_200')).toBe('arpedia_topup_200');
+    expect(storeProductId(' ')).toBeUndefined();
   });
 });
 

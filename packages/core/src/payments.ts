@@ -78,6 +78,16 @@ export interface RevenueCatEvent {
 const RC_STORE: Record<string, NormalizedEvent['store']> = { PLAY_STORE: 'play', APP_STORE: 'app_store' };
 
 /**
+ * The Play product id as stored in `plans` / `topup_products`. RevenueCat names a Google Play
+ * subscription `<subscription id>:<base plan id>` (the app SDK and the webhook alike); one-time
+ * products have no suffix.
+ */
+export function storeProductId(id: string | null | undefined): string | undefined {
+  const v = id?.trim().split(':')[0];
+  return v || undefined;
+}
+
+/**
  * Map one RevenueCat webhook body. `app_user_id` is the Supabase user id (the app logs in to
  * RevenueCat with it). Prices arrive in the purchase currency; only NGN carries gross and fee.
  */
@@ -102,7 +112,7 @@ export function normalizeRevenueCat(body: { event?: RevenueCatEvent }): IngestIn
   const base = {
     user_id: userId,
     store,
-    product_id: e.product_id,
+    product_id: storeProductId(e.product_id),
     txn_id: e.transaction_id ?? undefined,
     original_txn_id: e.original_transaction_id ?? e.transaction_id ?? undefined,
   };
@@ -134,7 +144,7 @@ export function normalizeRevenueCat(body: { event?: RevenueCatEvent }): IngestIn
     case 'BILLING_ISSUE':
       return out('billing_issue');
     case 'PRODUCT_CHANGE':
-      return out('product_change', { new_product_id: e.new_product_id ?? undefined });
+      return out('product_change', { new_product_id: storeProductId(e.new_product_id) });
     case 'SUBSCRIPTION_PAUSED':
       return out('pause', { pause_until: iso(e.auto_resume_at_ms) });
     default:

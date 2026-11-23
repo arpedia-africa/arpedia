@@ -365,6 +365,9 @@ importers:
       react-native-nitro-modules:
         specifier: ^0.37.2
         version: 0.37.2(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
+      react-native-purchases:
+        specifier: ^11.0.4
+        version: 11.0.4(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
       react-native-quick-base64:
         specifier: ^3.0.2
         version: 3.0.2(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
@@ -2076,6 +2079,15 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@revenuecat/purchases-js-hybrid-mappings@20.10.0':
+    resolution: {integrity: sha512-AN/14boMtEcgZ2nasS7LDvbElyOIFt9o8V5c59Aj2Hkiaq1LvNCenPTKlLgExU10hYT+xzLpA5r9LNNSGhzxRw==}
+
+  '@revenuecat/purchases-js@1.75.0':
+    resolution: {integrity: sha512-EAghUHIrCf0iFeqd8EDQv+ZqYOHGDwb19G0RN83dex/0/TxLZEM/T5r5Rn96HvWQAB0VWL7jjalwcYWz9OWSZw==}
+
+  '@revenuecat/purchases-typescript-internal@20.10.0':
+    resolution: {integrity: sha512-FQsAzgOS9Gs6p3wLNZyTGlSMCayLnw7IlqWm8fPUpXIfweUc4hb4Za02taU3/tLk4cb7fGc+DO6P425OQI0Vmg==}
 
   '@rolldown/binding-android-arm-eabi@1.2.19':
     resolution: {integrity: sha512-e+Ebe0WT+9tbXmNKPIiC8YrWAHYwug3m6i4p3rZGGulfZri1jtI4HslT+OZnFf/OIHowWF71DTlHwXBP2SiA7A==}
@@ -4503,6 +4515,16 @@ packages:
       react: '*'
       react-native: '*'
 
+  react-native-purchases@11.0.4:
+    resolution: {integrity: sha512-zFmlWbWJxXVNiiggRVVR0v8L2YWm+R8ctOexPAtl1Jtj1dax54M6W3KUp9H//5WprpZ76OY6RaEH1U9wxT76+w==}
+    peerDependencies:
+      react: '>= 16.6.3'
+      react-native: '>= 0.80.0'
+      react-native-web: '*'
+    peerDependenciesMeta:
+      react-native-web:
+        optional: true
+
   react-native-quick-base64@3.0.2:
     resolution: {integrity: sha512-+PbqCbM7mxKc/5Sd6AhcWOymTv3bsyjkyZmD0lBowz4q2Zs/Vb1NYUsV0K0b6dgPcF2f0wjQOgDPgb2zOF8OtA==}
     peerDependencies:
@@ -6926,6 +6948,14 @@ snapshots:
       react-native: 0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
     optionalDependencies:
       '@types/react': 19.3.0
+
+  '@revenuecat/purchases-js-hybrid-mappings@20.10.0':
+    dependencies:
+      '@revenuecat/purchases-js': 1.75.0
+
+  '@revenuecat/purchases-js@1.75.0': {}
+
+  '@revenuecat/purchases-typescript-internal@20.10.0': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.19':
     optional: true
@@ -9492,6 +9522,13 @@ snapshots:
   react-native-nitro-modules@0.37.2(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0):
     dependencies:
       nitro-core: 0.37.2
+      react: 19.3.0
+      react-native: 0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
+
+  react-native-purchases@11.0.4(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0):
+    dependencies:
+      '@revenuecat/purchases-js-hybrid-mappings': 20.10.0
+      '@revenuecat/purchases-typescript-internal': 20.10.0
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
 
