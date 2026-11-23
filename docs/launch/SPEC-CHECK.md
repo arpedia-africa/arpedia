@@ -348,3 +348,30 @@ Ids 10-5, 10-7, 10-8, 10-17 (Privacy, Downloads/Credits/Subscription rows, Becom
 | - [ ] | 11-15 | Analytics: book_processing_done | Sent with `seconds` only; the spec also wants `flags`. | `apps/mobile/app/(author)/studio/submit/processing.tsx:49` | later | B |
 
 34 rules checked, 15 gaps.
+## 08 · Authors (follow, profile, message)
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 08-1 | Done when 1 / 1 | The book page author link is `onAuthor: soon` ("Coming soon"), so a reader can't reach `s-author` from a book. (Discovery/Search/Home author taps are fixed on `origin/flow/17-journeys`, unmerged.) | `apps/mobile/app/book/[id]/index.tsx:120` | blocks launch | B |
+| - [ ] | 08-2 | 14 | Report on a comment is a toast "Reporting comments is coming soon", and the server refuses it (`_report_target` has no post_comment, `_set_content_state` ignores it, so comments are never auto-hidden by reports) | `apps/mobile/app/(authors)/post/[id].tsx:294`, `supabase/migrations/20261120001400_14_trust.sql:465` | blocks launch | A |
+| - [ ] | 08-4 | 14 / Done when 6 | Comment menu "Report" has no report sheet (`s-report`) wired, so Done-when "Report or block from the menu" fails for Report | `apps/mobile/app/(authors)/post/[id].tsx:287` | blocks launch | B |
+| - [ ] | 08-5 | 22, 25, 18 | Community inbox opens every row at `/chat/${id}` (flow 06 chat), so a reader's author DM never reaches `s-dm` (which takes an author id, not a group id) and the reader can type free messages that the DO rejects as `paid_only` with no copy; author communities also skip `s-author-community` | `apps/mobile/app/(tabs)/community.tsx:91`, `apps/mobile/app/(community)/chat/[id].tsx:295` | should fix | B |
+| - [ ] | 08-6 | 13, 16, Server add_comment | `add_comment` does not check `active_sanction` (a muted or suspended user can still comment), no blocked-words check; `send_author_message` also skips sanctions and the minors "sexual terms" auto-hide | `supabase/migrations/20261120000800_08_authors.sql:507`, `:701` | should fix | A |
+| - [ ] | 08-7 | 17 | `post_liked`, `post_comment`, `comment_reply` are sent to pgmq `user_notify` (no consumer, no push_types rows, not `push_fanout`), so no like, comment or reply notification is ever sent | `supabase/migrations/20261120000800_08_authors.sql:495` | should fix | A |
+| - [ ] | 08-8 | Server: DM push to author | `dm_message` also goes to `user_notify` (nobody reads it), so the author gets no push when a reader pays to message | `supabase/migrations/20261120000800_08_authors.sql:761` | should fix | A |
+| - [ ] | 08-9 | 6, Server: follower fan-out | Nothing enqueues `author_new_post` or `author_new_book` to `push_fanout` when a post or book goes live | `supabase/migrations/20261120001505_15_engage.sql:76` | should fix | A |
+| - [ ] | 08-10 | Server: DM push to reader | Nothing enqueues `author_reply` when the author replies in a DM (chat DO persist path never calls `enqueue_push`) | `supabase/migrations/20261120001505_15_engage.sql:68` | should fix | A |
+| - [ ] | 08-11 | 6 | "From authors you follow" rail on Home does not exist (no query or view) | `apps/mobile/features/02/home.ts` (absent) | should fix | B |
+| - [ ] | 08-12 | Admin: author | Primary **Message** action only toasts "Messages to authors arrive with reader messages (flow 08)"; Edit profile too | `apps/admin/app/(console)/authors/[id]/client.tsx:116` | should fix | A |
+| - [ ] | 08-13 | 5 | **Edit profile** on own profile is a toast "Edit your author profile in Author Studio", not a link to the Studio profile screen | `apps/mobile/app/(authors)/author/[id].tsx:284` | should fix | B |
+| - [ ] | 08-14 | 1, Tip | Tip button is hidden when the author has no live book (TipHost needs a book id), so a valid author shows no Tip | `apps/mobile/app/(authors)/author/[id].tsx:276` | later | B |
+| - [ ] | 08-15 | States: offline | Sending a DM or comment while the phone is already offline only toasts "Connect to do this"; "Not sent. Tap to retry" appears only if the network drops mid-request | `apps/mobile/app/(authors)/dm/[id].tsx:252` | later | B |
+| - [ ] | 08-16 | Analytics: dm_author_replied | Event `dm_author_replied` (hours_to_reply) is not in the event list and never fired anywhere | `apps/mobile/features/08/analytics.ts:5` | later | A |
+| - [ ] | 08-17 | Analytics: author_profile_viewed | `source` (book, search, post, community) is never passed because no screen navigates with it; every view logs "direct" or "dm" | `apps/mobile/app/(authors)/author/[id].tsx:95` | later | B |
+| - [ ] | 08-18 | Analytics: author_community_joined | Only fired from the profile card; joins from Discover or the chat Join button are not tracked | `apps/mobile/app/(authors)/community/[id].tsx:403` | later | B |
+| - [ ] | 08-19 | Admin: author menu | More menu "Pause payouts" is a toast ("arrives with payouts (flow 13)") | `apps/admin/app/(console)/authors/[id]/client.tsx:93` | later | A |
+| - [ ] | 08-20 | Done when 9 | pgTAP has no concurrent-send test (two sends, one balance) for `send_author_message` | `supabase/tests/08_authors_test.sql` (absent) | later | A |
+
+Id 08-3 (DM Report toast) is fixed on `origin/flow/17-journeys` and dropped; it stays open until that branch merges.
+
+80 rules checked, 19 gaps.
