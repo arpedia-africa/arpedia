@@ -260,12 +260,12 @@ export function DmComposer({
           width: s(44),
           height: s(44),
           borderRadius: 999,
-          backgroundColor: canSend ? c.org : c.surface,
+          backgroundColor: c.org,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Icon name="send" size="s" color={canSend ? c.onOrg : c.ink3} />
+        <Icon name="send" size="s" color={c.onOrg} />
       </Press>
     </View>
   );

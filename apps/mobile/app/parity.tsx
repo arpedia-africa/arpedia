@@ -1553,6 +1553,7 @@ const DM_CHAT: BubbleView[] = [
     key: 'd2',
     senderName: 'Ifeoma Nwachukwu',
     senderTone: 'm',
+    hideName: true,
     body: 'Thank you Ngozi! Chapter 12 will answer that 😊 Keep reading.',
     time: '11:20',
   }),
@@ -1577,8 +1578,8 @@ function Flow08({ page }: { page: Page }) {
     return (
       <SheetBody>
         <Text variant="sm" color="ink2">
-          Messages to this author cost 5 credits each. They're private: only Ifeoma sees them. Their replies
-          are free.
+          Messages to this author cost 5 credits each. They're private: only Ifeoma sees them. Replies are
+          free.
         </Text>
         <KeyValue
           rows={[

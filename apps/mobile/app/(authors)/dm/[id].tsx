@@ -283,6 +283,7 @@ function Thread({
           senderTone: avatarTone(m.sender_id ?? m.id),
           senderAvatar: m.sender_avatar,
           author: false,
+          hideName: true,
           body: m.state === 'visible' ? m.body : null,
           muted: m.state === 'removed' ? 'Removed by a moderator' : 'This message was deleted',
           time: mine && cost > 0 ? `${chatTime(m.created_at)} · ${n(cost)} credits` : chatTime(m.created_at),

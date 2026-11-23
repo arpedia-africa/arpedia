@@ -217,7 +217,7 @@ export const CommentBox = forwardRef<
   );
 });
 
-/** `.section__head.pt24`: "Comments" and "38 total". */
+/** `.section__head.pt24`: "Comments" and "38 total". `.section__head` comes later in the CSS and resets the top padding to 0. */
 export function CommentsHead({ total }: { total: string }) {
   const { s } = useTheme();
   return (
@@ -227,7 +227,6 @@ export function CommentsHead({ total }: { total: string }) {
         justifyContent: 'space-between',
         alignItems: 'baseline',
         gap: s(12),
-        paddingTop: s(24),
         paddingHorizontal: s(16),
         paddingBottom: s(12),
       }}

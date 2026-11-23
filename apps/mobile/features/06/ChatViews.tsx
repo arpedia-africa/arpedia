@@ -152,6 +152,8 @@ export interface BubbleView {
   senderTone: AvatarTone;
   senderAvatar?: string | null;
   author: boolean;
+  /** One-to-one threads (s-dm) show no `.who` line. */
+  hideName?: boolean;
   /** Body text; null for a deleted or removed message (shown in italics). */
   body: string | null;
   muted?: string;
@@ -208,7 +210,7 @@ export function Bubble({
           paddingHorizontal: s(12),
         }}
       >
-        {m.me ? null : (
+        {m.me || m.hideName ? null : (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(6), marginBottom: s(2) }}>
             <Text
               size={12}

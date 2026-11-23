@@ -67,7 +67,7 @@ export function DmConfirmSheet({
   return (
     <Sheet open={open} onClose={onClose} title={`Message ${first}`} locked={start.isPending}>
       <Text variant="sm" color="ink2">
-        {`Messages to this author cost ${t ? n(t.cost_credits) : '…'} credits each. They’re private: only ${first} sees them. Their replies are free.`}
+        {`Messages to this author cost ${t ? n(t.cost_credits) : '…'} credits each. They’re private: only ${first} sees them. Replies are free.`}
       </Text>
       {t ? (
         <KeyValue

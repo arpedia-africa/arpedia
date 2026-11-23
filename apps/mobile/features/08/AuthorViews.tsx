@@ -80,13 +80,27 @@ export interface AuthorActions {
   actionsOff?: boolean;
 }
 
-/** `.av.xl.ring-night`: 4px main-colour ring, then 2px night, drawn outside the avatar. */
+/**
+ * `.av.xl.ring-night`: 4px main-colour ring, then 2px night, drawn outside the avatar
+ * (box-shadow takes no space, so the layout box stays 88 × 88).
+ */
 function RingAvatar({ name, uri, tone }: { name: string; uri: string | null; tone: AvatarTone }) {
   const { c, s } = useTheme();
   return (
-    <View style={{ margin: -s(6), padding: s(2), borderRadius: 999, backgroundColor: c.night }}>
-      <View style={{ padding: s(4), borderRadius: 999, backgroundColor: c.org }}>
-        <Avatar name={name} uri={uri ?? undefined} tone={tone} size="xl" />
+    <View style={{ width: s(88), height: s(88) }}>
+      <View
+        style={{
+          position: 'absolute',
+          top: -s(6),
+          left: -s(6),
+          padding: s(2),
+          borderRadius: 999,
+          backgroundColor: c.night,
+        }}
+      >
+        <View style={{ padding: s(4), borderRadius: 999, backgroundColor: c.org }}>
+          <Avatar name={name} uri={uri ?? undefined} tone={tone} size="xl" />
+        </View>
       </View>
     </View>
   );
@@ -180,7 +194,8 @@ function Head({ m, a }: { m: AuthorModel; a: AuthorActions }) {
         </View>
       </View>
       {m.bio ? (
-        <View style={{ paddingTop: s(16), paddingHorizontal: s(16), gap: s(12) }}>
+        // `.hero__body` comes after `.pt16` in the CSS, so its 4px top padding wins.
+        <View style={{ paddingTop: s(4), paddingHorizontal: s(16), gap: s(12) }}>
           <Bio text={m.bio} />
         </View>
       ) : null}
@@ -371,7 +386,15 @@ export function AuthorView({
           />
         </Card>
       ) : null}
-      <View style={{ flexDirection: 'row', gap: s(8), paddingTop: s(16), paddingHorizontal: s(16) }}>
+      {/* `.stats.pt16`: `.stats` padding comes later in the CSS, so the top padding is 0 under the card. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: s(8),
+          paddingTop: m.community ? 0 : s(16),
+          paddingHorizontal: s(16),
+        }}
+      >
         <Stat value={m.stats.followers} label="followers" />
         <Stat value={m.stats.readers} label="readers" />
         <Stat value={m.stats.rating} label="avg rating" />
