@@ -1,0 +1,125 @@
+# Flow 05 happy path (Done when): open Library from a cold start, continue a book from Reading, pay
+# the rest on a pay-as-you-read book, see it on the Offline shelf.
+# Needs the local stack (Supabase + api Worker with sealed seed files in local R2) behind the app,
+# freshly reset (`pnpm db:reset`). The first width makes A House Called Grace pay-as-you-read (one
+# chapter charged) and pays the rest; later widths find it owned and skip the payment steps.
+# Run: maestro test apps/mobile/.maestro/05-library.yaml -e WIDTH=375
+# All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/05-library.yaml
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- tapOn: 'you@example.com'
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Home'
+    timeout: 30000
+
+# Cold start into Library: Reading is the default shelf, counts on the chips.
+- tapOn: 'Library'
+- extendedWaitUntil:
+    visible: 'Reading \d+'
+    timeout: 30000
+- assertVisible: 'Saved \d+'
+- assertVisible: 'Finished \d+'
+- assertVisible: 'Last opened first'
+- takeScreenshot: library-${WIDTH}-reading
+
+# Continue a book from Reading: the reader opens at the saved place.
+- tapOn: 'Harmattan Letters, Ifeoma.*'
+- extendedWaitUntil:
+    visible: '.*min left in chapter'
+    timeout: 30000
+- back
+
+# Make A House Called Grace pay as you read: preview end, Pay as you read, one chapter auto-unlocked.
+- openLink: arpedia://read/00000000-0000-4000-c000-000000000003
+- extendedWaitUntil:
+    visible: 'A House Called Grace'
+    timeout: 30000
+- tapOn:
+    text: 'OK'
+    optional: true
+- runFlow:
+    when:
+      notVisible: 'Unlocked'
+    commands:
+      - repeat:
+          while:
+            notVisible: 'You.ve read the free .*'
+          times: 80
+          commands:
+            - swipe:
+                direction: LEFT
+                duration: 200
+      - runFlow:
+          when:
+            visible: 'Pay as you read · about .* a chapter'
+          commands:
+            - tapOn: 'Pay as you read · about .* a chapter'
+            - extendedWaitUntil:
+                visible: 'Start reading'
+                timeout: 10000
+            - tapOn: 'Start reading'
+      - repeat:
+          while:
+            notVisible: 'Chapter .* unlocked · .* credits'
+          times: 40
+          commands:
+            - swipe:
+                direction: LEFT
+                duration: 200
+- back
+
+# List view: payment line and Pay the rest, which states the money before the tap.
+- tapOn: 'Library'
+- tapOn: 'List view'
+- extendedWaitUntil:
+    visible: 'Chapter \d+ of \d+ · unlocked|Pay as you read · Paid .* of .* credits'
+    timeout: 30000
+- takeScreenshot: library-${WIDTH}-list
+# Seeded Harmattan Letters (pay as you read, row below Grace) keeps its own Pay the rest, so the
+# steps key on Grace's row: owned Grace reads "Chapter n of m · unlocked" and is skipped.
+- runFlow:
+    when:
+      notVisible: 'Chapter \d+ of \d+ · unlocked'
+    commands:
+      - tapOn:
+          text: 'Pay the rest · .*'
+          index: 0
+      - extendedWaitUntil:
+          visible: 'Left to pay'
+          timeout: 10000
+      - assertVisible: 'Book price'
+      - assertVisible: 'Already paid'
+      - takeScreenshot: library-${WIDTH}-pay-rest
+      - tapOn: 'Pay .* credits'
+      - extendedWaitUntil:
+          visible: 'Paid .* credits · A House Called Grace is yours to keep'
+          timeout: 20000
+      - extendedWaitUntil:
+          visible: 'Chapter \d+ of \d+ · unlocked'
+          timeout: 10000
+
+# The whole book downloads: it shows on the Offline shelf with days left and space used.
+- tapOn: 'Grid view'
+- tapOn: 'Offline.*'
+- extendedWaitUntil:
+    visible: 'Offline downloads'
+    timeout: 10000
+- extendedWaitUntil:
+    visible: 'Ready offline · .* left'
+    timeout: 60000
+- assertVisible: '.* MB'
+- assertVisible: 'Downloads last 7 days.*'
+- takeScreenshot: library-${WIDTH}-offline
