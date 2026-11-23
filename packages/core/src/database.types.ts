@@ -6788,6 +6788,11 @@ isOneToOne: false
 "my_credit_balance":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"my_earning_cycles":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "id": string,"month": string,"payout_date": string,"status": Database["public"]['Enums']["earning_cycle_status"]
+            }[]
+                           },
 "norm_query":
 { Args: { "p": string }; Returns: string
                            },

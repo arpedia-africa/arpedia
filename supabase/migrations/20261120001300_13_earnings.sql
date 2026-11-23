@@ -1511,3 +1511,17 @@ grant execute on function public.admin_earning_cycles(), public.admin_earning_cy
   public.admin_payouts(text, text, integer, integer), public.admin_payout(uuid), public.admin_bank_accounts(text),
   public.admin_bank_account(uuid), public.admin_author_payout(uuid), public.admin_earning_settings()
   to authenticated;
+
+-- s-studio-royalties: the month, status and payout day of each cycle the author has a line in.
+-- earning_cycles itself stays staff-only (it holds platform totals and checks).
+create function public.my_earning_cycles()
+returns table (id uuid, month date, status public.earning_cycle_status, payout_date date)
+language sql stable security definer set search_path = '' as $$
+  select c.id, c.month, c.status, c.payout_date
+  from public.earning_cycles c
+  where exists (select 1 from public.author_earnings e where e.cycle_id = c.id and e.author_id = (select auth.uid()))
+  order by c.month desc;
+$$;
+
+revoke all on function public.my_earning_cycles() from public, anon, authenticated, service_role;
+grant execute on function public.my_earning_cycles() to authenticated;

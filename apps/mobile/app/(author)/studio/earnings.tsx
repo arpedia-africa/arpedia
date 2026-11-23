@@ -80,13 +80,13 @@ function payoutRow(m: AuthorMonth, account: PayoutAccount | null): PayoutRow {
     ? `To ${accountLabel(account.bank_name, account.account_last4)}`
     : 'Payout account not set up yet';
   const pill = p.below
-    ? { label: 'Under ₦1,000 · carries over', tone: 'grey' as const }
+    ? { label: 'Carries over', tone: 'grey' as const }
     : p.due
       ? { label: `Due ${p.label}`, tone: 'grey' as const }
       : { label: `Releases ${p.label}`, tone: 'warn' as const };
   return {
     month: monthName(m.month),
-    sub: p.due ? `Payout day ${p.label}` : to,
+    sub: p.below ? 'Under the ₦1,000 minimum' : p.due ? `Payout day ${p.label}` : to,
     amount: formatKobo(m.earned_kobo),
     pill,
   };

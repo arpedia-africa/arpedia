@@ -73,18 +73,26 @@ export function usePayoutLines(uid: string | undefined) {
     enabled: !!uid,
     retry,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('author_earnings')
-        .select(
-          'id, status, payable_kobo, carried_to, earning_cycles(month, status, payout_date), payouts(status, attempt, settled_at, author_bank_accounts(bank_name, account_last4))',
-        )
-        .eq('author_id', uid!)
-        .order('created_at', { ascending: false })
-        .limit(24);
-      if (error) throw error;
+      // earning_cycles is staff-only (platform totals), so its month and payout day come from
+      // my_earning_cycles() and are joined here.
+      const [lines, cycles] = await Promise.all([
+        supabase
+          .from('author_earnings')
+          .select(
+            'id, cycle_id, status, payable_kobo, carried_to, payouts(status, attempt, settled_at, author_bank_accounts(bank_name, account_last4))',
+          )
+          .eq('author_id', uid!)
+          .order('created_at', { ascending: false })
+          .limit(24),
+        supabase.rpc('my_earning_cycles'),
+      ]);
+      if (lines.error) throw lines.error;
+      if (cycles.error) throw cycles.error;
+      const cycleById = new Map((cycles.data ?? []).map((c) => [c.id, c]));
       const byMonth = new Map<string, PayoutLine>();
-      for (const l of (data ?? []) as unknown as PayoutLine[]) {
-        if (l.earning_cycles) byMonth.set(l.earning_cycles.month.slice(0, 7), l);
+      for (const { cycle_id, ...l } of lines.data ?? []) {
+        const c = cycleById.get(cycle_id);
+        if (c) byMonth.set(c.month.slice(0, 7), { ...l, earning_cycles: c } as unknown as PayoutLine);
       }
       return byMonth;
     },

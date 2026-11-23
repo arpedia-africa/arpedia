@@ -4,7 +4,7 @@
 -- (duplicate, out of order, reversed after success), blind retries blocked, bank review, RLS.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(61);
 
 -- The demo seed (seeds/13_earnings.sql) closes the same months: start from no earnings data.
 set local session_replication_role = replica;
@@ -147,7 +147,10 @@ select throws_ok($$select account_number_enc from public.author_bank_accounts$$,
   'the encrypted number is never returned to a client');
 select throws_ok($$update public.author_earnings set amount_kobo = 1$$, '42501', null,
   'clients write no earnings');
+select is((select count(*)::int from public.earning_cycles), 0, 'authors never read cycle totals');
+select is((select count(*)::int from public.my_earning_cycles()), 1, 'an author sees the dates of their own cycles');
 select pg_temp.as_user('13130000-0000-4000-a000-000000000004');
+select is((select count(*)::int from public.my_earning_cycles()), 0, 'readers see no cycle dates');
 select is((select count(*)::int from public.author_earnings), 0, 'readers see no earnings');
 select is((select count(*)::int from public.earning_cycles), 0, 'readers see no cycles');
 

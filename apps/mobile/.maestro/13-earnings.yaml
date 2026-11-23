@@ -16,7 +16,10 @@ appId: com.arpedia.reader
 - tapOn: 'Your password'
 - inputText: 'arpedia-local'
 - hideKeyboard
-- tapOn: 'Sign in'
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
 - extendedWaitUntil:
     visible: 'Home'
     timeout: 30000
