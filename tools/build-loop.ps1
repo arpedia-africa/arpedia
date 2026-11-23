@@ -53,16 +53,32 @@ function Test-Online {
   try { $c = New-Object Net.Sockets.TcpClient; $ok = $c.ConnectAsync('api.anthropic.com', 443).Wait(5000); $c.Close(); return $ok } catch { return $false }
 }
 
+# The lock folders this loop's builder owns (each lock holds an "owner" file).
+$owner = if ($PhoneOnly) { "dev-$Device" } elseif ($Prep) { 'prep' } else { '' }
+function Get-OwnLocks {
+  if (-not $owner) { return }
+  Get-ChildItem $LockDir -Directory -ErrorAction SilentlyContinue | Where-Object {
+    $o = Join-Path $_.FullName 'owner'; (Test-Path $o) -and ((Get-Content $o -Raw).Trim() -eq $owner)
+  }
+}
+
 $run = 0
+$session = ''      # Claude session id of the current run
+$resumes = 0       # times the current run has been resumed after a dropped connection
+$MaxResumes = 6
 while ($true) {
   # Offline: wait here, checking every minute, instead of letting a run hang on API retries.
   if (-not (Test-Online)) {
     Write-Host "$(Get-Date -Format HH:mm) Offline. Checking again every minute ..." -ForegroundColor DarkYellow
-    while (-not (Test-Online)) { Start-Sleep -Seconds 60 }
+    while (-not (Test-Online)) {
+      # a run that will be resumed keeps its locks: keep them fresh so no other builder takes them over
+      if ($resumes -gt 0) { Get-OwnLocks | ForEach-Object { $_.LastWriteTime = Get-Date } }
+      Start-Sleep -Seconds 60
+    }
     Write-Host "$(Get-Date -Format HH:mm) Back online." -ForegroundColor DarkYellow
   }
   $run++
-  git checkout -q main 2>$null; git pull -q --ff-only 2>$null
+  if ($resumes -eq 0) { git checkout -q main 2>$null; git pull -q --ff-only 2>$null }
   $prompt = Get-Content -Raw "$WorkDir\docs\prd\BUILDER-PROMPT.md"
   if ($Lane) { $prompt = "Your lanes: $Lane. Only continue or start flows listed in those lanes of status.json. Never touch another lane's PR, even if it looks stalled.`n`n" + $prompt }
   if ($Flows) { $prompt = "Only continue or start these flows: $Flows. Ignore every other flow and PR, even if it looks stalled. If none of them is ready, print NOTHING-TO-DO.`n`n" + $prompt }
@@ -75,19 +91,24 @@ while ($true) {
   if ($Prep) { $prompt = "You are the PREP builder: no test device, never run adb, never use the emulator or db.lock. Use only the second database (tools/db2.mjs, db2.lock). Your job is to keep every open PR labelled needs-phone ready for the device builder, so its runs never wait on code work. Each run, take ONE such PR, oldest first, that is not claimed (skip it if ~/projects/arpedia-locks/pr-<number>.lock exists and is under 30 minutes old; claim yours with mkdir pr-<number>.lock, then echo prep > pr-<number>.lock/owner, and remove it before the run ends; do the same owner file for db2.lock): merge origin/main into it, resolve conflicts (usually keep both sides), regenerate packages/core/src/database.types.ts raw with node tools/db2.mjs reset then types, run typecheck, lint, format:check, Vitest and pgTAP (node tools/db2.mjs test), fix what fails, push, and note in the PR: prepped on <date>, gates green, merged main at <sha>. Keep the needs-phone label. Skip a PR that is already up to date with main and green. Also handle any ready (non-draft) PR that GitHub reports as CONFLICTING the same way. Never mark a PR ready and never remove needs-phone. Run shell commands with the Bash tool (git, mkdir, rm, node), not PowerShell. End every run with the clone back on main. If nothing needs prepping, print NOTHING-TO-DO.`n`n" + $prompt }
   if ($NoPhone) { $prompt = "You have no test device: never run adb against the owner's phone. Skip step 0. Follow 'No test device' below. For the database use the second stack (tools/db2.mjs, db2.lock), never db.lock.`n`n" + $prompt }
   $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-  Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' }) ===" -ForegroundColor Yellow
+  Write-Host "`n=== Run $run - $stamp - $Model$(if ($NoPhone) { ' - no phone' })$(if ($resumes) { " - resuming ($resumes)" }) ===" -ForegroundColor Yellow
 
   $before = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
-  $prompt | claude -p --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
-  # A run that dies (internet drop, crash) leaves its locks behind, and the next run would wait 30 min
-  # for them to go stale. Every lock a builder creates holds an "owner" file; remove ours after each run.
-  $owner = if ($PhoneOnly) { "dev-$Device" } elseif ($Prep) { 'prep' } else { '' }
-  if ($owner) {
-    Get-ChildItem $LockDir -Directory -ErrorAction SilentlyContinue | Where-Object {
-      $o = Join-Path $_.FullName 'owner'; (Test-Path $o) -and ((Get-Content $o -Raw).Trim() -eq $owner)
-    } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+  if ($resumes -gt 0) {
+    # The connection dropped mid-run: carry on in the same session instead of starting the PR again.
+    $again = "The internet connection dropped and is back. Carry on exactly where you stopped, under the same instructions. Your locks were kept: touch them now. First check what changed while you were away (git status, git fetch, whether the PR moved, whether your device, Workers and any command that was running are still up), then continue. Don't repeat steps that already finished."
+    $again | claude -p --resume $session --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
+  } else {
+    $session = [guid]::NewGuid().ToString()
+    $prompt | claude -p --session-id $session --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
   }
   $text = ($lines | Out-String)
+  $dropped = $text -match "Can't reach the API server|ENOTFOUND|ECONNRESET|ETIMEDOUT|Unable to connect to API"
+  # A run that dies (internet drop, crash) leaves its locks behind, and the next run would wait 30 min
+  # for them to go stale. Every lock a builder creates holds an "owner" file; remove ours after each run.
+  # A dropped run that will be resumed keeps them.
+  $willResume = $dropped -and ($lines.Count -le 5) -and ($resumes -lt $MaxResumes)
+  if (-not $willResume) { Get-OwnLocks | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue }
   $after = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
   if ($Topic -and $text -notmatch 'NOTHING-TO-DO|WAITING-FOR-CI') {
     $report = (($lines | ForEach-Object { "$_" }) | Select-Object -Last 14) -join "`n"
@@ -101,8 +122,13 @@ while ($true) {
     Write-Host "Switch account with:  claude /login   then run this script again. Work continues from GitHub." -ForegroundColor Red
     break
   }
-  if ($text -match "Can't reach the API server|ENOTFOUND|ECONNRESET|ETIMEDOUT") {
-    # the connection dropped mid-run: go straight back to the offline check, no 8-minute wait
+  $resumes = if ($willResume) { $resumes + 1 } else { 0 }
+  if ($willResume) {
+    Get-OwnLocks | ForEach-Object { $_.LastWriteTime = Get-Date }
+    Write-Host "Connection dropped during the run. Resuming it when online ..." -ForegroundColor DarkYellow
+    Start-Sleep -Seconds 30
+  } elseif ($dropped -and $lines.Count -le 5) {
+    # too many drops in one run: start fresh after the offline check, no 8-minute wait
     Write-Host "Connection dropped during the run. Retrying when online ..." -ForegroundColor DarkYellow
     Start-Sleep -Seconds 30
   } elseif ($text -match 'NOTHING-TO-DO') {
