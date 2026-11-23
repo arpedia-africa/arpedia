@@ -83,14 +83,9 @@ No cloud container. The work happens on the author's phone and on our own comput
 
 Why: no server to run or pay for, and fast feedback for authors on their own phone. The one piece that must be trusted, verification, stays on our side. Full pipeline rules: [12-book-pipeline.md](12-book-pipeline.md).
 
-### 5. Data home: new Supabase project + migration
+### 5. Data home: new Supabase project
 - **New Supabase project in London (eu-west-2)** with the new schema. Nothing legacy is carried over.
-- **One-off migration script at cut-over:**
-  - v25 users, keeping logins (auth users with password hashes; Google accounts re-link by email)
-  - profiles and books (re-run through the verification Worker so they get prices and per-chapter keys)
-  - highlights, mapped to new positions, with the ones that can't be mapped reported
-  - progress and active subscriptions (RevenueCat customers keep their entitlements)
-- **Rehearse on staging first.** Keep v25 read-only for 30 days after cut-over.
+- **Nothing is migrated from v25** (owner, 23 Nov 2026). Readers create new accounts and books are added through the pipeline.
 
 ## Rest of the stack
 | Layer | Choice |
