@@ -14,16 +14,20 @@ export interface Target {
   url?: string;
 }
 
-// Screens that exist today. Discover, credits, plans, book, author and room pages arrive with flows
-// 02, 09, 03, 08 and 07 and open Home until then (their routes are added here when those merge).
+// Author pages arrive with flow 08 and open Home until then (add the route here when it merges).
 const SCREENS: Record<string, Href> = {
   home: '/home',
   library: '/library',
+  credits: '/credits',
+  plans: '/plan',
+  discover: '/explore',
 };
 
 export function hrefFor(t: Target | null | undefined): Href | null {
   if (!t) return null;
   if (t.kind === 'screen') return SCREENS[t.screen ?? ''] ?? '/home';
+  if (t.kind === 'book' && t.id) return { pathname: '/book/[id]', params: { id: t.id, source: 'push' } };
+  if (t.kind === 'room' && t.id) return { pathname: '/room/[id]', params: { id: t.id } };
   if (t.kind === 'group' && t.id) return `/chat/${t.id}` as Href;
   return '/home';
 }
