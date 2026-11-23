@@ -4,11 +4,11 @@ How we build all 16 flows quickly, with background agents in parallel where the 
 
 Flows are named by their file number (`03` = [03-book-page-unlock.md](03-book-page-unlock.md)). Two flows are new:
 - **`00` Foundation:** repo, component kits, base schema, Workers skeleton, CI.
-- **`17` Migration and launch:**
-  - v25 data import and rehearsal, then beta.
+- **`17` Launch** ([17-launch.md](17-launch.md)):
+  - No v25 data is imported (owner, 23 Nov 2026). Whole-app check, production set-up, then beta.
   - **Play:** release as an update to `com.arpedia.reader`.
   - **iOS:** first App Store release of `africa.arpedia.reader`.
-  - **Old iOS app:** email v25 iOS subscribers about the new app, and stop new sales in the old app (done by whoever holds the old Apple account).
+  - **Old iOS app:** whoever holds the old Apple account stops new sales there.
 
 ## Principles
 1. **Foundation first, alone.** Nothing runs in parallel until `00` is merged.
@@ -29,7 +29,7 @@ Flows are named by their file number (`03` = [03-book-page-unlock.md](03-book-pa
  06 Community (chat Durable Object) ─┬─ 07 Reading rooms
                                      ├─ 08 Authors (also needs 09)
                                      └─ 14 Trust and support (also needs 12)
- 16 pass 2 (all admin settings) and 17 Migration and launch come last
+ 16 pass 2 (all admin settings) and 17 Launch come last
 ```
 **The critical path is 00 → 12 → 03 → 04 → 05**, so the foreground always works on it.
 
@@ -45,7 +45,7 @@ Flows are named by their file number (`03` = [03-book-page-unlock.md](03-book-pa
 | **W4** | `04` Reading (Opus, 2 sessions) | `09` Credits and plans (Opus) | `10` Profile and settings (Sonnet) | Can read, pay per chapter, subscribe |
 | **W5** | `05` Library (Sonnet) | `13` Earnings and payouts (Opus) | `06` Community + chat Durable Object (Opus for the Durable Object, Sonnet for screens) | Full reading loop; authors get paid |
 | **W6** | `14` Trust and support (Sonnet) | `07` Reading rooms (Sonnet) | `08` Authors (Sonnet) | Social layer complete and moderated |
-| **W7** | `17` Migration rehearsal (Opus) | `15` Engage and insights (Sonnet) | `16` pass 2 admin settings (Sonnet) | Everything built; v25 import rehearsed on staging |
+| **W7** | `17` Launch (Opus) | `15` Engage and insights (Sonnet) | `16` pass 2 admin settings (Sonnet) | Everything built; whole-app check passes |
 | **W8** | `17` Closed beta, fixes, Play release | Fix agents as needed | — | Launch |
 
 **Before a wave starts:** the ★ questions in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for its flows are answered or their defaults accepted.
@@ -58,7 +58,7 @@ Flows are named by their file number (`03` = [03-book-page-unlock.md](03-book-pa
 ## Models
 | Model | Flows | Why |
 |---|---|---|
-| **Opus** | 00, 03, 04, 09, 12, 13, the chat Durable Object in 06, 17 | Money, encryption, reader positions, data migration: mistakes are expensive |
+| **Opus** | 00, 03, 04, 09, 12, 13, the chat Durable Object in 06, 17 | Money, encryption, reader positions: mistakes are expensive |
 | **Sonnet** | 01, 02, 05, 06 screens, 07, 08, 10, 11, 14, 15, 16 | Screens, lists, forms, admin tables |
 | **Haiku** | Copy fixes, renames, seed data, small follow-ups | Mechanical work |
 

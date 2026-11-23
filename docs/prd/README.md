@@ -71,7 +71,7 @@ Each flow file lists the tables it adds or changes. The shared core:
 | `audit_log` | Every staff action |
 
 ## Flows and build order
-The wave-by-wave plan with parallel background agents, ownership rules and gates is in [BUILD-PLAN.md](BUILD-PLAN.md). It adds flow **00 Foundation** ([00-foundation.md](00-foundation.md)) first and **17 Migration and launch** last, and builds 06 Community before 08 Authors. The table below lists the product flows.
+The wave-by-wave plan with parallel background agents, ownership rules and gates is in [BUILD-PLAN.md](BUILD-PLAN.md). It adds flow **00 Foundation** ([00-foundation.md](00-foundation.md)) first and **17 Launch** ([17-launch.md](17-launch.md)) last, and builds 06 Community before 08 Authors. The table below lists the product flows.
 
 Each flow ships with its admin side. Status: ⬜ not started · 🟨 in progress · ✅ done.
 
@@ -101,7 +101,7 @@ Assumptions in use until answered:
 1. **Platforms:** decided.
    - **Android:** keeps the v25 Play app (`com.arpedia.reader`).
    - **iOS:** a new app `africa.arpedia.reader` under a partner's Apple Developer account (we're invited as Admin; the seller name is theirs). iOS needs Sign in with Apple (App Store rule 4.8).
-   - **v25 iOS subscribers** keep access through RevenueCat until their old subscription ends, then subscribe in the new app.
-2. **v25 data:** decided. New Supabase project, one-off migration of users (logins kept), books, highlights, progress and subscriptions. See ARCHITECTURE.md.
+   - **v25 iOS subscribers** are not moved; they subscribe again in the new app.
+2. **v25 data:** decided (owner, 23 Nov 2026). **Nothing is migrated from v25.** New Supabase project, fresh start. Every "Migration from v25" note in the flow files is void.
 3. **Team size and launch date:** unknown. Flow files are sized so one developer with Claude can finish a flow in about 1–2 weeks.
 4. **Google Play policy for credits:** confirm consumable top-ups and subscription credits comply before flow 6.
