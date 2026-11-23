@@ -102,6 +102,14 @@ export function UnlockSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // A top-up bought from the low body lands here: once the balance covers it, the reader is back on
+  // the unlock body with the new balance and taps Unlock themselves (rule 29).
+  useEffect(() => {
+    if (!open || open === 'short' || variant !== 'low') return;
+    if (variantFor(d, mode) === mode) setVariant(mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d.balance]);
+
   const settings = useQuery({
     queryKey: ['reader-settings'],
     queryFn: async () => {
