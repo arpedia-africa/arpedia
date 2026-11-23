@@ -332,6 +332,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"author_posts": {
+                  Row: {
+                    "author_id": string,"body": string,"comment_count": number,"created_at": string,"id": string,"like_count": number,"published_at": string | null,"state": Database["public"]['Enums']["post_state"],"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id": string,"body": string,"comment_count"?: number,"created_at"?: string,"id"?: string,"like_count"?: number,"published_at"?: string | null,"state"?: Database["public"]['Enums']["post_state"],"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "author_id"?: string,"body"?: string,"comment_count"?: number,"created_at"?: string,"id"?: string,"like_count"?: number,"published_at"?: string | null,"state"?: Database["public"]['Enums']["post_state"],"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "author_posts_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_posts_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"author_profiles": {
                   Row: {
                     "application_id": string | null,"approved_at": string,"bio": string,"club_group_id": string | null,"created_at": string,"legal_name": string,"location": string | null,"payee_type": Database["public"]['Enums']["payee_type"],"payouts_paused": boolean,"payouts_paused_reason": string | null,"pen_name": string,"photo_url": string | null,"status": Database["public"]['Enums']["author_status"],"suspended_reason": string | null,"updated_at": string,"user_id": string,"visibility": Database["public"]['Enums']["author_visibility"]
@@ -365,6 +391,32 @@ isOneToOne: true
     },{
       foreignKeyName: "author_profiles_user_id_fkey"
       columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"author_stats": {
+                  Row: {
+                    "author_id": string,"avg_rating": number | null,"follower_count": number,"median_reply_hours": number | null,"rating_count": number,"reader_count": number,"reply_sample_size": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id": string,"avg_rating"?: number | null,"follower_count"?: number,"median_reply_hours"?: number | null,"rating_count"?: number,"reader_count"?: number,"reply_sample_size"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "author_id"?: string,"avg_rating"?: number | null,"follower_count"?: number,"median_reply_hours"?: number | null,"rating_count"?: number,"reader_count"?: number,"reply_sample_size"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "author_stats_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_stats_author_id_fkey"
+      columns: ["author_id"]
 isOneToOne: true
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
@@ -2602,6 +2654,76 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"post_comments": {
+                  Row: {
+                    "body": string,"client_id": string,"created_at": string,"id": string,"parent_id": string | null,"post_id": string,"state": Database["public"]['Enums']["comment_state"],"state_changed_at": string | null,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"client_id": string,"created_at"?: string,"id"?: string,"parent_id"?: string | null,"post_id": string,"state"?: Database["public"]['Enums']["comment_state"],"state_changed_at"?: string | null,"user_id"?: string | null
+                  }
+                  Update: {
+                    "body"?: string,"client_id"?: string,"created_at"?: string,"id"?: string,"parent_id"?: string | null,"post_id"?: string,"state"?: Database["public"]['Enums']["comment_state"],"state_changed_at"?: string | null,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "post_comments_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "post_comments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "post_comments_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "author_posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "post_comments_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "post_comments_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"post_likes": {
+                  Row: {
+                    "created_at": string,"post_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"post_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"post_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "post_likes_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "author_posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "post_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "post_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"pricing_rule_versions": {
                   Row: {
                     "approved_by": string | null,"changed_by": string | null,"created_at": string,"effective_at": string,"id": string,"note": string | null,"rules": NonNullable<Json>
@@ -4300,16 +4422,28 @@ isOneToOne: false
 "_audit_as":
 { Args: { "p_action": string,"p_actor": string,"p_after": Json,"p_area": string,"p_before": Json,"p_object_id": string,"p_object_label": string,"p_object_type": string,"p_reason": string,"p_summary": string }; Returns: number
                            },
+"_author_dm":
+{ Args: { "p_author": string,"p_reader": string }; Returns: string
+                           },
 "_author_earning_rows":
 { Args: { "p_author": string,"p_from": string,"p_to": string }; Returns: {
               "at": string,"book_id": string,"credits": number,"earned_kobo": number,"reason": Database["public"]['Enums']["ledger_reason"]
             }[]
                            },
+"_author_extra":
+{ Args: { "p_author": string }; Returns: Json
+                           },
 "_author_month":
 { Args: { "p_author": string,"p_month": string }; Returns: Json
                            },
+"_author_name":
+{ Args: { "p_author": string }; Returns: string
+                           },
 "_author_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
+                           },
+"_author_state":
+{ Args: { "p_author": string }; Returns: string
                            },
 "_balance":
 { Args: { "p_user": string }; Returns: number
@@ -4394,6 +4528,9 @@ isOneToOne: false
 "_check_super_admins":
 { Args: { "p_user": string }; Returns: undefined
                            },
+"_comment_row":
+{ Args: { "c": Omit<Database["public"]['Tables']["post_comments"]['Row'], Database["public"]['Tables']["post_comments"]['ComputedFields']>,"p_post_author": string,"p_viewer": string }; Returns: Json
+                           },
 "_config":
 { Args: { "p_key": string }; Returns: Json
                            },
@@ -4402,6 +4539,9 @@ isOneToOne: false
                            },
 "_create_notification":
 { Args: { "p_actor"?: string,"p_body"?: string,"p_book"?: string,"p_category": string,"p_kind": string,"p_target_id"?: string,"p_target_type"?: string,"p_title": string,"p_user": string }; Returns: string
+                           },
+"_dm_block":
+{ Args: { "p_author": string,"p_reader": string }; Returns: string
                            },
 "_do_credit_return":
 { Args: { "p_actor": string,"p_return": string }; Returns: string
@@ -4433,6 +4573,9 @@ isOneToOne: false
 "_genre_name":
 { Args: { "p_slug": string }; Returns: string
                            },
+"_has_link_or_phone":
+{ Args: { "p_text": string }; Returns: boolean
+                           },
 "_has_staff_role":
 { Args: { "p_roles": (Database["public"]['Enums']["staff_role"])[],"p_user": string }; Returns: boolean
                            },
@@ -4446,6 +4589,9 @@ isOneToOne: false
 { Args: { "p_flags": Json,"p_rev": string,"p_source": Database["public"]['Enums']["flag_source"] }; Returns: number
                            },
 "_is_active_staff":
+{ Args: { "p_user": string }; Returns: boolean
+                           },
+"_is_new_account":
 { Args: { "p_user": string }; Returns: boolean
                            },
 "_is_revision_author":
@@ -4756,6 +4902,9 @@ isOneToOne: false
 "_replace_chapters":
 { Args: { "p_chapters": Json,"p_rev": string }; Returns: undefined
                            },
+"_reply_label":
+{ Args: { "p_author": string }; Returns: string
+                           },
 "_report":
 { Args: { "p_book": string,"p_details": string,"p_reason": Database["public"]['Enums']["report_reason"],"p_snapshot": Json,"p_target": string,"p_type": Database["public"]['Enums']["report_content_type"],"p_user": string }; Returns: string
                            },
@@ -4837,6 +4986,9 @@ isOneToOne: false
 "_send_back":
 { Args: { "p_actor": string,"p_issues": Json,"p_note": string,"p_rev": string,"p_source": Database["public"]['Enums']["send_back_source"] }; Returns: string
                            },
+"_set_author_follow":
+{ Args: { "p_author": string,"p_follow": boolean }; Returns: Json
+                           },
 "_set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined
                            },
@@ -4913,10 +5065,16 @@ isOneToOne: false
 "accept_staff_invite":
 { Args: { "p_token_hash": string,"p_user": string }; Returns: Database["public"]['Enums']["staff_role"]
                            },
+"ack_dm_cost":
+{ Args: { "p_author": string }; Returns: Json
+                           },
 "active_sanction":
 { Args: { "p_user": string }; Returns: {
               "ends_at": string,"kind": Database["public"]['Enums']["sanction_kind"]
             }[]
+                           },
+"add_comment":
+{ Args: { "p_body": string,"p_client_id": string,"p_parent": string,"p_post": string }; Returns: Json
                            },
 "add_ticket_note":
 { Args: { "p_body": string,"p_ticket": string }; Returns: string
@@ -4925,6 +5083,9 @@ isOneToOne: false
 { Args: { "p_app": string }; Returns: Json
                            },
 "admin_author":
+{ Args: { "p_user": string }; Returns: Json
+                           },
+"admin_author_social":
 { Args: { "p_user": string }; Returns: Json
                            },
 "admin_authors":
@@ -5127,6 +5288,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"author_stats_refresh":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "automod_value":
 { Args: { "p_key": string }; Returns: Json
                            },
@@ -5298,6 +5462,9 @@ isOneToOne: false
 "delete_automod_word":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"delete_comment":
+{ Args: { "p_comment": string }; Returns: Json
+                           },
 "delete_message":
 { Args: { "p_group"?: string,"p_message": string }; Returns: Json
                            },
@@ -5340,6 +5507,9 @@ isOneToOne: false
 "finalize_revision":
 { Args: { "p_actor": string,"p_files": Json,"p_rev": string }; Returns: Json
                            },
+"follow_author":
+{ Args: { "p_author": string }; Returns: Json
+                           },
 "genre_pick_counts":
 { Args: Record<PropertyKey, never>; Returns: {
               "genre_id": string,"readers": number
@@ -5347,6 +5517,27 @@ isOneToOne: false
                            },
 "get_all_set":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"get_author_books":
+{ Args: { "p_author": string }; Returns: {
+              "avg_rating": number,"genres": (string)[],"id": string,"price_credits": number,"rating_count": number,"title": string
+            }[]
+                           },
+"get_author_dm_costs":
+{ Args: { "p_group": string,"p_limit"?: number }; Returns: {
+              "cost_credits": number,"id": string
+            }[]
+                           },
+"get_author_posts":
+{ Args: { "p_author": string,"p_before"?: string,"p_limit"?: number }; Returns: {
+              "comment_count": number,"excerpt": string,"id": string,"like_count": number,"liked": boolean,"published_at": string,"title": string
+            }[]
+                           },
+"get_author_profile":
+{ Args: { "p_author": string }; Returns: Json
+                           },
+"get_author_thread":
+{ Args: { "p_author": string }; Returns: Json
                            },
 "get_blocked":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -5364,6 +5555,9 @@ isOneToOne: false
                            },
 "get_credits_screen":
 { Args: { "p_before"?: string,"p_limit"?: number }; Returns: Json
+                           },
+"get_dm_reader":
+{ Args: { "p_group": string }; Returns: Json
                            },
 "get_gift_people":
 { Args: { "p_book": string,"p_query"?: string }; Returns: Json
@@ -5448,6 +5642,12 @@ isOneToOne: false
                            },
 "get_plans":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"get_post":
+{ Args: { "p_post": string }; Returns: Json
+                           },
+"get_post_comments":
+{ Args: { "p_after"?: string,"p_after_id"?: string,"p_limit"?: number,"p_post": string }; Returns: Json
                            },
 "get_profile_summary":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -5580,6 +5780,9 @@ isOneToOne: false
                            },
 "leave_reading_room":
 { Args: { "p_room": string }; Returns: undefined
+                           },
+"like_post":
+{ Args: { "p_liked": boolean,"p_post": string }; Returns: Json
                            },
 "link_book_request":
 { Args: { "p_book": string,"p_ids": (string)[] }; Returns: number
@@ -6018,6 +6221,9 @@ isOneToOne: false
 "select_fast_lane_audits":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"send_author_message":
+{ Args: { "p_author": string,"p_body": string,"p_client_id": string }; Returns: Json
+                           },
 "send_back_revision":
 { Args: { "p_actor"?: string,"p_issues": Json,"p_note": string,"p_rev": string,"p_source"?: Database["public"]['Enums']["send_back_source"] }; Returns: string
                            },
@@ -6290,6 +6496,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"start_author_dm":
+{ Args: { "p_author": string }; Returns: Json
+                           },
 "studio_books":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -6382,6 +6591,9 @@ isOneToOne: false
                            },
 "undo_release_to_review":
 { Args: { "p_actor"?: string,"p_rev": string }; Returns: Json
+                           },
+"unfollow_author":
+{ Args: { "p_author": string }; Returns: Json
                            },
 "unhide_reviewer":
 { Args: { "p_user": string }; Returns: undefined
@@ -6500,7 +6712,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "anchor_method": "exact"|"fuzzy"|"nearest","app_theme": "sunflower"|"palm"|"plum"|"night","appeal_status": "new"|"in_review"|"upheld"|"reduced"|"overturned","appeal_subject": "sanction"|"application"|"book_rejection"|"content_removal","application_event_kind": "submitted"|"assigned"|"info_asked"|"info_given"|"approved"|"rejected","application_status": "draft"|"new"|"needs_info"|"approved"|"rejected"|"withdrawn","author_status": "active"|"suspended","author_visibility": "public"|"private","book_status": "draft"|"live"|"scheduled"|"unpublished"|"taken_down"|"rejected","chapter_kind": "chapter"|"part","claim_status": "new"|"waiting_on_author"|"upheld"|"rejected","claim_type": "copyright"|"plagiarism"|"impersonation","credit_return_reason": "skipped_ahead"|"did_not_open"|"wrong_book","credit_return_state": "done"|"pending_approval"|"declined","deletion_status": "pending"|"erasing"|"done"|"blocked"|"cancelled","draft_step": "upload"|"converting"|"checking"|"chapters"|"preview","entitlement_scope": "book"|"chapter","entitlement_source": "unlock_all"|"chapter"|"chapter_complete"|"gift"|"staff","fast_lane_result": "pending"|"ok"|"problem","flag_source": "worker"|"desk"|"staff","flag_status": "open"|"fixed"|"dismissed","group_kind": "official"|"club"|"author"|"readalong"|"room"|"dm","group_role": "owner"|"moderator"|"member","group_visibility": "public"|"followers"|"private","group_who_can_post": "members"|"staff"|"owner_and_followers","help_category": "getting_started"|"credits_plans"|"reading"|"community"|"authors"|"account_privacy","ledger_bucket": "plan"|"rollover"|"topup"|"promo","ledger_reason": "plan_grant"|"rollover"|"top_up"|"unlock_all"|"chapter"|"undo"|"tip"|"message"|"expiry"|"refund"|"staff_adjust"|"gift_out"|"gift_in"|"promo","message_kind": "text"|"quote"|"system","message_state": "visible"|"auto_hidden"|"removed"|"deleted","moderation_action_kind": "keep"|"remove"|"mark_spoiler"|"warn"|"mute"|"suspend"|"ban"|"lock_chat"|"restore","payee_type": "individual"|"company","permission_level": "allow"|"limited","reader_theme": "light"|"sepia"|"dark","report_content_type": "message"|"discussion_comment"|"review"|"post_comment"|"author_post"|"profile"|"book"|"dm"|"book_content","report_outcome": "keep"|"removed"|"spoiler"|"actioned"|"dismissed","report_reason": "spam"|"harassment"|"hate"|"sexual"|"violence"|"self_harm"|"copyright"|"spoilers"|"impersonation"|"other","report_severity": "high"|"medium"|"low","report_status": "open"|"auto_hidden"|"resolved","revision_origin": "author"|"staff"|"desk","revision_status": "draft"|"processing"|"with_desk"|"needs_fixes"|"ready_for_review"|"sent_back"|"scheduled"|"live"|"superseded"|"unpublished"|"taken_down"|"rejected","room_join_policy": "code"|"anyone","room_pace": "free"|"three_week"|"one_day","room_state": "scheduled"|"live"|"ended","sanction_kind": "warn"|"mute"|"suspend"|"ban","sanction_state": "pending"|"active"|"ended"|"overturned","send_back_source": "fixer"|"quick_review"|"desk_auto"|"system","signup_intent": "reader"|"author","source_type": "docx"|"epub"|"pdf","staff_role": "super_admin"|"operations_admin"|"publisher"|"moderator"|"finance"|"support"|"analyst","ticket_category": "billing"|"book_access"|"account"|"author_help"|"bug"|"other","ticket_channel": "email"|"app","ticket_message_kind": "reader"|"staff"|"note","ticket_status": "open"|"waiting_on_reader"|"solved","unpublish_reason": "author_request"|"policy_violation"|"quality"
+            "anchor_method": "exact"|"fuzzy"|"nearest","app_theme": "sunflower"|"palm"|"plum"|"night","appeal_status": "new"|"in_review"|"upheld"|"reduced"|"overturned","appeal_subject": "sanction"|"application"|"book_rejection"|"content_removal","application_event_kind": "submitted"|"assigned"|"info_asked"|"info_given"|"approved"|"rejected","application_status": "draft"|"new"|"needs_info"|"approved"|"rejected"|"withdrawn","author_status": "active"|"suspended","author_visibility": "public"|"private","book_status": "draft"|"live"|"scheduled"|"unpublished"|"taken_down"|"rejected","chapter_kind": "chapter"|"part","claim_status": "new"|"waiting_on_author"|"upheld"|"rejected","claim_type": "copyright"|"plagiarism"|"impersonation","comment_state": "visible"|"auto_hidden"|"removed"|"deleted","credit_return_reason": "skipped_ahead"|"did_not_open"|"wrong_book","credit_return_state": "done"|"pending_approval"|"declined","deletion_status": "pending"|"erasing"|"done"|"blocked"|"cancelled","draft_step": "upload"|"converting"|"checking"|"chapters"|"preview","entitlement_scope": "book"|"chapter","entitlement_source": "unlock_all"|"chapter"|"chapter_complete"|"gift"|"staff","fast_lane_result": "pending"|"ok"|"problem","flag_source": "worker"|"desk"|"staff","flag_status": "open"|"fixed"|"dismissed","group_kind": "official"|"club"|"author"|"readalong"|"room"|"dm","group_role": "owner"|"moderator"|"member","group_visibility": "public"|"followers"|"private","group_who_can_post": "members"|"staff"|"owner_and_followers","help_category": "getting_started"|"credits_plans"|"reading"|"community"|"authors"|"account_privacy","ledger_bucket": "plan"|"rollover"|"topup"|"promo","ledger_reason": "plan_grant"|"rollover"|"top_up"|"unlock_all"|"chapter"|"undo"|"tip"|"message"|"expiry"|"refund"|"staff_adjust"|"gift_out"|"gift_in"|"promo","message_kind": "text"|"quote"|"system","message_state": "visible"|"auto_hidden"|"removed"|"deleted","moderation_action_kind": "keep"|"remove"|"mark_spoiler"|"warn"|"mute"|"suspend"|"ban"|"lock_chat"|"restore","payee_type": "individual"|"company","permission_level": "allow"|"limited","post_state": "draft"|"published"|"removed","reader_theme": "light"|"sepia"|"dark","report_content_type": "message"|"discussion_comment"|"review"|"post_comment"|"author_post"|"profile"|"book"|"dm"|"book_content","report_outcome": "keep"|"removed"|"spoiler"|"actioned"|"dismissed","report_reason": "spam"|"harassment"|"hate"|"sexual"|"violence"|"self_harm"|"copyright"|"spoilers"|"impersonation"|"other","report_severity": "high"|"medium"|"low","report_status": "open"|"auto_hidden"|"resolved","revision_origin": "author"|"staff"|"desk","revision_status": "draft"|"processing"|"with_desk"|"needs_fixes"|"ready_for_review"|"sent_back"|"scheduled"|"live"|"superseded"|"unpublished"|"taken_down"|"rejected","room_join_policy": "code"|"anyone","room_pace": "free"|"three_week"|"one_day","room_state": "scheduled"|"live"|"ended","sanction_kind": "warn"|"mute"|"suspend"|"ban","sanction_state": "pending"|"active"|"ended"|"overturned","send_back_source": "fixer"|"quick_review"|"desk_auto"|"system","signup_intent": "reader"|"author","source_type": "docx"|"epub"|"pdf","staff_role": "super_admin"|"operations_admin"|"publisher"|"moderator"|"finance"|"support"|"analyst","ticket_category": "billing"|"book_access"|"account"|"author_help"|"bug"|"other","ticket_channel": "email"|"app","ticket_message_kind": "reader"|"staff"|"note","ticket_status": "open"|"waiting_on_reader"|"solved","unpublish_reason": "author_request"|"policy_violation"|"quality"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -6620,7 +6832,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "anchor_method": ["exact", "fuzzy", "nearest"],"app_theme": ["sunflower", "palm", "plum", "night"],"appeal_status": ["new", "in_review", "upheld", "reduced", "overturned"],"appeal_subject": ["sanction", "application", "book_rejection", "content_removal"],"application_event_kind": ["submitted", "assigned", "info_asked", "info_given", "approved", "rejected"],"application_status": ["draft", "new", "needs_info", "approved", "rejected", "withdrawn"],"author_status": ["active", "suspended"],"author_visibility": ["public", "private"],"book_status": ["draft", "live", "scheduled", "unpublished", "taken_down", "rejected"],"chapter_kind": ["chapter", "part"],"claim_status": ["new", "waiting_on_author", "upheld", "rejected"],"claim_type": ["copyright", "plagiarism", "impersonation"],"credit_return_reason": ["skipped_ahead", "did_not_open", "wrong_book"],"credit_return_state": ["done", "pending_approval", "declined"],"deletion_status": ["pending", "erasing", "done", "blocked", "cancelled"],"draft_step": ["upload", "converting", "checking", "chapters", "preview"],"entitlement_scope": ["book", "chapter"],"entitlement_source": ["unlock_all", "chapter", "chapter_complete", "gift", "staff"],"fast_lane_result": ["pending", "ok", "problem"],"flag_source": ["worker", "desk", "staff"],"flag_status": ["open", "fixed", "dismissed"],"group_kind": ["official", "club", "author", "readalong", "room", "dm"],"group_role": ["owner", "moderator", "member"],"group_visibility": ["public", "followers", "private"],"group_who_can_post": ["members", "staff", "owner_and_followers"],"help_category": ["getting_started", "credits_plans", "reading", "community", "authors", "account_privacy"],"ledger_bucket": ["plan", "rollover", "topup", "promo"],"ledger_reason": ["plan_grant", "rollover", "top_up", "unlock_all", "chapter", "undo", "tip", "message", "expiry", "refund", "staff_adjust", "gift_out", "gift_in", "promo"],"message_kind": ["text", "quote", "system"],"message_state": ["visible", "auto_hidden", "removed", "deleted"],"moderation_action_kind": ["keep", "remove", "mark_spoiler", "warn", "mute", "suspend", "ban", "lock_chat", "restore"],"payee_type": ["individual", "company"],"permission_level": ["allow", "limited"],"reader_theme": ["light", "sepia", "dark"],"report_content_type": ["message", "discussion_comment", "review", "post_comment", "author_post", "profile", "book", "dm", "book_content"],"report_outcome": ["keep", "removed", "spoiler", "actioned", "dismissed"],"report_reason": ["spam", "harassment", "hate", "sexual", "violence", "self_harm", "copyright", "spoilers", "impersonation", "other"],"report_severity": ["high", "medium", "low"],"report_status": ["open", "auto_hidden", "resolved"],"revision_origin": ["author", "staff", "desk"],"revision_status": ["draft", "processing", "with_desk", "needs_fixes", "ready_for_review", "sent_back", "scheduled", "live", "superseded", "unpublished", "taken_down", "rejected"],"room_join_policy": ["code", "anyone"],"room_pace": ["free", "three_week", "one_day"],"room_state": ["scheduled", "live", "ended"],"sanction_kind": ["warn", "mute", "suspend", "ban"],"sanction_state": ["pending", "active", "ended", "overturned"],"send_back_source": ["fixer", "quick_review", "desk_auto", "system"],"signup_intent": ["reader", "author"],"source_type": ["docx", "epub", "pdf"],"staff_role": ["super_admin", "operations_admin", "publisher", "moderator", "finance", "support", "analyst"],"ticket_category": ["billing", "book_access", "account", "author_help", "bug", "other"],"ticket_channel": ["email", "app"],"ticket_message_kind": ["reader", "staff", "note"],"ticket_status": ["open", "waiting_on_reader", "solved"],"unpublish_reason": ["author_request", "policy_violation", "quality"]
+            "anchor_method": ["exact", "fuzzy", "nearest"],"app_theme": ["sunflower", "palm", "plum", "night"],"appeal_status": ["new", "in_review", "upheld", "reduced", "overturned"],"appeal_subject": ["sanction", "application", "book_rejection", "content_removal"],"application_event_kind": ["submitted", "assigned", "info_asked", "info_given", "approved", "rejected"],"application_status": ["draft", "new", "needs_info", "approved", "rejected", "withdrawn"],"author_status": ["active", "suspended"],"author_visibility": ["public", "private"],"book_status": ["draft", "live", "scheduled", "unpublished", "taken_down", "rejected"],"chapter_kind": ["chapter", "part"],"claim_status": ["new", "waiting_on_author", "upheld", "rejected"],"claim_type": ["copyright", "plagiarism", "impersonation"],"comment_state": ["visible", "auto_hidden", "removed", "deleted"],"credit_return_reason": ["skipped_ahead", "did_not_open", "wrong_book"],"credit_return_state": ["done", "pending_approval", "declined"],"deletion_status": ["pending", "erasing", "done", "blocked", "cancelled"],"draft_step": ["upload", "converting", "checking", "chapters", "preview"],"entitlement_scope": ["book", "chapter"],"entitlement_source": ["unlock_all", "chapter", "chapter_complete", "gift", "staff"],"fast_lane_result": ["pending", "ok", "problem"],"flag_source": ["worker", "desk", "staff"],"flag_status": ["open", "fixed", "dismissed"],"group_kind": ["official", "club", "author", "readalong", "room", "dm"],"group_role": ["owner", "moderator", "member"],"group_visibility": ["public", "followers", "private"],"group_who_can_post": ["members", "staff", "owner_and_followers"],"help_category": ["getting_started", "credits_plans", "reading", "community", "authors", "account_privacy"],"ledger_bucket": ["plan", "rollover", "topup", "promo"],"ledger_reason": ["plan_grant", "rollover", "top_up", "unlock_all", "chapter", "undo", "tip", "message", "expiry", "refund", "staff_adjust", "gift_out", "gift_in", "promo"],"message_kind": ["text", "quote", "system"],"message_state": ["visible", "auto_hidden", "removed", "deleted"],"moderation_action_kind": ["keep", "remove", "mark_spoiler", "warn", "mute", "suspend", "ban", "lock_chat", "restore"],"payee_type": ["individual", "company"],"permission_level": ["allow", "limited"],"post_state": ["draft", "published", "removed"],"reader_theme": ["light", "sepia", "dark"],"report_content_type": ["message", "discussion_comment", "review", "post_comment", "author_post", "profile", "book", "dm", "book_content"],"report_outcome": ["keep", "removed", "spoiler", "actioned", "dismissed"],"report_reason": ["spam", "harassment", "hate", "sexual", "violence", "self_harm", "copyright", "spoilers", "impersonation", "other"],"report_severity": ["high", "medium", "low"],"report_status": ["open", "auto_hidden", "resolved"],"revision_origin": ["author", "staff", "desk"],"revision_status": ["draft", "processing", "with_desk", "needs_fixes", "ready_for_review", "sent_back", "scheduled", "live", "superseded", "unpublished", "taken_down", "rejected"],"room_join_policy": ["code", "anyone"],"room_pace": ["free", "three_week", "one_day"],"room_state": ["scheduled", "live", "ended"],"sanction_kind": ["warn", "mute", "suspend", "ban"],"sanction_state": ["pending", "active", "ended", "overturned"],"send_back_source": ["fixer", "quick_review", "desk_auto", "system"],"signup_intent": ["reader", "author"],"source_type": ["docx", "epub", "pdf"],"staff_role": ["super_admin", "operations_admin", "publisher", "moderator", "finance", "support", "analyst"],"ticket_category": ["billing", "book_access", "account", "author_help", "bug", "other"],"ticket_channel": ["email", "app"],"ticket_message_kind": ["reader", "staff", "note"],"ticket_status": ["open", "waiting_on_reader", "solved"],"unpublish_reason": ["author_request", "policy_violation", "quality"]
           }
         }
 } as const
