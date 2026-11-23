@@ -148,10 +148,10 @@ while ($true) {
     # too many drops in one run: start fresh after the offline check, no 8-minute wait
     Write-Host "Connection dropped during the run. Retrying when online ..." -ForegroundColor DarkYellow
     Start-Sleep -Seconds 30
-  } elseif ($text -match '(?m)^W*NOTHING-TO-DOW*$') {
+  } elseif ($text -match '(?m)^[^A-Za-z]*NOTHING-TO-DO[^A-Za-z]*$') {
     Write-Host "Nothing ready. Waiting $IdleMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($IdleMinutes * 60)
-  } elseif ($text -match '(?m)^W*WAITING-FOR-CIW*$' -or $before -eq $after) {
+  } elseif ($text -match '(?m)^[^A-Za-z]*WAITING-FOR-CI[^A-Za-z]*$' -or $before -eq $after) {
     # waiting on CI, or the run pushed nothing: don't spin, give CI time
     Write-Host "Waiting on CI / no new push. Next run in $CiWaitMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($CiWaitMinutes * 60)
