@@ -242,7 +242,6 @@ export function CommentsHead({ total }: { total: string }) {
   );
 }
 
-
 /** `.au-comment`: avatar, name (+ Author badge), time, more, text, Reply. Replies sit one step in. */
 export function CommentItem({
   v,

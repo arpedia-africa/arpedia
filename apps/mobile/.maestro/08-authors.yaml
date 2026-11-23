@@ -1,8 +1,8 @@
 # Flow 08: log in as the seeded reader, open Ifeoma's profile, unfollow (confirm) and follow again,
 # open a post, then Message: her thread is seeded with the price already seen, so it opens s-dm.
-# Send one paid message, see "· 5 credits" on it and the balance drop by 5 (830 → 825) on Credits.
+# Send one paid message, see "· 5 credits" on it and the balance drop by 5 (821 → 816) on Credits.
 # Needs the local stack (Supabase + api Worker + chat Worker) behind the app, freshly reset
-# (`pnpm db:reset`): Ngozi has 830 credits and follows Ifeoma.
+# (`pnpm db:reset`): Ngozi has 821 credits (830 less two seeded chapter unlocks) and follows Ifeoma.
 # Run: maestro test apps/mobile/.maestro/08-authors.yaml -e WIDTH=375
 # All widths: node tools/maestro-widths.mjs apps/mobile/.maestro/08-authors.yaml
 appId: com.arpedia.reader
@@ -80,6 +80,6 @@ appId: com.arpedia.reader
 # The balance dropped by exactly 5
 - openLink: 'arpedia://credits'
 - extendedWaitUntil:
-    visible: '825.*'
+    visible: '816.*'
     timeout: 20000
 - takeScreenshot: author-${WIDTH}-credits
