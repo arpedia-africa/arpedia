@@ -1,11 +1,22 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
+import { ThemeProvider, THEMES, type ThemeName } from '@arpedia/ui';
 import { kitEnabled } from '@/lib/kit';
 import { ForceUpdateView, MaintenanceView, PolicyAcceptView } from '../features/16/GateViews';
 
-// Kit-only preview of the flow 16 notices (no prototype screen to compare): /gate-preview?v=maintenance|update|policy
+// Kit-only preview of the flow 16 notices (no prototype screen to compare): /gate-preview?v=maintenance|update|policy&theme=palm
 export default function GatePreview() {
-  const { v } = useLocalSearchParams<{ v?: string }>();
+  const { v, theme } = useLocalSearchParams<{ v?: string; theme?: string }>();
   if (!kitEnabled) return <Redirect href="/" />;
+  const name = (THEMES as string[]).includes(theme ?? '') ? (theme as ThemeName) : undefined;
+  if (!name) return <Notice v={v} />;
+  return (
+    <ThemeProvider key={name} theme={name}>
+      <Notice v={v} />
+    </ThemeProvider>
+  );
+}
+
+function Notice({ v }: { v?: string }) {
   const noop = () => {};
   if (v === 'update') return <ForceUpdateView minVersion="26.2" onUpdate={noop} />;
   if (v === 'policy')
@@ -35,7 +46,7 @@ export default function GatePreview() {
     );
   return (
     <MaintenanceView
-      message="We're moving to faster servers. Back by 3 pm. Books you downloaded still open."
+      message="We're moving to faster servers. We'll be back by 3 pm today."
       checking={false}
       onRetry={noop}
     />
