@@ -5,8 +5,7 @@ import { Icon } from '@/components/icon';
 import { NoAccess } from '@/components/no-access';
 import { serverSupabase } from '@/lib/supabase/server';
 import { clock, coverClass, dayMonth, date, initials } from '../../books/shared';
-import { authorName, avClass, gate, lagosMonth, loadAuthor, monthName, n0, naira } from '../shared';
-import { ToastLink } from '../toast-link';
+import { authorName, avClass, gate, lagosMonth, loadAuthor, loadSocial, monthName, n0, naira } from '../shared';
 import { AuthorActions } from './client';
 
 const STAGE: Record<string, string> = {
@@ -25,10 +24,11 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
   const g = await gate();
   if ('denied' in g) return g.denied;
   const supabase = await serverSupabase();
-  const r = await loadAuthor(supabase, id);
+  const [r, social] = await Promise.all([loadAuthor(supabase, id), loadSocial(supabase, id)]);
   if ('denied' in r) return <NoAccess page="applications" label="Authors and applications" role={g.staff.role} />;
   if ('missing' in r) notFound();
   const a = r.author;
+  const channel = a.profile.club_group_id ?? social?.community?.id ?? null;
   const name = authorName(a);
   const suspended = a.profile.status === 'suspended';
   const nowMonth = lagosMonth(Date.now());
@@ -55,6 +55,11 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
               <span>{suspended ? 'Rights suspended' : 'Author'}</span>
               <span>{`Since ${date(a.profile.approved_at).split(' ').slice(1).join(' ')}`}</span>
               {a.profile.location && <span>{a.profile.location}</span>}
+              {social && (
+                <span>
+                  <b>{n0(social.follower_count)}</b> {social.follower_count === 1 ? 'follower' : 'followers'}
+                </span>
+              )}
               <span>
                 <b>{n0(a.reads)}</b> {a.reads === 1 ? 'reader' : 'readers'}
               </span>
@@ -63,10 +68,10 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
               </span>
               {a.profile.payouts_paused && <span className="pp-late">Payouts paused</span>}
               {suspended && a.profile.suspended_reason && <span className="pp-late">{a.profile.suspended_reason}</span>}
-              {a.profile.club_group_id && (
-                <ToastLink msg="Community channels open from here once the community part of the build is in (flow 06).">
+              {channel && (
+                <Link className="link" href={`/community/${channel}`}>
                   Community channel
-                </ToastLink>
+                </Link>
               )}
             </div>
           </div>
@@ -196,9 +201,25 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
             </div>
             <details className="fold">
               <summary>
-                Tips, messages and community <small>{suspended ? 'rights suspended' : 'in good standing'}</small>
+                Messages, tips and community <small>{suspended ? 'rights suspended' : 'in good standing'}</small>
               </summary>
               <div className="fold__b">
+                <b>Reader messages</b>
+                {social ? (
+                  <div className="pp-cnt">
+                    <div>
+                      <b>{n0(social.messages.count)}</b>Received
+                    </div>
+                    <div>
+                      <b>{n0(social.threads)}</b>Readers wrote
+                    </div>
+                    <div>
+                      <b>{n0(social.messages.credits)}</b>Credits spent
+                    </div>
+                  </div>
+                ) : (
+                  <span className="muted">Message counts didn’t load. Refresh to try again.</span>
+                )}
                 <b>Tips received</b>
                 <dl className="kv tight">
                   <dt>{`${monthName(lastKey)}`}</dt>
@@ -209,8 +230,29 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                   </dd>
                   <dt>Author earns, ₦1.60 a credit</dt>
                   <dd>{naira(last?.tips_kobo ?? 0)}</dd>
+                  {social && (
+                    <>
+                      <dt>All time</dt>
+                      <dd>{`${n0(social.tips.count)} ${social.tips.count === 1 ? 'tip' : 'tips'}, ${n0(social.tips.credits)} credits`}</dd>
+                    </>
+                  )}
                 </dl>
-                <span className="muted">Reader messages and community numbers show here once messages (flow 08) and community (flow 06) are in.</span>
+                <b>Community</b>
+                {social?.community ? (
+                  <dl className="kv tight">
+                    <dt>Channel</dt>
+                    <dd>
+                      <Link className="link" href={`/community/${social.community.id}`}>
+                        {social.community.name}
+                      </Link>
+                    </dd>
+                    <dt>Members</dt>
+                    <dd>{n0(social.community.member_count)}</dd>
+                  </dl>
+                ) : (
+                  <span className="muted">No community yet.</span>
+                )}
+                <span className="muted">Staff can’t read private messages. Counts and revenue only.</span>
               </div>
             </details>
           </div>

@@ -852,6 +852,9 @@ try {
           ['author-payout', '/authors/00000000-0000-4000-a000-000000000002/payout', 150],
           ['royalty-release', '/royalties/00000000-0000-4000-e130-000000000002/release', 60],
           ['payout-retry', '/payouts/00000000-0000-4000-e132-000000000001/retry', 60],
+          // Flow 08: followers under the name, channel column, social fold.
+          ['authors', '/authors', 150],
+          ['author', '/authors/00000000-0000-4000-a000-000000000002', 150],
         ].map(([id, path, head]) => [
           id,
           {
