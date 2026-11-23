@@ -8,42 +8,57 @@ const hex = (data) => createHash('sha256').update(data).digest('hex');
 const enc = (s) =>
   encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 
+/**
+ * The Authorization header for an S3 request (Signature V4). `headers` must include host,
+ * x-amz-date and x-amz-content-sha256 (the payload hash, or UNSIGNED-PAYLOAD).
+ */
+export function signV4({ method, path, query = '', headers, accessKeyId, secretAccessKey, region = 'auto' }) {
+  const lower = Object.fromEntries(
+    Object.entries(headers).map(([k, v]) => [k.toLowerCase(), String(v).trim()]),
+  );
+  const names = Object.keys(lower).sort();
+  const amzDate = lower['x-amz-date'];
+  const day = amzDate.slice(0, 8);
+  const canonical = [
+    method,
+    path,
+    query,
+    names.map((n) => `${n}:${lower[n]}\n`).join(''),
+    names.join(';'),
+    lower['x-amz-content-sha256'],
+  ].join('\n');
+  const scope = `${day}/${region}/s3/aws4_request`;
+  const toSign = ['AWS4-HMAC-SHA256', amzDate, scope, hex(canonical)].join('\n');
+  const kSigning = hmac(hmac(hmac(hmac(`AWS4${secretAccessKey}`, day), region), 's3'), 'aws4_request');
+  const signature = createHmac('sha256', kSigning).update(toSign).digest('hex');
+  return `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${names.join(';')}, Signature=${signature}`;
+}
+
 export function r2Client({ accountId, accessKeyId, secretAccessKey, endpoint, fetchImpl = fetch }) {
   const base = (endpoint ?? `https://${accountId}.r2.cloudflarestorage.com`).replace(/\/$/, '');
   const host = new URL(base).host;
 
   async function send(method, bucket, key = '', { query = {}, body, headers = {} } = {}) {
-    const now = new Date();
-    const amzDate = now.toISOString().replace(/[-:]|\.\d{3}/g, '');
-    const day = amzDate.slice(0, 8);
+    const amzDate = new Date().toISOString().replace(/[-:]|\.\d{3}/g, '');
     const path = `/${bucket}${key ? `/${key.split('/').map(enc).join('/')}` : ''}`;
     const qs = Object.keys(query)
       .sort()
       .map((k) => `${enc(k)}=${enc(String(query[k]))}`)
       .join('&');
-    const h = { host, 'x-amz-content-sha256': 'UNSIGNED-PAYLOAD', 'x-amz-date': amzDate, ...headers };
-    const names = Object.keys(h)
-      .map((k) => k.toLowerCase())
-      .sort();
-    const lower = Object.fromEntries(Object.entries(h).map(([k, v]) => [k.toLowerCase(), String(v).trim()]));
-    const canonical = [
+    // fetch sets Host itself (the same value), so it is signed but not sent.
+    const sent = { 'x-amz-content-sha256': 'UNSIGNED-PAYLOAD', 'x-amz-date': amzDate, ...headers };
+    const auth = signV4({
       method,
       path,
-      qs,
-      names.map((n) => `${n}:${lower[n]}\n`).join(''),
-      names.join(';'),
-      'UNSIGNED-PAYLOAD',
-    ].join('\n');
-    const scope = `${day}/auto/s3/aws4_request`;
-    const toSign = ['AWS4-HMAC-SHA256', amzDate, scope, hex(canonical)].join('\n');
-    const kSigning = hmac(hmac(hmac(hmac(`AWS4${secretAccessKey}`, day), 'auto'), 's3'), 'aws4_request');
-    const signature = createHmac('sha256', kSigning).update(toSign).digest('hex');
-    const auth = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${names.join(';')}, Signature=${signature}`;
+      query: qs,
+      headers: { host, ...sent },
+      accessKeyId,
+      secretAccessKey,
+    });
     const res = await fetchImpl(`${base}${path}${qs ? `?${qs}` : ''}`, {
       method,
-      headers: { ...h, Authorization: auth },
+      headers: { ...sent, Authorization: auth },
       body,
-      duplex: body ? 'half' : undefined,
     });
     if (!res.ok && !(method === 'GET' && res.status === 404 && !key)) {
       throw new Error(`R2 ${method} ${path}: ${res.status} ${(await res.text()).slice(0, 200)}`);
@@ -52,11 +67,9 @@ export function r2Client({ accountId, accessKeyId, secretAccessKey, endpoint, fe
   }
 
   return {
-    put: (bucket, key, body, contentLength) =>
-      send('PUT', bucket, key, {
-        body,
-        headers: { 'content-length': contentLength, 'content-type': 'application/octet-stream' },
-      }),
+    /** Upload a Buffer (R2 needs a known length; a compressed free-plan dump fits in memory). */
+    put: (bucket, key, body) =>
+      send('PUT', bucket, key, { body, headers: { 'content-type': 'application/octet-stream' } }),
     get: async (bucket, key) => Buffer.from(await (await send('GET', bucket, key)).arrayBuffer()),
     del: (bucket, key) => send('DELETE', bucket, key),
     /** Every object under `prefix`: [{ key, size, lastModified: Date }]. */

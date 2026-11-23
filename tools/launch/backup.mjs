@@ -4,6 +4,7 @@
 //   node tools/launch/backup.mjs dump --out db.sql.gz.enc            dump and encrypt to a file
 //   node tools/launch/backup.mjs restore --file db.sql.gz.enc --into <scratch db url> --yes-wipe
 //   node tools/launch/backup.mjs restore --key db/2026-12-01T0200Z.sql.gz.enc --target production --into …
+//   node tools/launch/backup.mjs check --target production          fails when the newest is over 26 h old
 // A backup holds the rows of the `public` and `auth` schemas (data only). The schema, scheduled
 // jobs and queues come from the migrations, so a restore goes into a database built from them
 // (`supabase db push` on a new project, or `supabase db reset` locally): every table is emptied,
@@ -19,7 +20,9 @@ import {
   createReadStream,
   createWriteStream,
   openSync,
+  readFileSync,
   readSync,
+  rmSync,
   statSync,
   writeFileSync,
   mkdtempSync,
@@ -34,6 +37,7 @@ import { backupBucket, r2FromEnv } from './r2.mjs';
 
 export const MAGIC = Buffer.from('ARPBK1');
 export const KEEP_DAYS = 30;
+export const BACKUP_MAX_AGE_HOURS = 26;
 const SCHEMAS = ['public', 'auth'];
 // Rows the migrations own on the target (never restored over them).
 const EXCLUDE = ['auth.schema_migrations'];
@@ -223,6 +227,10 @@ export function expired(objects, now = Date.now()) {
     .sort((a, b) => a.lastModified - b.lastModified);
 }
 
+/** The newest encrypted backup in a listing, or undefined. */
+export const newest = (objects) =>
+  objects.filter((o) => o.key.endsWith('.enc')).sort((a, b) => b.lastModified - a.lastModified)[0];
+
 export const objectKey = (d = new Date()) =>
   `db/${d.toISOString().slice(0, 16).replace(/:/g, '')}Z.sql.gz.enc`;
 
@@ -230,8 +238,24 @@ async function main(argv) {
   const args = parseArgs(argv);
   const [cmd] = args._;
   const docker = typeof args.docker === 'string' ? args.docker : undefined;
+
+  if (cmd === 'check') {
+    // The missed-backup alarm: fails when the newest backup is older than BACKUP_MAX_AGE_HOURS.
+    const target = args.target;
+    if (!['staging', 'production'].includes(target))
+      throw new Error('check needs --target staging|production');
+    const r2 = r2FromEnv(
+      requireEnv(process.env, ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY']),
+    );
+    const latest = newest(await r2.list(backupBucket(target), 'db/'));
+    const hours = latest ? (Date.now() - latest.lastModified.getTime()) / 3_600_000 : Infinity;
+    console.log(latest ? `Newest backup ${latest.key}, ${hours.toFixed(1)} h old` : 'No backups found');
+    return hours <= BACKUP_MAX_AGE_HOURS ? 0 : 1;
+  }
+
   const key = backupKey(requireEnv(process.env, ['BACKUP_KEY']).BACKUP_KEY);
   const work = mkdtempSync(join(tmpdir(), 'arpedia-backup-'));
+  process.on('exit', () => rmSync(work, { recursive: true, force: true }));
 
   if (cmd === 'dump' || cmd === 'nightly') {
     const dbUrl = args.db ?? requireEnv(process.env, ['SUPABASE_DB_URL']).SUPABASE_DB_URL;
@@ -248,7 +272,7 @@ async function main(argv) {
     );
     const bucket = backupBucket(target);
     const k = objectKey();
-    await r2.put(bucket, k, createReadStream(out), size);
+    await r2.put(bucket, k, readFileSync(out));
     console.log(`Uploaded ${bucket}/${k}`);
     const old = expired(await r2.list(bucket, 'db/'));
     for (const o of old) await r2.del(bucket, o.key);
@@ -287,7 +311,7 @@ async function main(argv) {
     return 0;
   }
 
-  throw new Error('usage: backup.mjs nightly|dump|restore (see the top of this file)');
+  throw new Error('usage: backup.mjs nightly|dump|restore|check (see the top of this file)');
 }
 
 runIfMain(import.meta.url, main);

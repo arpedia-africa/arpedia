@@ -5,7 +5,17 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
-import { backupKey, collect, copyCounts, decryptFile, encryptStream, expired, objectKey } from './backup.mjs';
+import {
+  backupKey,
+  collect,
+  copyCounts,
+  decryptFile,
+  encryptStream,
+  expired,
+  newest,
+  objectKey,
+} from './backup.mjs';
+import { r2Client, signV4 } from './r2.mjs';
 import { NON_RELEASE_MARKERS, REQUIRED_SETTINGS, readReleaseBundle, runPreflight } from './preflight.mjs';
 import { CONFIG_CHECKS, runSetup } from './setup.mjs';
 import { toCsv } from './unmatched.mjs';
@@ -319,6 +329,59 @@ describe('backup.mjs', () => {
     }));
     expect(expired(objs, now).map((o) => o.key)).toEqual(['k31', 'k30.5']);
     expect(objectKey(new Date('2026-12-01T02:07:09Z'))).toBe('db/2026-12-01T0207Z.sql.gz.enc');
+  });
+});
+
+describe('r2.mjs', () => {
+  // AWS's published Signature V4 examples for S3 (GET Object, and List Objects).
+  const creds = {
+    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    region: 'us-east-1',
+  };
+  const empty = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+  const headers = {
+    host: 'examplebucket.s3.amazonaws.com',
+    'x-amz-content-sha256': empty,
+    'x-amz-date': '20130524T000000Z',
+  };
+
+  it('signs like AWS', () => {
+    expect(
+      signV4({ ...creds, method: 'GET', path: '/test.txt', headers: { ...headers, range: 'bytes=0-9' } }),
+    ).toMatch(
+      /SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41$/,
+    );
+    expect(signV4({ ...creds, method: 'GET', path: '/', query: 'max-keys=2&prefix=J', headers })).toMatch(
+      /Signature=34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7$/,
+    );
+  });
+
+  it('lists every page of a bucket', async () => {
+    const pages = [
+      '<ListBucketResult><IsTruncated>true</IsTruncated><NextContinuationToken>t2</NextContinuationToken>' +
+        '<Contents><Key>db/a.sql.gz.enc</Key><Size>10</Size><LastModified>2026-12-01T02:00:00.000Z</LastModified></Contents></ListBucketResult>',
+      '<ListBucketResult><IsTruncated>false</IsTruncated>' +
+        '<Contents><Key>db/b.sql.gz.enc</Key><Size>20</Size><LastModified>2026-12-02T02:00:00.000Z</LastModified></Contents></ListBucketResult>',
+    ];
+    const urls = [];
+    const r2 = r2Client({
+      accountId: 'acct',
+      accessKeyId: 'k',
+      secretAccessKey: 's',
+      fetchImpl: async (url, init) => {
+        urls.push(url);
+        expect(init.headers.Authorization).toMatch(
+          /^AWS4-HMAC-SHA256 Credential=k\/\d{8}\/auto\/s3\/aws4_request/,
+        );
+        return new Response(pages[urls.length - 1]);
+      },
+    });
+    const list = await r2.list('arpedia-backups', 'db/');
+    expect(list.map((o) => o.key)).toEqual(['db/a.sql.gz.enc', 'db/b.sql.gz.enc']);
+    expect(urls[0]).toBe('https://acct.r2.cloudflarestorage.com/arpedia-backups?list-type=2&prefix=db%2F');
+    expect(urls[1]).toContain('continuation-token=t2');
+    expect(newest(list).key).toBe('db/b.sql.gz.enc');
   });
 });
 

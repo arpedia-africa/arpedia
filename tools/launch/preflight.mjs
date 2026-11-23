@@ -19,6 +19,7 @@ import {
   targetFrom,
   wranglerConfig,
 } from './lib.mjs';
+import { BACKUP_MAX_AGE_HOURS, newest } from './backup.mjs';
 import { backupBucket, r2FromEnv } from './r2.mjs';
 
 /** Worker settings that must exist as a secret or a var on staging and production (names only). */
@@ -52,7 +53,6 @@ export const NON_RELEASE_MARKERS = [
   ':8787',
   ':8788',
 ];
-export const BACKUP_MAX_AGE_HOURS = 26;
 
 const DB_KEYS = [
   'rls',
@@ -209,7 +209,7 @@ export async function runPreflight({
   items.push(
     await guard('backups', async () => {
       const list = (await backups()).filter((o) => o.key.endsWith('.enc'));
-      const latest = list.sort((a, b) => b.lastModified - a.lastModified)[0];
+      const latest = newest(list);
       const age = latest ? (now - latest.lastModified.getTime()) / 3_600_000 : Infinity;
       return {
         key: 'backups',
