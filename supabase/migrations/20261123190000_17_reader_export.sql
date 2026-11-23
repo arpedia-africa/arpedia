@@ -45,5 +45,15 @@ begin
   return v_out;
 end $$;
 
+-- Version 1 of `data_export_ready` (flow 15 seed) never used {{link}}, so the email carried no file.
+insert into public.email_template_versions (template_key, number, subject, preheader, body)
+select 'data_export_ready', coalesce(max(number), 0) + 1, 'Your Arpedia data is ready',
+       'A copy of everything we keep about you',
+       'Hi {{first_name}},' || chr(10) || chr(10) ||
+       'Here is the copy of your Arpedia data you asked for: {{link}}' || chr(10) || chr(10) ||
+       'The link works for 7 days. If you didn''t ask for this, reply to this email and we''ll look into it.' ||
+       chr(10) || chr(10) || 'The Arpedia team'
+from public.email_template_versions where template_key = 'data_export_ready';
+
 revoke execute on function public.export_reader_data(uuid) from public, anon, authenticated;
 grant execute on function public.export_reader_data(uuid) to service_role;

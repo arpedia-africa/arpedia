@@ -29,7 +29,8 @@ dataExport.post('/', requireUser, async (c) => {
 
   const { data, error } = await db.rpc('export_reader_data', { p_user_id: user.sub! });
   if (error) throw new Error(`export_reader_data: ${error.message}`);
-  const out = data as { account: { email: string }; profile?: { first_name?: string | null } | null };
+  const out = data as { account: { email: string }; profile?: { full_name?: string | null } | null };
+  const firstName = out.profile?.full_name?.trim().split(/\s+/)[0] ?? '';
   const token = crypto.randomUUID();
   await c.env.BOOKS.put(fileKey(token), JSON.stringify(data, null, 2), {
     httpMetadata: { contentType: 'application/json' },
@@ -40,7 +41,7 @@ dataExport.post('/', requireUser, async (c) => {
     db,
     'data_export_ready',
     out.account.email,
-    { first_name: out.profile?.first_name ?? '', link },
+    { first_name: firstName, link },
     user.sub!,
   );
   return c.json({ ok: true, email: out.account.email });
