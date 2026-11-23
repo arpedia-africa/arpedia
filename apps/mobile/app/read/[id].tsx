@@ -2,7 +2,7 @@
 // s-reader-unlocked, s-reader-dark). The book renders in a local WebView with no network; this
 // screen owns the chrome around it, the gate cards in the page flow and the selection toolbar.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, View } from 'react-native';
+import { BackHandler, Share, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
@@ -257,7 +257,15 @@ export default function ReaderScreen() {
     [r.settings.highlight_color],
   );
 
+  // Sharing a passage to a club needs a club for this book, which has no lookup yet.
   const soon = () => toast({ message: 'Coming soon' });
+  // The book room lives in Community (flow 06).
+  const toRoom = () => router.push('/community');
+  const shareBook = () => {
+    if (!st) return;
+    const by = st.book.author.name ? ` by ${st.book.author.name}` : '';
+    void Share.share({ message: `${st.book.title}${by}, on Arpedia` });
+  };
   const openPanel = (p: typeof panel) => {
     setChrome(false);
     setPanel(p);
@@ -508,7 +516,12 @@ export default function ReaderScreen() {
               startDiscuss(sel.para_id_start, quote);
             }}
             onClub={soon}
-            onShare={soon}
+            onShare={() => {
+              const quote = sel.text.slice(0, 500);
+              const title = st?.book.title;
+              r.clearSelection();
+              void Share.share({ message: title ? `“${quote}” · ${title}, on Arpedia` : `“${quote}”` });
+            }}
           />
         ) : null}
         {menuAnnotation && menuPlacement && menuFor ? (
@@ -592,7 +605,7 @@ export default function ReaderScreen() {
             },
             { icon: 'chat', label: 'Notes', onPress: () => openPanel('notes') },
             { icon: 'cog', label: 'Settings', onPress: () => openPanel('settings') },
-            { icon: 'users', label: 'Room', onPress: soon },
+            { icon: 'users', label: 'Room', onPress: toRoom },
           ]}
         />
       ) : null}
@@ -653,8 +666,8 @@ export default function ReaderScreen() {
                 },
               },
               { key: 'search', title: 'Search in book', chevron: true, onPress: () => setPanel('search') },
-              { key: 'room', title: 'Book room', chevron: true, onPress: soon },
-              { key: 'share', title: 'Share this book', chevron: true, onPress: soon },
+              { key: 'room', title: 'Book room', chevron: true, onPress: toRoom },
+              { key: 'share', title: 'Share this book', chevron: true, onPress: shareBook },
               {
                 key: 'report',
                 title: 'Report a problem with this book',
@@ -720,8 +733,7 @@ export default function ReaderScreen() {
               r.clearLow();
               void r.refresh();
             }}
-            // Top-ups are flow 09 (s-pack-sheet); until then the button says so.
-            onTopUp={soon}
+            onTopUp={() => router.push('/credits')}
             onLibrary={() => {
               r.clearLow();
               void r.syncNow();
@@ -779,8 +791,8 @@ export default function ReaderScreen() {
             if (sheet === 'paygo') setPayGo(true);
             setSheet(null);
           }}
-          onPlans={soon}
-          onBuyPack={soon}
+          onPlans={() => router.push('/plan')}
+          onBuyPack={() => router.push('/credits')}
         />
       ) : null}
     </View>

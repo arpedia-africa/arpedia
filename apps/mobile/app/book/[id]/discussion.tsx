@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { EmptyState, Screen, useTheme, useToast } from '@arpedia/ui';
+import { EmptyState, Screen, useTheme } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { AboutSkeleton, BackHero, DiscussionLockedView } from '../../../features/03/AboutViews';
 
@@ -20,7 +20,6 @@ interface DiscussionData {
 export default function Discussion() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { s } = useTheme();
-  const toast = useToast();
   const q = useQuery({
     queryKey: ['book-discussion', id],
     queryFn: async () => {
@@ -31,8 +30,6 @@ export default function Discussion() {
   });
   const back = () =>
     router.canGoBack() ? router.back() : router.replace({ pathname: '/book/[id]', params: { id } });
-  // The reader (flow 04) and the book room (flow 06) aren't built yet.
-  const soon = () => toast({ message: 'Coming soon' });
   const d = q.data;
   return (
     <Screen top="org">
@@ -47,7 +44,7 @@ export default function Discussion() {
             <EmptyState
               title="You finished it"
               body="The book room opens with Community. Your place is saved."
-              action={{ label: 'Open the book room', onPress: soon }}
+              action={{ label: 'Open the book room', onPress: () => router.push('/community') }}
             />
           </View>
         ) : (
@@ -55,7 +52,7 @@ export default function Discussion() {
             percent={Number(d.max_percent)}
             chapter={d.chapter_ord}
             chapters={d.chapters}
-            onRead={soon}
+            onRead={() => router.push({ pathname: '/read/[id]', params: { id } })}
           />
         )
       ) : q.isPending ? (
