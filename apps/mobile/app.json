@@ -14,6 +14,13 @@
     },
     "android": {
       "package": "com.arpedia.reader",
+      "versionCode": 26,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#F5931F",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,6 +36,7 @@
       "expo-dev-client",
       "./plugins/dev-variant",
       "./plugins/kit-localhost",
+      "./plugins/v25-cleanup",
       [
         "expo-splash-screen",
         {
