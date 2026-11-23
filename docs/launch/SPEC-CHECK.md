@@ -304,3 +304,26 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 | - [ ] | 07-20 | Reader entry | Reader "Room" and "Book room" menu items are "Coming soon" toasts | `apps/mobile/app/read/[id].tsx:594` | later | B |
 
 76 rules checked, 20 gaps.
+## 10 · Profile and settings
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 10-1 | 37 | `erase_account` does not erase saved_books, library_hidden, blocks or direct messages (spec lists library and direct messages); personal data stays after status "done" | `supabase/migrations/20261119300000_10_profile.sql:631` | blocks launch | A |
+| - [ ] | 10-2 | 36 / Edge cases | A deleted reader is not stopped at sign-in: no "This account was deleted" message anywhere, and `restore_my_account` is never called from the app (staff 30-day "sign in to restore" cannot happen); the `deleted=1` param passed to login is never read | `apps/mobile/app/(auth)/login.tsx` (absent) | blocks launch | B |
+| - [ ] | 10-3 | 21 / Server prefs | `notification_allowed()` is still `select true`, so preferences never control which `notifications` rows are created (clubs, authors, note_replies, reminders, offers) | `supabase/migrations/20261119000200_02_discovery.sql:817` | blocks launch | A |
+| - [ ] | 10-4 | 11 | My highlights item opens `/reader/[book]`, a route that does not exist (reader is `/read/[id]`); tap to open the exact CFI is broken | `apps/mobile/app/(account)/my-highlights.tsx:80` | blocks launch | B |
+| - [ ] | 10-6 | 14 | Navigation row is a "soon" toast and shows a fixed "Swipe pages" value | `apps/mobile/app/(account)/account.tsx:73` | should fix | B |
+| - [ ] | 10-9 | 34 | Store subscription warning and Google Play link never appear: `storePlan` hard-coded `null` | `apps/mobile/app/(account)/delete-account.tsx:72` | should fix | B |
+| - [ ] | 10-10 | 36 | No goodbye screen after deletion; goes straight to Log in | `apps/mobile/app/(account)/delete-account.tsx:40` | should fix | B |
+| - [ ] | 10-11 | 17 | Log out has no "Sync not finished. Log out anyway?" check and does not clear this device's push token | `apps/mobile/app/(account)/account.tsx:92` | should fix | B |
+| - [ ] | 10-12 | 16 | Invite friends shares a fixed `https://arpedia.africa` text, not the reader's own invite link | `apps/mobile/app/(account)/account.tsx:89` | should fix | B |
+| - [ ] | 10-13 | 33 | Contact support "Copy" opens the Share sheet (no clipboard copy, no "Copied" toast) | `apps/mobile/app/(account)/about.tsx:20` | should fix | B |
+| - [ ] | 10-14 | 33 | Terms/Privacy open constant URLs, not the current published policy version (flow 16); Help centre is a hard-coded URL; copyright report is a mailto, not the flow 14 form | `apps/mobile/app/(account)/about.tsx:21` | should fix | B |
+| - [ ] | 10-15 | 19 | Quiet-hours start/end cannot be edited and the device time zone is never sent, so `timezone` stays Africa/Lagos for readers elsewhere | `apps/mobile/features/10/data.ts:65` | should fix | B |
+| - [ ] | 10-16 | 37 | Unpaid-earnings check sums all-time `author_earning_kobo` and ignores payouts, so any author who ever earned can never delete | `supabase/migrations/20261119300000_10_profile.sql:187` | should fix | A |
+| - [ ] | 10-18 | Analytics | None of the 15 events fire (profile_viewed, goal_set, collection_opened, collection_item_opened, annotation_deleted, settings_row_tapped, theme_changed, notif_pref_changed, profile_saved, password_changed, device_removed, delete_account_started/confirmed/cancelled, invite_shared) | `apps/mobile/features/10/data.ts` (absent) | later | B |
+| - [ ] | 10-19 | Done when 8 | pgTAP does not cover RLS on `staff_notes` and `annotations`, comment anonymisation, or wrong-role rejection for `staff_start_deletion` / `staff_set_reader_role` | `supabase/tests/10_profile_test.sql:130` | later | A |
+
+Ids 10-5, 10-7, 10-8, 10-17 (Privacy, Downloads/Credits/Subscription rows, Become an author, reader self-export) are fixed on `origin/flow/17-journeys` and dropped; they stay open until that branch merges.
+
+40 rules checked, 15 gaps.
