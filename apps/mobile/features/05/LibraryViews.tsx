@@ -322,7 +322,7 @@ function LibBook({
       style={{ width, gap: s(6) }}
     >
       <View>
-        <Cover title={b.title} author={b.author} tone={b.tone} fluid />
+        <Cover title={b.title} author={b.author} tone={b.tone} fluid titleOneLine={13} />
         <Press
           onPress={onMore}
           pressScale={motion.press.icon}
@@ -392,15 +392,15 @@ function LibBook({
           </View>
         ) : null}
       </View>
-      {/* A very long title wraps to two lines (edge cases); the author ellipsizes. */}
-      <Text size={13} weight={600} numberOfLines={2} style={{ lineHeight: s(13) * 1.25 }}>
+      {/* `.lib-book b`: one line with an ellipsis, like the author. */}
+      <Text size={13} weight={600} ellipsis style={{ lineHeight: s(13) * 1.25 }}>
         {b.title}
       </Text>
       <Text size={12} weight={600} color="orgInk" ellipsis style={{ marginTop: -s(4) }}>
         {b.author}
       </Text>
       {b.state ? (
-        <Text size={11.5} color="ink3" oneLine style={{ marginTop: -s(4) }}>
+        <Text size={11.5} color="ink3" numberOfLines={2} style={{ marginTop: -s(4) }}>
           {b.state}
         </Text>
       ) : null}
@@ -521,12 +521,13 @@ function LibRow({
       }}
     >
       <Cover title={b.title} author={b.author} tone={b.tone} size={64} />
-      <View style={{ flex: 1, minWidth: 0, gap: s(8) }}>
+      {/* `.cell__body` (gap 2) wins over `.v8`, and `.cell__sub`'s ink-3 over `.t-brand`, as drawn. */}
+      <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
         <View style={{ gap: s(4) }}>
           <Text size={14.5} weight={600} numberOfLines={2} style={{ lineHeight: s(14.5) * 1.3 }}>
             {b.title}
           </Text>
-          <Text size={12.5} weight={700} color="orgInk" ellipsis style={{ lineHeight: s(12.5) * 1.35 }}>
+          <Text size={12.5} weight={700} color="ink3" ellipsis style={{ lineHeight: s(12.5) * 1.35 }}>
             {b.author}
           </Text>
           <Text size={12.5} color="ink3" oneLine style={{ lineHeight: s(12.5) * 1.35 }}>

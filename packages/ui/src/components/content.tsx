@@ -176,10 +176,22 @@ export interface CoverProps {
   center?: boolean;
   /** CSS box-shadow that replaces `.cv`'s (drop shadow and the inset spine), e.g. `.pw-fan .cv`. */
   boxShadow?: string;
+  /** One-line title at this size with an ellipsis (`.lib-book b` also matches the cover's `b`). */
+  titleOneLine?: number;
 }
 
 /** `.cv`: 2:3 book cover with a soft drop shadow and a spine highlight. */
-export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid, center, boxShadow }: CoverProps) {
+export function Cover({
+  title,
+  author,
+  size = 104,
+  uri,
+  tone = 'c1',
+  fluid,
+  center,
+  boxShadow,
+  titleOneLine,
+}: CoverProps) {
   const { s } = useTheme();
   const w = s(size);
   const h = s(coverH[size]);
@@ -245,36 +257,51 @@ export function Cover({ title, author, size = 104, uri, tone = 'c1', fluid, cent
               }}
             />
           )}
-          {/* Word by word, like the browser: lines break at spaces only, and a word wider than
-              the cover is clipped (Android would otherwise split it, "Harm/attan"). */}
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: center ? 'center' : undefined,
-              columnGap: s(titleSize) * 0.25,
-            }}
-          >
-            {title.split(/\s+/).map((word, i) => (
-              <Text
-                key={i}
-                family="reading"
-                weight={600}
-                size={titleSize}
-                color={fg}
-                numberOfLines={1}
-                ellipsizeMode="clip"
-                style={{ lineHeight: s(titleSize) * 1.15 }}
-              >
-                {word}
-              </Text>
-            ))}
-          </View>
+          {titleOneLine ? (
+            <Text
+              family="reading"
+              weight={600}
+              size={titleOneLine}
+              color={fg}
+              numberOfLines={1}
+              style={{ lineHeight: s(titleOneLine) * 1.25 }}
+            >
+              {title}
+            </Text>
+          ) : (
+            /* Word by word, like the browser: lines break at spaces only, and a word wider than
+              the cover is clipped (Android would otherwise split it, "Harm/attan"). */
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: center ? 'center' : undefined,
+                columnGap: s(titleSize) * 0.25,
+              }}
+            >
+              {title.split(/\s+/).map((word, i) => (
+                <Text
+                  key={i}
+                  family="reading"
+                  weight={600}
+                  size={titleSize}
+                  color={fg}
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
+                  style={{ lineHeight: s(titleSize) * 1.15 }}
+                >
+                  {word}
+                </Text>
+              ))}
+            </View>
+          )}
           {author && !tiny ? (
             <Text
               size={7.5}
               color={tone === 'c3' ? '#222222' : fg}
               center={center}
+              numberOfLines={titleOneLine ? 1 : undefined}
+              ellipsizeMode="clip"
               style={{
                 opacity: 0.85,
                 letterSpacing: s(7.5) * 0.05,
