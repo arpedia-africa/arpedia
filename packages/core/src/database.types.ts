@@ -2586,6 +2586,50 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"library_hidden": {
+                  Row: {
+                    "book_id": string,"created_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"created_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "book_id"?: string,"created_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "library_hidden_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "library_hidden_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "library_hidden_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "catalog_books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "library_hidden_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "library_hidden_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"message_pins": {
                   Row: {
                     "group_id": string,"message_id": string,"pinned_at": string,"pinned_by": string | null
@@ -3358,14 +3402,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"bio": string | null,"country": string,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"deletion_requested_at": string | null,"erased_at": string | null,"full_name": string,"id": string,"interests": (string)[],"is_author": boolean,"is_reader": boolean,"name_changes": (string)[],"onboarding_step": string,"phone": string | null,"privacy_version": number | null,"reader_settings": NonNullable<Json>,"reader_theme": Database["public"]['Enums']["reader_theme"],"signup_intent": Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at": string | null,"terms_version": number | null,"theme": Database["public"]['Enums']["app_theme"],"updated_at": string,"username": string | null
+                    "avatar_url": string | null,"bio": string | null,"country": string,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"deletion_requested_at": string | null,"erased_at": string | null,"full_name": string,"id": string,"interests": (string)[],"is_author": boolean,"is_reader": boolean,"library_view": string,"name_changes": (string)[],"onboarding_step": string,"phone": string | null,"privacy_version": number | null,"reader_settings": NonNullable<Json>,"reader_theme": Database["public"]['Enums']["reader_theme"],"signup_intent": Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at": string | null,"terms_version": number | null,"theme": Database["public"]['Enums']["app_theme"],"updated_at": string,"username": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id": string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
+                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id": string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"library_view"?: string,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
                   }
                   Update: {
-                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id"?: string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
+                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id"?: string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"library_view"?: string,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
                   }
                   Relationships: [
                     
@@ -4142,6 +4186,50 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "room_members_muted_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"saved_books": {
+                  Row: {
+                    "book_id": string,"created_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "book_id": string,"created_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "book_id"?: string,"created_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "saved_books_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "saved_books_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "saved_books_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "catalog_books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "saved_books_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "saved_books_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "public_profiles"
@@ -5042,6 +5130,20 @@ isOneToOne: false
                          }
                         Relationships: [
                     
+                  ]
+                },"library_items": {
+                  Row: {
+                    "book_id": string | null,"chapter_uid": string | null,"finished": boolean | null,"finished_at": string | null,"gift_from_id": string | null,"hidden": boolean | null,"last_opened_at": string | null,"max_percent": number | null,"my_stars": number | null,"opened": boolean | null,"owns_book": boolean | null,"percent": number | null,"reading": boolean | null,"revision_id": string | null,"saved_at": string | null,"saved_row": boolean | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "reading_progress_revision_id_fkey"
+      columns: ["revision_id"]
+isOneToOne: false
+      referencedRelation: "book_revisions"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"passage_counts": {
                   Row: {
@@ -6515,6 +6617,9 @@ isOneToOne: false
 "get_inbox_counts":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"get_library":
+{ Args: { "p_after"?: Json,"p_limit"?: number,"p_shelf": string,"p_sort"?: string }; Returns: Json
+                           },
 "get_messages":
 { Args: { "p_before"?: string,"p_before_id"?: string,"p_group": string,"p_limit"?: number }; Returns: {
               "body": string,"created_at": string,"group_id": string,"id": string,"kind": Database["public"]['Enums']["message_kind"],"my_reaction": string,"pinned": boolean,"quote": Json,"reactions": Json,"reply_to": Json,"reply_to_id": string,"sender_avatar": string,"sender_id": string,"sender_is_author": boolean,"sender_name": string,"state": Database["public"]['Enums']["message_state"]
@@ -7166,6 +7271,9 @@ isOneToOne: false
 "save_automod_word":
 { Args: { "p_action": string,"p_category": string,"p_id"?: string,"p_is_phrase": boolean,"p_scope": string,"p_text": string }; Returns: string
                            },
+"save_book":
+{ Args: { "p_book": string }; Returns: undefined
+                           },
 "save_coming_soon":
 { Args: { "p_book": string,"p_release_at"?: string,"p_teaser": string }; Returns: {
               "book_id": string,
@@ -7217,6 +7325,7 @@ isOneToOne: false
 "interests": (string)[],
 "is_author": boolean,
 "is_reader": boolean,
+"library_view": string,
 "name_changes": (string)[],
 "onboarding_step": string,
 "phone": string | null,
@@ -7349,6 +7458,9 @@ isOneToOne: false
                            },
 "set_help_extras":
 { Args: { "p_article": string,"p_in_search": boolean,"p_related": (string)[] }; Returns: undefined
+                           },
+"set_library_view":
+{ Args: { "p_view": string }; Returns: undefined
                            },
 "set_live_count":
 { Args: { "p_count": number,"p_group": string }; Returns: undefined
@@ -7743,6 +7855,9 @@ isOneToOne: false
 "unpublish_preview":
 { Args: { "p_book": string }; Returns: Json
                            },
+"unsave_book":
+{ Args: { "p_book": string }; Returns: undefined
+                           },
 "update_home_section":
 { Args: { "p_config"?: Json,"p_id": string,"p_visible"?: boolean }; Returns: {
               "config": NonNullable<Json>,
@@ -7776,6 +7891,7 @@ isOneToOne: false
 "interests": (string)[],
 "is_author": boolean,
 "is_reader": boolean,
+"library_view": string,
 "name_changes": (string)[],
 "onboarding_step": string,
 "phone": string | null,

@@ -95,6 +95,7 @@ import { DiscoverHero, DiscoverRow, TypeChips, type DiscoverRowView } from '../f
 import { Bubble, ComHead, ComPin, Composer, DayMarker, type BubbleView } from '../features/06/ChatViews';
 import { OptionList, ReactionRow, ReportBody } from '../features/06/SheetViews';
 import { BlockedRow } from '../features/06/BlockedViews';
+import { FLOW05_PAGES, Flow05, type Flow05Page } from '../features/05/parity';
 import { Flow07, FLOW07 } from '../features/07/parity';
 import { Flow09, isFlow09 } from '../features/09/parity';
 import { BookEndView } from '../features/04/BookEndView';
@@ -171,6 +172,7 @@ const PAGES = [
   's-checkout',
   's-plan-cancel',
   's-book-end',
+  ...FLOW05_PAGES,
 ] as const;
 type Page = (typeof PAGES)[number];
 
@@ -279,6 +281,8 @@ function Page({ page, theme }: { page: Page; theme: ThemeName }) {
               onTip={noop}
               onBook={noop}
             />
+          ) : page.startsWith('s-library') ? (
+            <Flow05 page={page as Flow05Page} />
           ) : page.startsWith('s-book') || page === 's-reviews' || page === 's-write-review' ? (
             <Flow03 page={page} />
           ) : (
