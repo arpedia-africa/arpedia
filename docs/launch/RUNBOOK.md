@@ -86,9 +86,9 @@ Do this once before launch and then every month, into a **scratch** project (nev
 2. Restore the newest backup into it:
    ```sh
    node tools/launch/backup.mjs restore --target production --key db/<newest>.sql.gz.enc \
-     --into <scratch db url> --yes-wipe
+     --into <scratch db url> --confirm-ref <scratch project ref> --yes-wipe
    ```
-   It empties every table, loads the rows with triggers off, then checks every table's row count against the dump. It exits 1 on any mismatch.
+   It empties every table, loads the rows with triggers off, then checks every table's row count against the dump. It exits 1 on any mismatch. It refuses the live database (`SUPABASE_DB_URL`, in any URL form) unless you add `--into-live`, and a hosted target needs its project ref typed in `--confirm-ref`.
 3. Spot-check: sign in to the scratch admin with your account; a reader's balance equals their ledger.
 4. Delete the scratch project.
 
