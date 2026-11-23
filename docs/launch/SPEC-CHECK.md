@@ -226,3 +226,27 @@ _In progress._
 | - [ ] | 12-17 | Server: stages | Queue stages `rescore` and `diff` are not queue messages (StageMsg has only verify, seal); rescore runs inline in the fix endpoint and diff inside seal. Works, but differs from the spec. | `workers/api/src/routes/12/pipeline.ts:25` | later | A |
 
 58 rules checked, 17 gaps.
+## 02 · Discovery
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 02-3 | 10 | "Most read" counts distinct unlockers from `entitlements`, not readers who opened a reading session (preview or unlocked); `_readers_7d` was never swapped for `reading_sessions`, so Top 10, Explore sort and Recommended ignore free-preview readers. | `supabase/migrations/20261119000200_02_discovery.sql:318` | should fix | A |
+| - [ ] | 02-4 | 21, 23 | Clubs are never searched: `search()` returns `'clubs': []` and `suggest()` has no club rows, so Clubs scope and "Book club" suggestions are always empty. | `supabase/migrations/20261119000200_02_discovery.sql:742` | should fix | A |
+| - [ ] | 02-7 | 31 | Targets are not resolved: `reader` opens the book page (not the reader at the saved page); club, post, discussion and DM all go to generic `/community`; a deleted book/post is never detected, so "That is no longer available" only shows when target is null. | `apps/mobile/app/(discovery)/notifications.tsx:34` | should fix | B |
+| - [ ] | 02-8 | 33 | `notification_allowed()` still returns true; flow 10's `notification_pref()` is never called, so a reader's preference for a kind is ignored when rows are created. | `supabase/migrations/20261119000200_02_discovery.sql:817` | should fix | A |
+| - [ ] | 02-9 | Analytics | None of the 13 events (`home_viewed`, `shelf_card_tapped`, `see_all_tapped`, `explore_opened`, `filter_applied`, `search_opened`, `search_suggestion_tapped`, `search_submitted`, `search_result_tapped`, `search_no_results`, `book_requested`, `notification_opened`, `notifications_marked_all`) is fired; there is no analytics file for flow 02. | `apps/mobile/features/02/analytics.ts` (absent) | should fix | B |
+| - [ ] | 02-10 | 22, Done when 7 | Offline suggestions match only recent searches, not books in the reader's library (code comment: "the library arrives with flow 05"). | `apps/mobile/app/(discovery)/search.tsx:200` | should fix | B |
+| - [ ] | 02-11 | States: Offline | No "You're offline" bar on Home or Explore, and no "Connect to read" for a non-downloaded book opened from cache (only Search shows an offline message). | `apps/mobile/features/02/HomeViews.tsx` | should fix | B |
+| - [ ] | 02-12 | Done when 4, 29 | `link_book_request` has no admin caller; the search-tuning page can only Add to wishlist (`set_book_request_status`), so staff cannot link a request to a book and the fulfilled notification can never fire in practice. | `apps/admin/app/(console)/search-tuning/actions.ts:35` | should fix | A |
+| - [ ] | 02-13 | 25 | Setting "Show unreleased books" is saved but never read: `_search_books` has no scheduled-book branch and no "Coming soon" label. | `supabase/migrations/20261119000200_02_discovery.sql:645` | should fix | A |
+| - [ ] | 02-14 | 11 | Recommended excludes only unlocked books; finished and saved books (`reading_progress.finished_at`, `saved_books`) are not excluded. | `supabase/migrations/20261119000200_02_discovery.sql:414` | should fix | A |
+| - [ ] | 02-15 | Data: coming_soon_notify | Nothing ever inserts into `coming_soon_notify` or bumps `notify_count` (no Notify me on the book page), so the admin count is always 0 and nobody is told on release. | `supabase/migrations/20261119000200_02_discovery.sql:122` | later | A |
+| - [ ] | 02-16 | Admin: Genres and tags | Banned words are not stripped from new uploads and the author is not told; nothing creates `tags`/`book_tags` (ban/merge act on empty tables). | `workers/api/src/routes/12/pipeline.ts` (absent) | later | A |
+| - [ ] | 02-17 | Admin: Coming soon | No warning when a copyright claim is open on the book. | `apps/admin/app/(console)/curation/coming/client.tsx` | later | A |
+| - [ ] | 02-18 | Admin: Discover curation | Top 10 accepts pins in `shelf_items` but `get_top10` honours only excluded books, not pins. | `supabase/migrations/20261119000200_02_discovery.sql:366` | later | A |
+| - [ ] | 02-19 | 20, 27 | Trending query that maps to one author never opens it (`author_id` hard-coded null); no-results "You might like" uses most read overall, never the closest genre. | `supabase/migrations/20261119000200_02_discovery.sql:755` | later | A |
+| - [ ] | 02-20 | 7 | Credits chip and bell are not re-fetched after a spend (only foreground, 60 s and mark-read invalidate `home`). | `apps/mobile/features/02/home.ts:56` | later | B |
+
+Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notification settings toasts) are fixed on `origin/flow/17-journeys` and dropped; they stay open until that branch merges.
+
+68 rules checked, 16 gaps.
