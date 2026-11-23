@@ -11,8 +11,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
  * project folder (a private stack used while db.lock is held).
  */
 export function localEnv() {
-  // DB2=1 reads the second stack (tools/db2.mjs) for builders without the phone.
-  const wd = process.env.DB2 ? ' --workdir .db2' : '';
+  // SUPABASE_WORKDIR picks another stack; DB2=1 reads the second stack (tools/db2.mjs, .db2).
+  const dir = process.env.SUPABASE_WORKDIR ?? (process.env.DB2 ? '.db2' : '');
+  const wd = dir ? ` --workdir "${dir}"` : '';
   const out = execSync(`pnpm -s exec supabase status -o env${wd}`, {
     cwd: process.env.SUPABASE_WORKDIR ?? root,
     encoding: 'utf8',

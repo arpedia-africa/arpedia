@@ -7,6 +7,7 @@ import { erasePending } from './routes/10/account';
 import { drainPayments } from './routes/09/payments';
 import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
+import { checkIntegrations } from './routes/16/integrations';
 import { drainPayouts, pollPendingPayouts } from './routes/13/earnings';
 import { engageCron } from './routes/15/engage';
 
@@ -35,8 +36,9 @@ app.onError((err, c) => {
 export default {
   fetch: app.fetch,
   // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11), the story
-  // search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09) and
-  // author payouts (flow 13) and pushes, campaigns and exports (flow 15); on the hour, payouts pending over 48 hours.
+  // search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09),
+  // author payouts (flow 13), integration health checks (flow 16) and pushes, campaigns and exports
+  // (flow 15); on the hour, payouts pending over 48 hours.
   scheduled: (event, env, ctx) =>
     ctx.waitUntil(
       Promise.allSettled([
@@ -46,6 +48,7 @@ export default {
         erasePending(env),
         drainPayments(env),
         drainPayouts(env),
+        checkIntegrations(env),
         engageCron(env, event.scheduledTime),
         ...(new Date(event.scheduledTime).getUTCMinutes() === 0 ? [pollPendingPayouts(env)] : []),
       ]),

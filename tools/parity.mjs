@@ -746,6 +746,26 @@ try {
           },
         ]),
       ),
+      // Flow 16. Shell and page header gated; panels hold seeded config, flags and health, compared by eye.
+      ...Object.fromEntries(
+        [
+          ['config', '/config'],
+          ['integrations', '/integrations'],
+          ['policies', '/policies'],
+          ['audit', '/audit'],
+          ['account', '/account'],
+        ].map(([id, path]) => [
+          id,
+          {
+            path,
+            as: 'amaka@arpedia.africa',
+            regions: [
+              { x: 0, y: 0, width: 248, height: H },
+              { x: 248, y: 0, width: W - 248, height: 150 },
+            ],
+          },
+        ]),
+      ),
       // The seeded threat in Grace Readers (High, auto-hidden), by its stable seed id.
       report: {
         path: '/reports/fa2beca8-89e1-f451-c526-0c5511ec75c5',
