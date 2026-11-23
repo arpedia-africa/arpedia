@@ -327,3 +327,24 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 Ids 10-5, 10-7, 10-8, 10-17 (Privacy, Downloads/Credits/Subscription rows, Become an author, reader self-export) are fixed on `origin/flow/17-journeys` and dropped; they stay open until that branch merges.
 
 40 rules checked, 15 gaps.
+## 11 · Author Studio
+
+| | Id | Rule | What is missing | Where | Severity | Who |
+|---|---|---|---|---|---|---|
+| - [ ] | 11-1 | 9, 7, Server: decide_application push+email | Every `_author_notify` message (application_approved, needs_info, rejected, received, author_suspended, application_sla) goes into pgmq `author_notify`, but no Worker or cron ever reads that queue, so no push or email is sent and the SLA alert to Publishers never fires. | `supabase/migrations/20261119100000_11_author_studio.sql:107` (consumer absent; `workers/api/src/index.ts:25` runs only consumeApplicationChecks) | blocks launch | A |
+| - [ ] | 11-2 | 18, 23, Done when 2 | No on-device conversion: `@arpedia/convert` is not imported in apps/mobile; .docx is sent to the staff desk with `reason: 'conversion_skipped'` and .epub is uploaded raw. The code comment says "until on-device Word conversion lands". | `apps/mobile/features/11/submit.ts:156` | should fix | B |
+| - [ ] | 11-3 | 31 | Post an update is a stub: Post only shows the toast "Posting opens with author pages soon" and keeps a local draft. No post is created, no fan-out to followers or club. | `apps/mobile/app/(author)/studio/post.tsx:66` | should fix | B |
+| - [ ] | 11-4 | 32 | Reader messages screen is hard-coded: `waiting={0}`, `rows={[]}`, `onRow={() => {}}`, `onRetry={() => {}}`. It never loads the author's messages or lets them reply. | `apps/mobile/app/(author)/studio/inbox.tsx:16` | should fix | B |
+| - [ ] | 11-5 | 12, 27 | `studio_home` returns `'payout_account_status', 'not_set'` and `min_payout_kobo` 100000 as literals, and no next payout date or amount. Studio and Earnings payout history is derived from dates (`payoutOf`), not the flow 13 `payouts` rows, so "Paid" and "Releases 15 Dec" are guesses. | `supabase/migrations/20261119100000_11_author_studio.sql:668` and `apps/mobile/features/11/studio.ts:183` | should fix | A |
+| - [ ] | 11-6 | 21 | Preview step passes `pages={null}`, so the author cannot swipe the first page, a middle page and the 10% cutoff. The comment says authors have no read link. | `apps/mobile/app/(author)/studio/submit/preview.tsx:84` | should fix | A |
+| - [ ] | 11-7 | 25, Analytics: book_update_submitted | No fast-lane handling for an update: nothing tells the author "Your update is live", and `book_update_submitted {fast_lane}` is never fired. submit.tsx and preview.tsx treat updates like a first submit. | `apps/mobile/app/(author)/studio/submit/preview.tsx:44` | should fix | B |
+| - [ ] | 11-8 | Edge: duplicate title | No "You already have this book. Update it instead?" prompt when the same author submits an existing title. | `apps/mobile/app/(author)/studio/submit/index.tsx:75` | should fix | B |
+| - [ ] | 11-9 | States: error, offline; 23 | Uploads are one single `fetch` PUT per file: no R2 multipart, no resume on "Try again", no pause on offline, and no on-device conversion pause/resume. | `apps/mobile/features/11/submit.ts:112` | should fix | B |
+| - [ ] | 11-10 | States: loading, 18 | Processing steps are faked by time (`seconds / 15`), not real progress, and the "Still working. You can leave; we will notify you." message after 30 s with no progress does not exist. | `apps/mobile/app/(author)/studio/submit/processing.tsx:132` | should fix | B |
+| - [ ] | 11-11 | Admin `s-author` actions | Author page ⋯ menu: Edit profile, Download statement, Pause payouts and the Message button only show toasts ("arrives with ... flow 08/13"). Flow 13 and flow 08 exist now. | `apps/admin/app/(console)/authors/[id]/client.tsx:17` | should fix | A |
+| - [ ] | 11-12 | 16 | Taken-down or rejected book only toasts "Write to authors@arpedia.africa ... to appeal"; there is no link to the flow 14 appeal. | `apps/mobile/app/(author)/studio/books.tsx:52` | later | B |
+| - [ ] | 11-13 | Analytics: application_decided | `application_decided {decision, days}` is not fired anywhere, in the decide RPC or the admin action. | `apps/admin/app/(console)/applications/actions.ts:32` | later | A |
+| - [ ] | 11-14 | Analytics: author_post_created | Never fired (post is a stub, see 11-3). | `apps/mobile/app/(author)/studio/post.tsx:60` | later | B |
+| - [ ] | 11-15 | Analytics: book_processing_done | Sent with `seconds` only; the spec also wants `flags`. | `apps/mobile/app/(author)/studio/submit/processing.tsx:49` | later | B |
+
+34 rules checked, 15 gaps.
