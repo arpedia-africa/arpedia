@@ -26,6 +26,7 @@ import {
   SELBAR_HEIGHT,
   SelectionBar,
   UnlockedToast,
+  chapterLabel as chapterName,
   readerInk,
 } from '../../features/04/ReaderViews';
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
@@ -186,7 +187,7 @@ export default function ReaderScreen() {
         ? 'Pay as you read'
         : chapter
           ? chapter.kind === 'chapter'
-            ? `Chapter ${chapterNo} · ${chapter.title}`
+            ? chapterName(chapterNo, chapter.title)
             : chapter.title
           : '';
 
@@ -290,7 +291,7 @@ export default function ReaderScreen() {
   const chapterLabel = (uid: string | null) => {
     const c = uid && st ? st.chapters.find((x) => x.chapter_uid === uid) : null;
     if (!c || !st) return null;
-    return c.kind === 'chapter' ? `Chapter ${chapterNumber(st, c.chapter_uid)} · ${c.title}` : c.title;
+    return c.kind === 'chapter' ? chapterName(chapterNumber(st, c.chapter_uid), c.title) : c.title;
   };
 
   // ─── Notes sheet rows (rule 42) ───────────────────────────────────────────
