@@ -57,6 +57,14 @@ export async function registerPushToken() {
   }
 }
 
+/** Fire-and-forget RPC. A Supabase query only runs once `.then` is called, so `void rpc()` sends nothing. */
+export function send(query: PromiseLike<unknown>) {
+  query.then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 // The tap that launched the app is also returned on later mounts: open it once.
 let handled: string | null = null;
 
@@ -67,7 +75,7 @@ function open(response: Notifications.NotificationResponse | null) {
   const data = response?.notification.request.content.data as
     { push_id?: number; target?: Target } | undefined;
   if (!data) return;
-  if (typeof data.push_id === 'number') void supabase.rpc('push_opened', { p_push_id: data.push_id });
+  if (typeof data.push_id === 'number') send(supabase.rpc('push_opened', { p_push_id: data.push_id }));
   openTarget(data.target);
 }
 

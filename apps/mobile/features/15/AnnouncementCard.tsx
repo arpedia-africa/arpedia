@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Petals, Press, Text, useTheme } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
-import { openTarget, type Target } from './push';
+import { openTarget, send, type Target } from './push';
 
 // Home announcement card (flow 15 rule 21), mirroring the admin preview `.sy-bcard`
 // (`node tools/screen.mjs --admin banner-edit --css`). Home places <HomeAnnouncements /> under the hero.
@@ -119,7 +119,7 @@ export function HomeAnnouncements({ style }: { style?: StyleProp<ViewStyle> }) {
   const ids = (data ?? []).map((b) => b.id).join(',');
   useEffect(() => {
     for (const id of ids.split(',').filter(Boolean))
-      void supabase.rpc('banner_event', { p_banner: id, p_kind: 'shown' });
+      send(supabase.rpc('banner_event', { p_banner: id, p_kind: 'shown' }));
   }, [ids]);
   if (!data?.length) return null;
   return (
@@ -129,7 +129,7 @@ export function HomeAnnouncements({ style }: { style?: StyleProp<ViewStyle> }) {
           key={b.id}
           banner={b}
           onOpen={() => {
-            void supabase.rpc('banner_event', { p_banner: b.id, p_kind: 'tapped' });
+            send(supabase.rpc('banner_event', { p_banner: b.id, p_kind: 'tapped' }));
             openTarget(b.target);
           }}
           onDismiss={() => dismiss.mutate(b.id)}
