@@ -162,3 +162,10 @@ Each entry has a date, what happened, and the **lesson** (what a reader should c
 9. Watching it remotely: phone notifications and a live checklist
 10. When things break: outages, restarts, memory, contention (with the fixes above)
 11. From merged flows to a store release
+
+### 23 Nov: reboot overnight, and the last spec
+- **15 of 18 merged.** Flows 15, 05 and 13 merged between 04:00 and 07:00.
+- **The PC rebooted at 07:07** and took Docker, the emulator, both builders and the notifier with it. Recovery: start Docker, check both databases answer, save each clone's unfinished work (stash, plus a patch for a half-done merge), put the clones on main, clear locks whose owner is dead, restart the loops. Took about 10 minutes. **Lesson:** owner files on locks make it safe to tell a dead lock from a live one after a crash.
+- **A cheaper model can be blocked by its habits.** The Sonnet prep builder reached for PowerShell where Opus used Bash, and the allowlist only had Bash. It spent about an hour reporting "blocked". **Lesson:** when swapping models, check the first few runs, not just the first one.
+- **The cloud device check is paused.** It ran three times without a pass, and one hung for the full 150 minutes. **Lesson:** put a time limit on every step before the first run.
+- **Flow 17 spec drafted.** Reading v25's real schema found conflicts the other specs had missed: part-paid books, bought credits sold at ₦3.33 to ₦5 against ₦3 now, and a 6-month plan with no match. They are owner decisions that block the production run. **Lesson:** read the old database before writing a migration spec; don't rely on notes about it.
