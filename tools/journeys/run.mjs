@@ -96,6 +96,7 @@ if (!names.length) {
   process.exit(1);
 }
 execSync(`adb -s ${serial} shell input keyevent KEYCODE_WAKEUP`);
+execSync(`adb -s ${serial} shell svc power stayon true`);
 // The release app talks to 127.0.0.1 (dev-vars --phone); a restarted emulator forgets the reverses.
 for (const port of [55321, 8787, 8788]) execSync(`adb -s ${serial} reverse tcp:${port} tcp:${port}`);
 const list = existing

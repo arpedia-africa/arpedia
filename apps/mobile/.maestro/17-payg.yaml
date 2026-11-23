@@ -68,8 +68,13 @@ appId: com.arpedia.reader
                   visible: 'Undo'
                 commands:
                   - tapOn: 'Undo'
+                  - takeScreenshot: payg-${WIDTH}-undo-tapped
                   - evalScript: ${output.undone = true}
 - assertTrue: ${output.undone}
+# The reader confirms with a notice: "Chapter n returned . n credits back".
+- extendedWaitUntil:
+    visible: 'Chapter .* returned . .* credits back'
+    timeout: 15000
 - takeScreenshot: payg-${WIDTH}-undone
 
 # ─── Read on: charged again (Auto-unlock is on) ─────────────────────────────
@@ -94,7 +99,8 @@ appId: com.arpedia.reader
 - extendedWaitUntil:
     visible: 'Left to pay'
     timeout: 10000
-- assertVisible: 'Book price'
+# "Price" on the book page's sheet, "Book price" on the Library's.
+- assertVisible: '(Book p|P)rice'
 - assertVisible: 'Already paid'
 - takeScreenshot: payg-${WIDTH}-pay-rest
 - tapOn: 'Pay .* credits'
