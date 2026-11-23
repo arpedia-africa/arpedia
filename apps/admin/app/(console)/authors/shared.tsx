@@ -116,6 +116,32 @@ export async function loadAuthor(supabase: Supa, id: string) {
   return { author: data as unknown as AuthorDetail };
 }
 
+/** Followers per author, from author_stats (kept by the follows trigger). */
+export async function loadFollowers(supabase: Supa) {
+  const { data } = await supabase.from('author_stats').select('author_id, follower_count');
+  return new Map((data ?? []).map(s => [s.author_id, s.follower_count]));
+}
+
+export interface AuthorSocial {
+  follower_count: number;
+  reader_count: number;
+  avg_rating: number | null;
+  earnings_kobo: number;
+  tips: { count: number; credits: number };
+  messages: { count: number; credits: number };
+  threads: number;
+  community: { id: string; name: string; member_count: number } | null;
+}
+
+/** admin_author_social(): followers, tips, paid reader messages and the community. Never message bodies. */
+export async function loadSocial(supabase: Supa, id: string) {
+  const { data, error } = await supabase.rpc('admin_author_social', { p_user: id });
+  return error ? null : (data as unknown as AuthorSocial);
+}
+
+/** "1 follower", "1,240 followers". */
+export const followers = (n: number) => `${n0(n)} follower${n === 1 ? '' : 's'}`;
+
 /** The author's name for headings. */
 export const authorName = (a: AuthorDetail) => a.profile.pen_name || a.full_name || 'Author';
 
