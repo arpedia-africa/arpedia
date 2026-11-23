@@ -93,6 +93,11 @@ export function readReleaseBundle(bytes) {
   };
 }
 
+/** RevenueCat public Android SDK key (EXPO_PUBLIC_REVENUECAT_ANDROID_KEY). */
+export const RC_ANDROID_KEY = /goog_[A-Za-z0-9]{10,}/;
+/** The local test store's route, only in kit or dev builds. */
+export const TEST_STORE_MARKER = '/v1/payments/test-store';
+
 /** Kit builds (EXPO_PUBLIC_KIT=1) carry the kit_network security config (plugins/kit-localhost.js). */
 export const isKitBuild = (bundle) =>
   bundle.entries.some((e) => e.endsWith('res/xml/kit_network.xml')) ||
@@ -261,6 +266,24 @@ export async function runPreflight({
       key: 'expo_public_kit',
       status: kit ? 'fail' : 'pass',
       detail: kit ? 'built with EXPO_PUBLIC_KIT=1 (kit gallery and cleartext localhost)' : 'off',
+    });
+    // Flow 09: readers buy through RevenueCat, whose public Android SDK key starts goog_.
+    const rcKey = RC_ANDROID_KEY.test(bundle.text);
+    items.push({
+      key: 'revenuecat_key',
+      status: rcKey ? 'pass' : 'fail',
+      detail: rcKey
+        ? 'RevenueCat Android key in the bundle'
+        : 'built without EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: nobody can buy',
+    });
+    // The local test store (features/09/purchases.ts) must be compiled out of a release build.
+    const testStore = bundle.text.includes(TEST_STORE_MARKER);
+    items.push({
+      key: 'test_store',
+      status: testStore ? 'fail' : 'pass',
+      detail: testStore
+        ? 'the local test store is in the bundle (EXPO_PUBLIC_TEST_STORE or the kit)'
+        : 'not in the bundle',
     });
   }
 

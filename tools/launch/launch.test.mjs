@@ -188,7 +188,7 @@ function healthy() {
     posthog: 340,
     bundle: {
       entries: ['base/assets/index.android.bundle'],
-      text: 'https://api.arpedia.africa https://arpedia.supabase.co',
+      text: 'https://api.arpedia.africa https://arpedia.supabase.co goog_AbCdEfGhIjKlMnOp',
     },
   };
 }
@@ -240,6 +240,8 @@ describe('preflight.mjs', () => {
     posthog: (w) => (w.posthog = 0),
     release_endpoints: (w) => (w.bundle.text += ' https://arpedia-staging.supabase.co'),
     expo_public_kit: (w) => w.bundle.entries.push('base/res/xml/kit_network.xml'),
+    revenuecat_key: (w) => (w.bundle.text = w.bundle.text.replace(/goog_\w+/, '')),
+    test_store: (w) => (w.bundle.text += ' /v1/payments/test-store'),
     release_build: (w) => (w.bundle = null),
   };
 
