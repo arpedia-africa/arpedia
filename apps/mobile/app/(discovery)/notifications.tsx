@@ -90,7 +90,7 @@ export default function Notifications() {
         category={category}
         onCategory={setCategory}
         onBack={() => router.back()}
-        onSettings={() => toast({ message: 'Notification settings are coming soon' })}
+        onSettings={() => router.push('/notification-settings')}
         onMarkAll={() => mark.all.mutate()}
       />
       {body()}

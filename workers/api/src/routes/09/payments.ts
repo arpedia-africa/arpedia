@@ -75,7 +75,9 @@ payments.post('/revenuecat', async (c) => {
 // production: anything but APP_ENV local answers 404.
 payments.post('/test-store', requireUser, async (c) => {
   if (c.env.APP_ENV !== 'local') return c.json({ error: 'not_found' }, 404);
-  const body = await c.req.json<{ kind?: unknown; code?: unknown }>().catch(() => ({}) as Record<string, unknown>);
+  const body = await c.req
+    .json<{ kind?: unknown; code?: unknown }>()
+    .catch(() => ({}) as Record<string, unknown>);
   const kind = body.kind === 'plan' || body.kind === 'topup' ? body.kind : null;
   const code = typeof body.code === 'string' ? body.code : '';
   if (!kind || !code) return c.json({ error: 'bad_request' }, 400);

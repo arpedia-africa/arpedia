@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Screen, useToast } from '@arpedia/ui';
+import { Screen } from '@arpedia/ui';
 import { useMyProfile, useSession } from '../../features/01/session';
+import { STUDIO } from '../../features/11/application';
 import { useProfileSummary, useSetGoal } from '../../features/10/data';
 import { GoalSheet, ProfileView } from '../../features/10/ProfileViews';
 
 // Flow 10 · Profile tab (s-profile) with the Reading goal sheet (s-goal) over it.
 export default function Profile() {
-  const toast = useToast();
   const session = useSession();
   const uid = session?.user.id;
   const profile = useMyProfile(uid);
@@ -27,11 +27,8 @@ export default function Profile() {
         onSettings={() => router.push('/account')}
         onGoal={() => setGoalOpen(true)}
         onCollection={(tab) => router.push({ pathname: '/my-highlights', params: { tab } })}
-        onAuthor={() =>
-          summary.data?.is_author
-            ? toast({ message: 'Author Studio opens here once it ships.' })
-            : toast({ message: 'Author applications open here soon.' })
-        }
+        // The become-author page shows the right action for every application state.
+        onAuthor={() => router.push(summary.data?.is_author ? STUDIO : '/become-author')}
       />
       <GoalSheet
         open={goalOpen}

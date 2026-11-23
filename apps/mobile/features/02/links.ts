@@ -1,13 +1,13 @@
-// Where Discovery cards lead. The author page (flow 08) and Credits (flow 09) are built by later
-// flows; until their routes exist a tap says so instead of opening a blank page.
+// Where Discovery cards lead.
 import { router } from 'expo-router';
 
 type Toast = (t: { message: string }) => void;
 
-export const discoveryLinks = (toast: Toast) => ({
+// `toast` stays in the signature so callers don't change; every destination now exists.
+export const discoveryLinks = (_toast: Toast) => ({
   book: (id: string) => router.push({ pathname: '/book/[id]', params: { id, source: 'discovery' } }),
-  author: (_id: string) => toast({ message: 'Author pages are coming soon' }),
-  credits: () => toast({ message: 'Credits are coming soon' }),
+  author: (id: string) => router.push({ pathname: '/author/[id]', params: { id, source: 'discovery' } }),
+  credits: () => router.push('/credits'),
   explore: (genre?: string) => router.push(genre ? { pathname: '/explore', params: { genre } } : '/explore'),
   search: () => router.push('/search'),
   notifications: () => router.push('/notifications'),

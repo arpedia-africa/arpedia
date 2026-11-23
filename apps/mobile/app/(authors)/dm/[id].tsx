@@ -18,7 +18,7 @@ import {
   DayMarker,
   type BubbleView,
 } from '../../../features/06/ChatViews';
-import { OptionList } from '../../../features/06/SheetViews';
+import { OptionList, ReportBody, type ReportReason } from '../../../features/06/SheetViews';
 import {
   historyKey,
   useChat,
@@ -26,6 +26,7 @@ import {
   useGroupMembership,
   useHistory,
 } from '../../../features/06/chat';
+import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 import { useTrack } from '../../../features/08/analytics';
 import { DmConfirmSheet } from '../../../features/08/DmConfirm';
 import { DmComposer, DmHead, DmIntro } from '../../../features/08/DmViews';
@@ -158,6 +159,11 @@ function Thread({
   const [pending, setPending] = useState<Pending[]>([]);
   const [short, setShort] = useState<{ need: number; balance: number } | null>(null);
   const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState<string | null>(null);
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [details, setDetails] = useState('');
+  const [alsoBlock, setAlsoBlock] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
   const listRef = useRef<FlatList<Item>>(null);
   const first = firstName(t.author_name);
   const price = `${n(t.cost_credits)} credits`;
@@ -450,6 +456,49 @@ function Thread({
         </View>
       </Sheet>
 
+      <Sheet open={!!reporting} onClose={() => setReporting(null)} title="Why are you reporting this?">
+        {reporting ? (
+          <ReportBody
+            name={t.author_name}
+            reason={reason}
+            details={details}
+            alsoBlock={alsoBlock}
+            canBlock
+            sending={sendingReport}
+            onReason={setReason}
+            onDetails={setDetails}
+            onAlsoBlock={setAlsoBlock}
+            onCancel={() => setReporting(null)}
+            onSend={() => {
+              if (!reason) return;
+              setSendingReport(true);
+              createReport(
+                {
+                  content_type: 'dm',
+                  content_id: reporting,
+                  reason,
+                  details: details.trim() || null,
+                  also_block: alsoBlock,
+                },
+                !online,
+              )
+                .then(
+                  (ref) => {
+                    setReporting(null);
+                    toast({ message: ref === null ? REPORT_SAVED : REPORT_SENT, duration: 6000 });
+                    if (alsoBlock && ref !== null) {
+                      void qc.invalidateQueries({ queryKey: threadKey(authorId) });
+                      void qc.invalidateQueries({ queryKey: authorKey(authorId) });
+                    }
+                  },
+                  (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
+                )
+                .finally(() => setSendingReport(false));
+            }}
+          />
+        ) : null}
+      </Sheet>
+
       <Sheet open={menu} onClose={() => setMenu(false)} title={t.author_name}>
         <OptionList
           items={[
@@ -480,8 +529,15 @@ function Thread({
               danger: true,
               onPress: () => {
                 setMenu(false);
-                // Thread reports (rule 29) are flow 14's create_report, not on this branch yet.
-                toast({ message: 'Reporting a chat is coming soon. You can block now.' });
+                // Thread report (rule 29): create_report 'dm' on the author's latest message; staff see the last 50.
+                const last = (history.data ?? [])
+                  .filter((m) => m.sender_id !== me && m.state === 'visible')
+                  .pop();
+                if (!last) return toast({ message: 'Nothing to report yet. You can block now.' });
+                setReason(null);
+                setDetails('');
+                setAlsoBlock(false);
+                setReporting(last.id);
               },
             },
             {

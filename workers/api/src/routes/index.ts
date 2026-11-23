@@ -16,6 +16,7 @@ import appConfig from './16/app-config';
 import authors from './08/authors';
 import earnings from './13/earnings';
 import engage from './15/engage';
+import dataExport from './17/export';
 
 export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/health', health],
@@ -33,4 +34,5 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/authors', authors],
   ['/v1/earnings', earnings],
   ['/v1/engage', engage],
+  ['/v1/data-export', dataExport],
 ];

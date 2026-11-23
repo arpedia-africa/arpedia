@@ -41,7 +41,6 @@ export default function Studio() {
   const [dismissed, dismiss] = useBannerDismissed(uid);
   useEffect(() => track('studio_opened'), [track]);
 
-  const soon = (what: string) => toast({ message: `${what} opens in the next Studio update` });
   const go = (to: StudioGo) => {
     switch (to) {
       case 'reader':
@@ -58,7 +57,10 @@ export default function Studio() {
       case 'inbox':
         return router.push('/studio/inbox' as Href);
       case 'club':
-        return soon('Your club chat');
+        // The author's own community chat; before approval there is no club yet.
+        return home.data?.club_group_id
+          ? router.push(`/community/${home.data.club_group_id}` as Href)
+          : toast({ message: 'Your club opens with your first reader' });
       case 'profile':
         return router.push('/studio/profile' as Href);
       case 'payout':
