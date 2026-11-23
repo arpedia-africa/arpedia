@@ -1,0 +1,15 @@
+<!-- Parity page s-library: the prototype screen, verbatim from prototype/src/04-library-social.html (tab bar left out:
+     the app draws it in the tabs layout). apps/mobile/app/parity.tsx renders the flow 05 views with the same values. -->
+<div class="body body-end">
+  <div class="hero">
+    <div class="hero__bar"><h1 class="hero__title fill">Library</h1><div class="lib-toggle" data-single><button class="ib on" data-go="library" aria-label="Grid view"><svg class="ico s" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="ib" data-go="library-list" aria-label="List view"><svg class="ico s" aria-hidden="true"><use href="#i-rows"/></svg></button></div></div>
+    <div class="hero__body"><div class="search-row"><a class="search" data-go="search"><svg class="ico s" aria-hidden="true"><use href="#i-search"/></svg>Search your library</a><button class="search-filter" data-go="library-filter" aria-label="Filter library"><svg class="ico s" aria-hidden="true"><use href="#i-filter"/></svg></button></div></div>
+  </div>
+  <div class="chips lib-shelves"><a class="chip on" data-go="library">Reading 3</a><a class="chip" data-go="library-saved">Saved 5</a><a class="chip" data-go="library-finished">Finished 14</a><a class="chip" data-go="library-offline">Offline 1</a></div>
+  <div class="section__head"><h2 class="section__title">Reading</h2><span class="t-sm t-soft">Last opened first</span></div>
+  <div class="lib-grid">
+    <a class="lib-book" data-go="reader"><span class="lib-cover"><span class="cv c1"><b>Harmattan Letters</b><small>Ifeoma Nwachukwu</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">34%</span><span class="lib-prog"><i style="width:34%"></i></span></span><b>Harmattan Letters</b><span class="lib-au">Ifeoma Nwachukwu</span></a>
+    <a class="lib-book" data-go="reader"><span class="lib-cover"><span class="cv c3"><b>The Alignment</b><small>Adaeze Rosemary Possible</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">72%</span><span class="lib-prog"><i style="width:72%"></i></span></span><b>The Alignment</b><span class="lib-au">Adaeze Rosemary Possible</span></a>
+    <a class="lib-book" data-go="preview-end"><span class="lib-cover"><span class="cv c4"><b>Seven Bridges to Jos</b><small>Musa Danladi</small></span><span class="lib-more"><svg class="ico xs" aria-hidden="true"><use href="#i-more"/></svg></span><span class="lib-pct">10%</span><span class="lib-prog"><i style="width:10%"></i></span></span><b>Seven Bridges to Jos</b><span class="lib-au">Musa Danladi</span><span class="lib-state">Preview ended</span></a>
+  </div>
+  </div>
