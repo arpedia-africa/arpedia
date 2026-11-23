@@ -16,6 +16,7 @@ param(
   [string]$Flows = '',             # e.g. '06' or '06,10': only these flows (one extra loop per flow when several are ready)
   [string]$TaskFile = '',          # file in the repo with extra instructions, e.g. to split one flow between two builders
   [string]$LockOwner = '',         # owner name this builder writes in its locks, so the loop can clear them
+  [string]$Session0 = '',          # continue this Claude session first (after the loop itself was restarted)
   [switch]$NoPhone,                # builder that never uses the phone: hands on-device checks back (label needs-phone)
   [switch]$Prep,                   # code-only builder: keeps needs-phone PRs merged with main and green, so device runs never wait on code work
   [switch]$PhoneOnly,              # device builder: only finishes on-device steps of needs-phone PRs
@@ -51,8 +52,20 @@ $allowed = @(
   'PowerShell(Test-Path:*)','PowerShell(Set-Content:*)','PowerShell(Copy-Item:*)','PowerShell(Select-String:*)'
 )
 
+# Online = three real HTTPS answers in a row (a bare TCP connect also passes on a line that resets every request).
 function Test-Online {
-  try { $c = New-Object Net.Sockets.TcpClient; $ok = $c.ConnectAsync('api.anthropic.com', 443).Wait(5000); $c.Close(); return $ok } catch { return $false }
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+  foreach ($i in 1..3) {
+    try {
+      $r = [Net.WebRequest]::Create('https://api.anthropic.com/'); $r.Timeout = 8000; $r.KeepAlive = $false
+      $r.GetResponse().Close()
+    } catch {
+      $e = $_.Exception; if ($e.InnerException) { $e = $e.InnerException }
+      if (-not $e.Response) { return $false }   # no HTTP answer at all (a 404 still counts as online)
+      $e.Response.Close()
+    }
+  }
+  return $true
 }
 
 # The lock folders this loop's builder owns (each lock holds an "owner" file).
@@ -65,9 +78,9 @@ function Get-OwnLocks {
 }
 
 $run = 0
-$session = ''      # Claude session id of the current run
-$resumes = 0       # times the current run has been resumed after a dropped connection
-$MaxResumes = 6
+$session = $Session0      # Claude session id of the current run
+$resumes = [int][bool]$Session0       # times the current run has been resumed after a dropped connection
+$MaxResumes = 40
 while ($true) {
   # Offline: wait here, checking every minute, instead of letting a run hang on API retries.
   if (-not (Test-Online)) {
@@ -100,7 +113,7 @@ while ($true) {
   $before = (git ls-remote origin 'refs/heads/flow/*' 2>$null | Out-String)
   if ($resumes -gt 0) {
     # The connection dropped mid-run: carry on in the same session instead of starting the PR again.
-    $again = "The internet connection dropped and is back. Carry on exactly where you stopped, under the same instructions. Your locks were kept: touch them now. First check what changed while you were away (git status, git fetch, whether the PR moved, whether your device, Workers and any command that was running are still up), then continue. Don't repeat steps that already finished."
+    $again = "The internet connection dropped and is back. Carry on exactly where you stopped, under the same instructions. Your locks were normally kept: check them with ls and touch them; if one is gone, take it again with mkdir (and its owner file) before you use what it guards. First check what changed while you were away (git status, git fetch, whether the PR moved, whether your device, Workers and any command that was running are still up), then continue. Don't repeat steps that already finished."
     $again | claude -p --resume $session --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
   } else {
     $session = [guid]::NewGuid().ToString()
@@ -135,10 +148,10 @@ while ($true) {
     # too many drops in one run: start fresh after the offline check, no 8-minute wait
     Write-Host "Connection dropped during the run. Retrying when online ..." -ForegroundColor DarkYellow
     Start-Sleep -Seconds 30
-  } elseif ($text -match 'NOTHING-TO-DO') {
+  } elseif ($text -match '(?m)^[^A-Za-z]*NOTHING-TO-DO[^A-Za-z]*$') {
     Write-Host "Nothing ready. Waiting $IdleMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($IdleMinutes * 60)
-  } elseif ($text -match 'WAITING-FOR-CI' -or $before -eq $after) {
+  } elseif ($text -match '(?m)^[^A-Za-z]*WAITING-FOR-CI[^A-Za-z]*$' -or $before -eq $after) {
     # waiting on CI, or the run pushed nothing: don't spin, give CI time
     Write-Host "Waiting on CI / no new push. Next run in $CiWaitMinutes minutes ..." -ForegroundColor DarkGray
     Start-Sleep -Seconds ($CiWaitMinutes * 60)
