@@ -12,6 +12,9 @@ import { localEnv, passwordSession, staffSession } from './staff-session.mjs';
 const args = process.argv.slice(2);
 const ai = args.indexOf('--as');
 const as = ai !== -1 ? args.splice(ai, 2)[1] : null;
+// --workdir .shots/sb15: sign in on a private Supabase stack (see tools/staff-session.mjs).
+const wi = args.indexOf('--workdir');
+if (wi !== -1) process.env.SUPABASE_WORKDIR = args.splice(wi, 2)[1];
 // --db2: sign in against the second local stack (tools/db2.mjs), as builders without the phone use.
 const di = args.indexOf('--db2');
 if (di !== -1) (args.splice(di, 1), (process.env.DB2 = '1'));

@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { Screen, Section, useTheme, useToast } from '@arpedia/ui';
@@ -24,6 +25,7 @@ import {
   type HomeBook,
 } from '../../features/02/home';
 import { discoveryLinks } from '../../features/02/links';
+import { BANNERS_KEY, HomeAnnouncements } from '../../features/15/AnnouncementCard';
 
 const card = (b: HomeBook): BookCard => ({
   id: b.id,
@@ -37,6 +39,7 @@ export default function Home() {
   const toast = useToast();
   const go = discoveryLinks(toast);
   const home = useHome();
+  const qc = useQueryClient();
   const [pulling, setPulling] = useState(false);
   const data = home.data;
   const name = data?.first_name?.trim();
@@ -44,7 +47,7 @@ export default function Home() {
 
   const refresh = async () => {
     setPulling(true);
-    await home.refetch();
+    await Promise.all([home.refetch(), qc.invalidateQueries({ queryKey: BANNERS_KEY })]);
     setPulling(false);
   };
 
@@ -163,6 +166,7 @@ export default function Home() {
         onBell={go.notifications}
         onSearch={go.search}
       />
+      <HomeAnnouncements style={{ paddingHorizontal: s(16), paddingTop: s(16) }} />
       <View>{body()}</View>
     </Screen>
   );
