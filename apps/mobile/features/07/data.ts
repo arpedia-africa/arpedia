@@ -13,6 +13,7 @@ import {
 } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { historyKey } from '../06/chat';
+import { useAskPush } from '../15/push';
 
 // Flow 07 server data: rooms list, one room, members, annotations, chat history with spoiler stamps,
 // the library for "Choose the book", and the create / join / leave / host actions
@@ -355,6 +356,7 @@ export function createErrorOf(e: unknown): CreateError {
 
 export function useCreateRoom() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   return useMutation({
     mutationFn: async (v: { name: string; book: string; pace: RoomPace; join_policy: RoomJoinPolicy }) => {
       const { data, error } = await supabase.rpc('create_reading_room', {
@@ -366,7 +368,10 @@ export function useCreateRoom() {
       if (error) throw error;
       return data as unknown as { room_id: string; code: string };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+    onSuccess: () => {
+      askPush('join');
+      return qc.invalidateQueries({ queryKey: ['rooms'] });
+    },
   });
 }
 
@@ -383,6 +388,7 @@ export interface JoinResult {
 /** Without `confirm` the server answers `confirm` (the consent line) instead of joining. */
 export function useJoinRoom() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   return useMutation({
     mutationFn: async (v: { code: string; confirm: boolean }) => {
       const { data, error } = await supabase.rpc('join_reading_room', {
@@ -394,7 +400,10 @@ export function useJoinRoom() {
       if (r.room_id && (r.status === 'joined' || r.status === 'member')) await refreshRoom(r.room_id, true);
       return r;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+    onSuccess: (r) => {
+      if (r.status === 'joined') askPush('join');
+      return qc.invalidateQueries({ queryKey: ['rooms'] });
+    },
   });
 }
 
@@ -426,6 +435,7 @@ export function useOpenRooms(enabled: boolean) {
 /** Join an "Anyone" room without the code; like `useJoinRoom`, the first call asks for consent. */
 export function useJoinOpenRoom() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   return useMutation({
     mutationFn: async (v: { room: string; confirm: boolean }) => {
       const { data, error } = await supabase.rpc('join_open_room', { p_room: v.room, p_confirm: v.confirm });
@@ -434,7 +444,10 @@ export function useJoinOpenRoom() {
       if (r.room_id && (r.status === 'joined' || r.status === 'member')) await refreshRoom(r.room_id, true);
       return r;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+    onSuccess: (r) => {
+      if (r.status === 'joined') askPush('join');
+      return qc.invalidateQueries({ queryKey: ['rooms'] });
+    },
   });
 }
 

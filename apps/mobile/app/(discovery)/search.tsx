@@ -48,6 +48,7 @@ import {
   type Recent,
   type ServerSuggestion,
 } from '../../features/02/search';
+import { useAskPush } from '../../features/15/push';
 
 const NO_FILTER = { genre: null as string | null, bands: [] as LengthBand[] };
 
@@ -88,12 +89,16 @@ export default function Search() {
   const close = useCloseMatches(none);
   const request = useRequestBook();
   const join = useJoin();
+  const askPush = useAskPush();
   const follow = useMutation({
     mutationFn: async (author: string) => {
       const { error } = await supabase.rpc('follow_author', { p_author: author });
       if (error) throw error;
     },
-    onSuccess: (_d, author) => void qc.invalidateQueries({ queryKey: authorKey(author) }),
+    onSuccess: (_d, author) => {
+      askPush('follow');
+      void qc.invalidateQueries({ queryKey: authorKey(author) });
+    },
   });
 
   const run = (q: string) => {

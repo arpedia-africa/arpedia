@@ -29,6 +29,7 @@ import {
   type AuthorProfile,
 } from '../../../features/08/data';
 import { useFlag } from '../../../features/16/config';
+import { useAskPush } from '../../../features/15/push';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const n = (v: number) => v.toLocaleString('en-NG');
@@ -99,6 +100,7 @@ export default function AuthorPage() {
     }
   }, [p, id, source, track]);
 
+  const askPush = useAskPush();
   const follow = useMutation({
     mutationFn: async (on: boolean) => {
       const { data, error } = await supabase.rpc(on ? 'follow_author' : 'unfollow_author', {
@@ -119,6 +121,7 @@ export default function AuthorPage() {
       );
     },
     onSuccess: (r, on) => {
+      if (on) askPush('follow');
       track(on ? 'author_followed' : 'author_unfollowed', { author_id: id });
       qc.setQueryData<AuthorProfile>(authorKey(id), (old) =>
         old ? { ...old, following: r.following, follower_count: r.follower_count } : old,
@@ -145,6 +148,7 @@ export default function AuthorPage() {
       return group;
     },
     onSuccess: (group) => {
+      askPush('join');
       track('author_community_joined', { author_id: id });
       void qc.invalidateQueries({ queryKey: authorKey(id) });
       router.push({ pathname: '/community/[id]', params: { id: group } });

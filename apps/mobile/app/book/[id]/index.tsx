@@ -16,6 +16,7 @@ import type { UnlockMode } from '../../../features/03/UnlockViews';
 import { DOWNLOAD_STARTED, downloadBook } from '../../../features/04/download';
 import { useBuyPack } from '../../../features/09/buyPack';
 import { useFlag } from '../../../features/16/config';
+import { useAskPush } from '../../../features/15/push';
 
 export default function BookPage() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
@@ -29,6 +30,7 @@ export default function BookPage() {
   };
   const track = useTrack();
   const trackReader = useReaderTrack();
+  const askPush = useAskPush();
   const qc = useQueryClient();
   const page = useBookPage(id);
   const d = page.data;
@@ -49,6 +51,9 @@ export default function BookPage() {
     },
     onMutate: (on) => {
       qc.setQueryData<BookPageData | null>(bookKey(id), (old) => (old ? { ...old, following: on } : old));
+    },
+    onSuccess: (_d, on) => {
+      if (on) askPush('follow');
     },
     onError: (_e, on) => {
       qc.setQueryData<BookPageData | null>(bookKey(id), (old) => (old ? { ...old, following: !on } : old));

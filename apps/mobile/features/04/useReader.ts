@@ -38,6 +38,7 @@ import {
 import { useTrack } from './analytics';
 import { deviceId, WorkerError } from './worker';
 import { flushAnnotations, queuedAnnotations, saveAnnotations, type AnnotationRow } from './annotationQueue';
+import { useAskPush } from '../15/push';
 
 export type ReaderPhase = 'loading' | 'ready' | 'error' | 'offline' | 'expired';
 
@@ -115,6 +116,7 @@ export function useReader(
 ) {
   const qc = useQueryClient();
   const track = useTrack();
+  const askPush = useAskPush();
   const openedAt = useRef(Date.now());
   const readyTracked = useRef(false);
   const q = useReaderState(bookId);
@@ -514,6 +516,7 @@ export function useReader(
           payload: { access: a, reload_section: true, gate_room: gateRoom.current },
         });
         if (r.status === 'ok' && r.spent > 0) {
+          askPush('unlock');
           track('chapter_unlocked', {
             chapter_ord: chapterNumber(fresh, chapterUid),
             price: r.spent,
@@ -545,7 +548,7 @@ export function useReader(
         setCharging(null);
       }
     },
-    [state, bookId, refresh, send, track],
+    [state, bookId, refresh, send, track, askPush],
   );
 
   const undo = useCallback(async () => {

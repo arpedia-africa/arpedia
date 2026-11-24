@@ -19,6 +19,7 @@ import { useTrack as useReaderTrack } from '../04/analytics';
 import { useTrack } from './analytics';
 import { bookKey, type BookPageData } from './book';
 import { LowBody, NoSubBody, PayGoBody, UnlockAllBody, type UnlockMode } from './UnlockViews';
+import { useAskPush } from '../15/push';
 
 // s-unlock, s-unlock-paygo, s-unlock-low, s-unlock-nosub: one sheet whose body follows the credit
 // checks (rules 13–31). Money moves only in unlock_book; this sheet never computes a charge.
@@ -81,6 +82,7 @@ export function UnlockSheet({
   const toast = useToast();
   const track = useTrack();
   const trackReader = useReaderTrack();
+  const askPush = useAskPush();
   const [variant, setVariant] = useState<Variant>('all');
   // One idempotency key per opening, reused for every retry of the same tap (rule 19).
   const [key, setKey] = useState('');
@@ -157,6 +159,7 @@ export function UnlockSheet({
         toast({ message: 'You already have this book. Nothing was charged.' });
         return;
       }
+      askPush('unlock');
       track('book_unlocked', {
         book_id: d.book.id,
         price: d.price,

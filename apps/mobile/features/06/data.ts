@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AvatarTone } from '@arpedia/ui';
 import { tabBadgeLabel, type Database } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { useAskPush } from '../15/push';
 
 // Flow 06 server data: inbox rows, filter counts, Mark all read (RPCs in 20261119000600_06_community).
 
@@ -85,12 +86,16 @@ export function useCommunities(q: string, type: string) {
 /** Join adds the user as member and puts the community in the inbox; it doesn't open the chat. */
 export function useJoin() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   return useMutation({
     mutationFn: async (group: string) => {
       const { error } = await supabase.rpc('join_group', { p_group: group });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['community'] }),
+    onSuccess: () => {
+      askPush('join');
+      return qc.invalidateQueries({ queryKey: ['community'] });
+    },
   });
 }
 

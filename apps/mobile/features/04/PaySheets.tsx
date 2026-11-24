@@ -10,6 +10,7 @@ import { rpcError } from '../03/UnlockSheet';
 import { ChapterLowBody, PayRestBody } from './PayViews';
 import type { ReaderState } from './state';
 import { chapterNumber } from './useReader';
+import { useAskPush } from '../15/push';
 
 const n = (v: number) => v.toLocaleString('en-NG');
 const DATE = new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'long' });
@@ -56,6 +57,7 @@ export function PayRestSheet({
   const paidRange = range(paidNums);
   const leftRange = range(leftNums);
 
+  const askPush = useAskPush();
   const pay = useMutation({
     mutationFn: async () => {
       const { data, error: e } = await supabase.rpc('unlock_book', {
@@ -66,7 +68,10 @@ export function PayRestSheet({
       if (e) throw e;
       return data as { balance: number; spent: number; status: string };
     },
-    onSuccess: (r) => onPaid(r),
+    onSuccess: (r) => {
+      askPush('unlock');
+      onPaid(r);
+    },
     onError: (e) => {
       const { code, detail } = rpcError(e);
       if (code === 'network') return setError('No connection. Nothing was charged. Try again.');

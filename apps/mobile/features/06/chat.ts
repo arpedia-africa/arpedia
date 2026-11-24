@@ -15,6 +15,7 @@ import {
   type ServerFrame,
 } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { useAskPush } from '../15/push';
 
 // Flow 06 chat client: history over HTTPS (get_messages, cached on device so a chat opens
 // instantly and offline), live frames over the conversation Durable Object's WebSocket, optimistic
@@ -378,6 +379,7 @@ export function useMarkRead(gid: string, newestId: string | undefined, member: b
 
 export function useGroupMembership(gid: string) {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   const refresh = () => qc.invalidateQueries({ queryKey: ['community'] });
   const join = useMutation({
     mutationFn: async () => {
@@ -386,7 +388,10 @@ export function useGroupMembership(gid: string) {
       // The DO re-reads access so the open socket may post at once.
       await refreshSelf(gid);
     },
-    onSuccess: refresh,
+    onSuccess: () => {
+      askPush('join');
+      return refresh();
+    },
   });
   const leave = useMutation({
     mutationFn: async () => {

@@ -545,9 +545,9 @@ export function NotifPrefsView({
       />
       {phoneOff ? (
         <View style={{ paddingHorizontal: s(16), paddingTop: s(16), gap: s(8) }}>
-          <Callout tone="warn">Notifications are off on this phone.</Callout>
+          <Callout tone="warn">Notifications are off in your phone settings.</Callout>
           <Btn
-            label="Open phone settings"
+            label="Open settings"
             variant="g"
             size="sm"
             onPress={onOpenSettings}
