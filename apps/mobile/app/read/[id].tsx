@@ -31,6 +31,7 @@ import {
 } from '../../features/04/ReaderViews';
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
 import { usePassageThread } from '../../features/04/passage';
+import { useShareToClub } from '../../features/04/ShareClubSheet';
 import { ChapterLowSheet, PayRestSheet } from '../../features/04/PaySheets';
 import {
   ChaptersSheet,
@@ -163,6 +164,7 @@ export default function ReaderScreen() {
   }, [r.elsewhere, r, toast]);
 
   const st = r.state;
+  const share = useShareToClub(st);
   const theme = r.settings.theme;
   const ink = readerInk(theme);
   const chapter = st?.chapters.find((c) => c.chapter_uid === r.loc?.chapter_uid) ?? null;
@@ -260,8 +262,6 @@ export default function ReaderScreen() {
     [r.settings.highlight_color],
   );
 
-  // Sharing a passage to a club needs a club for this book, which has no lookup yet.
-  const soon = () => toast({ message: 'Coming soon' });
   // The book room lives in Community (flow 06).
   const toRoom = () => router.push('/community');
   const shareBook = () => {
@@ -518,7 +518,7 @@ export default function ReaderScreen() {
               r.clearSelection();
               startDiscuss(sel.para_id_start, quote);
             }}
-            onClub={soon}
+            onClub={() => (share.start(sel), r.clearSelection())}
             onShare={() => {
               const quote = sel.text.slice(0, 500);
               const title = st?.book.title;
@@ -786,6 +786,7 @@ export default function ReaderScreen() {
             onRetry={(c) => void thread.post(c.body ?? '', discussFor?.quote ?? null, c.id)}
             onReact={(c, k) => void thread.react(c, k)}
           />
+          {share.element}
         </>
       ) : null}
       {book.data ? (
