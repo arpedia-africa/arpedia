@@ -37,6 +37,13 @@ appId: com.arpedia.reader
 - tapOn: 'EPUB'
 - tapOn: 'Choose your file'
 - tapOn: 'journey-book.epub'
+# Some picker builds select on tap and wait for Select.
+- tapOn:
+    text: 'Select'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Add cover image'
+    timeout: 30000
 - tapOn: 'Add cover image'
 # Android's photo picker shows thumbnails, not names: the pushed cover is the newest photo.
 - tapOn:
