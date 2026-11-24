@@ -9,6 +9,7 @@ function greeting(now = new Date()) {
 }
 
 interface Task {
+  id: string;
   href: string;
   title: string;
   sub: string;
@@ -26,6 +27,7 @@ async function tasksFor(role: string | undefined): Promise<Task[]> {
   const supabase = await serverSupabase();
   const { data } = await supabase.rpc('admin_pending_bans');
   return (data ?? []).map((b) => ({
+    id: b.action_id,
     href: b.report_id ? `/reports/${b.report_id}` : '/reports',
     title: `Confirm or turn down a ban on ${b.user_name ?? 'a reader'}`,
     sub: `${b.decided_by_name ?? 'A moderator'} asked for it${b.reason ? ` · ${b.reason}` : ''}${b.is_minor ? ' · under 18' : ''}`,
@@ -63,7 +65,7 @@ export default async function Home() {
             {tasks.length ? (
               <div className="tasks">
                 {tasks.map((t) => (
-                  <a key={t.href + t.title} className="task" href={t.href}>
+                  <a key={t.id} className="task" href={t.href}>
                     <span className="task__b">
                       <b>{t.title}</b>
                       <small>{t.sub}</small>
