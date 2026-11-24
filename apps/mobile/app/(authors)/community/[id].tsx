@@ -44,6 +44,7 @@ import {
 } from '../../../features/06/chat';
 import { toneFor } from '../../../features/06/data';
 import { DmComposer, DmHead, DmIntro } from '../../../features/08/DmViews';
+import { useTrack as useAuthorsTrack } from '../../../features/08/analytics';
 import { useAuthorProfile } from '../../../features/08/data';
 
 type Item = { key: string; day: string } | { key: string; bubble: BubbleView; msg?: ChatMessage };
@@ -78,6 +79,7 @@ export default function AuthorCommunity() {
   const g = group.data;
   const authorId = g?.owner_id ?? '';
   const author = useAuthorProfile(authorId);
+  const trackAuthors = useAuthorsTrack();
   const a = author.data;
   const history = useHistory(gid);
   const chat = useChat(gid, (e, wait) => {
@@ -187,7 +189,8 @@ export default function AuthorCommunity() {
   }, [list, pending, me, authorId]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/community'));
-  const profile = () => authorId && router.push({ pathname: '/author/[id]', params: { id: authorId } });
+  const profile = () =>
+    authorId && router.push({ pathname: '/author/[id]', params: { id: authorId, source: 'community' } });
 
   const blockReason = chat.block?.reason ?? g?.post_block ?? null;
   const blockUntil = chat.block?.until ?? g?.post_block_until ?? null;
@@ -400,7 +403,14 @@ export default function AuthorCommunity() {
               text={composerNote}
               action={
                 !g.is_member && g.visibility === 'public'
-                  ? { label: 'Join', onPress: () => membership.join.mutate() }
+                  ? {
+                      label: 'Join',
+                      onPress: () =>
+                        membership.join.mutate(undefined, {
+                          onSuccess: () =>
+                            trackAuthors('author_community_joined', { author_id: authorId, source: 'chat' }),
+                        }),
+                    }
                   : undefined
               }
               bottom={bottom}

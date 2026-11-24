@@ -13,6 +13,7 @@ import {
 import { toneFor, useCommunities, useJoin, type Community } from '../../features/06/data';
 import { ConsentBody } from '../../features/07/FormViews';
 import { useTrack as useRoomsTrack } from '../../features/07/analytics';
+import { useTrack as useAuthorsTrack } from '../../features/08/analytics';
 import {
   startsLabel,
   useJoinOpenRoom,
@@ -73,6 +74,7 @@ export default function Discover() {
   }, [query]);
   const list = useCommunities(q, type);
   const join = useJoin();
+  const trackAuthors = useAuthorsTrack();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/community'));
 
   // Flow 07 rule 8: "Anyone" reading rooms are listed under Read-alongs and join without the code.
@@ -147,6 +149,10 @@ export default function Discover() {
                 onOpen={() => router.push(`/chat/${g.id}`)}
                 onJoin={() =>
                   join.mutate(g.id, {
+                    onSuccess: () => {
+                      if (g.kind === 'author')
+                        trackAuthors('author_community_joined', { group_id: g.id, source: 'discover' });
+                    },
                     onError: () => toast({ message: "Couldn't join. Try again." }),
                   })
                 }
