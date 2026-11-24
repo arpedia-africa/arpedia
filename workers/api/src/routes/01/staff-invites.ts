@@ -155,6 +155,10 @@ invites.post('/:token/accept', async (c) => {
     return c.json({ email: inv.email });
   }
 
+  // Anything but "this email is taken" (rate limit, outage) is a plain failure to retry.
+  const taken =
+    createError?.code === 'email_exists' || /already (been )?registered/i.test(createError?.message ?? '');
+  if (!taken) throw new Error(`createUser failed: ${createError?.message ?? 'no user'}`);
   // Spec check 16-16: the address already has an account (a reader who used their work email).
   // The invite reached that inbox, which proves the address as a reset link would, so that account
   // joins the team and the password chosen here becomes its password.

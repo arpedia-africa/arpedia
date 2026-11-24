@@ -6,7 +6,12 @@ vi.mock('../../auth', () => ({
 }));
 const userRpc = vi.fn();
 vi.mock('../12/http', () => ({ userDb: () => ({ rpc: userRpc }) }));
-const serviceRpc = vi.fn(async () => ({ data: {}, error: null }));
+const serviceRpc = vi.fn(
+  async (_name: string, _args?: unknown): Promise<{ data: unknown; error: { message: string } | null }> => ({
+    data: {},
+    error: null,
+  }),
+);
 vi.mock('../../db', () => ({ serviceDb: () => ({ rpc: serviceRpc }) }));
 
 const { default: integrations, statusFor } = await import('./integrations');
@@ -26,6 +31,17 @@ describe('POST /check', () => {
       .filter((c) => (c as unknown[])[0] === 'worker_set_integration_health')
       .map((c) => ((c as unknown[])[1] as { p_service: string }).p_service);
     expect(services).toEqual(expect.arrayContaining(['supabase', 'r2']));
+  });
+
+  it('says so when a status could not be saved, instead of reporting old rows', async () => {
+    userRpc.mockResolvedValueOnce({ data: null, error: null });
+    serviceRpc.mockImplementation(async (name: string) =>
+      name === 'worker_set_integration_health'
+        ? { data: null, error: { message: 'down' } }
+        : { data: {}, error: null },
+    );
+    expect((await check()).status).toBe(500);
+    serviceRpc.mockImplementation(async () => ({ data: {}, error: null }));
   });
 
   it('refuses staff without settings access and runs nothing', async () => {

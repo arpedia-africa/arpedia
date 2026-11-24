@@ -68,6 +68,16 @@ describe('POST /:token/accept', () => {
     expect(deleteUser).not.toHaveBeenCalled();
   });
 
+  it('any other sign-up failure (rate limit, outage) never takes over an existing account', async () => {
+    createUser.mockResolvedValue({
+      data: { user: null },
+      error: { code: 'over_request_rate_limit', message: 'slow down' },
+    });
+    expect((await accept()).status).toBe(500);
+    expect(rpc).not.toHaveBeenCalledWith('worker_user_by_email', expect.anything());
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+
   it('short passwords are refused first', async () => {
     expect((await accept('short')).status).toBe(400);
     expect(createUser).not.toHaveBeenCalled();

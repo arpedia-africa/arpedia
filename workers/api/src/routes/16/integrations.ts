@@ -28,7 +28,7 @@ export function statusFor(total: number, failed: number): { status: Status; rate
 
 const label = (t: string | null) => (t ? t.replace(/[_.]/g, ' ').toLowerCase() : null);
 
-export async function checkIntegrations(env: Env): Promise<void> {
+export async function checkIntegrations(env: Env): Promise<number> {
   const db = serviceDb(env);
   const set = (
     service: string,
@@ -92,7 +92,14 @@ export async function checkIntegrations(env: Env): Promise<void> {
     }
   }
   const results = await Promise.all(jobs);
-  for (const r of results as { error: unknown }[]) if (r.error) console.error('integration health', r.error);
+  let failed = 0;
+  for (const r of results as { error: unknown }[])
+    if (r.error) {
+      failed++;
+      console.error('integration health', r.error);
+    }
+  // How many statuses could not be saved (the cron ignores it; "Check all now" reports it).
+  return failed;
 }
 
 // POST /v1/integrations/check: "Check all now" (rule 39) runs the checks at once. The staff
@@ -107,7 +114,7 @@ integrations.post('/check', requireUser, async (c) => {
     console.error('request_integration_check', error.message);
     return c.json({ error: 'check_failed' }, 500);
   }
-  await checkIntegrations(c.env);
+  if ((await checkIntegrations(c.env)) > 0) return c.json({ error: 'check_failed' }, 500);
   return c.json({ ok: true });
 });
 
