@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Share } from 'react-native';
+import { Share, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import * as Application from 'expo-application';
-import { Screen, useToast, type ThemeName } from '@arpedia/ui';
+import type { ReaderSettings } from '@arpedia/reader';
+import { Btn, Screen, Sheet, Text, useTheme, useToast, type ThemeName } from '@arpedia/ui';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import { useUi } from '@/lib/ui-store';
 import { signOutHere, useMyProfile, useSession } from '../../features/01/session';
 import { saveStep } from '../../features/01/steps';
+import { queuedAnnotations } from '../../features/04/annotationQueue';
+import { SettingsSheet } from '../../features/04/ReaderSheets';
+import { settingValue, toSettings } from '../../features/04/state';
 import { useLibrarySession } from '../../features/05/library';
 import { usePlanScreen, type SubscriptionJson } from '../../features/09/data';
 import { requestDataExport, setReaderTheme } from '../../features/10/data';
@@ -43,6 +47,10 @@ export default function Account() {
   const setTheme = useUi((st) => st.setTheme);
   const [themeOpen, setThemeOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [logOutAsk, setLogOutAsk] = useState(false);
+  const [nav, setNav] = useState<ReaderSettings | null>(null);
+  const { s } = useTheme();
 
   // Small facts for row trails; each row works without them (rule 14 "render at once from cache").
   const extra = useQuery({
@@ -50,13 +58,14 @@ export default function Account() {
     enabled: !!uid,
     queryFn: async () => {
       const [prof, picks, credits, blocked] = await Promise.all([
-        supabase.from('profiles').select('reader_theme').eq('id', uid!).single(),
+        supabase.from('profiles').select('reader_theme, reader_settings').eq('id', uid!).single(),
         supabase.from('user_genres').select('genre_id', { count: 'exact', head: true }),
         supabase.rpc('credit_balance', { p_user: uid! }),
         supabase.rpc('get_blocked'),
       ]);
       return {
         readerTheme: (prof.data?.reader_theme ?? 'light') as ReaderTheme,
+        readerSettings: toSettings(prof.data?.reader_settings as Record<string, unknown> | null),
         interests: picks.count ?? undefined,
         credits: credits.data ?? undefined,
         blocked: blocked.error ? undefined : (blocked.data ?? []).length,
@@ -66,8 +75,28 @@ export default function Account() {
   const plan = usePlanScreen().data?.subscription;
   const [readerTheme, setLocalReader] = useState<ReaderTheme | null>(null);
 
-  // Reader settings live inside the reader's Aa sheet; no standalone screen exists to open yet.
-  const soon = (what: string) => toast({ message: `${what} opens here once it ships.` });
+  // Navigation (rule 14) opens the reader's own settings sheet (flow 04); changes save to
+  // profiles.reader_settings, which every book reads on open.
+  const readerSettings = nav ?? extra.data?.readerSettings ?? toSettings(null);
+  const changeSetting = <K extends keyof ReaderSettings>(key: K, value: ReaderSettings[K]) => {
+    const before = readerSettings;
+    setNav({ ...readerSettings, [key]: value });
+    void supabase
+      .rpc('set_reader_setting', { p_key: key, p_value: settingValue(key, value) as never })
+      .then(({ error }) => {
+        if (!error) return;
+        setNav(before);
+        toast({ message: "Couldn't save that. Try again." });
+      });
+  };
+  // Rule 17: no confirmation unless a download or a sync is still running.
+  const logOut = () => void signOutHere().finally(() => router.replace('/(auth)/login'));
+  const askLogOut = async () => {
+    const downloading = Object.keys(useLibrarySession.getState().downloads).length > 0;
+    const unsynced = uid ? (await queuedAnnotations(uid).catch(() => [])).length > 0 : false;
+    if (downloading || unsynced) setLogOutAsk(true);
+    else logOut();
+  };
   const pickTheme = (t: ThemeName) => {
     // Recolours at once, kept on the phone first; saved to profiles.theme when online (rule 18).
     setTheme(t);
@@ -89,6 +118,7 @@ export default function Account() {
           subscription: planPill(plan),
           appColour: theme,
           version: Application.nativeApplicationVersion ?? '1.0.0',
+          navigation: readerSettings.layout === 'scroll' ? 'Scroll' : 'Swipe pages',
         }}
         a={{
           onBack: back,
@@ -97,7 +127,7 @@ export default function Account() {
           onSecurity: () => router.push('/security'),
           onPrivacy: () => router.push('/blocked'),
           onPreferences: () => router.push('/(onboarding)/interests'),
-          onNavigation: () => soon('Reader settings'),
+          onNavigation: () => setNavOpen(true),
           onReaderTheme: (t) => {
             if (!uid) return;
             const before = readerTheme ?? extra.data?.readerTheme ?? 'light';
@@ -120,9 +150,7 @@ export default function Account() {
           onInvite: () =>
             void Share.share({ message: 'Read African stories with me on Arpedia: https://arpedia.africa' }),
           onAbout: () => router.push('/about'),
-          onLogOut: () => {
-            void signOutHere().finally(() => router.replace('/(auth)/login'));
-          },
+          onLogOut: () => void askLogOut(),
           onExport: () => {
             if (exporting) return;
             setExporting(true);
@@ -143,6 +171,30 @@ export default function Account() {
         }}
       />
       <ThemeSheet open={themeOpen} value={theme} onPick={pickTheme} onClose={() => setThemeOpen(false)} />
+      <SettingsSheet
+        open={navOpen}
+        onClose={() => setNavOpen(false)}
+        settings={readerSettings}
+        onChange={changeSetting}
+      />
+      <Sheet open={logOutAsk} onClose={() => setLogOutAsk(false)} title="Log out anyway?">
+        <Text variant="sm" color="ink2">
+          Sync not finished. A download or notes on this phone haven’t finished saving, and logging out now
+          may lose them.
+        </Text>
+        <View style={{ gap: s(8) }}>
+          <Btn
+            label="Log out anyway"
+            variant="x"
+            block
+            onPress={() => {
+              setLogOutAsk(false);
+              logOut();
+            }}
+          />
+          <Btn label="Cancel" variant="g" block onPress={() => setLogOutAsk(false)} />
+        </View>
+      </Sheet>
     </Screen>
   );
 }

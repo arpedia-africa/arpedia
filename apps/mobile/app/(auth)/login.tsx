@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
-import { router } from 'expo-router';
-import { Screen } from '@arpedia/ui';
+import { useEffect, useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Screen, useToast } from '@arpedia/ui';
 import { validEmail } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { ForgotSheet, LoginView, type FieldErrors, type LoginValues } from '../../features/01/AuthViews';
@@ -17,6 +17,16 @@ import {
 
 export default function Login() {
   const track = useTrack();
+  const toast = useToast();
+  // Rule 36: after deleting the account the reader lands here with a goodbye.
+  const { deleted } = useLocalSearchParams<{ deleted?: string }>();
+  useEffect(() => {
+    if (deleted === '1')
+      toast({
+        message: 'Your account is deleted. Thank you for reading with Arpedia. Goodbye.',
+        duration: 6000,
+      });
+  }, [deleted, toast]);
   const [values, setValues] = useState<LoginValues>({ email: '', password: '' });
   const [errors, setErrors] = useState<FieldErrors<'email' | 'password' | 'form'>>({});
   const [busy, setBusy] = useState<'password' | 'google' | null>(null);
