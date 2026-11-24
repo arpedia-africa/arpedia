@@ -10,4 +10,6 @@ export interface Env {
   /** Local CLI stack only (HS256). */
   SUPABASE_JWT_SECRET?: string;
   CONVERSATION: DurableObjectNamespace<ConversationDO>;
+  /** The api Worker (service binding), for the flow 14 `moderate-text` check. */
+  API?: Fetcher;
 }
