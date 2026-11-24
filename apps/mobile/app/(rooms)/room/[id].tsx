@@ -45,6 +45,7 @@ import {
 } from '../../../features/06/SheetViews';
 import { useChat, useChatAction, useMarkRead, useMergedMessages } from '../../../features/06/chat';
 import { toneFor } from '../../../features/06/data';
+import { useTrack as useRoomsTrack } from '../../../features/07/analytics';
 import {
   AnnotationsList,
   AnnotationsLocked,
@@ -136,6 +137,7 @@ export default function RoomScreen() {
   });
   const action = useChatAction(gid);
   const acts = useRoomActions(gid);
+  const track = useRoomsTrack();
   const stampRefresh = useStampRefresh(gid);
   const merged = useMergedMessages(history.data, chat.pending);
   const list = merged.list as RoomMessage[];
@@ -179,6 +181,23 @@ export default function RoomScreen() {
     }
     prevCount.current = count;
   }, [count, atBottom]);
+
+  // Analytics: annotations open once the reader finishes; finishing while the room is open.
+  const unlockedSent = useRef(false);
+  const annotationsLocked = annotations.data?.locked;
+  useEffect(() => {
+    if (annotationsLocked === false && !unlockedSent.current) {
+      unlockedSent.current = true;
+      track('room_annotations_unlocked');
+    }
+  }, [annotationsLocked, track]);
+  const wasFinished = useRef<boolean | null>(null);
+  const myFinished = room?.my_finished;
+  useEffect(() => {
+    if (myFinished == null) return;
+    if (wasFinished.current === false && myFinished) track('room_finished_by_member');
+    wasFinished.current = myFinished;
+  }, [myFinished, track]);
 
   // After create: the system share sheet with the code (rule 9), once.
   const shared = useRef(false);
@@ -299,6 +318,7 @@ export default function RoomScreen() {
     if (!body) return;
     if (!chat.send(body, { reply_to_id: replyTo?.id ?? null }))
       return toast({ message: 'You can queue up to 5 messages while offline.' });
+    track('room_message_sent');
     setText('');
     setReplyTo(null);
   };
@@ -523,7 +543,10 @@ export default function RoomScreen() {
                       tone={item.spoiler.tone}
                       chapter={item.spoiler.chapter}
                       time={item.spoiler.time}
-                      onReveal={() => setRevealed((r) => new Set(r).add(item.key))}
+                      onReveal={() => {
+                        track('room_spoiler_revealed');
+                        setRevealed((r) => new Set(r).add(item.key));
+                      }}
                     />
                   ) : (
                     <Bubble
@@ -765,6 +788,7 @@ export default function RoomScreen() {
           onConfirm={() =>
             acts.end.mutate(undefined, {
               onSuccess: () => {
+                track('room_ended', { by: 'host' });
                 setConfirm(null);
                 toast({ message: 'Room ended.' });
               },
@@ -795,6 +819,7 @@ export default function RoomScreen() {
           onConfirm={() =>
             acts.leave.mutate(undefined, {
               onSuccess: () => {
+                track('room_left');
                 setConfirm(null);
                 router.replace('/rooms');
               },
