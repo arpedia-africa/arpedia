@@ -7,7 +7,13 @@ import { supabase } from '@/lib/supabase';
 import { SignupView, type FieldErrors, type SignupValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
 import { signInWithGoogle } from '../../features/01/google';
-import { COPY, afterSignIn, isNetworkError, registerDevice } from '../../features/01/session';
+import {
+  COPY,
+  afterSignIn,
+  isAccountDeleted,
+  isNetworkError,
+  registerDevice,
+} from '../../features/01/session';
 import { onboardingClock } from '../../features/01/steps';
 
 // Policy versions the reader accepts by creating an account (stored with the time, rule 1).
@@ -95,7 +101,9 @@ export default function Signup() {
       track('signup_completed', { method: 'google' });
       if (data.user) await afterSignIn(data.user.id);
     } catch (e) {
-      setErrors({ google: isNetworkError(e) ? COPY.offline : COPY.googleFailed });
+      setErrors({
+        google: isAccountDeleted(e) ? COPY.deleted : isNetworkError(e) ? COPY.offline : COPY.googleFailed,
+      });
     } finally {
       running.current = false;
       setBusy(null);
