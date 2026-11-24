@@ -22,3 +22,4 @@ export * from './library';
 export * from './push';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
 export * from './profile';
+export * from './appeal';
