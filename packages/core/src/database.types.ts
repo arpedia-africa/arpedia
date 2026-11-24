@@ -5658,6 +5658,9 @@ isOneToOne: false
 "_apply_counts":
 { Args: { "p_result": Json,"p_rev": string }; Returns: undefined
                            },
+"_apply_plan_change":
+{ Args: { "p": Json,"p_by": string,"p_summary": string }; Returns: Json
+                           },
 "_apply_sanction":
 { Args: { "p_action": string,"p_days": number,"p_kind": Database["public"]['Enums']["sanction_kind"],"p_pending"?: boolean,"p_user": string }; Returns: string
                            },
