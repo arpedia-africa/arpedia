@@ -94,6 +94,21 @@ export async function setChannelState(
   return { ok: true };
 }
 
+/** Make a member a moderator (or a member again). At most 5 per channel. */
+export async function setModerator(groupId: string, userId: string, on: boolean): Promise<ActionResult> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('set_group_moderator', { p_group: groupId, p_user: userId, p_on: on });
+  if (error)
+    return error.message.includes('moderator_limit')
+      ? { error: 'This channel already has 5 moderators. Remove one first.' }
+      : error.message.includes('not_member')
+        ? { error: 'Only members who are not banned can be moderators.' }
+        : failed(error.message.includes('not_allowed') ? 'Not allowed' : error.message);
+  await pushToChat(groupId);
+  revalidatePath(`/community/${groupId}`);
+  return { ok: true };
+}
+
 export async function muteMember(groupId: string, userId: string, until: string | null): Promise<ActionResult> {
   const supabase = await serverSupabase();
   const { error } = await supabase.rpc('admin_mute_member', {
