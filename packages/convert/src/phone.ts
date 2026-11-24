@@ -60,29 +60,45 @@ function hintsOf(v: VerifyOk): ConvertHints {
   };
 }
 
-export function convertForUpload(
+/** Stages, in order: 0 reading the file, 1 cleaning text and quotes, 2 finding chapters, 3 counting. */
+export type ConvertStage = 0 | 1 | 2 | 3;
+
+/**
+ * Convert in four stages, yielding between them so the screen can paint each step. Never throws:
+ * a failure comes back as a fallback reason.
+ */
+export async function convertForUpload(
   bytes: Uint8Array,
   source: 'docx' | 'epub',
   meta: PhoneConvertMeta,
-): PhoneConvert {
+  onStage: (stage: ConvertStage) => void = () => {},
+): Promise<PhoneConvert> {
+  const stage = async (s: ConvertStage) => {
+    onStage(s);
+    await new Promise((r) => setTimeout(r, 0));
+  };
   try {
-    let html: string;
+    await stage(0);
+    let raw: string;
     let images: Record<string, Uint8Array>;
     if (source === 'docx') {
       const got = docxToHtml(bytes);
       if (plainWords(got.html) > PHONE_WORD_CAP)
         return { ok: false, reason: 'too_large', detail: 'over 300,000 words' };
-      html = sanitizeHtml(normalizeHtml(got.html), { image: (src) => (got.images[src] ? src : null) }).html;
+      raw = got.html;
       images = got.images;
     } else {
       const v = verifyPackage(safeUnzip(bytes));
       if (!v.ok) return { ok: false, reason: 'conversion_failed', detail: v.message };
       if (v.words > PHONE_WORD_CAP) return { ok: false, reason: 'too_large', detail: 'over 300,000 words' };
-      html = sanitizeHtml(normalizeHtml(bodyOf(v)), { image: (src) => (v.images[src] ? src : null) }).html;
+      raw = bodyOf(v);
       images = v.images;
     }
+    await stage(1);
+    const html = sanitizeHtml(normalizeHtml(raw), { image: (src) => (images[src] ? src : null) }).html;
     if (!html.replace(/<[^>]*>/g, '').trim())
       return { ok: false, reason: 'conversion_failed', detail: 'no text found' };
+    await stage(2);
     const epub = writeEpub({
       title: meta.title,
       language: meta.language ?? 'en',
@@ -91,6 +107,7 @@ export function convertForUpload(
       images,
     });
     // The same check the Worker runs, for the "Readers pay N credits" hint.
+    await stage(3);
     const v = verifyPackage(safeUnzip(epub));
     if (!v.ok) return { ok: false, reason: 'conversion_failed', detail: v.message };
     return { ok: true, epub, hints: hintsOf(v) };

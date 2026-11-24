@@ -30,7 +30,9 @@ const STYLES = `<w:styles ${W}>
 function docx(body: string, extra: Record<string, Uint8Array> = {}) {
   return zipSync({
     '[Content_Types].xml': strToU8('<Types/>'),
-    'word/document.xml': strToU8(`<?xml version="1.0"?><w:document ${W}><w:body>${body}</w:body></w:document>`),
+    'word/document.xml': strToU8(
+      `<?xml version="1.0"?><w:document ${W}><w:body>${body}</w:body></w:document>`,
+    ),
     'word/styles.xml': strToU8(STYLES),
     'word/_rels/document.xml.rels': strToU8(
       '<Relationships><Relationship Id="rId5" Target="media/image1.png"/>' +
@@ -108,9 +110,11 @@ describe('docxToHtml', () => {
 describe('convertForUpload', () => {
   const meta = { title: 'Ada', identifier: 'urn:uuid:00000000-0000-0000-0000-000000000001' };
 
-  it('converts Word to an EPUB3 with hints the Worker would agree with', () => {
+  it('converts Word to an EPUB3 with hints the Worker would agree with', async () => {
     const body = h('Chapter 1') + p(words(1500)) + h('Chapter 2') + p(`"Hi," she said -- ${words(997)}`);
-    const got = convertForUpload(docx(body), 'docx', meta);
+    const stages: number[] = [];
+    const got = await convertForUpload(docx(body), 'docx', meta, (s) => stages.push(s));
+    expect(stages).toEqual([0, 1, 2, 3]);
     expect(got.ok).toBe(true);
     if (!got.ok) return;
     expect(got.hints).toMatchObject({ words: 2500, pages: 10, price: 5, chapters: 2 });
@@ -121,14 +125,14 @@ describe('convertForUpload', () => {
     expect(c2).toContain('“Hi,” she said —');
   });
 
-  it('rewrites an EPUB through the normaliser, one heading per chapter', () => {
+  it('rewrites an EPUB through the normaliser, one heading per chapter', async () => {
     const src = writeEpub({
       title: 'Ada',
       language: 'en',
       identifier: meta.identifier,
       html: `<h1>One</h1><p>${words(1200)}</p><p>* * *</p><p>"${words(10)}"</p><h1>Two</h1><p>${words(800)}</p>`,
     });
-    const got = convertForUpload(src, 'epub', meta);
+    const got = await convertForUpload(src, 'epub', meta);
     expect(got.ok).toBe(true);
     if (!got.ok) return;
     expect(got.hints.chapters).toBe(2);
@@ -138,18 +142,21 @@ describe('convertForUpload', () => {
     expect(c1).toContain('“word');
   });
 
-  it('falls back to the desk for books over the cap and for unreadable files', () => {
+  it('falls back to the desk for books over the cap and for unreadable files', async () => {
     const big = docx(h('Chapter 1') + p(words(PHONE_WORD_CAP + 1)));
-    expect(convertForUpload(big, 'docx', meta)).toMatchObject({ ok: false, reason: 'too_large' });
-    expect(convertForUpload(strToU8('nope'), 'docx', meta)).toMatchObject({
+    await expect(convertForUpload(big, 'docx', meta)).resolves.toMatchObject({
+      ok: false,
+      reason: 'too_large',
+    });
+    await expect(convertForUpload(strToU8('nope'), 'docx', meta)).resolves.toMatchObject({
       ok: false,
       reason: 'conversion_failed',
     });
-    expect(convertForUpload(strToU8('nope'), 'epub', meta)).toMatchObject({
+    await expect(convertForUpload(strToU8('nope'), 'epub', meta)).resolves.toMatchObject({
       ok: false,
       reason: 'conversion_failed',
     });
-    expect(convertForUpload(docx(blank + blank), 'docx', meta)).toMatchObject({
+    await expect(convertForUpload(docx(blank + blank), 'docx', meta)).resolves.toMatchObject({
       ok: false,
       reason: 'conversion_failed',
     });

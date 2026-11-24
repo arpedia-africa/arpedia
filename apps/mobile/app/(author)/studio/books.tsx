@@ -3,6 +3,7 @@ import { Screen, useToast } from '@arpedia/ui';
 import { studioBookLine } from '@arpedia/core';
 import { isNetworkError, useSession } from '../../../features/01/session';
 import { shortDate } from '../../../features/11/application';
+import { loadJob } from '../../../features/11/convert';
 import {
   bookCountsLine,
   num,
@@ -33,7 +34,14 @@ export default function StudioBooks() {
   const act = (m: StudioBookModel) => {
     const b = books.data?.find((x) => x.book_id === m.id);
     if (!b) return;
-    if (m.action === 'Continue') return router.push(continueStep(b));
+    if (m.action === 'Continue') {
+      // A conversion this phone started resumes from its saved file (rule 23).
+      if (b.draft_step === 'upload')
+        return void loadJob(b.revision_id).then((job) =>
+          router.push(job ? submitStep('processing', b.revision_id) : continueStep(b)),
+        );
+      return router.push(continueStep(b));
+    }
     return router.push(`/studio/submit?book=${b.book_id}` as Href);
   };
 
