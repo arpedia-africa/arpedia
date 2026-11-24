@@ -6,7 +6,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
 import { useQueryClient } from '@tanstack/react-query';
-import { chargeKey, confirmCharge, type ChapterAccess, type PendingStore } from '@arpedia/core';
+import {
+  chargeKey,
+  confirmCharge,
+  pendingCharges,
+  type ChapterAccess,
+  type PendingStore,
+} from '@arpedia/core';
 import {
   BRIDGE_VERSION,
   parseFromWeb,
@@ -777,6 +783,19 @@ export function useReader(
         .then(loadUnsaved);
     else void loadUnsaved();
   }, [online, phase, loadUnsaved]);
+
+  // Edge case "app killed mid-charge" (rule 56): a charge that never got its answer is sent again
+  // with its first key once the book is open and online, so it lands at most once. Sent as `auto`:
+  // with Auto-unlock off the server refuses it and the reader taps again.
+  const replayed = useRef(false);
+  useEffect(() => {
+    if (phase !== 'ready' || !online || replayed.current || !pending.current || !userId.current) return;
+    replayed.current = true;
+    const mine = pendingCharges(pending.current, userId.current).filter((p) => p.book_id === bookId);
+    void (async () => {
+      for (const p of mine) await unlockChapter(p.chapter_uid, 'auto');
+    })();
+  }, [phase, online, bookId, unlockChapter]);
 
   // ─── Passage markers (rule 46): counts per chapter, only up to the furthest place ──
   const markerCounts = useRef(new Map<string, { para_id: string; count: number }[]>());
