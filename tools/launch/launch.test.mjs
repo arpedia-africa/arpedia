@@ -185,10 +185,11 @@ function healthy() {
     publicBuckets: {},
     backups: [{ key: 'db/2026-12-01T0200Z.sql.gz.enc', lastModified: new Date('2026-12-01T02:05:00Z') }],
     sentry: 12,
+    rcKey: 'goog_AbCdEfGhIjKlMnOp',
     posthog: 340,
     bundle: {
       entries: ['base/assets/index.android.bundle'],
-      text: 'https://api.arpedia.africa https://arpedia.supabase.co',
+      text: 'https://api.arpedia.africa https://arpedia.supabase.co goog_AbCdEfGhIjKlMnOp',
     },
   };
 }
@@ -208,6 +209,7 @@ function preflight(w) {
     sentryEvents: async () => w.sentry,
     posthogEvents: async () => w.posthog,
     bundle: w.bundle,
+    revenueCatKey: w.rcKey,
   });
 }
 
@@ -240,6 +242,8 @@ describe('preflight.mjs', () => {
     posthog: (w) => (w.posthog = 0),
     release_endpoints: (w) => (w.bundle.text += ' https://arpedia-staging.supabase.co'),
     expo_public_kit: (w) => w.bundle.entries.push('base/res/xml/kit_network.xml'),
+    revenuecat_key: (w) => (w.bundle.text = w.bundle.text.replace(/goog_\w+/, 'goog_SomeOtherKey123')),
+    test_store: (w) => (w.bundle.text += ' /v1/payments/test-store'),
     release_build: (w) => (w.bundle = null),
   };
 
@@ -247,6 +251,14 @@ describe('preflight.mjs', () => {
     const w = healthy();
     breaks[key](w);
     expect(failed(await preflight(w))).toEqual([key]);
+  });
+
+  it('fails revenuecat_key when there is no key to check against', async () => {
+    const w = healthy();
+    w.rcKey = undefined;
+    const items = await preflight(w);
+    expect(failed(items)).toEqual(['revenuecat_key']);
+    expect(items.find((i) => i.key === 'revenuecat_key').detail).toMatch(/REVENUECAT_ANDROID_PUBLIC_KEY/);
   });
 
   it('fails a check whose source errors, without stopping the others', async () => {
@@ -267,6 +279,7 @@ describe('preflight.mjs', () => {
       sentryEvents: async () => 1,
       posthogEvents: async () => 1,
       bundle: w.bundle,
+      revenueCatKey: w.rcKey,
     });
     expect(failed(items)).toEqual(['api_worker_settings', 'chat_worker_settings']);
     expect(items.find((i) => i.key === 'api_worker_settings').detail).toMatch(/CLOUDFLARE_API_TOKEN/);

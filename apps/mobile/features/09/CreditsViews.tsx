@@ -22,6 +22,7 @@ import {
   booksLabel,
   dayMonth,
   n,
+  packPrice,
   periodWord,
   type BalanceJson,
   type HistoryLine,
@@ -239,7 +240,7 @@ export function TopUpSection({
               key={p.code}
               title={`${n(p.credits)} credits`}
               sub={booksLabel(p.credits, BOOK_CREDITS)}
-              trail={formatNaira(p.price_kobo / 100)}
+              trail={packPrice(p)}
               selected={p.code === pick.code}
               onPress={() => onSelect(p.code)}
             />
@@ -251,7 +252,7 @@ export function TopUpSection({
             : 'Unused plan credits roll over for one more period, up to one plan’s worth. Books you unlock stay yours for good, even if you cancel.'}
         </Text>
         <Btn
-          label={`Buy ${n(pick.credits)} credits · ${formatNaira(pick.price_kobo / 100)}`}
+          label={`Buy ${n(pick.credits)} credits · ${packPrice(pick)}`}
           block
           loading={busy}
           disabled={offline}

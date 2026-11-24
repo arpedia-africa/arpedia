@@ -14,7 +14,14 @@ import {
 } from '../features/09/data';
 import { SubPad } from '../features/09/parts';
 import { CheckoutBody, CheckoutHero, SettingUp } from '../features/09/PlanViews';
-import { PURCHASE_COPY, failureMessage, isAvailable, purchase, restore } from '../features/09/purchases';
+import {
+  PENDING_COPY,
+  PURCHASE_COPY,
+  failureMessage,
+  isAvailable,
+  purchase,
+  restore,
+} from '../features/09/purchases';
 
 // s-checkout (Secure checkout): plan summary, Subscribe with Google Play, Restore purchases.
 // After the store confirms: "Setting up your plan", polling `my_credit_balance` for up to 30 s
@@ -61,6 +68,12 @@ export default function Checkout() {
       const before = await balanceBefore();
       const res = await purchase({ kind: 'plan', code: plan.code });
       if (res.status === 'cancelled') return;
+      if (res.status === 'pending') {
+        // Play takes the payment later (cash, transfer): credits arrive with the webhook.
+        keepWatching(before);
+        setError(PENDING_COPY);
+        return;
+      }
       if (res.status === 'error') {
         track('purchase_failed', { reason: res.code });
         setError(failureMessage(res.code, res.message));
