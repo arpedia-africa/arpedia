@@ -9,7 +9,7 @@ create function public.set_weekly_reading(p_group uuid, p_book uuid, p_from int 
 language plpgsql security definer set search_path = '' as $$
 declare
   g public.groups;
-  v_staff boolean := not public.is_group_mod(p_group) and public.community_admin(true);
+  v_staff boolean := public.community_admin(true);
   v_chapters int;
 begin
   if not (public.is_group_mod(p_group) or v_staff) then
@@ -51,7 +51,7 @@ declare
   m public.group_members;
   v_owner boolean := exists (select 1 from public.group_members x where x.group_id = p_group
                              and x.user_id = auth.uid() and x.role = 'owner' and x.banned_at is null);
-  v_staff boolean := not v_owner and public.community_admin(true);
+  v_staff boolean := public.community_admin(true);
 begin
   if not (v_owner or v_staff) then
     raise exception 'not_allowed' using errcode = 'insufficient_privilege';
@@ -59,10 +59,13 @@ begin
   select * into g from public.groups where id = p_group and kind <> 'dm' for update;
   if g.id is null then raise exception 'not_found' using errcode = 'P0002'; end if;
   select * into m from public.group_members where group_id = p_group and user_id = p_user;
-  if m.user_id is null or m.banned_at is not null then raise exception 'not_member' using errcode = 'P0002'; end if;
+  -- A banned member can still be stepped down, never made a moderator.
+  if m.user_id is null or (p_on and m.banned_at is not null) then
+    raise exception 'not_member' using errcode = 'P0002';
+  end if;
   if m.role = 'owner' then raise exception 'is_owner' using errcode = '22023'; end if;
   if p_on and m.role <> 'moderator' and (select count(*) from public.group_members
-      where group_id = p_group and role = 'moderator' and banned_at is null) >= 5 then
+      where group_id = p_group and role = 'moderator') >= 5 then
     raise exception 'moderator_limit' using errcode = '23514';
   end if;
   update public.group_members set role = case when p_on then 'moderator' else 'member' end::public.group_role

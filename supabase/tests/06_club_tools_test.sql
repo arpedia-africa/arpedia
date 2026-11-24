@@ -1,7 +1,7 @@
 -- Flow 06 · spec check 06-7 (set the pinned weekly reading) and 06-11 (appoint moderators, max 5).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(18);
 
 create function pg_temp.as_user(uid text) returns void
 language sql as $$
@@ -54,6 +54,8 @@ select throws_ok($$select public.set_group_moderator('06c00000-0000-4000-b000-00
   '06c00000-0000-4000-a000-000000000001', false)$$, '22023', 'is_owner', 'the owner stays owner');
 select lives_ok($$select public.set_group_moderator('06c00000-0000-4000-b000-000000000001',
   '06c00000-0000-4000-a000-000000000006', false)$$, 'the owner removes one');
+select lives_ok($$select public.set_group_moderator('06c00000-0000-4000-b000-000000000001',
+  '06c00000-0000-4000-a000-000000000008', false)$$, 'a banned member can still be stepped down');
 select pg_temp.as_user('00000000-0000-4000-b000-000000000004');
 select lives_ok($$select public.set_group_moderator('06c00000-0000-4000-b000-000000000001',
   '06c00000-0000-4000-a000-000000000007')$$, 'a staff Moderator appoints one');
