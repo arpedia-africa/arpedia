@@ -9,8 +9,17 @@ appId: com.arpedia.reader
 - extendedWaitUntil:
     visible: 'Welcome back'
     timeout: 90000
+# The emulator's keyboard sometimes doubles the first letter ("nngozi"): clear, type, check.
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
+- runFlow:
+    when:
+      notVisible: '^ngozi@example.com$'
+    commands:
+      - eraseText: 40
+      - inputText: 'ngozi@example.com'
+- assertVisible: '^ngozi@example.com$'
 - tapOn: 'Your password'
 - inputText: 'arpedia-local'
 - hideKeyboard

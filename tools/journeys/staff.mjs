@@ -200,6 +200,8 @@ const commands = {
     if (!row.startsWith('t|')) fail(`${email}: no deletion recorded (${row})`);
     const sessions = Number(sql(`select count(*) from auth.sessions where user_id = ${q(me)}`));
     if (sessions) fail(`${email} still has ${sessions} session(s) after deleting the account`);
+    if (sql(`select banned_until = 'infinity' from auth.users where id = ${q(me)}`) !== 't')
+      fail(`${email} can still sign in after deleting the account`);
     const sent = Number(
       sql(
         `select count(*) from public.email_sends where user_id = ${q(me)} and template_key = 'data_export_ready'`,
