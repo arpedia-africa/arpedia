@@ -18,15 +18,16 @@ export function useBuyPack(refresh: QueryKey[] = []) {
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
 
+  /** Resolves true once the store took the payment (the credits may still be on their way). */
   const buy = useCallback(
-    async (pack: TopupPack) => {
-      if (running.current) return;
+    async (pack: TopupPack): Promise<boolean> => {
+      if (running.current) return false;
       // The sheet's packs are the store products of the same size; without the list, the Credits
       // screen sells them.
       const product = plans.data?.topups.find((t) => t.credits === pack.credits);
       if (!product) {
         router.push('/credits');
-        return;
+        return false;
       }
       running.current = true;
       setBusy(true);
@@ -34,11 +35,11 @@ export function useBuyPack(refresh: QueryKey[] = []) {
       const before = await balanceBefore();
       try {
         const res = await purchase({ kind: 'topup', code: product.code });
-        if (res.status === 'cancelled') return;
+        if (res.status === 'cancelled') return false;
         if (res.status === 'error') {
           track('purchase_failed', { reason: res.code });
           toast({ message: failureMessage(res.code, res.message) });
-          return;
+          return false;
         }
         if (await waitForCredits(before, { current: false })) {
           track('topup_completed', { credits: pack.credits });
@@ -48,6 +49,7 @@ export function useBuyPack(refresh: QueryKey[] = []) {
           toast({ message: 'Your purchase went through. Credits will appear shortly' });
         }
         await Promise.all(refresh.map((queryKey) => qc.invalidateQueries({ queryKey })));
+        return true;
       } finally {
         running.current = false;
         setBusy(false);

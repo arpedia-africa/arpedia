@@ -13,7 +13,7 @@ import { percentToParagraph, timeLeftLabel } from '@arpedia/core';
 import { placeToolbar, type HighlightColor, type Rect, type SelectionDetail } from '@arpedia/reader';
 import { readerHtml } from '@arpedia/reader/html';
 import { EmptyState, useTheme, useToast } from '@arpedia/ui';
-import { useBookPage, useOnline } from '../../features/03/book';
+import { bookKey, useBookPage, useOnline } from '../../features/03/book';
 import { rpcError, UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
 import {
@@ -41,6 +41,7 @@ import {
   type ChapterRowModel,
 } from '../../features/04/ReaderSheets';
 import { chapterNumber, useReader } from '../../features/04/useReader';
+import { useBuyPack } from '../../features/09/buyPack';
 
 const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
@@ -86,6 +87,8 @@ export default function ReaderScreen() {
   const [discussFor, setDiscussFor] = useState<{ para: string; quote: string | null } | null>(null);
   const thread = usePassageThread(id, panel === 'discuss' ? (discussFor?.para ?? null) : null);
   const book = useBookPage(id);
+  // Top-ups from the reader's low-balance sheets (rule 60): nothing is spent automatically.
+  const pack = useBuyPack([bookKey(id)]);
 
   const back = useCallback(() => {
     void r.syncNow();
@@ -733,7 +736,14 @@ export default function ReaderScreen() {
               r.clearLow();
               void r.refresh();
             }}
-            onTopUp={() => router.push('/credits')}
+            // Back on page 1 of the chapter with the new balance once the credits land.
+            onTopUp={(p) =>
+              void pack.buy(p).then((ok) => {
+                if (!ok) return;
+                r.clearLow();
+                void r.refresh();
+              })
+            }
             onLibrary={() => {
               r.clearLow();
               void r.syncNow();
@@ -792,7 +802,7 @@ export default function ReaderScreen() {
             setSheet(null);
           }}
           onPlans={() => router.push('/plan')}
-          onBuyPack={() => router.push('/credits')}
+          onBuyPack={(p) => void pack.buy(p)}
         />
       ) : null}
     </View>
