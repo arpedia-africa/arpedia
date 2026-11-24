@@ -5591,6 +5591,9 @@ isOneToOne: false
             "_actor":
 { Args: { "p_actor": string,"p_allow_system"?: boolean,"p_fn": string,"p_roles": (Database["public"]['Enums']["staff_role"])[] }; Returns: string
                            },
+"_add_comment_base":
+{ Args: { "p_body": string,"p_client_id": string,"p_parent": string,"p_post": string }; Returns: Json
+                           },
 "_agreement_version":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -5802,6 +5805,9 @@ isOneToOne: false
                            },
 "_create_notification":
 { Args: { "p_actor"?: string,"p_body"?: string,"p_book"?: string,"p_category": string,"p_kind": string,"p_target_id"?: string,"p_target_type"?: string,"p_title": string,"p_user": string }; Returns: string
+                           },
+"_create_reading_room_base":
+{ Args: { "p_book": string,"p_join_policy"?: Database["public"]['Enums']["room_join_policy"],"p_name": string,"p_pace"?: Database["public"]['Enums']["room_pace"],"p_starts_at"?: string }; Returns: Json
                            },
 "_cycle_end":
 { Args: { "p_month": string }; Returns: string
@@ -6171,6 +6177,9 @@ isOneToOne: false
               "reason": string,"until": string
             }[]
                            },
+"_post_review_base":
+{ Args: { "p_body": string,"p_book": string,"p_spoiler": boolean,"p_stars": number }; Returns: Json
+                           },
 "_publish_now":
 { Args: { "p_actor": string,"p_mode": string,"p_notify": boolean,"p_rev": string }; Returns: Json
                            },
@@ -6290,6 +6299,9 @@ isOneToOne: false
 "_require_money_staff":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"_require_no_sanction":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
 "_require_payout_staff":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -6362,6 +6374,9 @@ isOneToOne: false
       } },
 "_section_items":
 { Args: { "h": Omit<Database["public"]['Tables']["home_sections"]['Row'], Database["public"]['Tables']["home_sections"]['ComputedFields']>,"p_uid": string }; Returns: Json
+                           },
+"_send_author_message_base":
+{ Args: { "p_author": string,"p_body": string,"p_client_id": string }; Returns: Json
                            },
 "_send_back":
 { Args: { "p_actor": string,"p_issues": Json,"p_note": string,"p_rev": string,"p_source": Database["public"]['Enums']["send_back_source"] }; Returns: string
