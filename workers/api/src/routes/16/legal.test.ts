@@ -85,6 +85,8 @@ describe('public legal pages', () => {
     vi.useFakeTimers({ now: Date.now() + 10 * 60_000 });
     rpc.mockResolvedValue({ data: null, error: { message: 'down' } });
     expect((await get('/privacy')).status).toBe(200);
+    expect((await get('/privacy')).status).toBe(200);
+    expect(rpc).toHaveBeenCalledTimes(2); // the second miss waits a minute before asking again
     vi.useRealTimers();
   });
 });
@@ -97,6 +99,12 @@ describe('renderBody', () => {
       ),
     ).toBe(
       '<h3>Your rights</h3>\n<p>Ask us:</p>\n<ul><li>by email at <a href="mailto:help@arpedia.africa">help@arpedia.africa</a></li><li>at <a href="https://arpedia.africa/help">https://arpedia.africa/help</a></li></ul>',
+    );
+  });
+
+  it('no nested links, quotes stay out of the link target', () => {
+    expect(renderBody('See "https://arpedia.africa/@team.name".')).toBe(
+      '<p>See &quot;<a href="https://arpedia.africa/@team.name">https://arpedia.africa/@team.name</a>&quot;.</p>',
     );
   });
 });

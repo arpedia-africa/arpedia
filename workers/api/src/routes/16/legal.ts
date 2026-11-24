@@ -31,6 +31,8 @@ async function load(env: Env): Promise<PublicPolicy[] | null> {
     return cached.value;
   } catch (e) {
     console.error('[legal]', e);
+    // Keep the last copy and ask the database again in a minute, not on every request.
+    if (cached) cached.at = Date.now() - TTL_MS + 60_000;
     return cached?.value ?? null;
   }
 }
@@ -46,11 +48,20 @@ const esc = (s: string) =>
     (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!,
   );
 
-/** Links in already-escaped text: https URLs and email addresses. */
-const linkify = (s: string) =>
-  s
-    .replace(/https:\/\/[^\s<]+[^\s<.,;:)]/g, (u) => `<a href="${u}">${u}</a>`)
-    .replace(/\b[\w.+-]+@[\w-]+(\.[\w-]+)+\b/g, (m) => `<a href="mailto:${m}">${m}</a>`);
+const LINK = /(https:\/\/[^\s<>"']*[^\s<>"'.,;:)])|([\w.+-]+@[\w-]+(?:\.[\w-]+)+)/g;
+
+/** Raw text to escaped HTML with https URLs and email addresses as links (one pass). */
+const linkify = (s: string) => {
+  let out = '';
+  let last = 0;
+  for (const m of s.matchAll(LINK)) {
+    out += esc(s.slice(last, m.index));
+    const t = esc(m[0]);
+    out += m[1] ? `<a href="${t}">${t}</a>` : `<a href="mailto:${t}">${t}</a>`;
+    last = m.index + m[0].length;
+  }
+  return out + esc(s.slice(last));
+};
 
 /**
  * Policy text to HTML. Plain text as staff type it in the console: blank lines split paragraphs,
@@ -70,17 +81,17 @@ export function renderBody(body: string): string {
       list = [];
     };
     for (const raw of lines) {
-      const line = linkify(esc(raw.trim()));
-      const h = /^(#{1,2}) (.+)$/.exec(raw.trim());
+      const text = raw.trim();
+      const h = /^(#{1,2}) (.+)$/.exec(text);
       if (h) {
         flush();
-        out.push(h[1] === '#' ? `<h2>${linkify(esc(h[2]!))}</h2>` : `<h3>${linkify(esc(h[2]!))}</h3>`);
-      } else if (raw.trim().startsWith('- ')) {
+        out.push(h[1] === '#' ? `<h2>${linkify(h[2]!)}</h2>` : `<h3>${linkify(h[2]!)}</h3>`);
+      } else if (text.startsWith('- ')) {
         if (para.length) flush();
-        list.push(line.slice(2));
+        list.push(linkify(text.slice(2)));
       } else {
         if (list.length) flush();
-        para.push(line);
+        para.push(linkify(text));
       }
     }
     flush();
