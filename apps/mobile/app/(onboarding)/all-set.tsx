@@ -21,6 +21,8 @@ interface AllSetData {
   credits: number | null;
   plan: string | null;
   granted_at: string | null;
+  /** The live subscription's period end; null until the store webhook has made one. */
+  renews_at: string | null;
   book: { id: string; title: string; price: number | null } | null;
   author: { id: string; name: string; genre: string | null; books: number } | null;
 }
@@ -58,10 +60,12 @@ export default function AllSet() {
 
   const d = q.data;
   const plan = LAUNCH_PLANS.find((p) => p.id === d?.plan);
-  const planLine =
-    plan && d?.granted_at
-      ? `${plan.name} · renews ${shortDate(renewalDate(d.granted_at.slice(0, 10), plan.months))}`
+  const renews = d?.renews_at
+    ? d.renews_at.slice(0, 10)
+    : plan && d?.granted_at
+      ? renewalDate(d.granted_at.slice(0, 10), plan.months)
       : null;
+  const planLine = plan && renews ? `${plan.name} · renews ${shortDate(renews)}` : null;
 
   // Step cards lead to pages built in later flows (book 03, club 06, author 08); until then Home.
   const toHome = () => void finishOnboarding(track);

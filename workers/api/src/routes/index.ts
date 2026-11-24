@@ -25,6 +25,8 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/avatars', avatars],
   ['/v1/staff-invites', staffInvites],
   ['/v1/staff-sign-in', staffSignIn],
+  // Spec check 01-3: readers sign in through the same lockout.
+  ['/v1/sign-in', staffSignIn],
   ['/v1/rooms', rooms],
   ['/v1/author-applications', authorApplications],
   ['/v1/books', books],
