@@ -271,6 +271,7 @@ export default function Chat() {
               {
                 key: 'pin',
                 title: selected.pinned ? 'Unpin' : 'Pin',
+                ...(offline ? { sub: 'Connect to do this', disabled: true } : null),
                 onPress: () => {
                   run({ type: selected.pinned ? 'unpin' : 'pin', message_id: selected.id });
                   setSelected(null);
@@ -293,6 +294,7 @@ export default function Chat() {
                 key: 'delete',
                 title: 'Delete',
                 danger: true,
+                ...(offline ? { sub: 'Connect to do this', disabled: true } : null),
                 onPress: () => {
                   run({ type: 'delete', message_id: selected.id });
                   setSelected(null);

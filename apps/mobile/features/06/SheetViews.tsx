@@ -76,6 +76,8 @@ export interface OptionItem {
   title: string;
   sub?: string;
   danger?: boolean;
+  /** Offline (flow 06 States): the row stays, dimmed, with "Connect to do this" as its sub line. */
+  disabled?: boolean;
   onPress: () => void;
 }
 
@@ -89,7 +91,9 @@ export function OptionList({ items }: { items: OptionItem[] }) {
         <Press
           key={o.key}
           onPress={o.onPress}
+          disabled={o.disabled}
           accessibilityRole="button"
+          accessibilityState={{ disabled: !!o.disabled }}
           accessibilityLabel={o.sub ? `${o.title}, ${o.sub}` : o.title}
           style={{
             flexDirection: 'row',
@@ -98,6 +102,7 @@ export function OptionList({ items }: { items: OptionItem[] }) {
             paddingVertical: s(12),
             paddingHorizontal: s(14),
             minHeight: s(48),
+            opacity: o.disabled ? 0.5 : 1,
             ...(i ? { borderTopWidth: bw(1), borderTopColor: c.line } : null),
           }}
         >

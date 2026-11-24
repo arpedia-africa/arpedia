@@ -93,7 +93,7 @@ export default function Community() {
     <Screen top="org" contentStyle={{ paddingBottom: s(28) }}>
       <CommunityHero
         tab={tab}
-        counts={{ all: counts.data?.all, unread: counts.data?.unread }}
+        counts={{ all: counts.data?.all, unread: counts.data?.unread, groups: counts.data?.groups }}
         onTab={setTab}
         onRooms={openRooms}
         onDiscover={openDiscover}

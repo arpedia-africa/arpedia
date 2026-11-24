@@ -34,7 +34,7 @@ export function CommunityHero({
   onDiscover,
 }: {
   tab: InboxTab;
-  counts: { all?: number; unread?: number };
+  counts: { all?: number; unread?: number; groups?: number };
   onTab: (t: InboxTab) => void;
   /** Absent while the reading_rooms flag is off (flow 16 rule 27). */
   onRooms?: () => void;
@@ -77,7 +77,7 @@ export function CommunityHero({
           tabs={[
             { key: 'all', label: 'All', count: counts.all || undefined },
             { key: 'unread', label: 'Unread', count: counts.unread || undefined },
-            { key: 'groups', label: 'Groups' },
+            { key: 'groups', label: 'Groups', count: counts.groups || undefined },
           ]}
         />
       </View>
