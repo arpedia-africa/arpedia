@@ -11,6 +11,7 @@ import {
   type CreateRoomValues,
 } from '../../features/07/FormViews';
 import {
+  chaptersLeft,
   coverToneFor,
   createErrorOf,
   useChapterCount,
@@ -20,6 +21,7 @@ import {
   useMyRooms,
   type CreateError,
 } from '../../features/07/data';
+import { useTrack } from '../../features/07/analytics';
 
 const HOST_LIMIT = `You're hosting ${ROOMS_HOSTED_MAX} rooms. End one to start another.`;
 
@@ -47,6 +49,7 @@ export default function CreateRoom() {
   const [error, setError] = useState<CreateError | null>(null);
   const library = useLibraryBooks();
   const create = useCreateRoom();
+  const track = useTrack();
   const mine = useMyRooms();
   const minor = useIsMinor(session?.user.id).data === true;
 
@@ -56,8 +59,9 @@ export default function CreateRoom() {
   );
   const picked = (library.data ?? []).find((b) => b.id === values.book);
   const chapters = useChapterCount(picked).data;
-  // Chapters the creator hasn't finished: the whole book until reading progress (flow 04) is in.
-  const paceHint = picked && chapters ? paceFinishLine(values.pace, chapters) : null;
+  // Rule 7: counted from the chapters the creator hasn't finished yet.
+  const left = picked && chapters ? chaptersLeft(picked, chapters) : 0;
+  const paceHint = left ? paceFinishLine(values.pace, left) : null;
 
   const hosting = (mine.data ?? []).filter((r) => r.is_host && r.state !== 'ended').length;
   const atLimit = hosting >= ROOMS_HOSTED_MAX;
@@ -70,7 +74,10 @@ export default function CreateRoom() {
     create.mutate(
       { name: values.name, book: values.book, pace: values.pace, join_policy: values.join },
       {
-        onSuccess: (r) => router.replace(`/room/${r.room_id}?share=1`),
+        onSuccess: (r) => {
+          track('room_created', { pace: values.pace, join_policy: values.join, book_id: values.book! });
+          router.replace(`/room/${r.room_id}?share=1`);
+        },
         onError: (e) => {
           const k = createErrorOf(e);
           setError(k);
