@@ -265,7 +265,7 @@ export function useRevisionBook(rev: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('book_revisions')
-        .select('id, source_type, submitted_at, books ( id, title )')
+        .select('id, source_type, submitted_at, revision_no, books ( id, title )')
         .eq('id', rev!)
         .single();
       if (error) throw error;
