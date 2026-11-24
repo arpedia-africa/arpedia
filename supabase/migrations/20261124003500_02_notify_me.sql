@@ -47,20 +47,20 @@ language sql stable security definer set search_path = '' as $$
                  where e.book_id = p_book and n.user_id = public._uid())
 $$;
 
--- On release, one push (and feed item) to everyone waiting. Readers who follow the author and
--- keep author notices on already get author_new_book for it, so they are left out.
+-- On release, one push (and feed item) to everyone waiting, whatever the publisher chose for
+-- followers (a follower may also get author_new_book; both open the book). The wait is then over:
+-- the rows go, so a later unpublish and re-release does not tell them twice.
 create function public._books_live_notify_waiters() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
   v_users uuid[];
 begin
-  select array_agg(n.user_id) into v_users
-  from public.coming_soon_entries e
-  join public.coming_soon_notify n on n.entry_id = e.id
-  where e.book_id = new.id
-    and n.user_id <> new.author_id
-    and not (exists (select 1 from public.follows f where f.follower_id = n.user_id and f.followee_id = new.author_id)
-             and public.notification_pref(n.user_id, 'authors'));
+  with gone as (
+    delete from public.coming_soon_notify n using public.coming_soon_entries e
+    where e.id = n.entry_id and e.book_id = new.id
+    returning n.user_id)
+  select array_agg(user_id) into v_users from gone where user_id <> new.author_id;
+  update public.coming_soon_entries set notify_count = 0 where book_id = new.id;
   if v_users is not null then
     perform public.enqueue_push('book_released', v_users, jsonb_build_object(
       'vars', jsonb_build_object('book_title', new.title),

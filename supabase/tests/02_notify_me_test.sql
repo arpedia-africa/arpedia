@@ -2,7 +2,7 @@
 -- waiting readers on release) and 05-3 (the book shows in Saved with its date).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(15);
 
 -- Seed: Night Bus to Kano (c200-…001) is scheduled with a coming-soon entry (notify_count 312),
 -- by Musa (a000-…006). Ngozi (a000-…001) and Emeka (a000-…007) are readers.
@@ -41,6 +41,10 @@ select is((select count(*)::int from pgmq.q_push_fanout where message ->> 'type'
   - (select n from pushes_before), 1, 'release sends one push batch');
 select is((select message -> 'user_ids' from pgmq.q_push_fanout where message ->> 'type' = 'book_released'
   order by msg_id desc limit 1), '["00000000-0000-4000-a000-000000000001"]'::jsonb, 'to the readers still waiting');
+update public.books set status = 'scheduled' where id = '00000000-0000-4000-c200-000000000001';
+update public.books set status = 'live' where id = '00000000-0000-4000-c200-000000000001';
+select is((select count(*)::int from pgmq.q_push_fanout where message ->> 'type' = 'book_released')
+  - (select n from pushes_before), 1, 'a re-release does not tell them twice');
 
 select * from finish();
 rollback;
