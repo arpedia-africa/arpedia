@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Screen, Section, useTheme, useToast } from '@arpedia/ui';
 import { greeting } from '@arpedia/core';
 import {
@@ -42,6 +43,13 @@ export default function Home() {
   const track = useTrack();
   const home = useHome();
   const qc = useQueryClient();
+  // Rule 7: the credits chip and bell follow a spend or a read elsewhere as soon as Home shows again.
+  const { refetch } = home;
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
   const [pulling, setPulling] = useState(false);
   const data = home.data;
   const name = data?.first_name?.trim();
