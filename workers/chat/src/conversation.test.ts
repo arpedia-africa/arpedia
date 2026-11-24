@@ -35,6 +35,8 @@ function setup() {
   const stored: PersistItem[] = [];
   let failPersist = false;
   let poison: string | null = null;
+  let failPush = false;
+  const pushes: { ids: string[]; open: string[] }[] = [];
   const flushAt: number[] = [];
   const db: ChatDb = {
     getAccess: async (_g, u) => {
@@ -56,6 +58,10 @@ function setup() {
     setLiveCount: async () => undefined,
     touchLastSeen: async () => undefined,
     canQuote: async () => true,
+    pushMessages: async (ids, open) => {
+      if (failPush) throw new Error('push down');
+      pushes.push({ ids, open });
+    },
   };
   const q = new Map<string, PersistItem>();
   const parked = new Map<string, PersistItem>();
@@ -112,6 +118,8 @@ function setup() {
     tick: (ms: number) => (now += ms),
     failPersist: (v: boolean) => (failPersist = v),
     poison: (body: string) => (poison = body),
+    pushes,
+    failPush: (v: boolean) => (failPush = v),
   };
 }
 
@@ -346,5 +354,49 @@ describe('write retry', () => {
     expect(t.q.size).toBe(0);
     expect([...t.parked.values()].map((p) => p.client_id)).toEqual([cid(2)]);
     expect(t.stored.map((s) => s.client_id)).toEqual([cid(1), cid(3)]);
+  });
+});
+
+describe('push (flow 15)', () => {
+  it('asks for pushes for stored messages only, naming who has the chat open', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('bola', access());
+    const ada = t.peer('ada');
+    t.peer('bola');
+    await t.send(ada, 1);
+    await t.send(ada, 2);
+    await t.conv.flush();
+    expect(t.pushes).toHaveLength(1);
+    expect(t.pushes[0]!.ids).toEqual(t.stored.map((s) => s.id));
+    expect(t.pushes[0]!.open.sort()).toEqual(['ada', 'bola']);
+
+    // Refused rows (sender muted meanwhile) are never pushed.
+    await t.send(ada, 3);
+    t.table.set('ada', access({ post_block: 'muted' }));
+    await t.conv.flush();
+    expect(t.pushes).toHaveLength(1);
+  });
+
+  it('pushes rows written one by one after a bad batch', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    await t.send(ada, 2, 'bad row');
+    t.poison('bad row');
+    await t.conv.flush();
+    expect(t.pushes.flatMap((p) => p.ids)).toEqual(t.stored.map((s) => s.id));
+  });
+
+  it('a failed push never keeps messages queued', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    t.failPush(true);
+    await t.conv.flush();
+    expect(t.q.size).toBe(0);
+    expect(t.stored).toHaveLength(1);
   });
 });

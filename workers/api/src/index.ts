@@ -10,6 +10,8 @@ import { consumeQueue } from './routes/12/pipeline';
 import { checkIntegrations } from './routes/16/integrations';
 import { drainPayouts, pollPendingPayouts } from './routes/13/earnings';
 import { engageCron } from './routes/15/engage';
+import { drainNotify } from './routes/15/notify';
+import { drainTrustOutbox } from './routes/14/trust';
 
 const app = new Hono<AppEnv>();
 
@@ -38,7 +40,8 @@ export default {
   // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11), the story
   // search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09),
   // author payouts (flow 13), integration health checks (flow 16) and pushes, campaigns and exports
-  // (flow 15); on the hour, payouts pending over 48 hours.
+  // (flow 15), notices from every flow and the trust outbox (flow 15 dispatcher, flow 14); on the
+  // hour, payouts pending over 48 hours.
   scheduled: (event, env, ctx) =>
     ctx.waitUntil(
       Promise.allSettled([
@@ -50,6 +53,8 @@ export default {
         drainPayouts(env),
         checkIntegrations(env),
         engageCron(env, event.scheduledTime),
+        drainNotify(env),
+        drainTrustOutbox(env),
         ...(new Date(event.scheduledTime).getUTCMinutes() === 0 ? [pollPendingPayouts(env)] : []),
       ]),
     ),

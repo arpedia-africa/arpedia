@@ -270,6 +270,7 @@ export class Conversation {
           }
           await this.d.queue.delete(keys);
           this.takeBack(batch, results);
+          await this.push(results);
         }
       } finally {
         this.flushing = null;
@@ -283,7 +284,9 @@ export class Conversation {
     for (const [i, item] of batch.entries()) {
       const key = keys[i]!;
       try {
-        this.takeBack([item], await this.d.db.persist([item]));
+        const results = await this.d.db.persist([item]);
+        this.takeBack([item], results);
+        await this.push(results);
       } catch (e) {
         if (!permanent(e)) {
           this.d.scheduleFlush(RETRY_MS);
@@ -296,6 +299,17 @@ export class Conversation {
       await this.d.queue.delete([key]);
     }
     return true;
+  }
+
+  /**
+   * Push newly stored messages to members without the chat open (flow 15 decides who gets one).
+   * Duplicates were pushed the first time. A failed push never holds back the queue.
+   */
+  private async push(results: PersistResult[]): Promise<void> {
+    const ids = results.filter((r) => r.status === 'stored' && r.id).map((r) => r.id!);
+    if (!ids.length) return;
+    const open = [...new Set(this.d.peers().map((p) => p.userId))];
+    await this.d.db.pushMessages(ids, open).catch((e: unknown) => console.error('chat push failed', e));
   }
 
   /** Rows Postgres refused (sender muted or removed meanwhile) are taken back from live clients. */
