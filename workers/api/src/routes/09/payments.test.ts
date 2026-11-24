@@ -10,7 +10,8 @@ vi.mock('../13/earnings', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   handleTransferWebhook,
 }));
-vi.mock('../../db', () => ({ serviceDb: () => ({ rpc: vi.fn() }) }));
+const rpc = vi.fn();
+vi.mock('../../db', () => ({ serviceDb: () => ({ rpc }) }));
 
 const { default: payments } = await import('./payments');
 
@@ -39,6 +40,32 @@ describe('Flutterwave webhook', () => {
     handleTransferWebhook.mockClear();
     await post({ 'event.type': 'Transfer', data: { id: 78 } });
     expect(handleTransferWebhook).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores a failed charge as unpaid, never as a purchase (spec check 09-14)', async () => {
+    const user = '11111111-2222-4333-8444-555555555555';
+    const verified = {
+      id: 9001,
+      tx_ref: `arp:topup:topup_200:${user}:n1`,
+      amount: 600,
+      currency: 'NGN',
+      status: 'failed',
+      created_at: '2026-11-24T10:00:00.000Z',
+    };
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ status: 'success', data: verified })));
+    rpc.mockReset().mockResolvedValue({ data: { id: 5, outcome: 'charge failed' }, error: null });
+    const res = await post({ event: 'charge.completed', data: { id: 9001 } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, outcome: 'charge failed' });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls[0]![0]).toBe('ingest_payment_event');
+    expect(rpc.mock.calls[0]![1]).toMatchObject({
+      p_event_id: 'charge:9001:failed',
+      p_normalized: { type: 'unpaid', status: 'failed', kind: 'topup', topup_code: 'topup_200' },
+    });
+    fetchMock.mockRestore();
   });
 
   it('still checks the signature first', async () => {
