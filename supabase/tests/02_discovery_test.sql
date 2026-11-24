@@ -97,10 +97,11 @@ select lives_ok($$select public.discard_shelf_draft((select v from ids where k =
 select is((select count(*)::int from public.shelf_items where section_id = (select v from ids where k = 'trending')), 8,
   'discard leaves the live shelf untouched');
 
+-- Not Ruth of Ibadan: the seed holds it for a claim, so it is out of Discover (14-9).
 select public.save_shelf_draft((select v from ids where k = 'trending'), (
   select jsonb_agg(jsonb_build_object('item_type', 'book', 'item_id', b.id, 'pinned', b.title = 'Bread on Water')
     order by b.title = 'Bread on Water' desc, b.title)
-  from public.books b where b.status = 'live' and b.title in ('Bread on Water', 'Ruth of Ibadan', 'The Alignment',
+  from public.books b where b.status = 'live' and b.title in ('Bread on Water', 'Psalms for the Danfo', 'The Alignment',
     'Still Waters, Lagos', 'A House Called Grace')));
 select is(public.publish_shelf((select v from ids where k = 'trending')), 5, 'publish replaces the live rows');
 select is((select item_id from public.shelf_items where section_id = (select v from ids where k = 'trending') and pinned),
@@ -133,7 +134,7 @@ select is((select count(distinct x ->> 'id')::int from (
     select jsonb_array_elements(public.list_books(null, null, 'price', null, 4) -> 'items') x
     union all
     select jsonb_array_elements(public.list_books(null, null, 'price',
-      public.list_books(null, null, 'price', null, 4) -> 'next', 4) -> 'items')) p), 8,
+      public.list_books(null, null, 'price', null, 4) -> 'next', 4) -> 'items')) p), public.count_books(),
   'keyset pages do not repeat');
 select ok(public.search('harmatan') -> 'books' @> jsonb_build_array(jsonb_build_object('title', 'Harmattan Letters')),
   'a typo still finds Harmattan Letters');
