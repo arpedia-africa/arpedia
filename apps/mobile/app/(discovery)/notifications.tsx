@@ -10,7 +10,7 @@ import {
   type NotifRow,
 } from '../../features/02/NotificationViews';
 import { toRow, useMarkRead, useNotifications, type ServerNotif } from '../../features/02/notifications';
-import { discoveryLinks } from '../../features/02/links';
+import { hrefFor } from '../../features/15/push';
 import { ListError } from '../../features/02/ListViews';
 import { APPEAL_SENT, appealSubject, decisionTitle, type ModerationRow } from '@arpedia/core';
 import { useSession } from '../../features/01/session';
@@ -22,7 +22,6 @@ import { AppealSheet, DecisionCards } from '../../features/14/AppealViews';
 export default function Notifications() {
   const { c, s } = useTheme();
   const toast = useToast();
-  const go = discoveryLinks(toast);
   const [category, setCategory] = useState<NotifCategory>('all');
   const feed = useNotifications(category);
   const mark = useMarkRead();
@@ -54,19 +53,16 @@ export default function Notifications() {
     if (!n.read_at) mark.one.mutate(n.id);
     openTarget(n);
   };
+  // Same routes as a push tap (flow 15): reader at the saved page, author, post, room, group.
   const openTarget = (n: ServerNotif) => {
     if (!n.target_type || !n.target_id) return toast({ message: 'That is no longer available' });
-    switch (n.target_type) {
-      case 'book':
-      case 'reader':
-        return go.book(n.target_id);
-      case 'author':
-      case 'profile':
-        return go.author(n.target_id);
-      default:
-        // Clubs, posts, discussions and messages live in Community.
-        return router.push('/community');
-    }
+    const target =
+      n.target_type === 'screen'
+        ? { kind: 'screen', screen: n.target_id }
+        : { kind: n.target_type, id: n.target_id };
+    const href = hrefFor(target, 'notifications') ?? '/community';
+    // Discussions and messages without their own route live in Community.
+    router.push(target.kind !== 'screen' && href === '/home' ? '/community' : href);
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
