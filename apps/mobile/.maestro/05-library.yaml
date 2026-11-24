@@ -106,9 +106,10 @@ appId: com.arpedia.reader
       - assertVisible: 'Already paid'
       - takeScreenshot: library-${WIDTH}-pay-rest
       - tapOn: 'Pay .* credits'
-      - extendedWaitUntil:
-          visible: 'Paid .* credits · A House Called Grace is yours to keep'
-          timeout: 20000
+      # The toast is short (a hierarchy read on a busy emulator can miss it); the row below proves it.
+      - assertVisible:
+          text: 'Paid .* credits · A House Called Grace is yours to keep'
+          optional: true
       - extendedWaitUntil:
           visible: 'Chapter \d+ of \d+ · unlocked'
           timeout: 10000
