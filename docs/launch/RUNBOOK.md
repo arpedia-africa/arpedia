@@ -46,7 +46,7 @@ It:
 
 Then, by hand:
 - [ ] R2 bucket `arpedia-backups` created, private, with an API token scoped to it (read and write) for `R2_*`.
-- [ ] GitHub environment `backup` with `SUPABASE_DB_URL`, `BACKUP_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `NTFY_TOPIC`, and variables `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+- [ ] GitHub environment `backup` with `SUPABASE_DB_URL`, `BACKUP_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `NTFY_TOPIC`, and variables `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 - [ ] GitHub environment `production` (add yourself as a required reviewer if the plan allows it) and the repository variable `RELEASE_APPROVERS` (your GitHub login).
 - [ ] **Public legal pages** (flow 16 rule 38): Cloudflare → Workers → `arpedia-api` → Settings → Domains & Routes → add the route `arpedia.africa/legal*` (zone `arpedia.africa`). Open `https://arpedia.africa/legal` and `https://arpedia.africa/legal/delete-account` to check. Then in the console → Settings → Policies, publish the real text of every page (version 1 is a one-line placeholder): Terms, Privacy, Community guidelines, Copyright, Author agreement, Refunds and Delete-account (what is removed, what is kept and for how long). Pages show the latest published version within 5 minutes.
 - [ ] `BACKUP_KEY`: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Keep a copy outside GitHub** (password manager). Without it no backup can be read.

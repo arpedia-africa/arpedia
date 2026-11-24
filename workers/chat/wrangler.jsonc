@@ -22,7 +22,7 @@
   "env": {
     "staging": {
       "name": "arpedia-chat-staging",
-      "vars": { "APP_ENV": "staging", "SUPABASE_URL": "https://arpedia-staging.supabase.co" },
+      "vars": { "APP_ENV": "staging", "SUPABASE_URL": "https://wsblzfpiflefqpbsqkuy.supabase.co" },
       "durable_objects": {
         "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
       },
@@ -33,7 +33,7 @@
     },
     "production": {
       "name": "arpedia-chat",
-      "vars": { "APP_ENV": "production", "SUPABASE_URL": "https://arpedia.supabase.co" },
+      "vars": { "APP_ENV": "production", "SUPABASE_URL": "https://lzrctrkuvkeftujqiqbn.supabase.co" },
       "durable_objects": {
         "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
       },
