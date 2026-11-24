@@ -8426,6 +8426,9 @@ isOneToOne: false
 "staff_request_campaign_review":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"staff_reset_link_fresh":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "staff_restore_campaign":
 { Args: { "p_id": string }; Returns: undefined
                            },

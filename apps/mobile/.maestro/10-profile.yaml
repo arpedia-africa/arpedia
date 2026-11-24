@@ -12,8 +12,10 @@ appId: com.arpedia.reader
     # A cold start after clearState can take ~1 min on a loaded emulator.
     timeout: 90000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'

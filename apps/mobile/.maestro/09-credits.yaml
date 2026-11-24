@@ -12,10 +12,12 @@ appId: com.arpedia.reader
     clearState: true
 - extendedWaitUntil:
     visible: 'Welcome back'
-    timeout: 30000
+    timeout: 90000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
