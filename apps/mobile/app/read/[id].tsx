@@ -14,6 +14,7 @@ import { placeToolbar, type HighlightColor, type Rect, type SelectionDetail } fr
 import { readerHtml } from '@arpedia/reader/html';
 import { Btn, EmptyState, useTheme, useToast } from '@arpedia/ui';
 import { bookKey, useBookPage, useOnline } from '../../features/03/book';
+import { useBookDiscussion } from '../../features/03/discussion';
 import { rpcError, UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
 import {
@@ -262,8 +263,14 @@ export default function ReaderScreen() {
     [r.settings.highlight_color],
   );
 
-  // The book room lives in Community (flow 06).
-  const toRoom = () => router.push('/community');
+  // The book room is the chat of the club reading this book (s-channel, flow 06); with no club it
+  // lives in Community.
+  const room = useBookDiscussion(id);
+  const toRoom = () => {
+    const club = room.data?.club;
+    if (club) router.push({ pathname: '/chat/[id]', params: { id: club.id } });
+    else router.push('/community');
+  };
   const shareBook = () => {
     if (!st) return;
     const by = st.book.author.name ? ` by ${st.book.author.name}` : '';

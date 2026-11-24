@@ -125,7 +125,7 @@ export function mainButton(state: {
   owned?: boolean;
 }): string {
   if (state.comingSoon) return 'Notify me';
-  if (state.maxPercent != null && state.maxPercent >= 100) return 'Read again';
+  if (state.maxPercent != null && state.maxPercent >= FINISHED_PERCENT) return 'Read again';
   if (state.percent != null && state.percent > 0) return `Continue reading · ${Math.floor(state.percent)}%`;
   if (state.owned) return 'Start reading';
   return `Start reading · first ${state.previewPercent}% free`;

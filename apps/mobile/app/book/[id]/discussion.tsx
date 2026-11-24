@@ -1,36 +1,25 @@
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { EmptyState, Screen, useTheme } from '@arpedia/ui';
-import { supabase } from '@/lib/supabase';
 import { AboutSkeleton, BackHero, DiscussionLockedView } from '../../../features/03/AboutViews';
+import { clubSub, passageSub, useBookDiscussion } from '../../../features/03/discussion';
 
-// s-book-discussion (rule 47): locked until 95% read. At 95% the book room opens (flow 06); the
-// server enforces the gate there too.
-
-interface DiscussionData {
-  title: string;
-  percent: number;
-  max_percent: number;
-  unlocked: boolean;
-  chapter_ord: number;
-  chapters: number;
-}
+// s-book-discussion (rule 47): locked until 95% read. At 95% the screen redirects to the book room
+// (the club chat, flow 06); the server enforces the gate there too.
 
 export default function Discussion() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { s } = useTheme();
-  const q = useQuery({
-    queryKey: ['book-discussion', id],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_book_discussion', { p_book: id });
-      if (error) throw error;
-      return data as unknown as DiscussionData | null;
-    },
-  });
+  const q = useBookDiscussion(id);
   const back = () =>
     router.canGoBack() ? router.back() : router.replace({ pathname: '/book/[id]', params: { id } });
   const d = q.data;
+  const roomId = d?.unlocked ? (d.club?.id ?? null) : null;
+  useEffect(() => {
+    if (roomId) router.replace({ pathname: '/chat/[id]', params: { id: roomId } });
+  }, [roomId]);
+  const toReader = () => router.push({ pathname: '/read/[id]', params: { id } });
   return (
     <Screen top="org">
       <BackHero
@@ -40,19 +29,36 @@ export default function Discussion() {
       />
       {d ? (
         d.unlocked ? (
-          <View style={{ paddingTop: s(24) }}>
-            <EmptyState
-              title="You finished it"
-              body="The book room opens with Community. Your place is saved."
-              action={{ label: 'Open the book room', onPress: () => router.push('/community') }}
-            />
-          </View>
+          roomId ? null : (
+            <View style={{ paddingTop: s(24) }}>
+              <EmptyState
+                title="You finished it"
+                body="No club is reading this book yet. Find one in Community."
+                action={{ label: 'Open Community', onPress: () => router.push('/community') }}
+              />
+            </View>
+          )
         ) : (
           <DiscussionLockedView
             percent={Number(d.max_percent)}
             chapter={d.chapter_ord}
             chapters={d.chapters}
-            onRead={() => router.push({ pathname: '/read/[id]', params: { id } })}
+            onRead={toReader}
+            passage={
+              d.chapter_comments > 0
+                ? { sub: passageSub(d.chapter_comments, d.chapter_ord), onPress: toReader }
+                : null
+            }
+            club={
+              d.club
+                ? {
+                    name: d.club.name,
+                    title: d.club.name,
+                    sub: clubSub(d.club.members),
+                    onPress: () => router.push({ pathname: '/chat/[id]', params: { id: d.club!.id } }),
+                  }
+                : null
+            }
           />
         )
       ) : q.isPending ? (

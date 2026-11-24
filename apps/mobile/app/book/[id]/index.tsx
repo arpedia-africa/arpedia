@@ -205,8 +205,10 @@ export default function BookPage() {
             onDownload: () => {
               setOverlay(null);
               if (!online) return toast({ message: 'Connect to continue' });
-              track('download_requested', { book_id: id });
-              downloadBook(id, (scope) => toast({ message: DOWNLOAD_STARTED[scope] })).then(
+              downloadBook(id, (scope) => {
+                track('download_requested', { book_id: id, scope });
+                toast({ message: DOWNLOAD_STARTED[scope] });
+              }).then(
                 () => toast({ message: 'Ready offline' }),
                 () => toast({ message: 'Couldn’t download. Try again.' }),
               );
