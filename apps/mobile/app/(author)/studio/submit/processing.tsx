@@ -244,6 +244,10 @@ function model(
     steps: steps(at),
     progress: Math.min(0.9, (at + 0.5) / STEPS.length),
     note,
-    callout: null,
+    // States: loading (flow 11). The Worker reports no stages yet, so past 30 s say it's still going.
+    callout:
+      seconds > 30
+        ? { tone: 'info' as const, text: 'Still working. You can leave; we will notify you.' }
+        : null,
   };
 }
