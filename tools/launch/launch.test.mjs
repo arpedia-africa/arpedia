@@ -188,7 +188,7 @@ function healthy() {
     posthog: 340,
     bundle: {
       entries: ['base/assets/index.android.bundle'],
-      text: 'https://api.arpedia.africa https://arpedia.supabase.co',
+      text: 'https://api.arpedia.africa https://lzrctrkuvkeftujqiqbn.supabase.co',
     },
   };
 }
@@ -202,7 +202,7 @@ function preflight(w) {
     db: { rpc: async () => w.check },
     fetchImpl: async (url) => w.routes[new URL(url).pathname](),
     settingNames: async (worker) => w.settings[worker],
-    buckets: ['arpedia-books', 'arpedia-backups'],
+    buckets: ['arpedia-books-prod', 'arpedia-backups'],
     r2Public: async (b) => w.publicBuckets[b] ?? { managed: false, custom: 0 },
     backups: async () => w.backups,
     sentryEvents: async () => w.sentry,
@@ -233,12 +233,13 @@ describe('preflight.mjs', () => {
       (w.routes['/v1/payments/revenuecat'] = () => new Response('{}', { status: 200 })),
     webhook_flutterwave: (w) =>
       (w.routes['/v1/payments/flutterwave'] = () => new Response('{}', { status: 503 })),
-    'r2_private:arpedia-books': (w) => (w.publicBuckets['arpedia-books'] = { managed: true, custom: 0 }),
+    'r2_private:arpedia-books-prod': (w) =>
+      (w.publicBuckets['arpedia-books-prod'] = { managed: true, custom: 0 }),
     'r2_private:arpedia-backups': (w) => (w.publicBuckets['arpedia-backups'] = { managed: false, custom: 1 }),
     backups: (w) => (w.backups[0].lastModified = new Date('2026-11-30T02:05:00Z')),
     sentry: (w) => (w.sentry = 0),
     posthog: (w) => (w.posthog = 0),
-    release_endpoints: (w) => (w.bundle.text += ' https://arpedia-staging.supabase.co'),
+    release_endpoints: (w) => (w.bundle.text += ' https://wsblzfpiflefqpbsqkuy.supabase.co'),
     expo_public_kit: (w) => w.bundle.entries.push('base/res/xml/kit_network.xml'),
     release_build: (w) => (w.bundle = null),
   };
@@ -282,7 +283,9 @@ describe('preflight.mjs', () => {
 
   it('reads the bundle and resources out of an .aab', () => {
     const aab = zipSync({
-      'base/assets/index.android.bundle': new TextEncoder().encode('x https://arpedia-staging.supabase.co y'),
+      'base/assets/index.android.bundle': new TextEncoder().encode(
+        'x https://wsblzfpiflefqpbsqkuy.supabase.co y',
+      ),
       'base/res/xml/kit_network.xml': new Uint8Array([1]),
       'base/dex/classes.dex': new Uint8Array([2]),
     });

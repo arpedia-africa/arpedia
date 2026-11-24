@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
-import { muteMember, saveChannelSettings, setChannelState } from '../actions';
+import { muteMember, saveChannelSettings, setChannelState, setModerator } from '../actions';
 import { SELECT } from '../community-view';
 import {
   avatarClass,
@@ -124,6 +124,8 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
   const [slow, setSlow] = useState(g?.slow_mode_seconds ?? 0);
   const [words, setWords] = useState<string[]>(g?.muted_words ?? []);
   const [adding, setAdding] = useState<string | null>(null);
+  const [addingMod, setAddingMod] = useState(false);
+  const candidates = (detail?.members ?? []).filter(m => m.role === 'member' && !m.banned_at);
 
   useEffect(() => {
     if (!menu) return;
@@ -531,6 +533,39 @@ export function ChannelView({ detail, failed, canEdit }: { detail: ChannelDetail
                         {m}
                       </span>
                     ))}
+                    {canEdit && g.moderators.length < 5 && candidates.length ? (
+                      addingMod ? (
+                        <select
+                          className="fchip"
+                          autoFocus
+                          aria-label="Member to make a moderator"
+                          defaultValue=""
+                          disabled={pending}
+                          onBlur={() => setAddingMod(false)}
+                          onChange={e => {
+                            const m = candidates.find(x => x.user_id === e.target.value);
+                            setAddingMod(false);
+                            if (m)
+                              run(setModerator(g.id, m.user_id, true), 'Moderator added', () =>
+                                run(setModerator(g.id, m.user_id, false), 'Undone.'),
+                              );
+                          }}
+                        >
+                          <option value="" disabled>
+                            Pick a member
+                          </option>
+                          {candidates.map(m => (
+                            <option key={m.user_id} value={m.user_id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button type="button" className="fchip" onClick={() => setAddingMod(true)}>
+                          + Add
+                        </button>
+                      )
+                    ) : null}
                   </div>
                   <span className="hint">{g.kind === 'author' ? 'Chosen by the author. Maximum 5.' : 'Chosen by the owner. Maximum 5.'}</span>
                 </div>

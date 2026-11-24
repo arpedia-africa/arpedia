@@ -66,7 +66,9 @@ export function PlanEditModal({
         if (r.needCode) setOtp('');
         return;
       }
-      const msg = `${name.trim()} plan saved. ${subs} subscriber${subscribers === 1 ? ' keeps' : 's keep'} their price until they renew.`;
+      const msg = r.pending
+        ? `${name.trim()} price change sent to a Super admin to confirm. Nothing changes until they do.`
+        : `${name.trim()} plan saved. ${subs} subscriber${subscribers === 1 ? ' keeps' : 's keep'} their price until they renew.`;
       router.push(`/pricing?flash=${encodeURIComponent(msg)}`);
     });
 
@@ -152,7 +154,12 @@ export function PlanEditModal({
             <div className="f">
               <span className="lbl">2-step code</span>
               <Otp value={otp} onChange={setOtp} invalid={!!error} />
-              {(error || !canEdit) && <span className="hint">{error ?? 'Only Super admins and Finance can change prices.'}</span>}
+              <span className="hint">
+                {error ??
+                  (canEdit
+                    ? 'A new price or credits waits for a second Super admin to confirm.'
+                    : 'Only Super admins and Finance can change prices.')}
+              </span>
             </div>
           </div>
         </div>

@@ -56,7 +56,8 @@ insert into public.reading_progress (user_id, book_id, percent, max_percent) val
   ('30300000-0000-4000-a000-000000000001', '30300000-0000-4000-c000-000000000001', 96, 96),
   ('30300000-0000-4000-a000-000000000002', '30300000-0000-4000-c000-000000000001', 50, 50);
 insert into public.follows (follower_id, followee_id) values
-  ('30300000-0000-4000-a000-000000000006', '30300000-0000-4000-a000-000000000001');
+  ('30300000-0000-4000-a000-000000000006', '30300000-0000-4000-a000-000000000001'),
+  ('30300000-0000-4000-a000-000000000005', '30300000-0000-4000-a000-000000000001');
 
 create function pg_temp.as_user(uid text, age interval default '1 minute') returns void
 language sql as $$
@@ -151,8 +152,8 @@ select throws_ok($$select public.gift_book('30300000-0000-4000-c000-000000000001
   null, 100, 'gift-key-self')$$, 'P0001', 'bad_recipient', 'cannot gift yourself');
 select throws_ok($$select public.gift_book('30300000-0000-4000-c000-000000000001', '30300000-0000-4000-a000-000000000005',
   null, 100, 'gift-key-owner')$$, 'P0001', 'already_has_it', 'cannot gift someone who has it');
-select is((public.get_gift_people('30300000-0000-4000-c000-000000000001') -> 0 ->> 'id'),
-  '30300000-0000-4000-a000-000000000006', 'followers are gift people');
+select ok(public.get_gift_people('30300000-0000-4000-c000-000000000001')
+  @> '[{"id": "30300000-0000-4000-a000-000000000006", "why": "Follows you"}]', 'followers are gift people');
 select is(public.gift_book('30300000-0000-4000-c000-000000000001', '30300000-0000-4000-a000-000000000006',
   'Read the third letter', 100, 'gift-key-0001') ->> 'spent', '100', 'gift spends the full price');
 select is(public.credit_balance('30300000-0000-4000-a000-000000000001'), 0, 'sender pays');

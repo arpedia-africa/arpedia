@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   normalizeFlutterwaveCharge,
+  normalizeFlutterwaveUnpaid,
   normalizeRevenueCat,
   parseTxRef,
   safeEqual,
@@ -143,6 +144,32 @@ describe('Flutterwave', () => {
     });
     expect(normalizeFlutterwaveCharge({ ...tx, currency: 'USD' }, { renewal: false })).toEqual({
       ignore: 'currency USD',
+    });
+  });
+
+  it('keeps pending and failed charges as unpaid, keyed apart from the success', () => {
+    const failed = normalizeFlutterwaveUnpaid({ ...tx, status: 'failed' }) as IngestInput;
+    expect(failed.eventId).toBe('charge:9001:failed');
+    expect(failed.normalized).toEqual({
+      type: 'unpaid',
+      user_id: USER,
+      store: 'web',
+      txn_id: '9001',
+      status: 'failed',
+      kind: 'plan',
+      plan_code: 'monthly',
+      gross_kobo: 80000,
+    });
+    const pending = normalizeFlutterwaveUnpaid({
+      ...tx,
+      status: 'pending',
+      tx_ref: `arp:topup:topup_200:${USER}:n2`,
+    }) as IngestInput;
+    expect(pending.normalized).toMatchObject({ status: 'pending', kind: 'topup', topup_code: 'topup_200' });
+    expect(pending.normalized.plan_code).toBeUndefined();
+    expect(normalizeFlutterwaveUnpaid(tx)).toEqual({ ignore: 'status successful' });
+    expect(normalizeFlutterwaveUnpaid({ ...tx, status: 'failed', tx_ref: 'other' })).toEqual({
+      ignore: 'unknown tx_ref',
     });
   });
 });

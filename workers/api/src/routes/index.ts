@@ -13,6 +13,8 @@ import books from './12/books';
 import trust from './14/trust';
 import payments from './09/payments';
 import appConfig from './16/app-config';
+import legal from './16/legal';
+import integrations from './16/integrations';
 import authors from './08/authors';
 import earnings from './13/earnings';
 import engage from './15/engage';
@@ -35,6 +37,9 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/payments', payments],
   ['/v1/reader', reading],
   ['/v1/app-config', appConfig],
+  ['/v1/integrations', integrations],
+  // Public HTML, not the API: arpedia.africa/legal/* is routed here.
+  ['/legal', legal],
   ['/v1/authors', authors],
   ['/v1/earnings', earnings],
   ['/v1/engage', engage],

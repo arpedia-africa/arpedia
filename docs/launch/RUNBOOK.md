@@ -28,6 +28,7 @@ Export these in your shell (or GitHub environment) for the target. Never commit 
 | `tools/launch/preflight.mjs` | the above, plus `API_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECTS`, `POSTHOG_HOST`, `POSTHOG_PROJECT_ID`, `POSTHOG_PERSONAL_API_KEY` |
 | `tools/launch/backup.mjs` | `SUPABASE_DB_URL`, `BACKUP_KEY`, `R2_*` |
 | `tools/launch/unmatched.mjs` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `tools/launch/staging-content.mjs` (staging only) | `APP_ENV=staging`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BOOK_MASTER_KEY` (staging api Worker's), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (a token that can write `arpedia-books-staging`) |
 
 **api Worker (staging and production):** besides the secrets in `workers/api/wrangler.jsonc`, set `ADMIN_URL`, `PUBLIC_API_URL` and `PUSH_MODE=expo` (as secrets or vars), `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_API_KEY`, `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH`, `PAYOUT_ACCOUNT_KEY`. Preflight lists any that are missing.
 
@@ -46,9 +47,20 @@ It:
 
 Then, by hand:
 - [ ] R2 bucket `arpedia-backups` created, private, with an API token scoped to it (read and write) for `R2_*`.
-- [ ] GitHub environment `backup` with `SUPABASE_DB_URL`, `BACKUP_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `NTFY_TOPIC`, and variables `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+- [ ] GitHub environment `backup` with `SUPABASE_DB_URL`, `BACKUP_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `NTFY_TOPIC`, and variables `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 - [ ] GitHub environment `production` (add yourself as a required reviewer if the plan allows it) and the repository variable `RELEASE_APPROVERS` (your GitHub login).
+- [ ] **Public legal pages** (flow 16 rule 38): Cloudflare → Workers → `arpedia-api` → Settings → Domains & Routes → add the route `arpedia.africa/legal*` (zone `arpedia.africa`). Open `https://arpedia.africa/legal` and `https://arpedia.africa/legal/delete-account` to check. Then in the console → Settings → Policies, publish the real text of every page (version 1 is a one-line placeholder): Terms, Privacy, Community guidelines, Copyright, Author agreement, Refunds and Delete-account (what is removed, what is kept and for how long). Pages show the latest published version within 5 minutes.
 - [ ] `BACKUP_KEY`: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Keep a copy outside GitHub** (password manager). Without it no backup can be read.
+
+### Staging sample content (coordinator, staging only)
+An empty staging database gets something to test with: 6 original sample books (several genres, 10% free preview, chapters of different lengths, covers) sealed into `arpedia-books-staging`, 2 author profiles, the public club "Staging Readers", and Trending, Arpedia authors, New arrivals and Top 10 on Home.
+```sh
+APP_ENV=staging node tools/launch/staging-content.mjs            # safe to repeat: sealed books are kept
+APP_ENV=staging node tools/launch/staging-content.mjs --reseal   # new keys and files for every sample book
+```
+- It refuses to run unless `APP_ENV=staging` and `SUPABASE_URL` is the staging host in `workers/api/wrangler.jsonc` (`--local` is for a local stack only). Never run `supabase/seed.sql` on staging.
+- No account gets a known password and no staff account is made: the two authors (`sample-author-*@example.com`) get a random password that is thrown away. Setup's `seed_users` check warns about them on staging; that is expected.
+- Readers test with their own sign-up; give them credits only through the app's test or store purchases.
 
 ## 3. Preflight (rule 7)
 Before the beta and before **every** rollout step:
