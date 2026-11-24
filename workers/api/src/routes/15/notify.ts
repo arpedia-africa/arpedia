@@ -378,7 +378,8 @@ export type SendMail = typeof sendTemplateEmail;
  */
 async function verifyLink(env: Env, db: Db, userId: string): Promise<string | null> {
   if (!env.PUBLIC_API_URL) {
-    if (env.APP_ENV === 'staging' || env.APP_ENV === 'production') throw new Error('PUBLIC_API_URL is not set');
+    if (env.APP_ENV === 'staging' || env.APP_ENV === 'production')
+      throw new Error('PUBLIC_API_URL is not set');
     console.warn('[notify] verify_email skipped: PUBLIC_API_URL is not set');
     return null;
   }

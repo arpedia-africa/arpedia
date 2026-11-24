@@ -328,9 +328,9 @@ describe('deliverNotices', () => {
     const sendMail = vi.fn(async () => true);
     const { db } = fakeDb({ verifyToken: 'ab'.repeat(24) });
     const staging = { APP_ENV: 'staging' } as Env;
-    expect(
-      await deliverNotices(staging, db, [{ kind: 'verify_email', user_id: READER }], sendMail),
-    ).toEqual([false]);
+    expect(await deliverNotices(staging, db, [{ kind: 'verify_email', user_id: READER }], sendMail)).toEqual([
+      false,
+    ]);
     expect(sendMail).not.toHaveBeenCalled();
   });
 
