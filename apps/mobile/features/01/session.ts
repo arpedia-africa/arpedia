@@ -75,6 +75,18 @@ export class AccountDeleted extends Error {
 export const isAccountDeleted = (e: unknown) => e instanceof AccountDeleted;
 
 /**
+ * Edge case: a plan bought on the web (flow 09, Flutterwave) skips the paywall. True when the
+ * reader's subscription still runs; offline or a failed read says false, so the paywall shows.
+ */
+export async function hasLivePlan() {
+  const { data, error } = await supabase.rpc('get_plan_screen');
+  if (error) return false;
+  const sub = (data as { subscription: { status: string; period_end: string } | null } | null)?.subscription;
+  if (!sub || sub.status === 'expired' || sub.status === 'refunded') return false;
+  return new Date(sub.period_end).getTime() > Date.now();
+}
+
+/**
  * After any sign-in: stop a deleted account, register the phone, then Home or the first unfinished
  * onboarding step. Staff's "Delete after 30 days" comes back by signing in within the grace.
  */

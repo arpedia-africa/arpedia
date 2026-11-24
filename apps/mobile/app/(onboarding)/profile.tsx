@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Btn, Cell, Group, Screen, Sheet, useTheme } from '@arpedia/ui';
@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ProfileFoot, ProfileView, type ProfileValues } from '../../features/01/StepViews';
 import { useTrack } from '../../features/01/analytics';
 import { pickAndUploadAvatar } from '../../features/01/photo';
-import { profileKey, useMyProfile, useSession } from '../../features/01/session';
+import { hasLivePlan, profileKey, useMyProfile, useSession } from '../../features/01/session';
 import { saveStep } from '../../features/01/steps';
 
 // Countries readers come from most; the phone prefix follows the country (Q10 default).
@@ -67,7 +67,17 @@ export default function ProfileSetup() {
     country: () => undefined,
   };
 
-  const next = () => router.push('/(onboarding)/plans');
+  // A reader who already has a plan (bought on the web) goes past the paywall to s-all-set.
+  const leaving = useRef(false);
+  const next = async () => {
+    if (leaving.current) return;
+    leaving.current = true;
+    const paid = await hasLivePlan();
+    leaving.current = false;
+    if (!paid) return router.push('/(onboarding)/plans');
+    void saveStep('plans');
+    router.replace('/(onboarding)/all-set');
+  };
   const cont = () => {
     const errs: Errors = { name: check.name(), phone: check.phone(), dob: check.dob() };
     setErrors(errs);
@@ -84,7 +94,7 @@ export default function ProfileSetup() {
       country: values.country !== 'NG',
     });
     void saveStep('profile', payload);
-    next();
+    void next();
   };
 
   const photo = async (source: 'camera' | 'library') => {
@@ -115,7 +125,7 @@ export default function ProfileSetup() {
           onSkip={() => {
             track('onboarding_step_skipped', { step: 'profile' });
             void saveStep('profile');
-            next();
+            void next();
           }}
         />
       }
