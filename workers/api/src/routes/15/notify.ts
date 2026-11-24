@@ -170,6 +170,10 @@ export function plan(n: Notice, l: Lookup): Plan {
         id(n.group_id) ? { kind: 'group', id: n.group_id as string } : undefined,
       );
       break;
+    case 'verify_email':
+      // The link is issued at send time (deliverNotices), so a retry never mails a dead token.
+      email('verify_email');
+      break;
     case 'welcome':
       email('welcome');
       break;
@@ -367,6 +371,21 @@ export function plan(n: Notice, l: Lookup): Plan {
 
 export type SendMail = typeof sendTemplateEmail;
 
+/**
+ * A one-time verify link, or null when the address is already proven (or the account is gone).
+ * Without PUBLIC_API_URL (local) there is nowhere to point the link, so nothing is sent.
+ */
+async function verifyLink(env: Env, db: Db, userId: string): Promise<string | null> {
+  if (!env.PUBLIC_API_URL) {
+    console.warn('[notify] verify_email skipped: PUBLIC_API_URL is not set');
+    return null;
+  }
+  const { data, error } = await db.rpc('issue_email_verification', { p_user: userId });
+  if (error) throw error;
+  if (typeof data !== 'string') return null;
+  return `${env.PUBLIC_API_URL.replace(/\/+$/, '')}/v1/email-verify?t=${data}`;
+}
+
 async function lookup(db: Db, n: ReturnType<typeof needs>): Promise<Lookup> {
   const call = async (users: string[], books: string[], roles: string[], authors: string[]) => {
     const { data, error } = await db.rpc('notify_lookup', {
@@ -418,6 +437,11 @@ export async function deliverNotices(
       for (const m of p.mail) {
         const u = l.users[m.user_id];
         if (!u?.email) continue;
+        if (m.key === 'verify_email') {
+          const link = await verifyLink(env, db, m.user_id);
+          if (!link) continue;
+          m.vars.link = link;
+        }
         await sendMail(env, db, m.key, u.email, { first_name: u.first_name, ...m.vars }, m.user_id);
       }
       out.push(true);
