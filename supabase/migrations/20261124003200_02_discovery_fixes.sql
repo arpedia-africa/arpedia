@@ -1,7 +1,7 @@
 -- Flow 02 · spec check 02-3, 02-4, 02-14.
 
 -- ─── 02-3: "Most read" counts readers who opened the book ───────────────────
--- Distinct readers with a reading session (free preview or unlocked) in the last 7 days; the
+-- Distinct readers with a reading session (free preview or unlocked) or an unlock in the last 7 days; the
 -- unlock-all count for ties still comes from entitlements. Feeds Top 10, Explore sort and
 -- Recommended through refresh_rankings.
 create index if not exists reading_sessions_started_idx on public.reading_sessions (started_at, book_id);
@@ -9,10 +9,16 @@ create index if not exists reading_sessions_started_idx on public.reading_sessio
 create or replace function public._readers_7d() returns table (book_id uuid, readers int, unlocks int)
 language sql stable security definer set search_path = '' as $$
   with s as (
-    select rs.book_id, count(distinct rs.user_id)::int as readers
-    from public.reading_sessions rs
-    where rs.started_at > now() - interval '7 days'
-    group by rs.book_id
+    select x.book_id, count(distinct x.user_id)::int as readers
+    from (
+      select rs.book_id, rs.user_id from public.reading_sessions rs
+      where rs.started_at > now() - interval '7 days'
+      -- An unlock not yet opened (or read offline, session not synced) still counts.
+      union all
+      select e.book_id, e.user_id from public.entitlements e
+      where e.created_at > now() - interval '7 days' and e.revoked_at is null
+    ) x
+    group by x.book_id
   ), u as (
     select e.book_id, count(*) filter (where e.source = 'unlock_all')::int as unlocks
     from public.entitlements e

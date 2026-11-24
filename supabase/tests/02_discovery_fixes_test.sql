@@ -2,7 +2,7 @@
 -- searched and suggested), 02-14 (Recommended leaves out finished and saved books).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(9);
+select plan(10);
 
 insert into auth.users (id, email)
 select ('02f00000-0000-4000-a000-00000000000' || n)::uuid, 'u' || n || '@t02f.local' from generate_series(1, 3) n;
@@ -26,6 +26,10 @@ select gen_random_uuid(), ('02f00000-0000-4000-a000-00000000000' || n)::uuid, '0
   now() - interval '1 day', now() - interval '1 day' + interval '10 minutes', 600 from generate_series(1, 2) n;
 select is((select readers from public._readers_7d() where book_id = '02f00000-0000-4000-c000-000000000001'), 2,
   'readers who opened the free preview count as readers');
+insert into public.entitlements (user_id, book_id, scope, source) values
+  ('02f00000-0000-4000-a000-000000000002', '02f00000-0000-4000-c000-000000000002', 'book', 'unlock_all');
+select is((select readers from public._readers_7d() where book_id = '02f00000-0000-4000-c000-000000000002'), 1,
+  'an unlock not yet opened still counts');
 select is((select unlocks from public._readers_7d() where book_id = '02f00000-0000-4000-c000-000000000001'), 0,
   'unlocks still come from entitlements');
 
