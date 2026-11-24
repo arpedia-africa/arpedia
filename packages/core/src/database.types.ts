@@ -7308,6 +7308,9 @@ isOneToOne: false
 "get_profile_summary":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"get_public_policies":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "get_reader_state":
 { Args: { "p_book": string }; Returns: Json
                            },
