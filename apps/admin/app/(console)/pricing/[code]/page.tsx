@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { NoAccess } from '@/components/no-access';
 import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
@@ -37,6 +37,8 @@ export default async function PlanEditPage({
     .eq('plan_code', plan.code)
     .in('status', ['active', 'grace', 'billing_retry', 'paused', 'cancelled']);
   const pending = change ? priceChanges.find(c => c.id === change && c.plan_code === plan.code) : undefined;
+  if (change && !pending)
+    redirect(`/pricing?flash=${encodeURIComponent('That price change was already decided or has expired.')}`);
   return (
     <>
       <PricingBody viewer={viewer} />

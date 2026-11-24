@@ -2,7 +2,7 @@
 -- confirms with a fresh code; name-only edits save directly; one open change per plan.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(15);
 
 insert into auth.users (id, email) values
   ('16100000-0000-4000-a000-000000000001', 'sa1-pp@arpedia.africa'),
@@ -54,6 +54,9 @@ select is(pg_temp.cur(), (select price from pg_temp.was),
   'the price is unchanged until a Super admin confirms');
 select throws_ok($$select public.save_plan('monthly', 'Monthly plus', null, 120000, 300, 0, null)$$,
   'P0001', 'change_pending', 'one open change per plan');
+select throws_ok(format($$select public.save_plan('monthly', 'Renamed', null, %s, %s, 0, null)$$,
+  (select price from pg_temp.was), (select credits from pg_temp.was)),
+  'P0001', 'change_pending', 'no direct edit while a change waits');
 select throws_ok(format($$select public.decide_approval(%L, true)$$, (select id from pg_temp.ids where k = 'r')),
   '42501', null, 'Finance cannot confirm');
 

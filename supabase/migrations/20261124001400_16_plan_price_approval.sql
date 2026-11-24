@@ -62,6 +62,13 @@ begin
   v_payload := jsonb_build_object('plan_code', p_code, 'name', trim(coalesce(p_name, '')), 'badge', p_badge,
     'price_web_kobo', p_price_web_kobo, 'credits', p_credits, 'bonus_credits', coalesce(p_bonus, 0),
     'effective_from', coalesce(p_effective_from, now()), 'note', p_note);
+  -- One open change per plan, so two confirmations can never race, and a direct name edit can't be
+  -- undone by confirming an older proposal.
+  perform pg_advisory_xact_lock(hashtext('price_change:' || p_code));
+  if exists (select 1 from public.approval_requests a where a.kind = 'price_change' and a.status = 'pending'
+             and a.expires_at > now() and a.payload ->> 'plan_code' = p_code) then
+    perform public._raise('change_pending');
+  end if;
   if p_price_web_kobo is not distinct from (v_before ->> 'price_web_kobo')::bigint
      and p_credits is not distinct from (v_before ->> 'credits')::integer
      and coalesce(p_bonus, 0) = (v_before ->> 'bonus_credits')::integer then
@@ -77,12 +84,6 @@ begin
     'price_web_kobo', p_price_web_kobo, 'credits', p_credits, 'bonus_credits', coalesce(p_bonus, 0))));
   if exists (select 1 from jsonb_array_elements(v_check) x where not (x ->> 'ok')::boolean) then
     perform public._raise('plan_check_failed', jsonb_build_object('check', v_check));
-  end if;
-  -- One open change per plan, so two confirmations can never race.
-  perform pg_advisory_xact_lock(hashtext('price_change:' || p_code));
-  if exists (select 1 from public.approval_requests a where a.kind = 'price_change' and a.status = 'pending'
-             and a.expires_at > now() and a.payload ->> 'plan_code' = p_code) then
-    perform public._raise('change_pending');
   end if;
   r := public.request_approval('price_change', v_payload, p_note);
   return v_before || jsonb_build_object('pending_request', r.id);
