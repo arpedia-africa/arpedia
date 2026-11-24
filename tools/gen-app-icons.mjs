@@ -22,7 +22,9 @@ const TILE = Math.round(SIZE * 0.62);
 await sharp(brand('icon.png')).resize(SIZE, SIZE, { kernel: 'lanczos3' }).png().toFile(out('icon.png'));
 const tile = await sharp(brand('mark.png')).resize(TILE, TILE, { kernel: 'lanczos3' }).png().toBuffer();
 const pad = Math.round((SIZE - TILE) / 2);
-await sharp({ create: { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+await sharp({
+  create: { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+})
   .composite([{ input: tile, left: pad, top: pad }])
   .png()
   .toFile(out('android-icon-foreground.png'));
