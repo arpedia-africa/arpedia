@@ -14,10 +14,12 @@ appId: com.arpedia.reader
 - tapOn: 'Create an account'
 - assertVisible: 'Create your account'
 - tapOn: 'Ada Writer'
+- eraseText: 40
 - inputText: 'Ada Writer'
 - tapOn: 'you@example.com'
 - inputRandomEmail
 - tapOn: 'At least 8 characters'
+- eraseText: 40
 - inputText: 'arpedia-e2e'
 - hideKeyboard
 - takeScreenshot: onb-${WIDTH}-signup

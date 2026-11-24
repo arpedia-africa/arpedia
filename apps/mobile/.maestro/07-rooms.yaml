@@ -13,9 +13,11 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 30000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - hideKeyboard
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
@@ -40,6 +42,7 @@ appId: com.arpedia.reader
 - extendedWaitUntil:
     visible: 'Join a reading room'
     timeout: 10000
+- eraseText: 40
 - inputText: 'zzzz-zzzz'
 - hideKeyboard
 - assertVisible: 'Join room'
@@ -72,6 +75,7 @@ appId: com.arpedia.reader
     visible: 'Create a reading room'
     timeout: 10000
 - tapOn: 'Room name'
+- eraseText: 40
 - inputText: 'Maestro Book Club'
 - hideKeyboard
 - tapOn:
@@ -99,6 +103,7 @@ appId: com.arpedia.reader
 
 # send a message over the live socket
 - tapOn: 'Message the room'
+- eraseText: 40
 - inputText: 'Maestro says hello'
 - tapOn: 'Send'
 - hideKeyboard

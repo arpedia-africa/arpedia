@@ -18,10 +18,12 @@ appId: com.arpedia.reader
       - tapOn: 'you@example.com'
       - waitForAnimationToEnd:
           timeout: 2000
+      - eraseText: 40
       - inputText: 'ngozi@example.com'
       - tapOn: 'Your password'
       - waitForAnimationToEnd:
           timeout: 2000
+      - eraseText: 40
       - inputText: 'arpedia-local'
       # Tap the heading to drop the keyboard: on MIUI hideKeyboard sends Back, which closes the app
       # when the keyboard is already down.
@@ -88,6 +90,7 @@ appId: com.arpedia.reader
     visible: 'Trending searches'
     timeout: 30000
 - takeScreenshot: disc-${WIDTH}-search
+- eraseText: 40
 - inputText: 'grace'
 - extendedWaitUntil:
     visible: 'Search for grace'
@@ -114,6 +117,7 @@ appId: com.arpedia.reader
 
 # s-search-none → Ask for this book → Request sent
 - tapOn: 'Clear search'
+- eraseText: 40
 - inputText: 'things fall apart'
 - pressKey: Enter
 - extendedWaitUntil:

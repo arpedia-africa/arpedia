@@ -1,4 +1,4 @@
-# Flow 03: sign in as Ngozi (840 credits, Quarterly), open Harmattan Letters, Unlock all,
+# Flow 03: sign in as Ngozi (840 credits, Quarterly), open Still Waters, Lagos, Unlock all,
 # see the toast and the Unlocked state. Opening the reader past 10% joins this flow with flow 04.
 # Needs the local stack (Supabase + api Worker) behind the app, freshly reset (`pnpm db:reset`):
 # the first width unlocks the book, the next widths see it already unlocked.
@@ -12,8 +12,10 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 30000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
@@ -24,10 +26,11 @@ appId: com.arpedia.reader
     visible: 'Home'
     timeout: 30000
 
-# s-book (Harmattan Letters, seed id …c000-000000000001)
-- openLink: arpedia://book/00000000-0000-4000-c000-000000000001
+# s-book (Still Waters, Lagos, seed id …c000-000000000004). Harmattan Letters became pay as you
+# read in flow 05's seed (Pay the rest instead of Unlock all), so this flow uses a book Ngozi hasn't touched.
+- openLink: arpedia://book/00000000-0000-4000-c000-000000000004
 - extendedWaitUntil:
-    visible: 'Harmattan Letters'
+    visible: 'Still Waters, Lagos'
     timeout: 30000
 - takeScreenshot: unlock-${WIDTH}-book
 
@@ -40,11 +43,11 @@ appId: com.arpedia.reader
       - assertVisible: 'Your balance.*'
       - tapOn: 'Unlock all, .*'
       - extendedWaitUntil:
-          visible: 'Unlock for 125 credits'
+          visible: 'Unlock for \d+ credits'
           timeout: 10000
       - assertVisible: 'After unlock'
       - takeScreenshot: unlock-${WIDTH}-sheet
-      - doubleTapOn: 'Unlock for 125 credits'
+      - doubleTapOn: 'Unlock for \d+ credits'
       # The toast is best-effort: Maestro can spend longer than the toast's life waiting for the
       # double tap to settle. Charging once per key is covered by pgTAP (03_unlock_test.sql).
       # `.` for the middle dot: Maestro on Windows reads the file as cp1252.

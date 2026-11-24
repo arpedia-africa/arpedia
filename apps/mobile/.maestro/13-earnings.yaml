@@ -12,8 +12,10 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 30000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ifeoma@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
@@ -52,6 +54,7 @@ appId: com.arpedia.reader
     timeout: 15000
 - tapOn: 'Access Bank'
 - tapOn: '10 digits'
+- eraseText: 40
 - inputText: '0123456789'
 # No hideKeyboard here: on Android it presses Back, which closes the sheet.
 - extendedWaitUntil:

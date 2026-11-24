@@ -13,9 +13,11 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 30000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - hideKeyboard
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
