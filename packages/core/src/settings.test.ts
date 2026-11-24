@@ -84,12 +84,12 @@ describe('rollout bucket', () => {
     expect(rolloutBucket('00000000-0000-4000-a000-000000000001', 'gifts', md5)).toBe(parseInt(hex, 16) % 100);
   });
   it('turns on for the rollout share within 1% over 10,000 ids', () => {
+    // Fixed ids: random ones missed the 1% band about one run in ten (binomial spread at 50%).
+    const id = (i: number) => `00000000-0000-4000-a000-${i.toString(16).padStart(12, '0')}`;
     for (const pct of [20, 50, 80]) {
       let on = 0;
       for (let i = 0; i < 10_000; i++) {
-        if (
-          flagOn({ key: 'offline_downloads', enabled: true, rolloutPercent: pct }, randomUUID(), '26.1', md5)
-        )
+        if (flagOn({ key: 'offline_downloads', enabled: true, rolloutPercent: pct }, id(i), '26.1', md5))
           on++;
       }
       expect(Math.abs(on / 100 - pct)).toBeLessThanOrEqual(1);
