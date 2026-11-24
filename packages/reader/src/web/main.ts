@@ -22,6 +22,7 @@ import {
   type NativeToWeb,
   type ReaderSettings,
   type RelocateDetail,
+  type StartPosition,
   type WebToNative,
 } from '../protocol';
 import type { Rect } from '../placement';
@@ -649,21 +650,41 @@ function mount(): FoliateView {
   return v;
 }
 
-async function startAt(start: { cfi?: string; para_id?: string } | string | null) {
-  if (!view) return;
-  if (typeof start === 'string') return view.init({ lastLocation: start });
-  if (start?.cfi) return view.init({ lastLocation: start.cfi });
+/**
+ * Goes to a place. Resolves true when it couldn't be found and the page fell back (to the start of
+ * the paragraph's or the saved chapter, or the first page).
+ */
+async function startAt(start: StartPosition | string | null): Promise<boolean> {
+  if (!view) return false;
+  if (typeof start === 'string') start = { cfi: start };
+  // Rule 11: a CFI that no longer resolves (revision changed) re-anchors by paragraph id, then by
+  // the saved chapter's start.
+  if (start?.cfi && view.resolveNavigation(start.cfi)) {
+    await view.init({ lastLocation: start.cfi });
+    return false;
+  }
   if (start?.para_id) {
     const c = paraIndex.get(start.para_id)?.chapter;
     if (c) {
       await view.goTo(c.ord);
       const doc = view.renderer.getContents()[0]?.doc;
       const el = doc?.getElementById(start.para_id);
-      if (el) return void view.goTo(view.getCFI(c.ord, rangeOf(doc!, el)));
-      return;
+      if (el) {
+        await view.goTo(view.getCFI(c.ord, rangeOf(doc!, el)));
+        return false;
+      }
+      return true;
     }
   }
-  return view.init({ lastLocation: null });
+  const saved = start?.chapter_uid
+    ? manifest?.chapters.find((c) => c.chapter_uid === start.chapter_uid)
+    : null;
+  if (saved) {
+    await view.goTo(saved.ord);
+    return true;
+  }
+  await view.init({ lastLocation: null });
+  return !!(start?.cfi || start?.para_id);
 }
 const rangeOf = (doc: Document, el: Element) => {
   const r = doc.createRange();
@@ -698,7 +719,11 @@ async function open(p: Extract<NativeToWeb, { type: 'open' }>['payload']) {
         sections: book.sections.length,
       },
     });
-    await settled(() => startAt(p.start));
+    let moved = false;
+    await settled(async () => {
+      moved = await startAt(p.start);
+    });
+    if (moved) post({ type: 'start.moved' });
   } catch (e) {
     settling = false;
     post({ type: 'error', payload: { code: 'render_failed', detail: String(e) } });
