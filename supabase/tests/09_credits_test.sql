@@ -208,6 +208,11 @@ select throws_ok($$insert into public.credit_ledger (user_id, delta, reason, buc
 -- ─── Chapter return fixtures (reader 5): one charge past the undo window, one inside it ─
 insert into public.books (id, author_id, title) values
   ('90900000-0000-4000-c000-000000000001', '90900000-0000-4000-a000-000000000009', 'Return Book');
+insert into public.book_revisions (id, book_id, revision_no, status, words, pages, price_credits)
+values ('90900000-0000-4000-c100-000000000001', '90900000-0000-4000-c000-000000000001', 1, 'live', 60000, 240, 120);
+insert into public.chapters (revision_id, chapter_uid, ord, title, words, pages, price_credits) values
+  ('90900000-0000-4000-c100-000000000001', '90900000-0000-4000-e000-000000000001', 1, 'One', 16500, 66, 33),
+  ('90900000-0000-4000-c100-000000000001', '90900000-0000-4000-e000-000000000002', 2, 'Two', 16500, 66, 33);
 insert into public.credit_ledger (user_id, delta, reason, bucket, idempotency_key) values
   ('90900000-0000-4000-a000-000000000005', 100, 'plan_grant', 'plan', 'f:grant');
 insert into public.credit_ledger (user_id, delta, reason, bucket, txn_id, ref_type, ref_id, book_id, chapter_uid,
@@ -276,9 +281,10 @@ select throws_ok($$select public.staff_return_chapter((select id from public.cre
 select is(public.staff_return_chapter((select id from public.credit_ledger where idempotency_key = 'f:old'),
   'skipped_by_mistake') ->> 'returned', '33', 'a charge past the window is returned');
 select is((select count(*)::int from public.credit_ledger
-           where user_id = '90900000-0000-4000-a000-000000000005' and reason = 'undo' and delta = 33
-             and bucket = 'plan' and ref_ledger_id = (select id from public.credit_ledger where idempotency_key = 'f:old')),
-  1, 'a reverse row goes back into the bucket the charge came from');
+           where user_id = '90900000-0000-4000-a000-000000000005' and reason = 'refund' and delta = 33
+             and bucket = 'plan' and ref_type = 'credit_return'
+             and idempotency_key = 'credit_return:' || (select id from public.credit_ledger where idempotency_key = 'f:old')),
+  1, 'a reverse row goes back into the bucket the charge came from (flow 14''s one return path)');
 select is((select revoked_reason from public.entitlements
            where user_id = '90900000-0000-4000-a000-000000000005'
              and chapter_uid = '90900000-0000-4000-e000-000000000001'), 'staff_return',
@@ -325,7 +331,7 @@ reset role;
 
 -- ─── Audit and cache against the ledger ─────────────────────────────────────
 select is((select count(*)::int from public.audit_log
-           where action = 'return_chapter' and after ->> 'user_id' = '90900000-0000-4000-a000-000000000005'), 1,
+           where action = 'credit_return.done' and object_id = '90900000-0000-4000-a000-000000000005'), 1,
   'the chapter return is in the audit log');
 select is((select count(*)::int from public.audit_log
            where area = 'money' and object_type = 'user' and object_id = '90900000-0000-4000-a000-000000000006'), 4,

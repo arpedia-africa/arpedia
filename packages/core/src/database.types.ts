@@ -3710,14 +3710,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"bio": string | null,"country": string,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"deletion_requested_at": string | null,"erased_at": string | null,"full_name": string,"id": string,"interests": (string)[],"is_author": boolean,"is_reader": boolean,"library_view": string,"name_changes": (string)[],"onboarding_step": string,"phone": string | null,"privacy_version": number | null,"reader_settings": NonNullable<Json>,"reader_theme": Database["public"]['Enums']["reader_theme"],"signup_intent": Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at": string | null,"terms_version": number | null,"theme": Database["public"]['Enums']["app_theme"],"updated_at": string,"username": string | null
+                    "avatar_url": string | null,"bio": string | null,"country": string,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"deletion_requested_at": string | null,"email_verified_at": string | null,"erased_at": string | null,"full_name": string,"id": string,"interests": (string)[],"is_author": boolean,"is_reader": boolean,"library_view": string,"name_changes": (string)[],"onboarding_step": string,"phone": string | null,"privacy_version": number | null,"reader_settings": NonNullable<Json>,"reader_theme": Database["public"]['Enums']["reader_theme"],"signup_intent": Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at": string | null,"terms_version": number | null,"theme": Database["public"]['Enums']["app_theme"],"updated_at": string,"username": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id": string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"library_view"?: string,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
+                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"email_verified_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id": string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"library_view"?: string,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
                   }
                   Update: {
-                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id"?: string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"library_view"?: string,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
+                    "avatar_url"?: string | null,"bio"?: string | null,"country"?: string,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"deletion_requested_at"?: string | null,"email_verified_at"?: string | null,"erased_at"?: string | null,"full_name"?: string,"id"?: string,"interests"?: (string)[],"is_author"?: boolean,"is_reader"?: boolean,"library_view"?: string,"name_changes"?: (string)[],"onboarding_step"?: string,"phone"?: string | null,"privacy_version"?: number | null,"reader_settings"?: NonNullable<Json>,"reader_theme"?: Database["public"]['Enums']["reader_theme"],"signup_intent"?: Database["public"]['Enums']["signup_intent"] | null,"terms_accepted_at"?: string | null,"terms_version"?: number | null,"theme"?: Database["public"]['Enums']["app_theme"],"updated_at"?: string,"username"?: string | null
                   }
                   Relationships: [
                     
@@ -5591,6 +5591,9 @@ isOneToOne: false
             "_actor":
 { Args: { "p_actor": string,"p_allow_system"?: boolean,"p_fn": string,"p_roles": (Database["public"]['Enums']["staff_role"])[] }; Returns: string
                            },
+"_add_comment_base":
+{ Args: { "p_body": string,"p_client_id": string,"p_parent": string,"p_post": string }; Returns: Json
+                           },
 "_agreement_version":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -5803,6 +5806,9 @@ isOneToOne: false
 "_create_notification":
 { Args: { "p_actor"?: string,"p_body"?: string,"p_book"?: string,"p_category": string,"p_kind": string,"p_target_id"?: string,"p_target_type"?: string,"p_title": string,"p_user": string }; Returns: string
                            },
+"_create_reading_room_base":
+{ Args: { "p_book": string,"p_join_policy"?: Database["public"]['Enums']["room_join_policy"],"p_name": string,"p_pace"?: Database["public"]['Enums']["room_pace"],"p_starts_at"?: string }; Returns: Json
+                           },
 "_cycle_end":
 { Args: { "p_month": string }; Returns: string
                            },
@@ -5837,6 +5843,9 @@ isOneToOne: false
       } },
 "_end_room":
 { Args: { "p_room": string }; Returns: undefined
+                           },
+"_erase_account_base":
+{ Args: { "p_deletion": string }; Returns: boolean
                            },
 "_event_plan_code":
 { Args: { "n": Json }; Returns: string
@@ -6168,6 +6177,9 @@ isOneToOne: false
               "reason": string,"until": string
             }[]
                            },
+"_post_review_base":
+{ Args: { "p_body": string,"p_book": string,"p_spoiler": boolean,"p_stars": number }; Returns: Json
+                           },
 "_publish_now":
 { Args: { "p_actor": string,"p_mode": string,"p_notify": boolean,"p_rev": string }; Returns: Json
                            },
@@ -6287,6 +6299,9 @@ isOneToOne: false
 "_require_money_staff":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"_require_no_sanction":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
 "_require_payout_staff":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -6359,6 +6374,9 @@ isOneToOne: false
       } },
 "_section_items":
 { Args: { "h": Omit<Database["public"]['Tables']["home_sections"]['Row'], Database["public"]['Tables']["home_sections"]['ComputedFields']>,"p_uid": string }; Returns: Json
+                           },
+"_send_author_message_base":
+{ Args: { "p_author": string,"p_body": string,"p_client_id": string }; Returns: Json
                            },
 "_send_back":
 { Args: { "p_actor": string,"p_issues": Json,"p_note": string,"p_rev": string,"p_source": Database["public"]['Enums']["send_back_source"] }; Returns: string
@@ -7519,6 +7537,20 @@ isOneToOne: false
 "notification_pref":
 { Args: { "p_pref": string,"p_user": string }; Returns: boolean
                            },
+"notify_lookup":
+{ Args: { "p_books"?: (string)[],"p_follow_authors"?: (string)[],"p_roles"?: (string)[],"p_users"?: (string)[] }; Returns: Json
+                           },
+"notify_queue_done":
+{ Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean
+                           },
+"notify_queue_read":
+{ Args: { "p_qty"?: number,"p_queue": string,"p_vt"?: number }; Returns: unknown[]
+                          SetofOptions: {
+        from: "*"
+        to: "message_record"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "onboarding_step_ord":
 { Args: { "p_step": string }; Returns: number
                            },
@@ -7953,6 +7985,7 @@ isOneToOne: false
 "date_of_birth": string | null,
 "deleted_at": string | null,
 "deletion_requested_at": string | null,
+"email_verified_at": string | null,
 "erased_at": string | null,
 "full_name": string,
 "id": string,
@@ -8552,6 +8585,7 @@ isOneToOne: false
 "date_of_birth": string | null,
 "deleted_at": string | null,
 "deletion_requested_at": string | null,
+"email_verified_at": string | null,
 "erased_at": string | null,
 "full_name": string,
 "id": string,
