@@ -69,6 +69,8 @@ interface LocalPosition {
   cfi: string;
   para_id: string | null;
   offset: number;
+  /** Missing on places saved before rule 11's chapter fallback. */
+  chapter_uid?: string | null;
   percent: number;
   at: number;
 }
@@ -236,20 +238,24 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     if (!ready.current || !manifest || !state || opened.current) return;
     opened.current = true;
     const p = state.position;
-    const server: StartPosition =
-      p && p.revision_id === state.revision.id && p.cfi
-        ? { cfi: p.cfi }
-        : p?.para_id
-          ? { para_id: p.para_id, offset: p.char_offset ?? 0 }
-          : {};
+    // Each place carries its fallbacks (rule 11): the CFI on the same revision, then the paragraph,
+    // then the saved chapter's start.
+    const server: StartPosition = p
+      ? {
+          ...(p.revision_id === state.revision.id && p.cfi ? { cfi: p.cfi } : null),
+          ...(p.para_id ? { para_id: p.para_id, offset: p.char_offset ?? 0 } : null),
+          ...(p.chapter_uid ? { chapter_uid: p.chapter_uid } : null),
+        }
+      : {};
     const mine = localPos.current;
-    const local: StartPosition | null = !mine
-      ? null
-      : mine.revision_id === state.revision.id
-        ? { cfi: mine.cfi }
-        : mine.para_id
-          ? { para_id: mine.para_id, offset: mine.offset }
-          : null;
+    const local: StartPosition | null =
+      mine && (mine.revision_id === state.revision.id || mine.para_id || mine.chapter_uid)
+        ? {
+            ...(mine.revision_id === state.revision.id ? { cfi: mine.cfi } : null),
+            ...(mine.para_id ? { para_id: mine.para_id, offset: mine.offset } : null),
+            ...(mine.chapter_uid ? { chapter_uid: mine.chapter_uid } : null),
+          }
+        : null;
     // Rule 11: the server position if newer than this phone's, else this phone's. Rule 67: another
     // device more than 5% ahead is offered, and this phone's place stays (Stay is the default).
     let start: StartPosition = server;
@@ -341,6 +347,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           cfi: d.cfi,
           para_id: d.para_id,
           offset: d.offset,
+          chapter_uid: d.chapter_uid,
           percent: d.percent,
           at: Date.now(),
         };
@@ -563,6 +570,9 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         }
         case 'relocate':
           onRelocate(m.payload);
+          return;
+        case 'start.moved':
+          setNotice('Your place moved a little after an update');
           return;
         case 'tap':
           lastActive.current = Date.now();
