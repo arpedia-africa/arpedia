@@ -90,12 +90,22 @@ export async function grantCredits(userId: string, credits: number, reason: stri
 
 export type ReturnReason = 'skipped_by_mistake' | 'did_not_open' | 'wrong_book';
 
-/** Support gives back a pay-as-you-read chapter charge once the reader's own undo window has ended (rule 30). */
+const RETURN_REASON = {
+  skipped_by_mistake: 'skipped_ahead',
+  did_not_open: 'did_not_open',
+  wrong_book: 'wrong_book',
+} as const;
+
+/**
+ * Support gives back a pay-as-you-read chapter charge once the reader's own undo window has ended
+ * (flow 09 rule 30). Goes through flow 14's staff_return_chapter_charge, the one return path: over
+ * 50 credits or a 4th return in 30 days waits for Finance, and a charge is returned once.
+ */
 export async function returnChapter(userId: string, chargeId: number, reason: ReturnReason): Promise<Result> {
   const supabase = await serverSupabase();
-  const { data, error } = await supabase.rpc('staff_return_chapter', {
-    p_charge: chargeId,
-    p_reason_code: reason,
+  const { data, error } = await supabase.rpc('staff_return_chapter_charge', {
+    p_ledger: chargeId,
+    p_reason: RETURN_REASON[reason],
   });
   if (error) {
     return {
@@ -105,16 +115,27 @@ export async function returnChapter(userId: string, chargeId: number, reason: Re
         error.message,
         {
           '42501': 'Only Support and Finance can return a chapter charge.',
-          bad_reason: 'Pick a reason.',
-          not_a_chapter_charge: 'This isn’t a pay as you read chapter charge.',
+          not_chapter_charge: 'This isn’t a pay as you read chapter charge.',
           already_returned: 'This charge was already returned.',
+          already_undone: 'The reader already undid this charge.',
           undo_window_open: 'The reader can still undo this themselves for a few more minutes.',
         },
         "Couldn't return the credits. Nothing changed. Try again.",
       ),
     };
   }
-  const r = data as { returned: number };
+  const r = data as { state: 'done' | 'pending_approval'; credits: number; duplicate: boolean };
   revalidatePath(`/credits/${userId}`);
-  return { ok: true, message: `${n0(r.returned)} credits returned. The chapter is locked again.` };
+  if (r.state === 'pending_approval')
+    return {
+      ok: true,
+      status: 'pending',
+      message: `${n0(r.credits)} credits need Finance to approve (over 50 credits or a 4th return in 30 days). Nothing was returned yet.`,
+    };
+  return {
+    ok: true,
+    message: r.duplicate
+      ? 'This charge was already returned.'
+      : `${n0(r.credits)} credits returned. The chapter is locked again.`,
+  };
 }

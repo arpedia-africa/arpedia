@@ -4,7 +4,7 @@
 -- idempotency, author earning, no double return); claims; help; sanction expiry.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(82);
+select plan(84);
 
 create function pg_temp.as_user(p uuid) returns void language plpgsql as $$
 begin
@@ -201,7 +201,10 @@ select is((public.staff_decide_report(pg_temp.rid('14000000-0000-4000-a000-00000
   ->> 'ban_pending'), 'true', 'a ban waits for a Super admin');
 select throws_ok($$ select public.confirm_ban((select id from public.moderation_actions where action = 'ban')) $$,
   '42501', null, 'a moderator cannot confirm a ban');
+select is((select count(*)::int from public.admin_pending_bans()), 0, 'a moderator is not shown bans to confirm');
 select pg_temp.as_staff('14000000-0000-4000-b000-000000000003');
+select is((select report_id from public.admin_pending_bans()), pg_temp.rid('14000000-0000-4000-a000-000000000004'),
+  'a Super admin sees the pending ban with its report (Home tasks, report page)');
 select lives_ok($$ select public.confirm_ban((select id from public.moderation_actions where action = 'ban')) $$,
   'a Super admin confirms the ban');
 select pg_temp.as_owner();

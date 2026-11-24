@@ -1,6 +1,7 @@
--- Flow 17 · readers can report a comment on an author's post (flow 08 comments through flow 14's
--- create_report). Adds the post_comment case to _report_target (the snapshot staff see) and to
--- _set_content_state (so the auto-hide, restore and remove actions reach the comment).
+-- Flow 14 · spec check 14-4 and 08-2: create_report refused reviews, discussion comments, post
+-- comments and author posts (unsupported_content), and _set_content_state only acted on messages,
+-- so Remove, auto-hide and Mark as spoiler did nothing for them. Both now cover every content type
+-- (the message, dm, book and profile branches are unchanged).
 
 create or replace function public._report_target(p_type public.report_content_type, p_id uuid, p_viewer uuid)
 returns table (reported_user uuid, group_id uuid, book_id uuid, snapshot jsonb)
@@ -10,8 +11,10 @@ declare
   g public.groups;
   b public.books;
   p public.profiles;
-  pc public.post_comments;
-  ap public.author_posts;
+  rv public.reviews;
+  pc public.passage_comments;
+  co public.post_comments;
+  po public.author_posts;
 begin
   if p_type in ('message', 'dm') then
     select * into x from public.messages where id = p_id;
@@ -57,27 +60,48 @@ begin
     end if;
     return query select p.id, null::uuid, null::uuid, jsonb_build_object(
       'full_name', p.full_name, 'username', p.username, 'bio', p.bio, 'avatar_url', p.avatar_url);
+  elsif p_type = 'review' then
+    select * into rv from public.reviews where id = p_id and status = 'visible';
+    if rv.id is null then
+      raise exception 'not_found' using errcode = 'P0002';
+    end if;
+    return query select rv.user_id, null::uuid, rv.book_id, jsonb_build_object(
+      'body', rv.body, 'stars', rv.stars, 'spoiler', rv.spoiler, 'sender_id', rv.user_id,
+      'sender_name', public.sender_name(rv.user_id), 'book_title', (select title from public.books where id = rv.book_id),
+      'created_at', rv.created_at);
+  elsif p_type = 'discussion_comment' then
+    select * into pc from public.passage_comments where id = p_id and status = 'visible';
+    if pc.id is null then
+      raise exception 'not_found' using errcode = 'P0002';
+    end if;
+    return query select pc.user_id, null::uuid, pc.book_id, jsonb_build_object(
+      'body', pc.body, 'quote', pc.quote, 'sender_id', pc.user_id, 'sender_name', public.sender_name(pc.user_id),
+      'book_title', (select title from public.books where id = pc.book_id), 'created_at', pc.created_at);
   elsif p_type = 'post_comment' then
-    -- As the reporter sees it: a visible comment on a published post, neither side blocked.
-    select * into pc from public.post_comments where id = p_id;
-    if pc.id is null or pc.state <> 'visible' then
+    select * into co from public.post_comments where id = p_id and state = 'visible';
+    select * into po from public.author_posts where id = co.post_id;
+    if co.id is null or po.state <> 'published' then
       raise exception 'not_found' using errcode = 'P0002';
     end if;
-    select * into ap from public.author_posts where id = pc.post_id;
-    if ap.id is null or ap.state <> 'published' or public.has_blocked(p_viewer, ap.author_id)
-       or (pc.user_id is not null and pc.user_id <> p_viewer and public.has_blocked(p_viewer, pc.user_id)) then
+    return query select co.user_id, null::uuid, null::uuid, jsonb_build_object(
+      'body', co.body, 'sender_id', co.user_id, 'sender_name', public.sender_name(co.user_id),
+      'post_id', po.id, 'post_title', po.title, 'author_name', public.sender_name(po.author_id),
+      'created_at', co.created_at);
+  elsif p_type = 'author_post' then
+    select * into po from public.author_posts where id = p_id and state = 'published';
+    if po.id is null then
       raise exception 'not_found' using errcode = 'P0002';
     end if;
-    return query select pc.user_id, null::uuid, null::uuid, jsonb_build_object(
-      'body', pc.body, 'commenter_id', pc.user_id, 'commenter_name', public.sender_name(pc.user_id),
-      'post_id', ap.id, 'post_title', ap.title, 'post_author_id', ap.author_id,
-      'post_author_name', public.sender_name(ap.author_id), 'parent_id', pc.parent_id,
-      'created_at', pc.created_at);
+    return query select po.author_id, null::uuid, null::uuid, jsonb_build_object(
+      'title', po.title, 'body', po.body, 'sender_id', po.author_id, 'sender_name', public.sender_name(po.author_id),
+      'created_at', po.published_at);
   else
     raise exception 'unsupported_content' using errcode = '0A000';
   end if;
 end $$;
 
+-- Hide (auto-hide), restore, remove or mark as spoiler. Spoiler keeps a review visible, blurred;
+-- a discussion comment has no blur, so there it stays visible.
 create or replace function public._set_content_state(p_type public.report_content_type, p_id uuid, p_state text)
 returns void
 language plpgsql security definer set search_path = '' as $$
@@ -93,11 +117,24 @@ begin
       select id, body from public.messages where id = p_id and body is not null
       on conflict (message_id) do nothing;
     end if;
+  elsif p_type = 'review' then
+    update public.reviews set
+      status = case when p_state in ('visible', 'spoiler') then 'visible' else 'hidden_by_mod' end,
+      spoiler = spoiler or p_state = 'spoiler'
+    where id = p_id;
+  elsif p_type = 'discussion_comment' then
+    update public.passage_comments set status = case when p_state in ('visible', 'spoiler') then 'visible' else 'removed' end
+    where id = p_id;
   elsif p_type = 'post_comment' then
     update public.post_comments set
       state = case p_state when 'hidden' then 'auto_hidden' when 'visible' then 'visible' else 'removed' end::public.comment_state,
       state_changed_at = now()
     where id = p_id and state <> 'deleted'
       and not (p_state = 'hidden' and state = 'removed');
+  elsif p_type = 'author_post' then
+    -- Posts have no hidden state: auto-hide and remove both take the post down; keep republishes it
+    -- only if staff had taken it down.
+    update public.author_posts set state = case when p_state = 'visible' then 'published' else 'removed' end::public.post_state
+    where id = p_id and state <> 'draft' and not (p_state = 'visible' and state = 'published');
   end if;
 end $$;

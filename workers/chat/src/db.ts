@@ -47,6 +47,8 @@ export interface ChatDb {
   setLiveCount(groupId: string, count: number): Promise<void>;
   touchLastSeen(groupId: string, userId: string): Promise<void>;
   canQuote(userId: string, bookId: string, chapter: number): Promise<boolean>;
+  /** Push for stored messages (flow 15 push_fanout); readers with the chat open are skipped. */
+  pushMessages(messageIds: string[], openIds: string[]): Promise<void>;
 }
 
 export class RpcError extends Error {
@@ -65,11 +67,13 @@ export async function rpc<T>(
   token: string,
   fn: string,
   args: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<T> {
   const res = await fetch(`${url}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: { apikey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(args),
+    signal,
   });
   const text = await res.text();
   if (!res.ok) {
@@ -87,6 +91,8 @@ export async function rpc<T>(
   return (text ? JSON.parse(text) : null) as T;
 }
 
+const PUSH_TIMEOUT_MS = 5_000;
+
 export function serviceDb(url: string, serviceKey: string): ChatDb {
   const call = <T>(fn: string, args: Record<string, unknown>) =>
     rpc<T>(url, serviceKey, serviceKey, fn, args);
@@ -96,5 +102,16 @@ export function serviceDb(url: string, serviceKey: string): ChatDb {
     setLiveCount: (g, n) => call<void>('set_live_count', { p_group: g, p_count: n }),
     touchLastSeen: (g, u) => call<void>('touch_last_seen', { p_group: g, p_user: u }),
     canQuote: (u, b, c) => call<boolean>('can_quote', { p_user: u, p_book: b, p_chapter: c }),
+    // Bounded, so a slow push can't hold up the next flush.
+    pushMessages: async (ids, open) => {
+      await rpc<number>(
+        url,
+        serviceKey,
+        serviceKey,
+        'chat_pushes',
+        { p_message_ids: ids, p_open: open },
+        AbortSignal.timeout(PUSH_TIMEOUT_MS),
+      );
+    },
   };
 }

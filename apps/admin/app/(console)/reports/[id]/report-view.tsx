@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
-import { assignToMe, decideReport, escalate } from '../actions';
+import { assignToMe, confirmBan, decideReport, escalate } from '../actions';
 import {
   age,
   initials,
@@ -103,6 +103,7 @@ export function ReportView({
   total,
   nextId,
   canDecide,
+  pendingBan = null,
 }: {
   detail: ReportDetail | null;
   failed: boolean;
@@ -110,6 +111,8 @@ export function ReportView({
   total: number;
   nextId: string | null;
   canDecide: boolean;
+  /** A ban on this report waiting for this Super admin (rule 17: Moderator plus Super admin). */
+  pendingBan?: { actionId: string; decidedBy: string; isMinor: boolean } | null;
 }) {
   const router = useRouter();
   const [toastNode, showToast] = useToast();
@@ -518,6 +521,30 @@ export function ReportView({
                 Remove and act on user…
               </button>
             ) : null}
+          </>
+        ) : decided && pendingBan ? (
+          <>
+            <span className="muted">
+              {`${pendingBan.decidedBy} asked for a ban${pendingBan.isMinor ? ' · reader is under 18' : ''}`}
+            </span>
+            <button
+              type="button"
+              className="btn btn-g"
+              disabled={pending}
+              onClick={() =>
+                run(() => confirmBan(pendingBan.actionId, false, r.id), 'Ban turned down. The reader keeps their account.')
+              }
+            >
+              Turn down
+            </button>
+            <button
+              type="button"
+              className="btn btn-p"
+              disabled={pending}
+              onClick={() => run(() => confirmBan(pendingBan.actionId, true, r.id), 'Ban confirmed. The reader is signed out.')}
+            >
+              Confirm ban
+            </button>
           </>
         ) : decided ? (
           <span className="muted">{`Decided by ${detail.decided_by_name ?? 'staff'}`}</span>

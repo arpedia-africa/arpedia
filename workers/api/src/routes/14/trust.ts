@@ -9,6 +9,7 @@ import {
 import { AuthError, bearer, verifySupabaseJwt } from '@arpedia/core/jwt';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
+import { deliverNotices, type Notice } from '../15/notify';
 
 // Flow 14 · Trust, safety and support.
 //   POST /v1/trust/moderate {text, surface, sender_new?, to_author?}  (signed-in user or internal key)
@@ -250,14 +251,30 @@ export async function drainTrustOutbox(env: Env): Promise<{ handled: number }> {
   const { data, error } = await db.rpc('trust_queue_read', { p_qty: 20, p_vt: 60 });
   if (error) throw error;
   const done: number[] = [];
-  for (const row of data ?? []) {
+  const rows = (data ?? []) as { msg_id: number; message: unknown }[];
+  // Pushes and emails for every notice (reporter, sanction, appeal, claims, staff alerts, the
+  // ticket-reply push): flow 15's dispatcher. live: pushed by the admin console to the chat Worker.
+  const delivered = await deliverNotices(
+    env,
+    db,
+    rows.map((r) => r.message as Notice),
+  ).catch((e: unknown) => {
+    console.error('[trust outbox] notices', e);
+    return rows.map(() => false);
+  });
+  for (const [i, row] of rows.entries()) {
     const item = row.message as unknown as OutboxItem;
     try {
       if (item.kind === 'ticket_reply') await sendTicketReply(env, item);
       if (item.kind === 'rules_changed') cached = null;
-      // reporter_notice, sanction_notice, appeal_decided, claim_*, staff_alert: delivered by flow 15's
-      // notifications; live: pushed by the admin console to the chat Worker after each decision.
-      done.push(row.msg_id);
+      // trust_queue_read has no read count: a notice still failing an hour after it was written
+      // (_trust_notify stamps `at`) is given up, so a bad one can't retry forever.
+      const at = Date.parse(String((row.message as { at?: unknown }).at ?? ''));
+      const stale = Number.isFinite(at) && Date.now() - at > 3_600_000;
+      if (delivered[i] || stale) {
+        if (!delivered[i]) console.error('[trust outbox] dropping after an hour', item.kind, row.msg_id);
+        done.push(row.msg_id);
+      }
     } catch (e) {
       console.error('[trust outbox]', item.kind, e);
     }
