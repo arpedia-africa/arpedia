@@ -5844,6 +5844,9 @@ isOneToOne: false
 "_end_room":
 { Args: { "p_room": string }; Returns: undefined
                            },
+"_erase_account_base":
+{ Args: { "p_deletion": string }; Returns: boolean
+                           },
 "_event_plan_code":
 { Args: { "n": Json }; Returns: string
                            },
