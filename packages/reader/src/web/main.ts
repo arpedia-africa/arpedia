@@ -795,8 +795,25 @@ async function onMessage(raw: unknown) {
       if ('percent' in t) {
         const target = (t.percent / 100) * manifest.total_words;
         let pid: string | null = null;
+        let words = 0;
+        let ord = -1;
         for (const c of manifest.chapters)
-          for (const p of c.paragraphs) if (p.words_before <= target) pid = p.id;
+          for (const p of c.paragraphs)
+            if (p.words_before <= target) [pid, words, ord] = [p.id, p.words_before, c.ord];
+        // Rule 21: a release past the first gate stops at it. A preview stops at its cut; a locked
+        // chapter opens at its start, where its card shows.
+        const gate = [...manifest.chapters].sort((a, b) => a.ord - b.ord).find((c) => isGated(c.ord));
+        if (pid && gate && ord >= gate.ord) {
+          const cut = manifest.preview_cut;
+          const cutPara = cut?.chapter_uid === gate.chapter_uid ? paraIndex.get(cut.para_id) : undefined;
+          if (access[gate.chapter_uid] === 'partial' && cut && cutPara) {
+            if (ord > gate.ord || words > cutPara.words_before) pid = cut.para_id;
+          } else {
+            currentIndex = gate.ord;
+            applyGates();
+            return void view.goTo(gate.ord);
+          }
+        }
         if (pid) return startAt({ para_id: pid });
       }
       return;
