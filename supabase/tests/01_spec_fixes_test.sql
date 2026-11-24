@@ -3,7 +3,7 @@
 -- Google sign-up marks the email verified; readers can't set email_verified_at themselves.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(10);
 
 -- Victim's address pre-registered by someone else (email identity, password, a live session).
 insert into auth.users (id, email, encrypted_password, raw_user_meta_data, created_at) values
@@ -38,6 +38,20 @@ select is((select count(*)::int from auth.sessions where user_id = '01200000-000
   'and keeps its sessions');
 select ok((select email_verified_at is not null from public.profiles where id = '01200000-0000-4000-a000-000000000003'),
   'a Google sign-up is verified');
+
+-- A Google identity for another address never marks this one verified.
+insert into auth.users (id, email, created_at) values
+  ('01200000-0000-4000-a000-000000000004', 'reset@t12.local', now() - interval '2 days'),
+  ('01200000-0000-4000-a000-000000000005', 'mismatch@t12.local', now() - interval '2 days');
+insert into auth.identities (provider_id, user_id, identity_data, provider) values
+  ('g-other', '01200000-0000-4000-a000-000000000005', '{"sub":"g-other","email":"someone-else@t12.local","email_verified":true}', 'google');
+select ok((select email_verified_at is null from public.profiles where id = '01200000-0000-4000-a000-000000000005'),
+  'a Google identity for a different address proves nothing');
+-- A finished password reset (the recovery token is used up) proves the inbox.
+update auth.users set recovery_token = 'tok', recovery_sent_at = now() where id = '01200000-0000-4000-a000-000000000004';
+update auth.users set recovery_token = '' where id = '01200000-0000-4000-a000-000000000004';
+select ok((select email_verified_at is not null from public.profiles where id = '01200000-0000-4000-a000-000000000004'),
+  'a finished password reset marks the email verified');
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"01200000-0000-4000-a000-000000000001","role":"authenticated"}', true);
