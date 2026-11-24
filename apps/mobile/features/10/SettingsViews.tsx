@@ -768,6 +768,7 @@ export function AboutView({
   build,
   onBack,
   onHelp,
+  onContact,
   onCopy,
   onTerms,
   onPrivacy,
@@ -777,6 +778,8 @@ export function AboutView({
   build: string;
   onBack: () => void;
   onHelp: () => void;
+  /** Tap on the row: an email with app version, device and user id (flow 14 rule 34). */
+  onContact?: () => void;
   onCopy: () => void;
   onTerms: () => void;
   onPrivacy: () => void;
@@ -792,6 +795,7 @@ export function AboutView({
           <Cell
             title="Contact support"
             sub="support@arpedia.africa"
+            onPress={onContact}
             trail={<Btn label="Copy" variant="g" size="sm" onPress={onCopy} />}
           />
           <Cell title="Terms of Service" chevron onPress={onTerms} />
