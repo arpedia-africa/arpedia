@@ -26,7 +26,7 @@ import {
 } from '../../features/02/home';
 import { discoveryLinks } from '../../features/02/links';
 import { useTrack } from '../../features/02/analytics';
-import { BANNERS_KEY, HomeAnnouncements } from '../../features/15/AnnouncementCard';
+import { BANNERS_KEY, HomeAnnouncements, LaunchAnnouncement } from '../../features/15/AnnouncementCard';
 
 const card = (b: HomeBook): BookCard => ({
   id: b.id,
@@ -187,6 +187,7 @@ export default function Home() {
       />
       <HomeAnnouncements style={{ paddingHorizontal: s(16), paddingTop: s(16) }} />
       <View>{body()}</View>
+      <LaunchAnnouncement />
     </Screen>
   );
 }

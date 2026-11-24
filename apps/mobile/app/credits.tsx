@@ -28,6 +28,7 @@ import {
   waitForCredits,
 } from '../features/09/data';
 import { PENDING_COPY, failureMessage, purchase } from '../features/09/purchases';
+import { Announcements } from '../features/15/AnnouncementCard';
 
 // s-credits: balance split, top-ups (subscribers), what credits buy, promo code, history.
 export default function Credits() {
@@ -149,6 +150,7 @@ export default function Credits() {
           </Callout>
         </View>
       ) : null}
+      <Announcements placement="credits" style={{ paddingHorizontal: s(16), paddingTop: s(16) }} />
       <TopUpSection
         mode={mode}
         packs={packs}
