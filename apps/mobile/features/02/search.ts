@@ -97,7 +97,15 @@ export function useSearchHome() {
 }
 
 export type ServerSuggestion =
-  | { type: 'book'; id: string; title: string; sub: string; cover_key: string | null; topic: string | null }
+  | {
+      type: 'book';
+      id: string;
+      title: string;
+      sub: string;
+      cover_key: string | null;
+      topic: string | null;
+      coming_soon?: boolean;
+    }
   | { type: 'author'; id: string; title: string; books: number; avatar_url: string | null }
   | { type: 'club'; id: string; title: string; members: number }
   | { type: 'genre'; id: string; slug: string; title: string; books: number };
@@ -120,7 +128,8 @@ export function useSuggest(q: string, enabled: boolean) {
 export interface SearchResult {
   query: string;
   top: (HomeBook & { snippet: string | null; promoted: boolean }) | null;
-  books: (HomeBook & { snippet: string | null; promoted: boolean })[];
+  /** Scheduled books (when Search tuning shows unreleased books) carry `coming_soon` and come last. */
+  books: (HomeBook & { snippet: string | null; promoted: boolean; coming_soon?: boolean })[];
   authors: { id: string; name: string; avatar_url: string | null; books: number }[];
   clubs: { id: string; name: string; members: number }[];
   counts: Record<Scope, number>;
