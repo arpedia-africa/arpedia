@@ -126,8 +126,10 @@ export const planPriceText = (plan: Pick<Plan, 'priceNaira' | 'priceText'>) =>
 export const planMonthText = (plan: Pick<Plan, 'priceNaira' | 'months' | 'monthText'>) =>
   plan.monthText ?? formatNaira(perMonthNaira(plan));
 
-export const TERMS_URL = 'https://arpedia.africa/terms';
-export const PRIVACY_URL = 'https://arpedia.africa/privacy';
+/** Flow 16 rule 38: the api Worker serves the latest published version of each policy here. */
+export const policyUrl = (slug: string) => `https://arpedia.africa/legal/${slug}`;
+export const TERMS_URL = policyUrl('terms');
+export const PRIVACY_URL = policyUrl('privacy');
 
 /** "A", "A and B", "A, B and C". */
 const listWords = (words: string[]) =>
