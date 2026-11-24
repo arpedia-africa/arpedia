@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { resumeScreen, type OnboardingStep, type Tables } from '@arpedia/core';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
+import { wipeReaderData } from '../04/bookfiles';
 
 /** Current session: undefined while it loads from secure storage, then Session or null. */
 export function useSession() {
@@ -121,6 +122,7 @@ export async function signOutHere() {
   }
   await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
   queryClient.clear();
+  await wipeReaderData();
 }
 
 // ─── Device registration (rule 31) ──────────────────────────────────────────

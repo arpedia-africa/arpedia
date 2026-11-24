@@ -4,7 +4,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Directory, File, Paths } from 'expo-file-system';
 import { chapterAad, licenseValid, openFile, type ChapterAccess } from '@arpedia/core';
-import { openLocal, sealLocal, unsealKey } from './crypto';
+import { forgetReaderKeys, openLocal, sealLocal, unsealKey } from './crypto';
+import { clearPendingCharges } from './state';
 import { deviceId, fetchDownload, fetchKeys, WorkerError, type KeysResponse } from './worker';
 
 export interface ManifestChapter {
@@ -310,6 +311,7 @@ export interface OfflineBook {
 }
 
 const root = () => new Directory(Paths.document, 'reader');
+const EXPIRED_PURGE_MS = 30 * 86_400_000;
 
 function walk(d: Directory, out: { bytes: number; chapters: number; newest: number }) {
   for (const e of d.list()) {
@@ -337,6 +339,12 @@ export async function offlineBooks(): Promise<OfflineBook[]> {
       if (t.chapters === 0) continue;
       const bf = new BookFiles(b.name, rev.name, false);
       await bf.loadStoredKeys();
+      // Rule 72: files whose licence ended more than 30 days ago are deleted.
+      const until = bf.licenceUntil();
+      if (until !== null && Date.now() > until + EXPIRED_PURGE_MS) {
+        rev.delete();
+        continue;
+      }
       out.push({
         bookId: b.name,
         revisionId: rev.name,
@@ -354,4 +362,15 @@ export async function offlineBooks(): Promise<OfflineBook[]> {
 export function removeDownload(bookId: string) {
   const d = new Directory(root(), bookId);
   if (d.exists) d.delete();
+}
+
+/** Rule 72: sign-out and account deletion wipe every book file, key bundle and device key. */
+export async function wipeReaderData() {
+  try {
+    const r = root();
+    if (r.exists) r.delete();
+  } catch {
+    // a file still open: the purge below and the next wipe get it
+  }
+  await Promise.all([forgetReaderKeys().catch(() => undefined), clearPendingCharges()]);
 }

@@ -134,6 +134,7 @@ export function useReader(
   const [notice, setNotice] = useState<string | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [attempt, setAttempt] = useState(0);
+  const previewOnly = useRef(false);
   const [elsewhere, setElsewhere] = useState<ElsewhereOffer | null>(null);
   const [search, setSearch] = useState<{
     query: string;
@@ -181,6 +182,7 @@ export function useReader(
       localPos.current = raw ? (JSON.parse(raw) as LocalPosition) : null;
       myDevice.current = await deviceId().catch(() => null);
       userId.current = (await supabase.auth.getSession()).data.session?.user.id ?? null;
+      let fromStore = false;
       try {
         await f.refreshLinks();
       } catch (e) {
@@ -189,11 +191,17 @@ export function useReader(
           if (live) setPhase('offline');
           return;
         }
+        fromStore = true;
       }
       const m = await f.loadManifest();
       const ok = await f.licenceValid();
       if (!live) return;
       if (!ok && f.licenceUntil() != null) track('license_expired_open_attempt');
+      // Rule 71: an expired download asks for a connection; only the preview opens without one.
+      if (!ok && fromStore && f.licenceUntil() != null && !previewOnly.current) {
+        setPhase('expired');
+        return;
+      }
       setManifest(m);
       setAccess(accessMap(state, f, ok));
       // Offline writes go up first, so the pull already has them; any still waiting are drawn on top.
@@ -1064,7 +1072,15 @@ export function useReader(
       send({ type: 'selection.clear' });
       setSelection(null);
     },
+    /** Expired licence offline (rule 71): open the free preview with `K_free`. */
+    readPreview: () => {
+      previewOnly.current = true;
+      files.current = null;
+      setPhase('loading');
+      setAttempt((n) => n + 1);
+    },
     retry: () => {
+      previewOnly.current = false;
       files.current = null;
       opened.current = false;
       ready.current = false;

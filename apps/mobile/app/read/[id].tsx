@@ -425,6 +425,25 @@ export default function ReaderScreen() {
         </View>
       );
     }
+    if (r.phase === 'expired') {
+      // Rule 71: the download's 7 days ran out; the free preview still opens.
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: ink.page }}>
+          <EmptyState
+            title="Connect to refresh"
+            body="This download needs a quick check online. Connect and it opens again."
+            action={{ label: 'Try again', onPress: r.retry }}
+          />
+          <Btn
+            label="Read the preview"
+            variant="g"
+            size="md"
+            style={{ alignSelf: 'center' }}
+            onPress={r.readPreview}
+          />
+        </View>
+      );
+    }
     if (r.phase === 'error') {
       return (
         <View style={{ flex: 1, justifyContent: 'center', backgroundColor: ink.page }}>

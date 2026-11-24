@@ -111,6 +111,9 @@ export function settingValue<K extends keyof ReaderSettings>(key: K, v: ReaderSe
 // ─── Pending chapter charges, kept across app restarts (rule 56) ─────────────
 const PENDING = 'reader.pending-charges';
 
+/** Sign-out (rule 72): the next account on this phone never replays these. */
+export const clearPendingCharges = () => AsyncStorage.removeItem(PENDING).catch(() => undefined);
+
 export async function loadPendingStore(): Promise<PendingStore> {
   const raw = await AsyncStorage.getItem(PENDING).catch(() => null);
   const m = new Map<string, PendingCharge>(raw ? (JSON.parse(raw) as [string, PendingCharge][]) : []);
