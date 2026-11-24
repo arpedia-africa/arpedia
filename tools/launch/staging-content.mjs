@@ -168,7 +168,13 @@ export function fixedId(name) {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${((parseInt(h[16], 16) & 3) | 8).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
-const rng = (seed) => () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+// mulberry32: 32-bit integer maths, so no precision is lost.
+const rng = (seed) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
+};
 const hash = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 2 ** 31, 7);
 
 const CAST = [
@@ -457,7 +463,8 @@ async function ensureBook(db, bucket, convert, book, authorId, masterKey, reseal
     ],
     'id',
   );
-  if (existing?.sealed_generation != null && !reseal) {
+  // Kept only when the last run finished (a stopped --reseal has a newer generation than sealed).
+  if (existing?.sealed_generation != null && existing.sealed_generation === existing.generation && !reseal) {
     log(`book        ${book.title} (sealed, kept)`);
     return bookId;
   }
@@ -562,6 +569,8 @@ async function ensureBook(db, bucket, convert, book, authorId, masterKey, reseal
     'revision_id,ord',
   );
   // What complete_seal writes: anchors replaced, old keys revoked, new keys for this generation.
+  // REST has no transaction (and one active key per chapter is enforced), so a run that stops here
+  // leaves the book unsealed: sealed_generation is written last, and the next run seals it again.
   await db.del(`paragraph_anchors?revision_id=eq.${revId}`);
   await db.insert(
     'paragraph_anchors',
@@ -641,29 +650,31 @@ async function ensureClub(db, authors, bookIds) {
 
 async function ensureHome(db, authors, bookIds) {
   const sections = await db.get('home_sections?select=id,key&key=in.(trending,authors)');
-  const sid = (k) => sections.find((s) => s.key === k)?.id;
-  if (sid('trending'))
-    await db.upsert(
-      'shelf_items',
-      BOOKS.map((b, position) => ({
-        section_id: sid('trending'),
-        item_type: 'book',
-        item_id: bookIds[b.key],
-        position,
-      })),
-      'section_id,item_type,item_id',
-    );
-  if (sid('authors'))
-    await db.upsert(
-      'shelf_items',
-      AUTHORS.map((a, position) => ({
-        section_id: sid('authors'),
-        item_type: 'author',
-        item_id: authors[a.key],
-        position,
-      })),
-      'section_id,item_type,item_id',
-    );
+  const sid = (k) => {
+    const id = sections.find((s) => s.key === k)?.id;
+    if (!id) throw new Error(`Home section "${k}" is missing (are the migrations applied?).`);
+    return id;
+  };
+  await db.upsert(
+    'shelf_items',
+    BOOKS.map((b, position) => ({
+      section_id: sid('trending'),
+      item_type: 'book',
+      item_id: bookIds[b.key],
+      position,
+    })),
+    'section_id,item_type,item_id',
+  );
+  await db.upsert(
+    'shelf_items',
+    AUTHORS.map((a, position) => ({
+      section_id: sid('authors'),
+      item_type: 'author',
+      item_id: authors[a.key],
+      position,
+    })),
+    'section_id,item_type,item_id',
+  );
   // Top 10 reads the latest hourly snapshot; take one now instead of waiting for the cron.
   await db.rpc('refresh_rankings', {});
 }
