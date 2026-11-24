@@ -24,6 +24,8 @@ interface Search {
   /** Set after Unpublish (a book id), with the number of readers told (`told`). */
   unpublished?: string;
   told?: string;
+  /** Set after Reject (a revision id). */
+  rejected?: string;
 }
 
 const meterClass = (score: number) => (score >= 90 ? 'ok' : score >= 70 ? 'warn' : 'err');
@@ -46,7 +48,7 @@ async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
       republishId: book.id,
     };
   }
-  const id = sp.released ?? sp.sent ?? sp.published;
+  const id = sp.released ?? sp.sent ?? sp.published ?? sp.rejected;
   if (!id) return null;
   let row = rows.find(r => r.id === id);
   if (!row) {
@@ -68,6 +70,7 @@ async function queueToast(supabase: Supa, sp: Search, rows: Row[]) {
     return { msg: `${title} is scheduled. It shows under Coming soon until it goes live.` };
   if (sp.published)
     return { msg: sp.quiet ? `${title} is live. ${first} is told.` : `${title} is live. ${first} and followers notified.` };
+  if (sp.rejected) return { msg: `${title} is rejected. ${first} gets a push and an email with your reason.` };
   const n = Number(sp.n ?? 0);
   return {
     msg: `Sent back to ${author || 'the author'}. ${first} gets a push and an email${n ? ` with the ${n} fix${n === 1 ? '' : 'es'}` : ''}.`,
