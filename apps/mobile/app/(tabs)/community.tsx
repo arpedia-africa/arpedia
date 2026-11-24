@@ -14,6 +14,7 @@ import {
   type InboxTab,
 } from '../../features/06/InboxViews';
 import { toneFor, useInbox, useInboxCounts, useMarkAllRead, type InboxRow } from '../../features/06/data';
+import { coverToneFor, useRoomsSummary } from '../../features/07/data';
 import { useFlag } from '../../features/16/config';
 
 /** Last message as "Sender: text"; groups filter shows "Type · N members" instead (rule 3). */
@@ -68,6 +69,13 @@ export default function Community() {
   const roomsOn = useFlag('reading_rooms', true);
   const openRooms = roomsOn ? () => router.push('/rooms') : undefined;
   const openDiscover = () => router.push('/discover');
+  // Rule 6: the Read together card shows my rooms' friends and books.
+  const summary = useRoomsSummary(roomsOn && tab === 'all').data;
+  const rooms = summary && {
+    people: summary.people.map((p) => ({ name: p.name, tone: toneFor(p.user_id) })),
+    readingNow: summary.readingNow,
+    books: summary.books.map((b) => ({ title: b.title, tone: coverToneFor(b.id) })),
+  };
   const rows = (inbox.data ?? []).map((r) => toRowView(r, tab));
   // Rule 2: reading rooms open s-room (flow 07), author communities s-author-community and a DM
   // with an author s-dm (flow 08, paid messages); every other group opens its chat.
@@ -102,7 +110,7 @@ export default function Community() {
       ) : (
         <InboxList rows={rows} onOpen={(r) => open(r.id)} />
       )}
-      {tab === 'all' ? <ReadTogether onRooms={openRooms} onDiscover={openDiscover} /> : null}
+      {tab === 'all' ? <ReadTogether rooms={rooms} onRooms={openRooms} onDiscover={openDiscover} /> : null}
     </Screen>
   );
 }

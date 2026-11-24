@@ -109,6 +109,52 @@ export function useMyRooms() {
   });
 }
 
+/** A friend in one of my rooms, for the Community Read together card (flow 06 rule 6). */
+export interface RoomsFriend {
+  user_id: string;
+  name: string;
+}
+export interface MyRoomsSummary {
+  people: RoomsFriend[];
+  readingNow: number;
+  books: { id: string; title: string }[];
+}
+
+/**
+ * Read together card (flow 06 rule 6): my live rooms' books, and the other members still reading
+ * them. Names come from the first two rooms' headers (large rooms send none, so they count only).
+ */
+export function useRoomsSummary(enabled: boolean) {
+  return useQuery({
+    queryKey: ['rooms', 'summary'],
+    enabled,
+    staleTime: 30_000,
+    queryFn: async (): Promise<MyRoomsSummary> => {
+      const { data, error } = await supabase.rpc('get_my_rooms');
+      if (error) throw error;
+      const live = (data as unknown as RoomRow[]).filter((r) => r.state !== 'ended');
+      const me = (await supabase.auth.getSession()).data.session?.user.id;
+      const heads = await Promise.all(
+        live.slice(0, 2).map(async (r) => {
+          const { data: room } = await supabase.rpc('get_room', { p_room: r.room_id });
+          return { row: r, header: ((room as unknown as Room | null)?.header ?? []) as HeaderMember[] };
+        }),
+      );
+      const people = new Map<string, RoomsFriend>();
+      let unnamed = 0;
+      for (const { row, header } of heads) {
+        if (header.length === 0) unnamed += Math.max(0, row.member_count - row.finished_count - 1);
+        for (const h of header)
+          if (h.user_id !== me && !h.finished) people.set(h.user_id, { user_id: h.user_id, name: h.name });
+      }
+      for (const row of live.slice(2)) unnamed += Math.max(0, row.member_count - row.finished_count - 1);
+      const books = new Map<string, { id: string; title: string }>();
+      for (const r of live) books.set(r.book.id, { id: r.book.id, title: r.book.title });
+      return { people: [...people.values()], readingNow: people.size + unnamed, books: [...books.values()] };
+    },
+  });
+}
+
 export function useRoom(id: string) {
   return useQuery({
     queryKey: roomKey(id),
