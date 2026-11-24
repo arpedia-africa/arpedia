@@ -56,8 +56,11 @@ export default function Plans() {
     void saveStep('plans');
   }, []);
   useEffect(() => {
-    if (shelf.data) track('paywall_viewed', { plan: 'quarterly', genres_count: shelf.data.genres.length });
+    if (shelf.data) track('paywall_viewed', { source: 'onboarding', plan_shown: 'quarterly' });
   }, [shelf.data, track]);
+  useEffect(() => {
+    track('onboarding_step_viewed', { step: 'plans' });
+  }, [track]);
   useEffect(() => {
     if (store.data && !store.data.available) setError(STORE_UNAVAILABLE);
   }, [store.data]);
@@ -87,7 +90,8 @@ export default function Plans() {
 
   const pick = (id: PlanId) => {
     setPlanId(id);
-    track('plan_selected', { plan: id });
+    const p = (plans ?? LAUNCH_PLANS).find((x) => x.id === id);
+    track('plan_selected', { plan: id, price: p?.priceNaira ?? 0 });
   };
 
   const run = async (kind: 'buy' | 'restore') => {

@@ -191,7 +191,6 @@ export function TipSheet({
     setError(null);
     setKey(Crypto.randomUUID());
     // start follows the presets, which load once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const send = useMutation({

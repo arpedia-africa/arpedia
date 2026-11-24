@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, View } from 'react-native';
 import { router } from 'expo-router';
 import { Btn, EmptyState, Link, Screen, Skeleton, useTheme, useToast } from '@arpedia/ui';
@@ -12,6 +12,7 @@ import {
   usePlanScreen,
   useResume,
 } from '../features/09/data';
+import { useTrack } from '../features/09/analytics';
 import { Foot, OfflineNote, SubPad } from '../features/09/parts';
 import { PlanBody, PlanHero } from '../features/09/PlanViews';
 
@@ -24,6 +25,7 @@ export default function Plan() {
   const q = usePlanScreen();
   const resume = useResume();
   const [picked, setPicked] = useState<string | null>(null);
+  const track = useTrack();
 
   const d = q.data;
   const sub = d?.subscription ?? null;
@@ -31,6 +33,18 @@ export default function Plan() {
   const live = !!sub && sub.status !== 'expired' && sub.status !== 'refunded';
   const selected = picked ?? plans?.find((p) => p.code === 'yearly')?.code ?? plans?.[0]?.code ?? '';
   const target = plans?.find((p) => p.code === selected) ?? null;
+  // Analytics: one paywall_viewed per visit once the plans are known; plan_selected on each pick.
+  const viewed = useRef(false);
+  useEffect(() => {
+    if (!plans || viewed.current) return;
+    viewed.current = true;
+    track('paywall_viewed', { source: 'plans', plan_shown: selected });
+  }, [plans, selected, track]);
+  const pickPlan = (code: string) => {
+    setPicked(code);
+    const p = plans?.find((x) => x.code === code);
+    track('plan_selected', { plan: code, price: p ? Math.round(p.price_play_kobo / 100) : 0 });
+  };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile'));
   const open = (url: string) => void Linking.openURL(url);
@@ -119,7 +133,7 @@ export default function Plan() {
       <PlanHero sub={sub} loading={!d} onBack={back} />
       <OnbSheet>
         <SubPad>
-          <PlanBody sub={sub} plans={plans} selected={selected} onSelect={setPicked} />
+          <PlanBody sub={sub} plans={plans} selected={selected} onSelect={pickPlan} />
         </SubPad>
       </OnbSheet>
     </Screen>

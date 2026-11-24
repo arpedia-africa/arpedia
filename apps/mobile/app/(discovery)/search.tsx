@@ -118,7 +118,7 @@ export default function Search() {
   const openAuthor = (id: string, name: string, q?: string) => {
     recent.add({ kind: 'author', label: name, id });
     if (q) logSearch(q, res?.counts.all ?? 1, { type: 'author', id });
-    go.author(id);
+    go.author(id, 'search');
   };
   const clear = () => {
     setText('');
