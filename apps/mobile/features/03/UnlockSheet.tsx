@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  LAUNCH_PLANS,
-  TOPUP_PACKS,
   booksCovered,
   chaptersCovered,
   perMonthNaira,
@@ -16,6 +14,7 @@ import { Sheet, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { downloadBook } from '../04/download';
 import { useTrack as useReaderTrack } from '../04/analytics';
+import { useSheetPrices } from '../09/data';
 import { useTrack } from './analytics';
 import { bookKey, type BookPageData } from './book';
 import { LowBody, NoSubBody, PayGoBody, UnlockAllBody, type UnlockMode } from './UnlockViews';
@@ -224,15 +223,16 @@ export function UnlockSheet({
     (short ? shortNeed : mode === 'all' ? (paid > 0 ? d.remaining : d.price) : (d.first_unpaid?.price ?? 0)) -
       d.balance,
   );
-  const { pack: preset, enough } = pickTopupPack(missing);
+  const prices = useSheetPrices();
+  const { pack: preset, enough } = pickTopupPack(missing, prices.packs);
   const [pack, setPack] = useState<TopupPack>(preset);
   useEffect(() => setPack(preset), [preset]);
 
   const preview = Number(d.preview_percent);
-  const quarterly = LAUNCH_PLANS.find((p) => p.id === 'quarterly')!;
-  const fromNaira = Math.min(...LAUNCH_PLANS.map(perMonthNaira));
+  const quarterly = prices.plans.find((p) => p.id === 'quarterly') ?? prices.plans[0]!;
+  const fromNaira = Math.min(...prices.plans.map(perMonthNaira));
   const periodEnd = d.plan.period_end ? DATE.format(new Date(d.plan.period_end)) : null;
-  const planCredits = LAUNCH_PLANS.find((p) => p.id === d.plan.plan_code)?.credits;
+  const planCredits = prices.plans.find((p) => p.id === d.plan.plan_code)?.credits;
 
   const head: Record<Variant, { title: string; sub?: string }> = {
     all: {
@@ -303,7 +303,8 @@ export function UnlockSheet({
           price={short ? shortNeed : d.price}
           balance={d.balance}
           copy={lowCopy}
-          packs={TOPUP_PACKS}
+          packs={prices.packs}
+          avgBookPrice={prices.avgBookPrice}
           selected={pack}
           enough={enough ? preset : null}
           onSelect={setPack}

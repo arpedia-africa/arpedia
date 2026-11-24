@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { TIP_DEFAULT, TIP_PRESETS, tipNaira } from '@arpedia/core';
+import { TIP_DEFAULT, tipNaira } from '@arpedia/core';
 import { Sheet, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
+import { useTipPresets } from '../09/data';
 import { useTrack } from './analytics';
 import { bookKey, type BookPageData } from './book';
 import { avatarTone } from './BookViews';
@@ -174,7 +175,10 @@ export function TipSheet({
 }) {
   const toast = useToast();
   const track = useTrack();
-  const [amount, setAmount] = useState<number>(TIP_DEFAULT);
+  const presets = useTipPresets();
+  // The launch default when staff kept it; else the middle amount.
+  const start = presets.includes(TIP_DEFAULT) ? TIP_DEFAULT : presets[Math.floor(presets.length / 2)]!;
+  const [amount, setAmount] = useState<number>(start);
   const [note, setNote] = useState('');
   const [key, setKey] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -182,10 +186,12 @@ export function TipSheet({
 
   useEffect(() => {
     if (!open) return;
-    setAmount(TIP_DEFAULT);
+    setAmount(start);
     setNote('');
     setError(null);
     setKey(Crypto.randomUUID());
+    // start follows the presets, which load once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const send = useMutation({
@@ -229,7 +235,7 @@ export function TipSheet({
       sub={`₦${n(tipNaira(amount))} of ${n(amount)} credits reaches them with their monthly earnings`}
     >
       <TipBody
-        presets={TIP_PRESETS}
+        presets={presets}
         amount={amount}
         onAmount={pick}
         note={note}

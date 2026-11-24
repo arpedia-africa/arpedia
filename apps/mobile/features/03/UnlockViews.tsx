@@ -242,6 +242,7 @@ export function LowBody({
   balance,
   copy,
   packs,
+  avgBookPrice,
   selected,
   enough,
   onSelect,
@@ -253,6 +254,8 @@ export function LowBody({
   balance: number;
   copy: string;
   packs: readonly TopupPack[];
+  /** Credits a typical book costs ('≈ N books'), from get_plans. */
+  avgBookPrice?: number;
   selected: TopupPack;
   /** The preselected pack covers what's missing ("Enough for this book"). */
   enough: TopupPack | null;
@@ -274,7 +277,11 @@ export function LowBody({
           <PackOption
             key={p.credits}
             title={`${n(p.credits)} credits`}
-            sub={enough?.credits === p.credits ? 'Enough for this book' : `≈ ${packBooks(p.credits)} books`}
+            sub={
+              enough?.credits === p.credits
+                ? 'Enough for this book'
+                : `≈ ${packBooks(p.credits, avgBookPrice)} books`
+            }
             trail={formatNaira(p.naira)}
             selected={selected.credits === p.credits}
             onPress={() => onSelect(p)}

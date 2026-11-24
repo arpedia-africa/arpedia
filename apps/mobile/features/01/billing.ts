@@ -1,4 +1,6 @@
 import { LAUNCH_PLANS, type Plan, type PlanId } from '@arpedia/core';
+import { supabase } from '@/lib/supabase';
+import type { PlansJson } from '../09/data';
 import {
   failureMessage,
   isAvailable,
@@ -20,10 +22,24 @@ export interface Store {
   plans: readonly Plan[];
 }
 
+/** Rule 26: plan names, prices and credits as staff set them (`get_plans`); launch values offline. */
+async function serverPlans(): Promise<readonly Plan[]> {
+  const { data, error } = await supabase.rpc('get_plans');
+  const rows = error ? [] : ((data as unknown as PlansJson | null)?.plans ?? []);
+  if (!rows.length) return LAUNCH_PLANS;
+  return rows.map((p) => ({
+    id: p.code,
+    name: p.name,
+    priceNaira: Math.round(p.price_play_kobo / 100),
+    credits: p.total_credits,
+    months: p.months,
+  }));
+}
+
 /** Plans and whether billing works. The paywall keeps skeleton prices until this resolves. */
 export async function loadStore(): Promise<Store> {
-  const [available, prices] = await Promise.all([isAvailable(), storePrices()]);
-  const plans = LAUNCH_PLANS.map((p) => {
+  const [available, prices, base] = await Promise.all([isAvailable(), storePrices(), serverPlans()]);
+  const plans = base.map((p) => {
     const sp = prices[productKey({ kind: 'plan', code: p.id })];
     return sp ? { ...p, priceText: sp.text, monthText: sp.monthText } : p;
   });

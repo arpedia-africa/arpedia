@@ -1,6 +1,15 @@
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { onlineManager, useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
-import { ledgerDay, naira } from '@arpedia/core';
+import {
+  AVG_BOOK_PRICE,
+  LAUNCH_PLANS,
+  TIP_PRESETS,
+  TOPUP_PACKS,
+  ledgerDay,
+  naira,
+  type Plan,
+  type TopupPack,
+} from '@arpedia/core';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import { productKey, storePrices, type StorePrice } from './purchases';
@@ -212,6 +221,55 @@ export function usePlans() {
       return priced(data as unknown as PlansJson, prices);
     },
   });
+}
+
+/** Flow 03 rule 36: tip amounts as staff set them (`app_config.tip_presets`, which `tip_author` checks). */
+export function useTipPresets(): readonly number[] {
+  const q = useQuery({
+    queryKey: ['app-config-row', 'tip_presets'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'tip_presets')
+        .single();
+      if (error) throw error;
+      const v = data.value as unknown;
+      return Array.isArray(v) && v.every((x) => typeof x === 'number') && v.length ? (v as number[]) : null;
+    },
+  });
+  return q.data ?? TIP_PRESETS;
+}
+
+/**
+ * Flow 03 rules 28, 31, 36: the unlock and top-up sheets' packs, plan credits and prices, as staff set
+ * them (`get_plans`, persisted for offline). The launch values show only until it first loads.
+ */
+export function useSheetPrices(): {
+  packs: readonly TopupPack[];
+  plans: readonly Plan[];
+  avgBookPrice: number;
+} {
+  const d = usePlans().data;
+  return useMemo(() => {
+    if (!d) return { packs: TOPUP_PACKS, plans: LAUNCH_PLANS, avgBookPrice: AVG_BOOK_PRICE };
+    const packs = d.topups.map((t) => ({ credits: t.credits, naira: Math.round(t.price_kobo / 100) }));
+    const plans = d.plans.map((p) => ({
+      id: p.code,
+      name: p.name,
+      priceNaira: Math.round(p.price_play_kobo / 100),
+      priceText: p.price_text,
+      monthText: p.month_text,
+      credits: p.total_credits,
+      months: p.months,
+    }));
+    return {
+      packs: packs.length ? packs : TOPUP_PACKS,
+      plans: plans.length ? plans : LAUNCH_PLANS,
+      avgBookPrice: Number(d.avg_book_price_credits) || AVG_BOOK_PRICE,
+    };
+  }, [d]);
 }
 
 export async function fetchBalance(): Promise<BalanceJson> {

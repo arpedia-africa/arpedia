@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Share, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FINISHED_PERCENT, TIP_PRESETS } from '@arpedia/core';
+import { FINISHED_PERCENT } from '@arpedia/core';
 import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { useTrack } from '../../../features/03/analytics';
@@ -15,6 +15,7 @@ import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../../features/03/UnlockViews';
 import { DOWNLOAD_STARTED, downloadBook } from '../../../features/04/download';
 import { useBuyPack } from '../../../features/09/buyPack';
+import { useTipPresets } from '../../../features/09/data';
 import { useFlag } from '../../../features/16/config';
 import { useAskPush } from '../../../features/15/push';
 
@@ -30,6 +31,7 @@ export default function BookPage() {
   };
   const track = useTrack();
   const trackReader = useReaderTrack();
+  const tipMin = Math.min(...useTipPresets());
   const askPush = useAskPush();
   const qc = useQueryClient();
   const page = useBookPage(id);
@@ -276,7 +278,7 @@ export default function BookPage() {
             onTip: () => {
               if (!online) return;
               // Not even the smallest tip fits: straight to not-enough-credits / no-plan (rule 14).
-              if (d.balance < Math.min(...TIP_PRESETS)) return short(Math.min(...TIP_PRESETS));
+              if (d.balance < tipMin) return short(tipMin);
               setOverlay('tip');
             },
             onReport: () => setOverlay('report'),

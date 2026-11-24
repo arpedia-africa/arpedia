@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { TIP_PRESETS } from '@arpedia/core';
 import { EmptyState, Hero, IconButton, Screen, Skeleton, useTheme } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { bookKey, useBookPage, useOnline } from '../../../features/03/book';
@@ -14,6 +13,7 @@ import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import { useTrack } from '../../../features/04/analytics';
 import { BookEndView } from '../../../features/04/BookEndView';
 import { useBuyPack } from '../../../features/09/buyPack';
+import { useTipPresets } from '../../../features/09/data';
 import { useFlag } from '../../../features/16/config';
 
 const n = (v: number) => v.toLocaleString('en-NG');
@@ -33,6 +33,7 @@ export default function BookEnd() {
   const track = useTrack();
   const online = useOnline();
   const tipsOn = useFlag('tips', true);
+  const tipMin = Math.min(...useTipPresets());
   const page = useBookPage(id);
   const d = page.data;
   const [tip, setTip] = useState(false);
@@ -112,7 +113,7 @@ export default function BookEnd() {
             tipsOn && authorName && !d.is_author
               ? { name: authorName, tone: avatarTone(d.book.author.id) }
               : null,
-          tipFrom: Math.min(...TIP_PRESETS),
+          tipFrom: tipMin,
           next: next
             ? { id: next.id, title: next.title, author: next.author ?? '', tone: coverTone(next.id) }
             : null,
@@ -121,7 +122,7 @@ export default function BookEnd() {
         onRate={() => router.push({ pathname: '/book/[id]/write-review', params: { id } })}
         onDiscussion={() => router.push({ pathname: '/book/[id]/discussion', params: { id } })}
         onTip={() => {
-          const min = Math.min(...TIP_PRESETS);
+          const min = tipMin;
           if (d.balance < min) return setShort(min);
           setTip(true);
         }}
