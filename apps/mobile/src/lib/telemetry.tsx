@@ -25,4 +25,13 @@ export function Telemetry({ children }: { children: ReactNode }) {
   );
 }
 
+/** Sends an error to Sentry with tags (no-op without a DSN). */
+export function captureError(e: unknown, tags: Record<string, string | number | null | undefined>) {
+  if (!dsn) return;
+  const clean = Object.fromEntries(
+    Object.entries(tags).filter((t): t is [string, string | number] => t[1] != null),
+  );
+  Sentry.captureException(e instanceof Error ? e : new Error(String(e)), { tags: clean });
+}
+
 export const wrapRoot = (C: () => React.JSX.Element) => (dsn ? Sentry.wrap(C) : C);
