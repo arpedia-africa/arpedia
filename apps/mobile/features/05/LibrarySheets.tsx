@@ -327,6 +327,7 @@ export interface CoverMenuItem {
 export function coverMenu({
   saved,
   offline,
+  downloading = false,
   downloadable,
   online,
   onBook,
@@ -337,6 +338,8 @@ export function coverMenu({
 }: {
   saved: boolean;
   offline: boolean;
+  /** A download in flight or paused: Remove reads as Cancel (rule 27). */
+  downloading?: boolean;
   /** Owned or partly paid: there are files to download. */
   downloadable: boolean;
   online: boolean;
@@ -350,12 +353,19 @@ export function coverMenu({
     { key: 'book', title: 'View book page', sub: 'Details, reviews and the discussion', onPress: onBook },
     ...(offline
       ? [
-          {
-            key: 'remove',
-            title: 'Remove download',
-            sub: 'Frees space on this phone. Your unlocks stay.',
-            onPress: onRemoveDownload,
-          },
+          downloading
+            ? {
+                key: 'cancel',
+                title: 'Cancel download',
+                sub: 'Stops it and frees the space. Your unlocks stay.',
+                onPress: onRemoveDownload,
+              }
+            : {
+                key: 'remove',
+                title: 'Remove download',
+                sub: 'Frees space on this phone. Your unlocks stay.',
+                onPress: onRemoveDownload,
+              },
         ]
       : downloadable
         ? [
