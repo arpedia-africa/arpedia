@@ -5,7 +5,7 @@ import { PASSWORD_MIN, validPassword } from '@arpedia/core';
 import { Screen } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { NewPasswordView } from '../features/01/AuthViews';
-import { COPY, afterSignIn, isNetworkError } from '../features/01/session';
+import { COPY, afterSignIn, isAccountDeleted, isNetworkError } from '../features/01/session';
 
 /** Session tokens from the reset link: `#access_token=…&refresh_token=…` or `?code=…`; errors too. */
 function linkParams(url: string) {
@@ -57,7 +57,7 @@ export default function ResetPassword() {
       await supabase.auth.signOut({ scope: 'others' });
       await afterSignIn(data.user.id);
     } catch (e) {
-      setFormError(isNetworkError(e) ? COPY.offline : COPY.generic);
+      setFormError(isAccountDeleted(e) ? COPY.deleted : isNetworkError(e) ? COPY.offline : COPY.generic);
     } finally {
       setBusy(false);
     }

@@ -7,7 +7,7 @@ import { Screen, useToast, type ThemeName } from '@arpedia/ui';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import { useUi } from '@/lib/ui-store';
-import { useMyProfile, useSession } from '../../features/01/session';
+import { signOutHere, useMyProfile, useSession } from '../../features/01/session';
 import { saveStep } from '../../features/01/steps';
 import { useLibrarySession } from '../../features/05/library';
 import { usePlanScreen, type SubscriptionJson } from '../../features/09/data';
@@ -121,10 +121,7 @@ export default function Account() {
             void Share.share({ message: 'Read African stories with me on Arpedia: https://arpedia.africa' }),
           onAbout: () => router.push('/about'),
           onLogOut: () => {
-            void supabase.auth.signOut({ scope: 'local' }).finally(() => {
-              queryClient.clear();
-              router.replace('/(auth)/login');
-            });
+            void signOutHere().finally(() => router.replace('/(auth)/login'));
           },
           onExport: () => {
             if (exporting) return;
