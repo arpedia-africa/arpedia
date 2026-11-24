@@ -7522,6 +7522,20 @@ isOneToOne: false
 "notification_pref":
 { Args: { "p_pref": string,"p_user": string }; Returns: boolean
                            },
+"notify_lookup":
+{ Args: { "p_books"?: (string)[],"p_follow_authors"?: (string)[],"p_roles"?: (string)[],"p_users"?: (string)[] }; Returns: Json
+                           },
+"notify_queue_done":
+{ Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean
+                           },
+"notify_queue_read":
+{ Args: { "p_qty"?: number,"p_queue": string,"p_vt"?: number }; Returns: unknown[]
+                          SetofOptions: {
+        from: "*"
+        to: "message_record"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "onboarding_step_ord":
 { Args: { "p_step": string }; Returns: number
                            },
