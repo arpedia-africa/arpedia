@@ -6383,6 +6383,11 @@ isOneToOne: false
               "id": string,"promoted": boolean,"score": number,"snippet": string
             }[]
                            },
+"_search_clubs":
+{ Args: { "p_q": string }; Returns: {
+              "id": string,"members": number,"name": string,"score": number
+            }[]
+                           },
 "_section":
 { Args: { "p_id": string }; Returns: {
               "config": NonNullable<Json>,
