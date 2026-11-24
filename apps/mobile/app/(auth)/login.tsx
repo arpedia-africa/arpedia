@@ -5,7 +5,7 @@ import { validEmail } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { ForgotSheet, LoginView, type FieldErrors, type LoginValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
-import { signInWithGoogle } from '../../features/01/google';
+import { googleConfigured, signInWithGoogle } from '../../features/01/google';
 import { signInWithPassword } from '../../features/01/passwordSignIn';
 import {
   COPY,
@@ -19,14 +19,17 @@ export default function Login() {
   const track = useTrack();
   const toast = useToast();
   // Rule 36: after deleting the account the reader lands here with a goodbye.
-  const { deleted } = useLocalSearchParams<{ deleted?: string }>();
+  // A project that requires email confirmation sends sign-up here with confirm=1 (rule 5).
+  const { deleted, confirm } = useLocalSearchParams<{ deleted?: string; confirm?: string }>();
   useEffect(() => {
     if (deleted === '1')
       toast({
         message: 'Your account is deleted. Thank you for reading with Arpedia. Goodbye.',
         duration: 6000,
       });
-  }, [deleted, toast]);
+    else if (confirm === '1')
+      toast({ message: 'Account created. Confirm the link we emailed you, then log in.', duration: 6000 });
+  }, [deleted, confirm, toast]);
   const [values, setValues] = useState<LoginValues>({ email: '', password: '' });
   const [errors, setErrors] = useState<FieldErrors<'email' | 'password' | 'form'>>({});
   const [busy, setBusy] = useState<'password' | 'google' | null>(null);
@@ -117,7 +120,7 @@ export default function Login() {
         }}
         onBlur={(f) => f === 'email' && values.email && setErrors((cur) => ({ ...cur, email: checkEmail() }))}
         onSubmit={submit}
-        onGoogle={google}
+        onGoogle={googleConfigured ? google : undefined}
         onForgot={() => setForgot({ open: true, email: values.email, sent: false, busy: false, error: '' })}
         onCreate={() => router.replace('/(auth)/signup')}
       />
