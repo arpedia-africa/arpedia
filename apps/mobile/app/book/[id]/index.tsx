@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Share, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FINISHED_PERCENT, TIP_PRESETS } from '@arpedia/core';
 import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ import { MenuBody, ReportSheet, moreItems } from '../../../features/03/MoreSheet
 import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../../features/03/UnlockViews';
 import { DOWNLOAD_STARTED, downloadBook } from '../../../features/04/download';
+import { useBuyPack } from '../../../features/09/buyPack';
 
 export default function BookPage() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
@@ -46,6 +47,39 @@ export default function BookPage() {
     },
   });
 
+  // Save to library (rule 2, flow 05 rule 3): saved_books is owner-only, so a row means saved.
+  const savedKey = ['book-saved', id] as const;
+  const saved = useQuery({
+    queryKey: savedKey,
+    enabled: !!id,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('saved_books')
+        .select('book_id', { count: 'exact', head: true })
+        .eq('book_id', id);
+      if (error) throw error;
+      return (count ?? 0) > 0;
+    },
+  });
+  const save = useMutation({
+    mutationFn: async (on: boolean) => {
+      const { error } = await supabase.rpc(on ? 'save_book' : 'unsave_book', { p_book: id });
+      if (error) throw error;
+    },
+    onMutate: (on) => qc.setQueryData(savedKey, on),
+    onSuccess: (_d, on) => {
+      toast({ message: on ? 'Saved to your library' : 'Removed from Saved' });
+      void qc.invalidateQueries({ queryKey: ['library'] });
+    },
+    onError: (_e, on) => {
+      qc.setQueryData(savedKey, !on);
+      toast({ message: 'Couldn’t save that. Try again.' });
+    },
+  });
+
+  // Buy N credits (rule 29): the sheet stays open and shows the new balance; nothing is spent.
+  const pack = useBuyPack([bookKey(id)]);
+
   const [sheet, setSheet] = useState<UnlockMode | 'short' | null>(null);
   const [need, setNeed] = useState(0);
   const [overlay, setOverlay] = useState<'more' | 'gift' | 'tip' | 'report' | null>(null);
@@ -62,16 +96,7 @@ export default function BookPage() {
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const toPlans = () => router.push('/plan');
-  // Top-up packs are bought on the credits screen (flow 09).
   const toCredits = () => router.push('/credits');
-  const save = () => {
-    if (!online) return toast({ message: 'Connect to continue' });
-    supabase.rpc('save_book', { p_book: id }).then(({ error }) => {
-      if (error) return toast({ message: 'Couldn’t save that. Try again.' });
-      void qc.invalidateQueries({ queryKey: ['library'] });
-      toast({ message: 'Saved to your library' });
-    });
-  };
   const go = (screen: 'about' | 'reviews' | 'discussion' | 'write-review') =>
     router.push({ pathname: `/book/[id]/${screen}`, params: { id } });
 
@@ -123,11 +148,15 @@ export default function BookPage() {
         }
         a={{
           onBack: back,
-          onSave: save,
-          onShare: () => {
-            const by = d.book.author.name ? ` by ${d.book.author.name}` : '';
-            void Share.share({ message: `${d.book.title}${by}, on Arpedia` });
+          saved: saved.data ?? false,
+          onSave: () => {
+            if (!online) return toast({ message: 'Connect to continue' });
+            if (!save.isPending) save.mutate(!(saved.data ?? false));
           },
+          onShare: () =>
+            void Share.share({
+              message: `${d.book.title}${d.book.author.name ? ` by ${d.book.author.name}` : ''}, on Arpedia`,
+            }),
           onMore: () => setOverlay('more'),
           onAuthor: () =>
             router.push({ pathname: '/author/[id]', params: { id: d.book.author.id, source: 'book' } }),
@@ -159,7 +188,7 @@ export default function BookPage() {
         onClose={() => setSheet(null)}
         onRead={() => router.push({ pathname: '/read/[id]', params: { id } })}
         onPlans={toPlans}
-        onBuyPack={toCredits}
+        onBuyPack={(p) => void pack.buy(p)}
       />
       <Sheet open={overlay === 'more'} onClose={() => setOverlay(null)} bold title={d.book.title}>
         <MenuBody
