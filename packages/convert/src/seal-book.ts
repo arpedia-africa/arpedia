@@ -39,6 +39,11 @@ export interface SealInput {
   base?: BaseChapter[];
   /** Fixed randomness for tests. */
   random?: { uuid?: () => string; paraId?: () => string };
+  /**
+   * Keys to keep when a live revision is sealed again (preview rebuild): K_free and the chapter keys
+   * by chapter uid, so copies already on phones still open. Chapters without one get a new key.
+   */
+  keys?: { free: Uint8Array; chapters: Record<string, Uint8Array> };
 }
 
 export interface SealedAnchor {
@@ -127,8 +132,10 @@ export async function sealBook(input: SealInput & { anchors?: BookAnchors }): Pr
     input.anchors ?? (await assignAnchors(chapters, input.base, input.random));
 
   // ─── Keys ─────────────────────────────────────────────────────────────────
-  const kFree = newKey();
-  const keyOf = chapters.map((_, ord) => (ord <= preview.freeThrough ? null : newKey()));
+  const kFree = input.keys?.free ?? newKey();
+  const keyOf = chapters.map((_, ord) =>
+    ord <= preview.freeThrough ? null : (input.keys?.chapters[uids[ord]!] ?? newKey()),
+  );
   const free = freeParagraphs(
     chapters.map((c) => c.blocks.map((b) => (c.front ? 0 : b.words))),
     preview,
