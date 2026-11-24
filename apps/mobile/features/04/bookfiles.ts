@@ -358,6 +358,15 @@ export async function offlineBooks(): Promise<OfflineBook[]> {
   return out;
 }
 
+/** Flow 16 rule 26: a book with files on this phone stays readable in maintenance mode. */
+export function hasBookFiles(bookId: string): boolean {
+  try {
+    return new Directory(root(), bookId).exists;
+  } catch {
+    return false;
+  }
+}
+
 /** Remove download (flow 05 rule 14): files and keys of this book on this phone; unlocks stay. */
 export function removeDownload(bookId: string) {
   const d = new Directory(root(), bookId);

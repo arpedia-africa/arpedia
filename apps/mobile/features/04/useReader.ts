@@ -26,6 +26,7 @@ import { useOnline } from '../03/book';
 import { rpcError } from '../03/UnlockSheet';
 import { applyProgress } from '../05/library';
 import { syncRoomProgress } from '../07/data';
+import { inMaintenance } from '../16/config';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
 import {
@@ -358,6 +359,8 @@ export function useReader(
       lastSync.current = Date.now();
       // The Library shows the new place when the reader goes back, online or not (flow 05 rule 34).
       applyProgress(qc, bookId, { percent: d.percent, chapter_uid: d.chapter_uid });
+      // Flow 16 rule 26: maintenance holds sync; the place is kept on the phone (rule 66) and goes up later.
+      if (inMaintenance()) return;
       const device = await deviceId().catch(() => null);
       await supabase.rpc('sync_reading_progress', {
         p_book: bookId,

@@ -4,6 +4,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { rpcError } from '../03/UnlockSheet';
+import { inMaintenance } from '../16/config';
 
 /** One `upsert_annotations` batch row, as the RPC takes it. */
 export type AnnotationRow = { client_id: string; updated_at: string } & Record<string, unknown>;
@@ -58,6 +59,7 @@ export function queuedAnnotations(userId: string): Promise<AnnotationRow[]> {
  * rest. Returns how many rows are still waiting.
  */
 export async function flushAnnotations(userId: string): Promise<number> {
+  if (inMaintenance()) return 0;
   const rows = await load(userId);
   if (!rows.length) return 0;
   const done = new Set<AnnotationRow>();
@@ -94,6 +96,11 @@ export async function saveAnnotations(
   userId: string | null,
   rows: AnnotationRow[],
 ): Promise<'saved' | 'queued' | 'refused'> {
+  // Flow 16 rule 26: maintenance holds sync, so the rows wait on the phone.
+  if (inMaintenance() && userId) {
+    await store(userId, merge(await load(userId), rows));
+    return 'queued';
+  }
   const e = await upsert(rows);
   if (!e) return 'saved';
   if (!retryLater(e) || !userId) return 'refused';

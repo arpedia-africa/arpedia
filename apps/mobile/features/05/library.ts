@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { trackedDownload, type Track as ReaderTrack } from '../04/analytics';
 import { BookFiles, offlineBooks, removeDownload, type OfflineBook } from '../04/bookfiles';
 import { readerKey, type ReaderState } from '../04/state';
+import { inMaintenance } from '../16/config';
 
 export type AccountShelf = Exclude<Shelf, 'offline'>;
 export const ACCOUNT_SHELVES: AccountShelf[] = ['reading', 'saved', 'finished'];
@@ -310,7 +311,7 @@ async function sendOp(o: PendingOp) {
 let flushing = false;
 /** Send queued saves in order; a network failure keeps the rest for the next reconnect. */
 export async function flushPendingOps(qc: QueryClient) {
-  if (flushing || !onlineManager.isOnline()) return;
+  if (flushing || !onlineManager.isOnline() || inMaintenance()) return;
   flushing = true;
   try {
     let ops = await loadOps();
