@@ -12,6 +12,9 @@ export type CreditsEvent =
   | 'pause_offered'
   | 'pause_started'
   | 'cancel_started'
+  | 'cancel_confirmed'
+  | 'paywall_viewed'
+  | 'plan_selected'
   | 'promo_redeemed';
 
 type Track = (event: CreditsEvent, props?: Record<string, string | number | boolean>) => void;

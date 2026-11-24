@@ -100,7 +100,12 @@ export default function SubmitProcessing() {
     return () => clearInterval(t);
   }, [ready]);
   useEffect(() => {
-    if (ready) track('book_processing_done', { seconds: Math.round((Date.now() - started.current) / 1000) });
+    if (ready)
+      track('book_processing_done', {
+        seconds: Math.round((Date.now() - started.current) / 1000),
+        flags: d?.flags?.length ?? 0,
+      });
+    // once, when the chapters are ready (d is the status that made it ready)
   }, [ready, track]);
 
   const leave = () => router.replace(STUDIO_BOOKS);
