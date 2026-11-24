@@ -2,7 +2,7 @@
 -- claims in the last 90 days), 12-13 (republish clears Remove access).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(12);
 
 -- 1 author, 2 publisher, 3 reporter.
 insert into auth.users (id, email)
@@ -43,6 +43,10 @@ select ok(not pg_temp.standing(), 'an upheld report in the last 90 days: not in 
 insert into public.moderation_actions (report_id, target_user_id, action, reason, undone_at)
 values ('12f00000-0000-4000-b000-000000000001', '12f00000-0000-4000-a000-000000000001', 'warn', 'Spam', now());
 select ok(pg_temp.standing(), 'a report whose action was undone on appeal does not count');
+
+insert into public.moderation_actions (report_id, target_user_id, action, reason)
+values ('12f00000-0000-4000-b000-000000000001', '12f00000-0000-4000-a000-000000000001', 'remove', 'Spam');
+select ok(not pg_temp.standing(), 'one undone action does not clear a report whose other action stands');
 
 delete from public.moderation_actions where report_id = '12f00000-0000-4000-b000-000000000001';
 update public.reports set resolved_at = now() - interval '91 days' where id = '12f00000-0000-4000-b000-000000000001';
