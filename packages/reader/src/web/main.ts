@@ -205,6 +205,18 @@ function paraOf(node: Node | null): Element | null {
   for (let e = el as Element | null; e; e = e.parentElement) if (e.id && paraIndex.has(e.id)) return e;
   return null;
 }
+/** Characters from the start of `para` to (node, offset); 0 when the point is outside it. */
+function charsInto(para: Element | null, node: Node, offset: number): number {
+  if (!para) return 0;
+  const r = para.ownerDocument.createRange();
+  r.setStart(para, 0);
+  try {
+    r.setEnd(node, offset);
+  } catch {
+    return 0;
+  }
+  return r.toString().length;
+}
 const countWords = (s: string) => (s.match(/\S+/g) ?? []).length;
 function wordsInto(para: Element, node: Node, offset: number): number {
   const r = para.ownerDocument.createRange();
@@ -366,13 +378,17 @@ function watchSelection(doc: Document) {
       const index = view?.renderer.getContents()[0]?.index ?? currentIndex;
       const fe = doc.defaultView?.frameElement as HTMLElement | null;
       const page = fe?.parentElement?.getBoundingClientRect();
+      const startPara = paraOf(range.startContainer);
+      const endPara = paraOf(range.endContainer);
       post({
         type: 'selection',
         payload: {
           cfi_range: view!.getCFI(index, range),
           text: text.slice(0, 500),
-          para_id_start: paraOf(range.startContainer)?.id ?? null,
-          para_id_end: paraOf(range.endContainer)?.id ?? null,
+          para_id_start: startPara?.id ?? null,
+          para_id_end: endPara?.id ?? null,
+          start_char: charsInto(startPara, range.startContainer, range.startOffset),
+          end_char: charsInto(endPara, range.endContainer, range.endOffset),
           chapter_uid: chapterAt(index)?.chapter_uid ?? null,
           rects: lineRects(doc, range),
           page_rect: { x: 0, y: page?.top ?? 0, w: window.innerWidth, h: window.innerHeight },

@@ -100,6 +100,9 @@ export interface SelectionDetail {
   text: string;
   para_id_start: string | null;
   para_id_end: string | null;
+  /** Characters into the start / end paragraph (flow 04 rule 41: the durable anchor). */
+  start_char?: number;
+  end_char?: number;
   chapter_uid: string | null;
   rects: Rect[];
   page_rect: Rect;
