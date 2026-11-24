@@ -38,6 +38,8 @@ export const offlineKey = ['library-offline'] as const;
 // The shelf is kept for the session only: a cold start opens Reading (rule 1).
 interface LibraryPrefs {
   view: 'grid' | 'list';
+  /** False until the reader toggles on this phone or the account's saved view is adopted. */
+  viewChosen: boolean;
   sort: LibrarySort;
   setView: (v: 'grid' | 'list') => void;
   setSort: (s: LibrarySort) => void;
@@ -46,8 +48,9 @@ export const useLibraryPrefs = create<LibraryPrefs>()(
   persist(
     (set) => ({
       view: 'grid',
+      viewChosen: false,
       sort: 'last_opened',
-      setView: (view) => set({ view }),
+      setView: (view) => set({ view, viewChosen: true }),
       setSort: (sort) => set({ sort }),
     }),
     { name: 'arpedia.library', storage: createJSONStorage(() => AsyncStorage) },
@@ -232,24 +235,37 @@ export function useLicenceRefresh(entries: OfflineEntry[], onDone: (ok: boolean)
  */
 export async function downloadBook(qc: QueryClient, bookId: string): Promise<void> {
   const { setDownload } = useLibrarySession.getState();
+  cancelled.delete(bookId);
   setDownload(bookId, 0);
+  const stopIfCancelled = () => {
+    if (cancelled.has(bookId)) throw new Error('cancelled');
+  };
   try {
     const { data, error } = await supabase.rpc('get_reader_state', { p_book: bookId });
     if (error) throw error;
+    stopIfCancelled();
     const st = data as unknown as ReaderState;
     qc.setQueryData(readerKey(bookId), st);
     const f = new BookFiles(bookId, st.revision.id, st.owns_book || st.is_author);
-    await f.downloadAll((done, total) => setDownload(bookId, Math.floor((done / total) * 100)));
+    await f.downloadAll((done, total) => {
+      stopIfCancelled();
+      setDownload(bookId, Math.floor((done / total) * 100));
+    });
     setDownload(bookId, null);
   } catch {
-    setDownload(bookId, 'paused');
+    // A cancel (rule 27 long-press) drops what was fetched; anything else pauses the download.
+    if (cancelled.delete(bookId)) removeBookDownload(qc, bookId);
+    else setDownload(bookId, 'paused');
   } finally {
     void qc.invalidateQueries({ queryKey: offlineKey });
   }
 }
 
-/** Remove download (rule 14): this phone's files and keys only; unlocks stay. */
+const cancelled = new Set<string>();
+
+/** Remove download (rule 14): this phone's files and keys only; unlocks stay. Stops one in flight. */
 export function removeBookDownload(qc: QueryClient, bookId: string) {
+  if (typeof useLibrarySession.getState().downloads[bookId] === 'number') cancelled.add(bookId);
   removeDownload(bookId);
   useLibrarySession.getState().setDownload(bookId, null);
   qc.setQueryData<OfflineBook[]>(offlineKey, (old) => old?.filter((b) => b.bookId !== bookId));
@@ -343,6 +359,27 @@ export async function setSaved(qc: QueryClient, item: LibraryItem, on: boolean) 
   }
   const ops = (await loadOps()).filter((o) => o.book_id !== item.book_id);
   await saveOps([...ops, op]);
+}
+
+/**
+ * Rule 8 on a new phone or reinstall: until the reader toggles here, take the view saved on the
+ * account (`profiles.library_view`). Best effort; grid stays when offline.
+ */
+export async function adoptSavedView() {
+  if (!useLibraryPrefs.persist.hasHydrated())
+    await new Promise<void>((r) => {
+      const off = useLibraryPrefs.persist.onFinishHydration(() => {
+        off();
+        r();
+      });
+    });
+  if (useLibraryPrefs.getState().viewChosen) return;
+  const uid = (await supabase.auth.getSession()).data.session?.user.id;
+  if (!uid) return;
+  const { data } = await supabase.from('profiles').select('library_view').eq('id', uid).maybeSingle();
+  const v = data?.library_view;
+  if ((v === 'grid' || v === 'list') && !useLibraryPrefs.getState().viewChosen)
+    useLibraryPrefs.setState({ view: v, viewChosen: true });
 }
 
 /** Toggle (rule 8): on the phone first, then profiles.library_view (best effort). */

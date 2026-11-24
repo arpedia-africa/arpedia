@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { TextInput } from 'react-native';
 import { Keyboard, View } from 'react-native';
 import { Btn, EmptyState, Screen, Section, Sheet, Skeleton, Text, useTheme, useToast } from '@arpedia/ui';
@@ -51,9 +51,13 @@ export default function Search() {
   const toast = useToast();
   const go = discoveryLinks(toast);
   const input = useRef<ComponentRef<typeof TextInput>>(null);
-  const [text, setText] = useState('');
-  const [submitted, setSubmitted] = useState<string | null>(null);
-  const [focused, setFocused] = useState(true);
+  // `q`: text typed elsewhere (Library's "Search all books") runs at once.
+  const initial = useLocalSearchParams<{ q?: string }>().q?.trim() ?? '';
+  const [text, setText] = useState(initial);
+  const [submitted, setSubmitted] = useState<string | null>(() =>
+    isSearchable(normalizeQuery(initial)) ? normalizeQuery(initial) : null,
+  );
+  const [focused, setFocused] = useState(!initial);
   const [scope, setScope] = useState<Scope>('all');
   const [filters, setFilters] = useState(NO_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
