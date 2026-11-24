@@ -5611,6 +5611,14 @@ isOneToOne: false
                         Relationships: [
                     
                   ]
+                },"search_catalog": {
+                  Row: {
+                    "author_avatar": string | null,"author_id": string | null,"author_name": string | null,"author_norm": string | null,"coming_soon": boolean | null,"cover_key": string | null,"genre": string | null,"genres": (string)[] | null,"id": string | null,"pages": number | null,"price_credits": number | null,"published_at": string | null,"subtitle": string | null,"title": string | null,"title_norm": string | null,"words": number | null,"_book_json": Json | null
+                  }
+                  ComputedFields: "_book_json"
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Functions: {
@@ -5741,7 +5749,9 @@ isOneToOne: false
 { Args: { "p_book": string }; Returns: Json
                            },
 "_book_json":
-{ Args: { "c": Omit<Database["public"]['Views']["catalog_books"]['Row'], Database["public"]['Views']["catalog_books"]['ComputedFields']> }; Returns: Json
+{ Args: { "c": Omit<Database["public"]['Views']["catalog_books"]['Row'], Database["public"]['Views']["catalog_books"]['ComputedFields']> }; Returns: { error: true } & "Could not choose the best candidate function between: public._book_json(c => catalog_books), public._book_json(c => search_catalog). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+                           } |
+{ Args: { "c": Omit<Database["public"]['Views']["search_catalog"]['Row'], Database["public"]['Views']["search_catalog"]['ComputedFields']> }; Returns: { error: true } & "Could not choose the best candidate function between: public._book_json(c => catalog_books), public._book_json(c => search_catalog). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
                            },
 "_book_progress":
 { Args: { "p_book": string,"p_user": string }; Returns: Record<string, unknown>
@@ -7486,6 +7496,9 @@ isOneToOne: false
 "link_book_request":
 { Args: { "p_book": string,"p_ids": (string)[] }; Returns: number
                            },
+"link_book_request_query":
+{ Args: { "p_book": string,"p_query": string }; Returns: number
+                           },
 "list_audit":
 { Args: { "p_action"?: string,"p_actor"?: string,"p_area"?: string,"p_from"?: string,"p_page"?: number,"p_per"?: number,"p_q"?: string,"p_to"?: string }; Returns: Json
                            },
@@ -7596,6 +7609,12 @@ isOneToOne: false
                            },
 "notify_lookup":
 { Args: { "p_books"?: (string)[],"p_follow_authors"?: (string)[],"p_roles"?: (string)[],"p_users"?: (string)[] }; Returns: Json
+                           },
+"notify_me":
+{ Args: { "p_book": string,"p_on"?: boolean }; Returns: boolean
+                           },
+"notify_me_on":
+{ Args: { "p_book": string }; Returns: boolean
                            },
 "notify_queue_done":
 { Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean

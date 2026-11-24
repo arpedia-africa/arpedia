@@ -45,7 +45,10 @@ export const REQUIRED_SETTINGS = {
 
 /** Strings that only a local or staging build contains. */
 export const NON_RELEASE_MARKERS = [
-  'arpedia-staging',
+  // the staging project's host, from the Worker config, so it can't drift from the real one
+  new URL(wranglerConfig('api').env.staging.vars.SUPABASE_URL).host,
+  'arpedia-api-staging',
+  'arpedia-chat-staging',
   'api-staging.',
   '10.0.2.2',
   '127.0.0.1:556',

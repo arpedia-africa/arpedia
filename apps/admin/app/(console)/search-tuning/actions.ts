@@ -29,6 +29,39 @@ export async function saveTuning(changes: TuningChanges): Promise<Result> {
   return { ok: true };
 }
 
+/** Books staff can link a request to: live, scheduled or still in the pipeline (draft). */
+export async function findLinkableBooks(
+  q: string,
+): Promise<{ id: string; title: string; author: string; status: string }[]> {
+  const term = q.trim().replace(/[%_,()]/g, ' ');
+  if (term.length < 2) return [];
+  const supabase = await serverSupabase();
+  const { data } = await supabase
+    .from('books')
+    .select('id, title, status, author:profiles!books_author_id_fkey(full_name)')
+    .in('status', ['draft', 'live', 'scheduled'])
+    .ilike('title', `%${term}%`)
+    .order('title')
+    .limit(8);
+  return (data ?? []).map(b => ({ id: b.id, title: b.title, author: b.author?.full_name ?? '', status: b.status }));
+}
+
+/** Link every open or wishlisted request for a query to a book. Requesters hear when it is live. */
+export async function linkRequest(query: string, bookId: string): Promise<Result & { linked?: number }> {
+  const supabase = await serverSupabase();
+  const { data, error } = await supabase.rpc('link_book_request_query', { p_query: query, p_book: bookId });
+  if (error)
+    return {
+      ok: false,
+      error:
+        error.code === '42501'
+          ? 'Only Operations admins, Publishers and Super admins link requests.'
+          : "Couldn't link the request. Try again.",
+    };
+  revalidatePath('/search-tuning');
+  return { ok: true, linked: data ?? 0 };
+}
+
 /** Add a zero-result query to the acquisition wishlist (or put it back to open). */
 export async function setRequestStatus(query: string, status: 'open' | 'wishlist'): Promise<Result> {
   const supabase = await serverSupabase();
