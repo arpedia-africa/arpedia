@@ -2,11 +2,13 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { TabBar } from '@arpedia/ui';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { useCommunityBadge } from '../../features/06/data';
 import { usePushHandling } from '../../features/15/push';
 
 // Main tabs. Each product flow owns its tab's screens (BUILD-PLAN ownership).
 export default function TabsLayout() {
   usePushHandling();
+  const communityBadge = useCommunityBadge();
   return (
     <View style={{ flex: 1 }}>
       <Tabs
@@ -14,6 +16,7 @@ export default function TabsLayout() {
         tabBar={({ state, navigateToTab }) => (
           <TabBar
             active={state.routes[state.index]?.name ?? 'home'}
+            badges={{ community: communityBadge }}
             onChange={(name) => {
               const route = state.routes.find((r) => r.name === name);
               if (route) navigateToTab(route.key);
