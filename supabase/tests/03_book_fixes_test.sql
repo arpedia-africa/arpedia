@@ -33,7 +33,7 @@ insert into public.credit_ledger (user_id, delta, reason, bucket, idempotency_ke
 
 insert into public.groups (id, kind, name, visibility, book_id) values
   ('03f00000-0000-4000-b000-000000000001', 'club', 'Grace Readers', 'public', '03f00000-0000-4000-c000-000000000001'),
-  ('03f00000-0000-4000-b000-000000000002', 'dm', 'DM', 'private', null);
+  ('03f00000-0000-4000-b000-000000000002', 'dm', 'Direct chat', 'private', null);
 insert into public.group_members (group_id, user_id, role) values
   ('03f00000-0000-4000-b000-000000000001', '03f00000-0000-4000-a000-000000000001', 'owner'),
   ('03f00000-0000-4000-b000-000000000001', '03f00000-0000-4000-a000-000000000002', 'member'),
@@ -92,13 +92,13 @@ reset role;
 update public.feature_flags set enabled = false where key = 'gifts';
 set local role authenticated;
 select throws_ok($$select public.gift_book('03f00000-0000-4000-c000-000000000001', '03f00000-0000-4000-a000-000000000002',
-  null, 100, 'g-off')$$, 'P0001', 'gifts_off', 'Gifts switched off stops gifting');
+  null, 100, 'gift-switched-off')$$, 'P0001', 'gifts_off', 'Gifts switched off stops gifting');
 select is(public.credit_balance('03f00000-0000-4000-a000-000000000001'), 500, 'nothing was charged');
 reset role;
 update public.feature_flags set enabled = true where key = 'gifts';
 set local role authenticated;
 select is(public.gift_book('03f00000-0000-4000-c000-000000000001', '03f00000-0000-4000-a000-000000000002',
-  null, 100, 'g-mate') ->> 'status', 'sent', 'a club mate can be gifted');
+  null, 100, 'gift-club-mate') ->> 'status', 'sent', 'a club mate can be gifted');
 
 -- 03-17: publishing a revision with a new price writes a revision row; same price writes none.
 reset role;
