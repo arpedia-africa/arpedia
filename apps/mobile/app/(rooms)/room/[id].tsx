@@ -91,6 +91,21 @@ type Item =
       };
     };
 
+// A live message has no spoiler stamp until Postgres saves it. Its text waits that long (rule 18), and
+// shows after this if the stamp never comes (unknown sender chapter counts as 0: Spoiler edge cases).
+const STAMP_WAIT_MS = 30_000;
+
+/** Someone else's live message whose stamp hasn't arrived (history always carries one). */
+function awaitingStamp(m: RoomMessage, me: string | undefined, now: number): boolean {
+  return (
+    m.sender_id !== me &&
+    m.spoiler_chapter == null &&
+    m.state === 'visible' &&
+    m.kind !== 'system' &&
+    now - Date.parse(m.created_at) < STAMP_WAIT_MS
+  );
+}
+
 const MUTE_OPTIONS = [
   { label: 'For 1 hour', until: () => new Date(Date.now() + 3_600_000).toISOString() },
   { label: 'For 24 hours', until: () => new Date(Date.now() + 86_400_000).toISOString() },
@@ -171,6 +186,17 @@ export default function RoomScreen() {
   useEffect(() => {
     if (newestId && !newestStamped) stampRefresh();
   }, [newestId, newestStamped, stampRefresh]);
+  // Until every live message is stamped, ask again every 3 s (the save can lag the socket).
+  const [now, setNow] = useState(() => Date.now());
+  const waiting = list.some((m) => awaitingStamp(m, me, now));
+  useEffect(() => {
+    if (!waiting) return;
+    const t = setInterval(() => {
+      stampRefresh();
+      setNow(Date.now());
+    }, 3000);
+    return () => clearInterval(t);
+  }, [waiting, stampRefresh]);
 
   const count = list.length + pending.length;
   const prevCount = useRef(count);
@@ -218,8 +244,13 @@ export default function RoomScreen() {
       out.push(item);
     };
     const viewerChapter = room?.my_chapter ?? 0;
+    // A sender the header shows at or behind the viewer can't be ahead, so their text shows at once.
+    const behindMe = new Set(
+      (room?.header ?? []).filter((h) => h.percent <= (room?.my_percent ?? 0)).map((h) => h.user_id),
+    );
     for (const m of list) {
       const mine = m.sender_id === me;
+      const hold = awaitingStamp(m, me, now) && !revealed.has(m.id) && !behindMe.has(m.sender_id ?? '');
       const chapter = messageSpoilerChapter({ spoiler_chapter: m.spoiler_chapter, quote: m.quote });
       if (
         !mine &&
@@ -250,10 +281,20 @@ export default function RoomScreen() {
           senderTone: toneFor(m.sender_id ?? m.id),
           senderAvatar: m.sender_avatar,
           author: m.sender_is_author,
-          body: m.state === 'visible' ? (m.kind === 'quote' && !m.body && m.quote ? '' : m.body) : null,
-          muted: m.state === 'removed' ? 'Removed by a moderator' : 'This message was deleted',
+          body: hold
+            ? null
+            : m.state === 'visible'
+              ? m.kind === 'quote' && !m.body && m.quote
+                ? ''
+                : m.body
+              : null,
+          muted: hold
+            ? 'Checking for spoilers…'
+            : m.state === 'removed'
+              ? 'Removed by a moderator'
+              : 'This message was deleted',
           quote:
-            m.state === 'visible' && m.quote
+            !hold && m.state === 'visible' && m.quote
               ? {
                   text: `“${m.quote.text}”`,
                   source: [m.quote.book_title, `Ch. ${m.quote.chapter}`].filter(Boolean).join(' · '),
@@ -287,7 +328,7 @@ export default function RoomScreen() {
         },
       });
     return out;
-  }, [list, pending, me, room?.my_chapter, revealed]);
+  }, [list, pending, me, room?.my_chapter, room?.my_percent, room?.header, revealed, now]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/rooms'));
 
