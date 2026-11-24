@@ -3,6 +3,7 @@ import type { AvatarTone } from '@arpedia/ui';
 import { tabBadgeLabel, type Database } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { useAskPush } from '../15/push';
+import { useTrack } from './analytics';
 
 // Flow 06 server data: inbox rows, filter counts, Mark all read (RPCs in 20261119000600_06_community).
 
@@ -87,13 +88,19 @@ export function useCommunities(q: string, type: string) {
 export function useJoin() {
   const qc = useQueryClient();
   const askPush = useAskPush();
+  const track = useTrack();
   return useMutation({
     mutationFn: async (group: string) => {
       const { error } = await supabase.rpc('join_group', { p_group: group });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, group) => {
       askPush('join');
+      const row = qc
+        .getQueriesData<Community[]>({ queryKey: ['community', 'discover'] })
+        .flatMap(([, d]) => d ?? [])
+        .find((g) => g.id === group);
+      track('group_joined', { group_kind: row?.kind ?? 'unknown', source: 'discover' });
       return qc.invalidateQueries({ queryKey: ['community'] });
     },
   });

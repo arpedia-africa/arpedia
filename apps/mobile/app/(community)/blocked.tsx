@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmptyState, Hero, IconButton, Screen, Skeleton, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { BlockedRow } from '../../features/06/BlockedViews';
+import { useTrack } from '../../features/06/analytics';
 import { toneFor } from '../../features/06/data';
 
 // s-blocked: who the user blocked, where, and one-tap Unblock with a 5 s Undo (rule 32).
@@ -20,6 +21,7 @@ export default function Blocked() {
   const { c, s } = useTheme();
   const toast = useToast();
   const qc = useQueryClient();
+  const track = useTrack();
   const list = useQuery({
     queryKey: blockedKey,
     queryFn: async () => {
@@ -38,6 +40,7 @@ export default function Blocked() {
       });
       if (error) throw error;
     },
+    onSuccess: () => track('user_blocked'),
     onSettled: refresh,
   });
   const unblock = useMutation({
@@ -45,6 +48,7 @@ export default function Blocked() {
       const { error } = await supabase.rpc('unblock_user', { p_user: user });
       if (error) throw error;
     },
+    onSuccess: () => track('user_unblocked', { undo: false }),
     onSettled: refresh,
   });
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));

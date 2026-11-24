@@ -16,13 +16,13 @@ One list for the owner, the account set-up chat and the builders. **Look here be
 | Supabase | `arpedia-staging`, ref `wsblzfpiflefqpbsqkuy`, London, Free | `SUPABASE_STAGING_*` | `env.staging` in `workers/*/wrangler.jsonc` |
 | Supabase | `arpedia-prod`, ref `lzrctrkuvkeftujqiqbn`, London, Free | `SUPABASE_PROD_*` | `env.production` in `workers/*/wrangler.jsonc` |
 | Cloudflare | Workers Free, the account that also holds v25 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (`arpedia-deploy`) | Worker deploys, preflight, backups |
-| Cloudflare R2 | `arpedia-books-staging`, `arpedia-books-prod` | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (`arpedia-r2`) | api Worker `BOOKS` |
+| Cloudflare R2 | `arpedia-books-staging`, `arpedia-books-prod` | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (`arpedia-r2-2`, replaced `arpedia-r2` on 24 Nov) | api Worker `BOOKS`, staging sample content |
 | Cloudflare R2 | `arpedia-media-staging`, `arpedia-media-prod` | same token | Nothing yet: no code uses them |
 | Vercel | Hobby, owner-chosen account, not linked to GitHub. It already has an `arpedia` project, and DNS for `arpedia.africa` and `www` points at Vercel: leave both, use a new project for the admin console | `VERCEL_TOKEN`, `VERCEL_TEAM_ID` | Admin console, deployed from CI with the token |
 | Android signing | v25 upload key, Play service account | `ANDROID_*`, `PLAY_SERVICE_ACCOUNT_JSON` | `release-android.yml` |
 | Firebase | `google-services.json` for `com.arpedia.reader` | `FIREBASE_GOOGLE_SERVICES_JSON` | App build |
 
-**On hold:** don't copy `R2_ACCESS_KEY_ID` or `R2_SECRET_ACCESS_KEY` anywhere until the owner decides whether to replace the `arpedia-r2` token.
+**Staging is live (24 Nov 2026):** `https://arpedia-api-staging.arpedia-africa.workers.dev` and `https://arpedia-chat-staging.arpedia-africa.workers.dev` (workers.dev name `arpedia-africa`: don't rename, app builds use it). Database migrated, 6 sample books from `tools/launch/staging-content.mjs`. No admin console or Super admin yet. Still to do in the dashboard: turn off **Confirm email** on `arpedia-staging`. The `STAGING_*` keys below are in `secrets.env`: never change `STAGING_BOOK_MASTER_KEY` or the books can't be opened.
 
 **v25, never touch:** Supabase ref `qtsfpwmksiqtqjwthydz` (paused), R2 buckets `arpedia-books` and `arpedia-ota`, and any Worker, route or DNS record v25 uses.
 
@@ -35,10 +35,10 @@ One list for the owner, the account set-up chat and the builders. **Look here be
 | Expo push | Not started | `EXPO_ACCESS_TOKEN` | `EXPO_ACCESS_TOKEN`, `PUSH_MODE` |
 | Flutterwave test keys, then the webhook | Not started | `FLW_TEST_*` | `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH` |
 | Sentry, PostHog | Not started | `SENTRY_*`, `POSTHOG_KEY` | App variables `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_POSTHOG_KEY` |
-| R2 `arpedia-backups` | Production only. Needs its own token: `arpedia-r2` doesn't cover it | `R2_*` in the GitHub `backup` environment | Backup workflow |
+| R2 `arpedia-backups` | Production only. Needs its own token: `arpedia-r2-2` doesn't cover it | `R2_*` in the GitHub `backup` environment | Backup workflow |
 | Apple | Waits for the partner account | `ASC_*`, `APNS_*`, `APPLE_*` | iOS only |
 
-Made by the coding session at deploy time, never reused between staging and production: `BOOK_MASTER_KEY`, `UPLOAD_SIGNING_KEY`, `PAYOUT_ACCOUNT_KEY`, `BACKUP_KEY`.
+Made by the coding session at deploy time, never reused between staging and production: `BOOK_MASTER_KEY`, `UPLOAD_SIGNING_KEY`, `PAYOUT_ACCOUNT_KEY`, `BACKUP_KEY`. Staging ones are saved as `STAGING_BOOK_MASTER_KEY`, `STAGING_UPLOAD_SIGNING_KEY` and `STAGING_PAYOUT_ACCOUNT_KEY`.
 
 ## Keeping it in step
 1. Before creating anything, check this page. If it's listed as existing, reuse it.

@@ -72,12 +72,23 @@ payments.post('/revenuecat', async (c) => {
   return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
 });
 
-// Local test store (flow 17 whole-app check): until the RevenueCat SDK lands, a local build
-// (EXPO_PUBLIC_TEST_STORE) "buys" through here. It builds the event Google Play + RevenueCat would
-// send and applies it through the same normalise + ingest path as the webhook. Never on staging or
-// production: anything but APP_ENV local answers 404.
+/**
+ * The test store answers locally, and on staging only while the Worker secret TEST_STORE is "1"
+ * (owner decision, 24 Nov: the staging test build). Never on production, whatever the secret says.
+ */
+export const testStoreOpen = (env: Pick<Env, 'APP_ENV' | 'TEST_STORE'>) =>
+  env.APP_ENV === 'local' || (env.APP_ENV === 'staging' && env.TEST_STORE === '1');
+
+/** Test purchases one reader may make in 24 hours (abuse limit on staging). */
+export const TEST_STORE_DAILY_CAP = 20;
+const TEST_TXN = 'GPA.test-';
+
+// Test store (flow 17 whole-app check, staging test build): until the RevenueCat SDK lands, a build
+// with EXPO_PUBLIC_TEST_STORE "buys" through here. It builds the event Google Play + RevenueCat would
+// send and applies it through the same normalise + ingest path as the webhook. Closed (404) unless
+// testStoreOpen.
 payments.post('/test-store', requireUser, async (c) => {
-  if (c.env.APP_ENV !== 'local') return c.json({ error: 'not_found' }, 404);
+  if (!testStoreOpen(c.env)) return c.json({ error: 'not_found' }, 404);
   const body = await c.req
     .json<{ kind?: unknown; code?: unknown }>()
     .catch(() => ({}) as Record<string, unknown>);
@@ -85,6 +96,15 @@ payments.post('/test-store', requireUser, async (c) => {
   const code = typeof body.code === 'string' ? body.code : '';
   if (!kind || !code) return c.json({ error: 'bad_request' }, 400);
   const db = serviceDb(c.env);
+  const uid = c.get('user').sub!;
+  const { count } = await db
+    .from('payment_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('provider', 'revenuecat')
+    .eq('payload->event->>app_user_id', uid)
+    .like('payload->event->>transaction_id', `${TEST_TXN}%`)
+    .gte('received_at', new Date(Date.now() - 86_400_000).toISOString());
+  if ((count ?? 0) >= TEST_STORE_DAILY_CAP) return c.json({ error: 'daily_cap' }, 429);
   const { data: product } = await db
     .from(kind === 'plan' ? 'plans' : 'topup_products')
     .select('play_product_id')
@@ -93,11 +113,11 @@ payments.post('/test-store', requireUser, async (c) => {
   const kobo = await lowestPriceKobo(db, kind, code);
   if (!product || kobo == null) return c.json({ error: 'unknown_product' }, 404);
   const now = Date.now();
-  const txn = `GPA.test-${crypto.randomUUID()}`;
+  const txn = `${TEST_TXN}${crypto.randomUUID()}`;
   const event = {
     id: crypto.randomUUID(),
     type: kind === 'plan' ? 'INITIAL_PURCHASE' : 'NON_RENEWING_PURCHASE',
-    app_user_id: c.get('user').sub!,
+    app_user_id: uid,
     product_id: product.play_product_id,
     transaction_id: txn,
     original_transaction_id: txn,

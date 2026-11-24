@@ -37,6 +37,7 @@
       ]
     },
     "plugins": [
+      "./plugins/staging-variant",
       "expo-router",
       "expo-font",
       "expo-secure-store",

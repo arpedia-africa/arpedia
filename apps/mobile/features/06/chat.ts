@@ -17,6 +17,7 @@ import {
 } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { useAskPush } from '../15/push';
+import { useTrack } from './analytics';
 
 // Flow 06 chat client: history over HTTPS (get_messages, cached on device so a chat opens
 // instantly and offline), live frames over the conversation Durable Object's WebSocket, optimistic
@@ -111,6 +112,7 @@ export function useChat(
   onProgress?: (f: RoomProgressFrame) => void,
 ) {
   const qc = useQueryClient();
+  const track = useTrack();
   const ws = useRef<WebSocket | null>(null);
   const [state, setState] = useState<SocketState>('connecting');
   const [readingNow, setReadingNow] = useState<number | null>(null);
@@ -312,6 +314,13 @@ export function useChat(
       };
       setPending((l) => [...l, p]);
       setLastSentAt(Date.now());
+      const open = ws.current?.readyState === WebSocket.OPEN;
+      track('message_sent', {
+        group_kind: qc.getQueryData<{ kind?: string }>(groupKey(gid))?.kind ?? 'unknown',
+        kind: p.quote ? 'quote' : 'text',
+        has_reply: !!p.reply_to_id,
+        offline_queued: !open,
+      });
       write({
         type: 'send',
         client_id: p.client_id,
@@ -321,7 +330,7 @@ export function useChat(
       });
       return true;
     },
-    [write],
+    [write, track, qc, gid],
   );
 
   /** "Not sent. Tap to retry": same client_id, so the server never posts it twice. */
@@ -368,9 +377,17 @@ export async function chatAction(gid: string, action: ChatAction) {
 
 export function useChatAction(gid: string) {
   const qc = useQueryClient();
+  const track = useTrack();
   return useMutation({
     mutationFn: (a: ChatAction) => chatAction(gid, a),
     onSuccess: (_d, a) => {
+      if (a.type === 'react' && a.emoji) track('message_reacted', { emoji: a.emoji });
+      else if (a.type === 'pin') track('message_pinned');
+      else if (a.type === 'delete') track('message_deleted');
+      else if (a.type === 'report')
+        track('report_sent', { content_type: 'message', reason: a.reason, also_block: !!a.also_block });
+      else if (a.type === 'block') track('user_blocked');
+      else if (a.type === 'unblock') track('user_unblocked', { undo: true });
       if (a.type === 'report' || a.type === 'block' || a.type === 'unblock' || a.type === 'delete')
         void qc.invalidateQueries({ queryKey: ['community'] });
     },
@@ -391,6 +408,8 @@ export function useMarkRead(gid: string, newestId: string | undefined, member: b
 export function useGroupMembership(gid: string) {
   const qc = useQueryClient();
   const askPush = useAskPush();
+  const track = useTrack();
+  const kind = () => qc.getQueryData<{ kind?: string }>(groupKey(gid))?.kind ?? 'unknown';
   const refresh = () => qc.invalidateQueries({ queryKey: ['community'] });
   const join = useMutation({
     mutationFn: async () => {
@@ -401,6 +420,8 @@ export function useGroupMembership(gid: string) {
     },
     onSuccess: () => {
       askPush('join');
+      // Joined from the group's own page: reached by an invite or share link.
+      track('group_joined', { group_kind: kind(), source: 'invite' });
       return refresh();
     },
   });
@@ -411,7 +432,10 @@ export function useGroupMembership(gid: string) {
       // Stop live delivery and posting now, not when the DO's access cache expires.
       await refreshSelf(gid);
     },
-    onSuccess: refresh,
+    onSuccess: () => {
+      track('group_left', { group_kind: kind() });
+      return refresh();
+    },
   });
   const mute = useMutation({
     mutationFn: async (until: string | null) => {

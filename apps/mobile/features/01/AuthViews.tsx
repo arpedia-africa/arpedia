@@ -67,7 +67,8 @@ export interface LoginViewProps {
   onChange: (v: Partial<LoginValues>) => void;
   onBlur?: (field: keyof LoginValues) => void;
   onSubmit: () => void;
-  onGoogle: () => void;
+  /** Absent when this build has no Google client id: the divider and button hide. */
+  onGoogle?: () => void;
   onForgot: () => void;
   onCreate: () => void;
 }
@@ -132,16 +133,20 @@ export function LoginView({
             />
             <FormError>{errors.form}</FormError>
           </View>
-          <DividerOr />
-          <Btn
-            label="Continue with Google"
-            variant="g"
-            icon="g"
-            block
-            onPress={onGoogle}
-            loading={busy === 'google'}
-            disabled={!!busy && busy !== 'google'}
-          />
+          {onGoogle ? (
+            <>
+              <DividerOr />
+              <Btn
+                label="Continue with Google"
+                variant="g"
+                icon="g"
+                block
+                onPress={onGoogle}
+                loading={busy === 'google'}
+                disabled={!!busy && busy !== 'google'}
+              />
+            </>
+          ) : null}
           <AltLine lead="New to Arpedia?" link="Create an account" onPress={onCreate} />
         </Form>
       </OnbSheet>
@@ -161,7 +166,8 @@ export interface SignupViewProps {
   onChange: (v: Partial<SignupValues>) => void;
   onBlur?: (field: keyof SignupValues) => void;
   onSubmit: () => void;
-  onGoogle: () => void;
+  /** Absent when this build has no Google client id: the divider and button hide. */
+  onGoogle?: () => void;
   onLogin: () => void;
   onTerms: () => void;
   onPrivacy: () => void;
@@ -252,19 +258,23 @@ export function SignupView({
             />
             <FormError>{errors.form}</FormError>
           </View>
-          <DividerOr />
-          <View style={{ gap: 8 }}>
-            <Btn
-              label="Sign up with Google"
-              variant="g"
-              icon="g"
-              block
-              onPress={onGoogle}
-              loading={busy === 'google'}
-              disabled={!!busy && busy !== 'google'}
-            />
-            <FormError>{errors.google}</FormError>
-          </View>
+          {onGoogle ? (
+            <>
+              <DividerOr />
+              <View style={{ gap: 8 }}>
+                <Btn
+                  label="Sign up with Google"
+                  variant="g"
+                  icon="g"
+                  block
+                  onPress={onGoogle}
+                  loading={busy === 'google'}
+                  disabled={!!busy && busy !== 'google'}
+                />
+                <FormError>{errors.google}</FormError>
+              </View>
+            </>
+          ) : null}
           <AltLine lead="Already have an account?" link="Log in" onPress={onLogin} />
           <Text {...small} color="ink3" center>
             {'By creating an account you agree to the '}

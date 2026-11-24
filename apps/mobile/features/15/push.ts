@@ -76,8 +76,14 @@ let asking = false;
  * unlock), never on first launch. Already granted: just registers the token. A denial blocks nothing;
  * Notifications settings shows the "off" banner after that.
  */
+/**
+ * Builds without a Firebase entry for their app id (the staging test build) set EXPO_PUBLIC_PUSH=0:
+ * they never ask for notifications and never register a token, so nothing waits on FCM.
+ */
+export const pushEnabled = process.env.EXPO_PUBLIC_PUSH !== '0';
+
 async function askPushPermission(trigger: PushTrigger, track: PushTrack) {
-  if (asking) return;
+  if (asking || !pushEnabled) return;
   asking = true;
   try {
     const perm = await Notifications.getPermissionsAsync();
@@ -116,6 +122,7 @@ export function useAskPush(): (trigger: PushTrigger) => void {
  * Failures are silent and retried on the next app start.
  */
 export async function registerPushToken() {
+  if (!pushEnabled) return;
   try {
     const perm = await Notifications.getPermissionsAsync();
     if (!perm.granted) return;

@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { Screen, useToast } from '@arpedia/ui';
 import { useNotifPrefs, useSetNotifPref } from '../../features/10/data';
 import { NotifPrefsView } from '../../features/10/SettingsViews';
+import { pushEnabled } from '../../features/15/push';
 
 // Flow 10 · Notification preferences (s-notif-prefs, rules 19–23). Toggles save on tap.
 export default function NotificationSettings() {
@@ -29,6 +30,7 @@ export default function NotificationSettings() {
       <NotifPrefsView
         prefs={prefs.data}
         phoneOff={phoneOff}
+        noPush={!pushEnabled}
         onBack={() => router.back()}
         onFeed={() => router.push('/notifications')}
         onOpenSettings={() => void Linking.openSettings()}

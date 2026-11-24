@@ -2978,14 +2978,14 @@ isOneToOne: false
                   ]
                 },"notification_preferences": {
                   Row: {
-                    "authors": boolean,"clubs": boolean,"note_replies": boolean,"offers": boolean,"quiet_enabled": boolean,"quiet_end": string,"quiet_start": string,"reminders": boolean,"timezone": string,"updated_at": string,"user_id": string
+                    "authors": boolean,"clubs": boolean,"messages_level": string,"note_replies": boolean,"offers": boolean,"quiet_enabled": boolean,"quiet_end": string,"quiet_start": string,"reminders": boolean,"timezone": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "authors"?: boolean,"clubs"?: boolean,"note_replies"?: boolean,"offers"?: boolean,"quiet_enabled"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"reminders"?: boolean,"timezone"?: string,"updated_at"?: string,"user_id": string
+                    "authors"?: boolean,"clubs"?: boolean,"messages_level"?: string,"note_replies"?: boolean,"offers"?: boolean,"quiet_enabled"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"reminders"?: boolean,"timezone"?: string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "authors"?: boolean,"clubs"?: boolean,"note_replies"?: boolean,"offers"?: boolean,"quiet_enabled"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"reminders"?: boolean,"timezone"?: string,"updated_at"?: string,"user_id"?: string
+                    "authors"?: boolean,"clubs"?: boolean,"messages_level"?: string,"note_replies"?: boolean,"offers"?: boolean,"quiet_enabled"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"reminders"?: boolean,"timezone"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -7319,6 +7319,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "authors": boolean,
 "clubs": boolean,
+"messages_level": string,
 "note_replies": boolean,
 "offers": boolean,
 "quiet_enabled": boolean,
@@ -8270,6 +8271,7 @@ isOneToOne: false
 { Args: { "p_patch": Json }; Returns: {
               "authors": boolean,
 "clubs": boolean,
+"messages_level": string,
 "note_replies": boolean,
 "offers": boolean,
 "quiet_enabled": boolean,

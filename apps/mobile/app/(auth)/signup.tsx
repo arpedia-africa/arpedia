@@ -6,7 +6,7 @@ import { PASSWORD_MIN, PRIVACY_URL, TERMS_URL, validEmail, validName, validPassw
 import { supabase } from '@/lib/supabase';
 import { SignupView, type FieldErrors, type SignupValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
-import { signInWithGoogle } from '../../features/01/google';
+import { googleConfigured, signInWithGoogle } from '../../features/01/google';
 import {
   COPY,
   afterSignIn,
@@ -77,7 +77,7 @@ export default function Signup() {
       track('signup_completed', { method: 'email' });
       if (!data.session) {
         // Email confirmation is not required (rule 5); a project that requires it lands on Log in.
-        router.replace('/(auth)/login');
+        router.replace({ pathname: '/(auth)/login', params: { confirm: '1' } });
         return;
       }
       void registerDevice();
@@ -127,7 +127,7 @@ export default function Signup() {
         }}
         onBlur={(f) => values[f] && setErrors((cur) => ({ ...cur, [f]: check[f](values) }))}
         onSubmit={submit}
-        onGoogle={google}
+        onGoogle={googleConfigured ? google : undefined}
         onLogin={() => router.replace('/(auth)/login')}
         onTerms={() => void Linking.openURL(TERMS_URL)}
         onPrivacy={() => void Linking.openURL(PRIVACY_URL)}

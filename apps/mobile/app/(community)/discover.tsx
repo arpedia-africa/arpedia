@@ -13,6 +13,7 @@ import {
 import { toneFor, useCommunities, useJoin, type Community } from '../../features/06/data';
 import { ConsentBody } from '../../features/07/FormViews';
 import { useTrack as useRoomsTrack } from '../../features/07/analytics';
+import { useTrack as useCommunityTrack } from '../../features/06/analytics';
 import { useTrack as useAuthorsTrack } from '../../features/08/analytics';
 import {
   startsLabel,
@@ -73,6 +74,12 @@ export default function Discover() {
     return () => clearTimeout(t);
   }, [query]);
   const list = useCommunities(q, type);
+  const track06 = useCommunityTrack();
+  useEffect(() => {
+    if (q.length >= 2 && list.data)
+      track06('discover_searched', { query_length: q.length, results: list.data.length });
+    // once per finished search
+  }, [q, list.data, track06]);
   const join = useJoin();
   const trackAuthors = useAuthorsTrack();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/community'));

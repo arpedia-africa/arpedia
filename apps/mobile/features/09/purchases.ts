@@ -23,10 +23,12 @@ export {
 } from '@arpedia/core';
 
 const KEY = Platform.OS === 'android' ? (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '') : '';
-// Written out here (not `kitEnabled`) so a release build without the kit folds this to false and
-// drops the test store from the bundle (preflight `test_store` checks the AAB).
+// Written out here (not `kitEnabled`) so a production build folds this to false and drops the test
+// store from the bundle (preflight `test_store` checks the AAB). The staging test build
+// (`tools/android-release.mjs --staging`) keeps it; the staging Worker answers only with TEST_STORE=1.
 const TEST_STORE =
-  (__DEV__ || process.env.EXPO_PUBLIC_KIT === '1') && process.env.EXPO_PUBLIC_TEST_STORE === '1';
+  (__DEV__ || process.env.EXPO_PUBLIC_KIT === '1' || process.env.EXPO_PUBLIC_APP_ENV === 'staging') &&
+  process.env.EXPO_PUBLIC_TEST_STORE === '1';
 
 interface PlansRpc {
   plans: { code: string; play_product_id: string | null; price_play_kobo: number }[];
