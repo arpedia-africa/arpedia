@@ -33,7 +33,8 @@ import {
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
 import { useTrack } from '../../features/04/analytics';
 import { usePassageThread } from '../../features/04/passage';
-import { useShareToClub } from '../../features/04/ShareClubSheet';
+import { postQuote, quoteFor, useShareToClub } from '../../features/04/ShareClubSheet';
+import { useInbox } from '../../features/06/data';
 import { ChapterLowSheet, PayRestSheet } from '../../features/04/PaySheets';
 import {
   ChaptersSheet,
@@ -290,6 +291,11 @@ export default function ReaderScreen() {
   // The book room is the chat of the club reading this book (s-channel, flow 06); with no club it
   // lives in Community.
   const room = useBookDiscussion(id);
+  // Rule 39: the Note switch names the book's club, only when the reader is a member of it.
+  const myGroups = useInbox('groups');
+  const bookClub = room.data?.club;
+  const noteClub =
+    bookClub && (myGroups.data ?? []).some((g) => g.group_id === bookClub.id) ? bookClub : null;
   const toRoom = () => {
     const club = room.data?.club;
     if (club) router.push({ pathname: '/chat/[id]', params: { id: club.id } });
@@ -840,12 +846,25 @@ export default function ReaderScreen() {
             quote={(noteSel?.text ?? noteAnnotation?.quote ?? '').slice(0, 500)}
             color={noteAnnotation?.color ?? r.settings.highlight_color}
             initial={noteAnnotation?.note_text ?? ''}
-            // Sharing to a club arrives with flow 06 groups; until then the switch stays hidden.
-            club={null}
-            onSave={(text) => {
+            club={noteClub?.name ?? null}
+            onSave={(text, share) => {
               setPanel(null);
-              if (noteAnnotation) void r.editNote(noteAnnotation.client_id, text);
-              else if (noteSel) void r.highlight(r.settings.highlight_color, text, noteSel);
+              const group = share && noteClub ? noteClub.id : null;
+              if (noteAnnotation) void r.editNote(noteAnnotation.client_id, text, group);
+              else if (noteSel) void r.highlight(r.settings.highlight_color, text, noteSel, group);
+              // Rule 39: a shared note posts to the club as a quote card (rule 56), the note as its message.
+              const q =
+                group &&
+                (noteSel
+                  ? quoteFor(st, noteSel.chapter_uid, noteSel.cfi_range, noteSel.text)
+                  : noteAnnotation &&
+                    quoteFor(
+                      st,
+                      noteAnnotation.chapter_uid,
+                      noteAnnotation.cfi_range,
+                      noteAnnotation.quote ?? '',
+                    ));
+              if (group && q) postQuote(group, q, text);
             }}
           />
           <DiscussSheet

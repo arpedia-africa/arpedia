@@ -15,22 +15,41 @@ import { chapterNumber } from './useReader';
 // Reading rooms post through the room screen (spoiler stamps, flow 07) and DMs aren't clubs.
 const SHAREABLE = new Set<InboxRow['kind']>(['club', 'author', 'readalong', 'official']);
 
+/** The quote card for a passage (flow 06 rule 19), or null when its chapter isn't in the book. */
+export function quoteFor(
+  st: ReaderState | null | undefined,
+  chapterUid: string | null,
+  cfi: string,
+  text: string,
+): QuotePayload | null {
+  const ch = st?.chapters.find((x) => x.chapter_uid === chapterUid);
+  if (!st || !ch) return null;
+  const no = ch.kind === 'chapter' ? chapterNumber(st, ch.chapter_uid) : null;
+  return {
+    book_id: st.book.id,
+    // The server checks access by chapter ord (can_quote); the card shows the chapter number.
+    chapter: ch.ord,
+    cfi,
+    text: text.replace(/\s+/g, ' ').trim().slice(0, QUOTE_MAX),
+    book_title: st.book.title,
+    chapter_title: no ? `Ch. ${no}` : ch.title,
+  };
+}
+
+/** Post a quote card (with an optional message) by opening that club's chat, which sends it once. */
+export function postQuote(groupId: string, quote: QuotePayload, message: string) {
+  router.push({
+    pathname: '/chat/[id]',
+    params: { id: groupId, quote: JSON.stringify(quote), msg: message },
+  });
+}
+
 /** Club / Share on the selection bar (flow 04 rule 35): `start(sel)` opens s-share-club for it. */
 export function useShareToClub(st: ReaderState | null | undefined) {
   const [q, setQ] = useState<QuotePayload | null>(null);
   const start = (sel: SelectionDetail) => {
-    const ch = st?.chapters.find((x) => x.chapter_uid === sel.chapter_uid);
-    if (!st || !ch) return;
-    const no = ch.kind === 'chapter' ? chapterNumber(st, ch.chapter_uid) : null;
-    setQ({
-      book_id: st.book.id,
-      // The server checks access by chapter ord (can_quote); the card shows the chapter number.
-      chapter: ch.ord,
-      cfi: sel.cfi_range,
-      text: sel.text.replace(/\s+/g, ' ').trim().slice(0, QUOTE_MAX),
-      book_title: st.book.title,
-      chapter_title: no ? `Ch. ${no}` : ch.title,
-    });
+    const quote = quoteFor(st, sel.chapter_uid, sel.cfi_range, sel.text);
+    if (quote) setQ(quote);
   };
   const element = (
     <ShareClubSheet
@@ -41,8 +60,7 @@ export function useShareToClub(st: ReaderState | null | undefined) {
       onPost={(gid, msg) => {
         const quote = q;
         setQ(null);
-        if (!quote) return;
-        router.push({ pathname: '/chat/[id]', params: { id: gid, quote: JSON.stringify(quote), msg } });
+        if (quote) postQuote(gid, quote, msg);
       }}
     />
   );

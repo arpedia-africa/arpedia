@@ -777,7 +777,7 @@ export function useReader(
 
   // ─── Highlights (rules 35, 41) ─────────────────────────────────────────────
   const highlight = useCallback(
-    async (color: HighlightColor, note?: string, from?: SelectionDetail) => {
+    async (color: HighlightColor, note?: string, from?: SelectionDetail, shareGroup?: string | null) => {
       const sel = from ?? selection;
       if (!sel || !state) return;
       const a: Annotation = {
@@ -790,10 +790,10 @@ export function useReader(
         start_para_id: sel.para_id_start,
         quote: sel.text.slice(0, 500),
         note_text: note ?? null,
-        visibility: 'private',
+        visibility: shareGroup ? 'club' : 'private',
       };
       setAnnotations((l) => [...l, a]);
-      if (note) track('note_saved', { shared: false });
+      if (note) track('note_saved', { shared: !!shareGroup });
       else track('highlight_created', { color });
       send({
         type: 'annotations.set',
@@ -819,7 +819,8 @@ export function useReader(
           end_char: 0,
           quote: a.quote,
           note_text: a.note_text,
-          visibility: 'private',
+          visibility: shareGroup ? 'club' : 'private',
+          shared_group_id: shareGroup ?? null,
           updated_at: new Date().toISOString(),
         },
       ]);
@@ -829,12 +830,17 @@ export function useReader(
 
   /** Add, edit or clear the note on an existing highlight (rule 36). Last write wins (rule 43). */
   const editNote = useCallback(
-    async (clientId: string, text: string) => {
+    async (clientId: string, text: string, shareGroup?: string | null) => {
       const a = annotations.find((x) => x.client_id === clientId);
       if (!a || !state) return;
-      const next: Annotation = { ...a, kind: text ? 'note' : 'highlight', note_text: text || null };
+      const next: Annotation = {
+        ...a,
+        kind: text ? 'note' : 'highlight',
+        note_text: text || null,
+        visibility: shareGroup && text ? 'club' : 'private',
+      };
       setAnnotations((l) => l.map((x) => (x.client_id === clientId ? next : x)));
-      if (text) track('note_saved', { shared: false });
+      if (text) track('note_saved', { shared: !!shareGroup });
       send({
         type: 'annotations.set',
         payload: {
@@ -857,7 +863,8 @@ export function useReader(
           end_para_id: a.start_para_id,
           quote: a.quote,
           note_text: next.note_text,
-          visibility: 'private',
+          visibility: next.visibility,
+          shared_group_id: next.visibility === 'club' ? shareGroup : null,
           updated_at: new Date().toISOString(),
         },
       ]);
