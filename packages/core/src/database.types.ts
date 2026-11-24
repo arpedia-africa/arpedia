@@ -8211,6 +8211,9 @@ isOneToOne: false
 "set_gifting_frozen":
 { Args: { "p_frozen": boolean }; Returns: boolean
                            },
+"set_group_moderator":
+{ Args: { "p_group": string,"p_on"?: boolean,"p_user": string }; Returns: undefined
+                           },
 "set_group_mute":
 { Args: { "p_group": string,"p_until": string }; Returns: undefined
                            },
@@ -8279,6 +8282,9 @@ isOneToOne: false
                            },
 "set_user_genres":
 { Args: { "p_genre_ids": (string)[] }; Returns: undefined
+                           },
+"set_weekly_reading":
+{ Args: { "p_book": string,"p_from"?: number,"p_group": string,"p_note"?: string,"p_to"?: number }; Returns: undefined
                            },
 "sign_out_my_sessions":
 { Args: { "p_session"?: string }; Returns: number
