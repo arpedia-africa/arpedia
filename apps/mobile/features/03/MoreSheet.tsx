@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
+import { REASON_LABELS, reasonsFor, type ReportReason } from '@arpedia/core';
 import { Btn, Callout, Cell, Group, Sheet, useTheme, useToast } from '@arpedia/ui';
-import { supabase } from '@/lib/supabase';
+import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../14/report';
 
 // s-book-more (rule 11) and its report sheet. Views stay pure for tools/parity.
 
@@ -78,45 +79,51 @@ export function moreItems({
           {
             key: 'report',
             title: 'Report this book',
-            sub: online ? 'Wrong content, copyright or abuse' : off,
+            // Reports queue offline and send on reconnect (flow 14 States: Offline).
+            sub: 'Wrong content, copyright or abuse',
             onPress: onReport,
           },
         ]),
   ];
 }
 
-const REASONS = [
-  { key: 'wrong_content', title: 'Wrong content', sub: 'The book isn’t what the page says it is' },
-  { key: 'copyright', title: 'Copyright', sub: 'Someone else wrote it, or it was copied' },
-  { key: 'abuse', title: 'Abuse', sub: 'Hate, harassment or harmful content' },
-] as const;
+// Flow 14 rule 3: a book offers Copyright infringement, Sexual content, Something else.
+const SUBS: Partial<Record<ReportReason, string>> = {
+  copyright: 'Someone else wrote it, or it was copied',
+  sexual: 'Explicit content that isn’t marked or allowed',
+  other: 'Wrong content, abuse or anything else',
+};
+const REASONS = reasonsFor('book').map((key) => ({ key, title: REASON_LABELS[key], sub: SUBS[key] }));
 
-/** Report this book: pick a reason; writes a `reports` row (flow 14). */
+/** Report this book: pick a reason; flow 14 `create_report` (copyright also opens a claim). Queued offline. */
 export function ReportSheet({
   bookId,
   open,
+  online,
   onClose,
 }: {
   bookId: string;
   open: boolean;
+  online: boolean;
   onClose: () => void;
 }) {
   const { s } = useTheme();
   const toast = useToast();
-  const [reason, setReason] = useState<string | null>(null);
-  useEffect(() => {
-    if (open) setReason(null);
-  }, [open]);
+  const [reason, setReason] = useState<ReportReason | null>(null);
   const send = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc('report_book', { p_book: bookId, p_reason: reason! });
-      if (error) throw error;
-    },
-    onSuccess: () => {
+    mutationFn: () => createReport({ content_type: 'book', content_id: bookId, reason: reason! }, !online),
+    onSuccess: (ref) => {
       onClose();
-      toast({ message: 'Thanks. Our team will look at it.' });
+      toast({ message: ref === null ? REPORT_SAVED : REPORT_SENT, duration: 6000 });
     },
   });
+  const { reset } = send;
+  useEffect(() => {
+    if (!open) return;
+    setReason(null);
+    reset();
+  }, [open, reset]);
+  const refused = send.error ? reportErrorCopy(String(send.error.message)) : null;
   return (
     <Sheet open={open} onClose={onClose} locked={send.isPending} title="Report this book">
       <View style={{ marginHorizontal: s(-18) }}>
@@ -133,9 +140,7 @@ export function ReportSheet({
           ))}
         </Group>
       </View>
-      {send.isError ? (
-        <Callout tone="err">That didn’t send. Check your connection and try again.</Callout>
-      ) : null}
+      {refused ? <Callout tone="err">{refused}</Callout> : null}
       <Btn
         label="Send report"
         block
