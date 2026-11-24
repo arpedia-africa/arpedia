@@ -2,6 +2,8 @@
 // Top level = local (`wrangler dev`); env.staging and env.production deploy.
 // Secrets (wrangler secret put): SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY. Locally they come
 // from .dev.vars (`pnpm dev:vars`).
+// API: service binding to the api Worker for the flow 14 moderate-text check (falls back to the
+// conversation's own link and phone checks when it is not running).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "arpedia-chat",
@@ -15,6 +17,7 @@
   "durable_objects": {
     "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
   },
+  "services": [{ "binding": "API", "service": "arpedia-api" }],
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
     { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },
@@ -26,6 +29,7 @@
       "durable_objects": {
         "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
       },
+      "services": [{ "binding": "API", "service": "arpedia-api-staging" }],
       "migrations": [
         { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
         { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },
@@ -37,6 +41,7 @@
       "durable_objects": {
         "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
       },
+      "services": [{ "binding": "API", "service": "arpedia-api" }],
       "migrations": [
         { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
         { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },

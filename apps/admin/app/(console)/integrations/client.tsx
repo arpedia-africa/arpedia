@@ -53,6 +53,16 @@ function rate(i: Integration): string {
   return i.error_note ? `${r} · ${i.error_note}` : r;
 }
 
+/** The "Check all now" toast: "Checked all 10 services just now. 9 working, Flutterwave transfers still need a look." */
+export function checkedSummary(services: Pick<Integration, 'label' | 'status'>[]): string {
+  const bad = services.filter(s => s.status !== 'working').map(s => s.label);
+  const n = services.length;
+  const head = `Checked ${n === 1 ? 'the 1 service' : `all ${n} services`} just now.`;
+  if (!bad.length) return `${head} All working.`;
+  const names = bad.length === 1 ? bad[0] : `${bad.slice(0, -1).join(', ')} and ${bad[bad.length - 1]}`;
+  return `${head} ${n - bad.length} working, ${names} still need${bad.length === 1 ? 's' : ''} a look.`;
+}
+
 const lastEvent = (i: Integration, now: number) =>
   i.last_event_text ? `${ago(i.last_event_at, now)}, ${i.last_event_text}` : ago(i.last_event_at, now);
 
@@ -79,7 +89,7 @@ export function IntegrationsView({ services, canRotate }: { services: Integratio
   const checkAll = () =>
     start(async () => {
       const r = await checkAllNow();
-      show(r.ok ? `Checking all ${services.length} services now. Results show within a minute.` : r.error);
+      show(r.ok ? checkedSummary(r.services) : r.error);
       router.refresh();
     });
 

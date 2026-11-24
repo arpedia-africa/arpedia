@@ -27,6 +27,8 @@ export async function acceptInvite(_prev: AcceptState, form: FormData): Promise<
   if (!r.ok || !body.email) {
     if (body.error === 'account_exists')
       return { error: 'This email already has an Arpedia account. Ask a Super admin to add it to the team.' };
+    if (body.error === 'password_not_saved')
+      return { error: 'You’re on the team, but your password didn’t save. Use Forgot password on the sign-in page.' };
     return { error: 'This invite link has expired or was already used. Ask for a new one.' };
   }
   const supabase = await serverSupabase();

@@ -1,18 +1,26 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { api } from '@/lib/api';
 import { stepUp, stepUpError } from '@/lib/stepup';
 import { serverSupabase } from '@/lib/supabase/server';
+import type { Integration } from './client';
 
 type Result = { ok: true } | { ok: false; error: string };
 
-/** "Check all now": the checks Worker runs within a minute. */
-export async function checkAllNow(): Promise<Result> {
+/** "Check all now" (rule 39): the api Worker runs every check at once; returns the fresh rows. */
+export async function checkAllNow(): Promise<{ ok: true; services: Integration[] } | { ok: false; error: string }> {
+  const r = await api<{ ok: true }>('/v1/integrations/check', {});
+  if (!r.ok)
+    return {
+      ok: false,
+      error: r.status === 403 ? 'You need settings access to run the checks.' : "Couldn't run the checks. Try again.",
+    };
   const supabase = await serverSupabase();
-  const { error } = await supabase.rpc('request_integration_check');
-  if (error) return { ok: false, error: "Couldn't start the checks. Try again." };
+  const { data, error } = await supabase.rpc('list_integrations');
   revalidatePath('/integrations');
-  return { ok: true };
+  if (error) return { ok: false, error: 'The checks ran, but the results didn’t load. Refresh the page.' };
+  return { ok: true, services: (data ?? []) as unknown as Integration[] };
 }
 
 /** Record a key rotation (rule 39, Q6 default): Super admin, fresh code, audited. */
