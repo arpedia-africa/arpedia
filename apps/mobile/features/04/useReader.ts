@@ -775,6 +775,28 @@ export function useReader(
     else void loadUnsaved();
   }, [online, phase, loadUnsaved]);
 
+  // ─── Passage markers (rule 46): counts per chapter, only up to the furthest place ──
+  const markerCounts = useRef(new Map<string, { para_id: string; count: number }[]>());
+  const markerChapter = loc?.chapter_uid ?? null;
+  useEffect(() => {
+    markerCounts.current.clear();
+  }, [bookId, revisionId]);
+  useEffect(() => {
+    // Fetched again on each chapter visit: further reading reveals more markers.
+    if (!markerChapter || phase !== 'ready' || !online) return;
+    let live = true;
+    void supabase
+      .rpc('get_passage_counts', { p_book: bookId, p_chapter_uids: [markerChapter] })
+      .then(({ data, error }) => {
+        if (!live || error) return;
+        markerCounts.current.set(markerChapter, (data ?? []) as { para_id: string; count: number }[]);
+        send({ type: 'markers.set', payload: { list: [...markerCounts.current.values()].flat() } });
+      });
+    return () => {
+      live = false;
+    };
+  }, [markerChapter, phase, online, bookId, send]);
+
   // ─── Highlights (rules 35, 41) ─────────────────────────────────────────────
   const highlight = useCallback(
     async (color: HighlightColor, note?: string, from?: SelectionDetail, shareGroup?: string | null) => {
