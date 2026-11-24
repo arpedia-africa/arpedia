@@ -21,6 +21,7 @@ appId: com.arpedia.reader
       - inputText: 'ngozi@example.com'
 - assertVisible: '^ngozi@example.com$'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
@@ -63,6 +64,7 @@ appId: com.arpedia.reader
 - assertVisible: 'Your .* plan keeps billing until you cancel it in Google Play.*'
 - takeScreenshot: account-${WIDTH}-delete
 - tapOn: 'Type DELETE to confirm'
+- eraseText: 40
 - inputText: 'DELETE'
 - tapOn: 'Delete my account'
 - extendedWaitUntil:
@@ -72,8 +74,10 @@ appId: com.arpedia.reader
 
 # She can't sign back in.
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'

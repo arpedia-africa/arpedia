@@ -13,10 +13,13 @@ appId: com.arpedia.reader
 - tapOn: 'Create an account'
 - assertVisible: 'Create your account'
 - tapOn: 'Ada Writer'
+- eraseText: 40
 - inputText: 'Kemi Journey'
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'journey.reader@example.com'
 - tapOn: 'At least 8 characters'
+- eraseText: 40
 - inputText: 'arpedia-e2e'
 - hideKeyboard
 - tapOn: 'Create account'
@@ -193,8 +196,10 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 60000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'journey.reader@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-e2e'
 - hideKeyboard
 - tapOn: 'Log in'

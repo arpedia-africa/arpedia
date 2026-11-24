@@ -9,8 +9,10 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 90000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'journey.author@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-e2e'
 - hideKeyboard
 - tapOn: 'Log in'
@@ -58,6 +60,7 @@ appId: com.arpedia.reader
 - scrollUntilVisible:
     element: 'Two or three sentences readers see first'
 - tapOn: 'Two or three sentences readers see first'
+- eraseText: 40
 - inputText: 'One harmattan market day in Ibadan, told stall by stall.'
 - hideKeyboard
 - takeScreenshot: author-${WIDTH}-submit

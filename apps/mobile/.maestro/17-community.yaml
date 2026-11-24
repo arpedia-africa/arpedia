@@ -10,8 +10,10 @@ appId: com.arpedia.reader
     visible: 'Welcome back'
     timeout: 90000
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'ngozi@example.com'
 - tapOn: 'Your password'
+- eraseText: 40
 - inputText: 'arpedia-local'
 - hideKeyboard
 - tapOn: 'Log in'
@@ -47,6 +49,7 @@ appId: com.arpedia.reader
     visible: 'Message Faith & Books'
     timeout: 30000
 - tapOn: 'Message Faith & Books'
+- eraseText: 40
 - inputText: 'Hello from the whole-app journey'
 - tapOn: 'Send'
 - hideKeyboard
@@ -65,6 +68,7 @@ appId: com.arpedia.reader
     visible: 'Message the room'
     timeout: 30000
 - tapOn: 'Message the room'
+- eraseText: 40
 - inputText: 'Chapter 9 made me cry'
 - tapOn: 'Send'
 - hideKeyboard

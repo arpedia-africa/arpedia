@@ -11,10 +11,13 @@ appId: com.arpedia.reader
 - tapOn: 'Create an account'
 - assertVisible: 'Create your account'
 - tapOn: 'Ada Writer'
+- eraseText: 40
 - inputText: 'Tobi Journey'
 - tapOn: 'you@example.com'
+- eraseText: 40
 - inputText: 'journey.author@example.com'
 - tapOn: 'At least 8 characters'
+- eraseText: 40
 - inputText: 'arpedia-e2e'
 - hideKeyboard
 - tapOn: 'Create account'
@@ -52,9 +55,11 @@ appId: com.arpedia.reader
     visible: 'Your author profile'
     timeout: 15000
 - tapOn: 'DD / MM / YYYY'
+- eraseText: 40
 - inputText: '12031990'
 - hideKeyboard
 - tapOn: 'Where you live, e.g. Enugu'
+- eraseText: 40
 - inputText: 'Ibadan'
 - hideKeyboard
 - tapOn: 'Continue'
@@ -62,11 +67,13 @@ appId: com.arpedia.reader
 - tapOn: 'African stories'
 - tapOn:
     below: 'Short bio'
+- eraseText: 40
 - inputText: 'I write market stories from Ibadan, one long day at a time.'
 - hideKeyboard
 - tapOn: 'Continue'
 - assertVisible: 'Writing sample'
 - tapOn: 'Paste a chapter or a few pages'
+- eraseText: 40
 - inputText: 'The harmattan wind carried red dust over the market before the first trader opened her stall.'
 - hideKeyboard
 - tapOn: 'Continue'
