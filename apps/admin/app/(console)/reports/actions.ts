@@ -86,3 +86,13 @@ export async function escalate(reportId: string): Promise<ActionResult> {
   revalidatePath(`/reports/${reportId}`);
   return { ok: true };
 }
+
+/** A Super admin confirms or turns down a ban another moderator decided (rule 17). */
+export async function confirmBan(actionId: string, confirm: boolean, reportId?: string): Promise<ActionResult> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('confirm_ban', { p_action: actionId, p_confirm: confirm });
+  if (error) return failed(error.message);
+  revalidatePath('/');
+  if (reportId) revalidatePath(`/reports/${reportId}`);
+  return { ok: true };
+}
