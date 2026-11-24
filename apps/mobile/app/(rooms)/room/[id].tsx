@@ -591,7 +591,9 @@ export default function RoomScreen() {
                 <AnnotationsLocked
                   book={bookTitle}
                   percent={annotations.data.percent}
-                  onContinue={() => toast({ message: 'The reader comes in a later part of the build.' })}
+                  onContinue={() =>
+                    room && router.push({ pathname: '/read/[id]', params: { id: room.book.id } })
+                  }
                 />
               ) : annotationRows.length === 0 ? (
                 <EmptyState title="Nobody has shared a highlight yet." />
