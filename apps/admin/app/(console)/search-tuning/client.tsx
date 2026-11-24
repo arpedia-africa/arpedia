@@ -90,8 +90,18 @@ export function TuningView({
 
   useEffect(() => {
     if (!linking || linking.text.trim().length < 2) return setLinkFound([]);
-    const t = setTimeout(() => void findLinkableBooks(linking.text).then(setLinkFound), 250);
-    return () => clearTimeout(t);
+    let live = true;
+    const t = setTimeout(
+      () =>
+        void findLinkableBooks(linking.text).then(rows => {
+          if (live) setLinkFound(rows);
+        }),
+      250,
+    );
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
   }, [linking]);
 
   const settingsChanged =
@@ -114,6 +124,7 @@ export function TuningView({
       if (!r.ok) return showToast(r.error ?? "Couldn't link the request.");
       setLinking(null);
       setZero(z => z.filter(x => x.query !== query));
+      if (!r.linked) return showToast(`Nobody is waiting on “${query}” any more. Another admin already handled it.`);
       const who = r.linked === 1 ? 'The reader who asked' : `The ${n(r.linked ?? 0)} readers who asked`;
       showToast(
         book.status === 'live'
