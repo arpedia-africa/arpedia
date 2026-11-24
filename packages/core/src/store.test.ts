@@ -65,6 +65,50 @@ describe('purchaseOutcome', () => {
   });
 });
 
+describe('createStore timing', () => {
+  it('after a failed load, prices answer at once until the retry window ends; buying still retries', async () => {
+    let t = 0;
+    const getProducts = vi.fn(async () => Promise.reject({ code: '10' }));
+    const sdk = mockSdk({ getProducts });
+    const s = createStore({ sdk, catalog, currentUser: async () => USER, retryAfterMs: 1000, now: () => t });
+    expect(await s.prices()).toEqual({});
+    const calls = getProducts.mock.calls.length;
+    expect(await s.prices()).toEqual({});
+    expect(getProducts.mock.calls.length).toBe(calls);
+    await s.purchase({ kind: 'plan', code: 'monthly' });
+    expect(getProducts.mock.calls.length).toBeGreaterThan(calls);
+    t = 2000;
+    const before = getProducts.mock.calls.length;
+    await s.prices();
+    expect(getProducts.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it('reloads products after maxAge so Play price changes show', async () => {
+    let t = 0;
+    const sdk = mockSdk();
+    const s = createStore({ sdk, catalog, currentUser: async () => USER, maxAgeMs: 1000, now: () => t });
+    await s.prices();
+    await s.prices();
+    expect(sdk.getProducts).toHaveBeenCalledTimes(2);
+    t = 5000;
+    await s.prices();
+    expect(sdk.getProducts).toHaveBeenCalledTimes(4);
+  });
+
+  it('a sign-out during a log-in logs out again when the log-in lands', async () => {
+    let finish: () => void = () => undefined;
+    const sdk = mockSdk({ logIn: vi.fn(() => new Promise<unknown>((r) => (finish = () => r({})))) });
+    const s = createStore({ sdk, catalog, currentUser: async () => USER });
+    const buying = s.purchase({ kind: 'plan', code: 'monthly' });
+    await new Promise((r) => setTimeout(r, 0));
+    await s.signOut();
+    finish();
+    expect((await buying).status).toBe('error');
+    expect(sdk.logOut).toHaveBeenCalled();
+    expect(sdk.purchase).not.toHaveBeenCalled();
+  });
+});
+
 describe('createStore', () => {
   it('without an SDK the store is unavailable and nothing can be bought', async () => {
     const s = make(null);
@@ -126,6 +170,7 @@ describe('createStore', () => {
     const s = make(sdk);
     expect(await s.isAvailable()).toBe(false);
     expect(await s.prices()).toEqual({});
+    expect(await s.isAvailable()).toBe(false);
     expect(getProducts.mock.calls.length).toBeGreaterThan(2);
   });
 

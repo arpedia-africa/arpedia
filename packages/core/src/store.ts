@@ -134,25 +134,47 @@ export interface StoreDeps {
   /** The signed-in Arpedia user id: RevenueCat's app user id. */
   currentUser: () => Promise<string | null>;
   timeoutMs?: number;
+  /** After a failed product load, price lookups don't wait on the store again for this long. */
+  retryAfterMs?: number;
+  /** Products (and their prices) are reloaded after this long, so Play price changes show. */
+  maxAgeMs?: number;
+  now?: () => number;
 }
 
-export function createStore({ sdk, catalog, currentUser, timeoutMs = 10_000 }: StoreDeps) {
+export function createStore({
+  sdk,
+  catalog,
+  currentUser,
+  timeoutMs = 10_000,
+  retryAfterMs = 60_000,
+  maxAgeMs = 30 * 60_000,
+  now = Date.now,
+}: StoreDeps) {
   let loggedIn: string | null = null;
   let loaded: Promise<Map<string, StoreProductLike>> | null = null;
+  let loadedAt = 0;
+  let failedAt = -Infinity;
+  /** Bumped on sign-out, so a log-in still in flight is undone when it lands. */
+  let session = 0;
 
   /** RevenueCat runs as the Arpedia user, never anonymously. */
   async function ensureUser(s: StoreSdk) {
     const id = await currentUser();
     if (!id) throw { code: '0' };
     if (loggedIn !== id) {
+      const mine = session;
       await withTimeout(s.logIn(id), timeoutMs);
+      if (mine !== session) {
+        await s.logOut().catch(() => undefined);
+        throw { code: '0' };
+      }
       loggedIn = id;
     }
   }
 
   async function load(s: StoreSdk) {
     await ensureUser(s);
-    const c = await catalog();
+    const c = await withTimeout(catalog(), timeoutMs);
     const ids = (rows: Catalog['plans']) =>
       rows.map((r) => r.play_product_id).filter((x): x is string => !!x);
     const [subs, packs] = await withTimeout(
@@ -173,12 +195,17 @@ export function createStore({ sdk, catalog, currentUser, timeoutMs = 10_000 }: S
     return out;
   }
 
-  /** Products by key; a failed load is retried on the next call. */
+  /** Products by key; a failed load is retried on the next call, a stale one reloaded. */
   function products(s: StoreSdk) {
-    loaded ??= load(s).catch((e: unknown) => {
-      loaded = null;
-      throw e;
-    });
+    if (loaded && now() - loadedAt > maxAgeMs) loaded = null;
+    if (!loaded) {
+      loadedAt = now();
+      loaded = load(s).catch((e: unknown) => {
+        loaded = null;
+        failedAt = now();
+        throw e;
+      });
+    }
     return loaded;
   }
 
@@ -192,9 +219,13 @@ export function createStore({ sdk, catalog, currentUser, timeoutMs = 10_000 }: S
       );
     },
 
-    /** The store's price text per product key. Empty when the store can't be reached. */
+    /**
+     * The store's price text per product key. Empty when the store can't be reached; after a
+     * failure, screens don't wait on the store again for `retryAfterMs` (Retry and buying still do).
+     */
     async prices(): Promise<Record<string, StorePrice>> {
       if (!sdk) return {};
+      if (!loaded && now() - failedAt < retryAfterMs) return {};
       const map = await products(sdk).catch(() => null);
       const out: Record<string, StorePrice> = {};
       for (const [k, p] of map ?? [])
@@ -247,6 +278,7 @@ export function createStore({ sdk, catalog, currentUser, timeoutMs = 10_000 }: S
     /** Sign out of RevenueCat with the Arpedia session. */
     async signOut(): Promise<void> {
       const was = loggedIn;
+      session += 1;
       loggedIn = null;
       loaded = null;
       if (sdk && was) await sdk.logOut().catch(() => undefined);

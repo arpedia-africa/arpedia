@@ -25,7 +25,7 @@ Export these in your shell (or GitHub environment) for the target. Never commit 
 | Tool | Settings |
 |---|---|
 | `tools/launch/setup.mjs` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `ADMIN_URL`, `RESEND_API_KEY` (optional) |
-| `tools/launch/preflight.mjs` | the above, plus `API_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECTS`, `POSTHOG_HOST`, `POSTHOG_PROJECT_ID`, `POSTHOG_PERSONAL_API_KEY` |
+| `tools/launch/preflight.mjs` | the above, plus `API_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECTS`, `POSTHOG_HOST`, `POSTHOG_PROJECT_ID`, `POSTHOG_PERSONAL_API_KEY`, `REVENUECAT_ANDROID_PUBLIC_KEY` |
 | `tools/launch/backup.mjs` | `SUPABASE_DB_URL`, `BACKUP_KEY`, `R2_*` |
 | `tools/launch/unmatched.mjs` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
 
