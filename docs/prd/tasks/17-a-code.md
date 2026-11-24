@@ -16,4 +16,10 @@ Do the tasks in order, one PR each, label `fix`, from `origin/main`:
    - A row that would change a price, a money rule or who can see private data is the owner's: leave it and list it.
    - Never edit a merged migration.
 
+3. **Do this before any more task 2 rows (owner approved staging, 24 Nov): `tools/launch/staging-content.mjs`, branch `fix/17-staging-content`.** The coordinator runs it against staging; you build and test it on the second local stack only.
+   - Gives an empty staging database something to test with: about 6 original sample books (several genres, free preview, chapters of different lengths, covers) with real sealed files, 2 author profiles, 1 public club, and a Home that isn't empty. Reuse the sealing code in `tools/seed-reader-files.mjs`, but write files to R2 through the Cloudflare API or `wrangler r2 object put --remote`, never local state.
+   - All input from the environment (names in the file header). Never read `secrets.env`. Print no secret.
+   - Staging is on the internet: **no account with a known password and no staff account.** Author accounts get a random password that is thrown away. Never run `supabase/seed.sql` there.
+   - Refuse to run unless `APP_ENV=staging` and the Supabase URL is the staging host in `workers/api/wrangler.jsonc`; a `--local` flag is allowed for tests. Safe to repeat. Vitest for the refusals.
+
 Database: second stack only (`tools/db2.mjs`, `db2.lock`). When a PR is merged, take the next task. When every row is done, print NOTHING-TO-DO.
