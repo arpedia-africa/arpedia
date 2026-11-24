@@ -15,6 +15,7 @@ import {
 } from '../../features/06/InboxViews';
 import { toneFor, useInbox, useInboxCounts, useMarkAllRead, type InboxRow } from '../../features/06/data';
 import { coverToneFor, useRoomsSummary } from '../../features/07/data';
+import { useTrack } from '../../features/06/analytics';
 import { useFlag } from '../../features/16/config';
 
 /** Last message as "Sender: text"; groups filter shows "Type · N members" instead (rule 3). */
@@ -51,6 +52,11 @@ function toRowView(r: InboxRow, tab: InboxTab, now = new Date()): InboxRowView {
 export default function Community() {
   const { s } = useTheme();
   const [tab, setTab] = useState<InboxTab>('all');
+  const track = useTrack();
+  const pickTab = (t: InboxTab) => {
+    setTab(t);
+    track('inbox_filter_changed', { filter: t });
+  };
   const inbox = useInbox(tab);
   const counts = useInboxCounts();
   const markAll = useMarkAllRead();
@@ -62,7 +68,8 @@ export default function Community() {
     useCallback(() => {
       void refetchInbox();
       void refetchCounts();
-    }, [refetchInbox, refetchCounts]),
+      track('community_opened', { source: 'tab' });
+    }, [refetchInbox, refetchCounts, track]),
   );
 
   // The Reading rooms entries hide while the reading_rooms flag is off (flow 16 rule 27).
@@ -94,7 +101,7 @@ export default function Community() {
       <CommunityHero
         tab={tab}
         counts={{ all: counts.data?.all, unread: counts.data?.unread, groups: counts.data?.groups }}
-        onTab={setTab}
+        onTab={pickTab}
         onRooms={openRooms}
         onDiscover={openDiscover}
       />

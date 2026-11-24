@@ -42,6 +42,7 @@ import {
   useMarkRead,
   useMergedMessages,
 } from '../../../features/06/chat';
+import { useTrack as useCommunityTrack } from '../../../features/06/analytics';
 import { toneFor } from '../../../features/06/data';
 import { DmComposer, DmHead, DmIntro } from '../../../features/08/DmViews';
 import { useTrack as useAuthorsTrack } from '../../../features/08/analytics';
@@ -71,6 +72,7 @@ export default function AuthorCommunity() {
   const { id: gid } = useLocalSearchParams<{ id: string }>();
   const { c, s } = useTheme();
   const toast = useToast();
+  const track06 = useCommunityTrack();
   const me = useSession()?.user.id;
   const online = useOnline();
   const bottom = useBottomInset(24);
@@ -264,6 +266,7 @@ export default function AuthorCommunity() {
                 danger: true,
                 onPress: () => {
                   setReporting(selected);
+                  track06('report_started', { content_type: 'message' });
                   setReason(null);
                   setDetails('');
                   setAlsoBlock(false);

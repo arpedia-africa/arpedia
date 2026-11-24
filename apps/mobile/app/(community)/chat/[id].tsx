@@ -43,6 +43,7 @@ import {
   useMarkRead,
   useMergedMessages,
 } from '../../../features/06/chat';
+import { useTrack as useCommunityTrack } from '../../../features/06/analytics';
 import { toneFor } from '../../../features/06/data';
 import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 
@@ -70,6 +71,7 @@ export default function Chat() {
   } = useLocalSearchParams<{ id: string; quote?: string; msg?: string }>();
   const { c, s } = useTheme();
   const toast = useToast();
+  const track06 = useCommunityTrack();
   const session = useSession();
   const me = session?.user.id;
   const net = useNetInfo();
@@ -309,6 +311,7 @@ export default function Chat() {
                 danger: true,
                 onPress: () => {
                   setReporting(selected);
+                  track06('report_started', { content_type: 'message' });
                   setReason(null);
                   setDetails('');
                   setAlsoBlock(false);

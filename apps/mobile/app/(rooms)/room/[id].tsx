@@ -44,6 +44,7 @@ import {
   type ReportReason,
 } from '../../../features/06/SheetViews';
 import { useChat, useChatAction, useMarkRead, useMergedMessages } from '../../../features/06/chat';
+import { useTrack as useCommunityTrack } from '../../../features/06/analytics';
 import { toneFor } from '../../../features/06/data';
 import { useTrack as useRoomsTrack } from '../../../features/07/analytics';
 import {
@@ -123,6 +124,7 @@ export default function RoomScreen() {
   const { id: gid, share } = useLocalSearchParams<{ id: string; share?: string }>();
   const { c, s } = useTheme();
   const toast = useToast();
+  const track06 = useCommunityTrack();
   const session = useSession();
   const me = session?.user.id;
   const net = useNetInfo();
@@ -480,6 +482,7 @@ export default function RoomScreen() {
                 danger: true,
                 onPress: () => {
                   setReporting(selected);
+                  track06('report_started', { content_type: 'message' });
                   setReason(null);
                   setDetails('');
                   setAlsoBlock(false);
