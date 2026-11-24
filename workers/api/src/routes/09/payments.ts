@@ -11,6 +11,7 @@ import {
 } from '@arpedia/core';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
+import { handleTransferWebhook, isTransferEvent } from '../13/earnings';
 
 // Flow 09 · payment webhooks and outbound provider calls.
 //   POST /v1/payments/revenuecat   RevenueCat webhook (Authorization header = shared secret)
@@ -105,6 +106,11 @@ payments.post('/flutterwave', async (c) => {
   if (!hash || !c.env.FLUTTERWAVE_SECRET_KEY) return c.json({ error: 'not_configured' }, 503);
   if (!safeEqual(c.req.header('verif-hash') ?? '', hash)) return c.json({ error: 'unauthorized' }, 401);
   const body = await c.req.json<FlwWebhook>().catch(() => null);
+  // One webhook URL per Flutterwave account: author payout transfers are flow 13's to apply.
+  if (body && isTransferEvent(body)) {
+    const out = await handleTransferWebhook(c.env, body);
+    return c.json(out.body, out.status);
+  }
   if (!body?.event || !body.data) return c.json({ error: 'bad_json' }, 400);
   const db = serviceDb(c.env);
 
