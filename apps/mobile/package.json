@@ -11,6 +11,7 @@
     "lint": "eslint app src"
   },
   "dependencies": {
+    "@arpedia/convert": "workspace:*",
     "@arpedia/core": "workspace:*",
     "@arpedia/reader": "workspace:*",
     "@arpedia/ui": "workspace:*",
