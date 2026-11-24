@@ -130,6 +130,17 @@ export async function changePassword(current: string, next: string) {
     'wrong_password' | 'weak_password' | 'no_password' | 'rate_limited' | 'error';
 }
 
+/** Reader self-export: the api Worker emails a link to a copy of the reader's data (once a day). */
+export async function requestDataExport() {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch(`${api}/v1/data-export`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+  });
+  if (res.ok) return { ok: true as const, email: ((await res.json()) as { email: string }).email };
+  return { ok: false as const, error: res.status === 429 ? ('too_soon' as const) : ('error' as const) };
+}
+
 export async function requestDeletion(text: string) {
   const { error } = await supabase.rpc('request_account_deletion', { p_confirm_text: text });
   if (error) throw error;

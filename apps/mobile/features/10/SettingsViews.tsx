@@ -146,6 +146,7 @@ export interface SettingsActions {
   onNotifications: () => void;
   onSecurity: () => void;
   onPrivacy: () => void;
+  onExport?: () => void;
   onPreferences: () => void;
   onNavigation: () => void;
   onReaderTheme: (t: ReaderTheme) => void;
@@ -201,6 +202,11 @@ export function SettingsView({ d, a }: { d: SettingsData; a: SettingsActions }) 
             chevron
             onPress={a.onPrivacy}
           />
+          {/* Reader self-export (flow 10 Server table, Q4 default: from Settings, emailed). Not in the
+              prototype; the parity gallery leaves it out. */}
+          {a.onExport ? (
+            <Cell title="Export my data" sub="We email you a copy" chevron onPress={a.onExport} />
+          ) : null}
         </Group>
       </Section>
 

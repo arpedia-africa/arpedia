@@ -1,0 +1,88 @@
+# Flow 17 rule 10 · Account: the seeded reader Ngozi (Quarterly on Google Play) asks for a copy of her
+# data from Settings, then deletes her account: the Play billing warning shows, DELETE confirms, and she
+# lands on Log in and can't sign back in. `node tools/journeys/run.mjs account` (fresh reset), then
+# tools/journeys/staff.mjs check-deleted proves the deletion, the sign-out and the export email.
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+# The emulator's keyboard sometimes doubles the first letter ("nngozi"): clear, type, check.
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'ngozi@example.com'
+- runFlow:
+    when:
+      notVisible: '^ngozi@example.com$'
+    commands:
+      - eraseText: 40
+      - inputText: 'ngozi@example.com'
+- assertVisible: '^ngozi@example.com$'
+- tapOn: 'Your password'
+- eraseText: 40
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Ngozi.*'
+    timeout: 30000
+
+# ─── Export my data (Settings) ──────────────────────────────────────────────
+- tapOn: 'Profile'
+- tapOn: 'Settings'
+- extendedWaitUntil:
+    visible: 'Edit profile'
+    timeout: 30000
+- assertVisible: 'Export my data'
+- takeScreenshot: account-${WIDTH}-settings
+- tapOn: 'Export my data'
+# The toast is short; best effort here, staff.mjs check-deleted proves the export email was sent.
+- assertVisible:
+    text: 'We.ll email a copy of your data to ngozi@example.com'
+    optional: true
+- takeScreenshot: account-${WIDTH}-exported
+
+# ─── Delete account ─────────────────────────────────────────────────────────
+- repeat:
+    times: 8
+    while:
+      notVisible: 'Delete account'
+    commands:
+      - swipe:
+          direction: UP
+          duration: 600
+- tapOn: 'Delete account'
+- extendedWaitUntil:
+    visible: 'Type DELETE to confirm'
+    timeout: 15000
+# Her Quarterly plan is on Google Play: the warning says it keeps billing until cancelled there.
+- assertVisible: 'Your .* plan keeps billing until you cancel it in Google Play.*'
+- takeScreenshot: account-${WIDTH}-delete
+- tapOn: 'Type DELETE to confirm'
+- eraseText: 40
+- inputText: 'DELETE'
+- tapOn: 'Delete my account'
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 30000
+- takeScreenshot: account-${WIDTH}-deleted
+
+# She can't sign back in.
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- eraseText: 40
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- waitForAnimationToEnd:
+    timeout: 10000
+- assertVisible: 'Welcome back'
+- assertNotVisible: 'Good .*, Ngozi.*'
+- takeScreenshot: account-${WIDTH}-sign-in-refused

@@ -162,7 +162,6 @@ export default function Library() {
     return fresh ?? payRest;
   }, [payRest, shelves.reading.data]);
 
-  const soon = () => toast({ message: 'Coming soon' });
   const openReader = (id: string) => router.push({ pathname: '/read/[id]', params: { id } });
   const openBook = (id: string) => router.push({ pathname: '/book/[id]', params: { id, source: 'library' } });
   const browse = (from: ShelfName | 'search', cta: string) => {
@@ -555,7 +554,8 @@ export default function Library() {
             setUnlock(null);
             openReader(id);
           }}
-          onSoon={soon}
+          onPlans={() => router.push('/plan')}
+          onBuyPack={() => router.push('/credits')}
         />
       ) : null}
       <Sheet open={menu != null} onClose={() => setMenu(null)} bold title={menu?.title}>
