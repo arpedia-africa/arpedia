@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useNetInfo } from '@react-native-community/netinfo';
@@ -15,6 +15,7 @@ import {
   type RoomRowView,
 } from '../../features/07/RoomsViews';
 import { coverToneFor, startsLabel, useMyRooms, type RoomRow } from '../../features/07/data';
+import { useTrack } from '../../features/07/analytics';
 
 function toRowView(r: RoomRow, now: Date): RoomRowView {
   const members = `${r.member_count} member${r.member_count === 1 ? '' : 's'}`;
@@ -41,6 +42,8 @@ export default function Rooms() {
   const offline = net.isConnected === false;
   const rooms = useMyRooms();
   const { refetch } = rooms;
+  const track = useTrack();
+  useEffect(() => track('rooms_opened'), [track]);
 
   // No Realtime: refresh whenever the screen comes back into view.
   useFocusEffect(
