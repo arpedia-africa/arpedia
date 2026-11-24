@@ -146,16 +146,27 @@ invites.post('/:token/accept', async (c) => {
     email_confirm: true,
     user_metadata: { full_name: inv.full_name },
   });
-  // An existing account on this address (rare: a reader who used their work email) is not taken
-  // over here; a Super admin sorts it out by hand.
-  if (createError || !created.user) return c.json({ error: 'account_exists' }, 409);
-
-  const { error } = await db.rpc('accept_staff_invite', { p_token_hash: hash, p_user: created.user.id });
-  if (error) {
-    await db.auth.admin.deleteUser(created.user.id);
-    return c.json({ error: 'expired' }, 410);
+  if (created?.user && !createError) {
+    const { error } = await db.rpc('accept_staff_invite', { p_token_hash: hash, p_user: created.user.id });
+    if (error) {
+      await db.auth.admin.deleteUser(created.user.id);
+      return c.json({ error: 'expired' }, 410);
+    }
+    return c.json({ email: inv.email });
   }
-  return c.json({ email: inv.email });
+
+  // Spec check 16-16: the address already has an account (a reader who used their work email).
+  // The invite reached that inbox, which proves the address as a reset link would, so that account
+  // joins the team and the password chosen here becomes its password.
+  const { data: existing, error: findError } = await db.rpc('worker_user_by_email', { p_email: inv.email });
+  if (findError) throw new Error(`worker_user_by_email failed: ${findError.message}`);
+  if (!existing) return c.json({ error: 'account_exists' }, 409);
+  const { error } = await db.rpc('accept_staff_invite', { p_token_hash: hash, p_user: existing });
+  if (error) return c.json({ error: 'expired' }, 410);
+  const { error: pwError } = await db.auth.admin.updateUserById(existing, { password, email_confirm: true });
+  // On the team already; "Forgot password" sets a password if this one didn't save.
+  if (pwError) return c.json({ error: 'password_not_saved' }, 500);
+  return c.json({ email: inv.email, existing_account: true });
 });
 
 export default invites;
