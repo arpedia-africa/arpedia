@@ -267,7 +267,13 @@ export default function Search() {
       scope === 'all' || scope === 'books'
         ? res.books
             .filter((b) => b.id !== top?.id)
-            .map((b) => ({ kind: 'book', ...listBook(b), snippet: b.snippet, promoted: b.promoted }))
+            .map((b) => ({
+              kind: 'book',
+              ...listBook(b),
+              snippet: b.snippet,
+              promoted: b.promoted,
+              comingSoon: b.coming_soon,
+            }))
         : [];
     const authors: ResultItem[] =
       scope === 'all' || scope === 'authors'
@@ -442,7 +448,11 @@ function toSuggestion(x: ServerSuggestion): Suggestion {
         kind: 'book',
         id: x.id,
         title: x.title,
-        sub: x.topic ? `Book · ${x.sub} · topic “${x.topic}”` : `Book · ${x.sub}`,
+        sub: x.coming_soon
+          ? `Coming soon · ${x.sub}`
+          : x.topic
+            ? `Book · ${x.sub} · topic “${x.topic}”`
+            : `Book · ${x.sub}`,
         tone: coverTone(x.id),
       };
     case 'author':
