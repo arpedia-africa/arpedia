@@ -6,7 +6,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { findBooks } from '../curation/actions';
-import { saveTuning, setRequestStatus, type TuningChanges } from './actions';
+import { findLinkableBooks, linkRequest, saveTuning, setRequestStatus, type TuningChanges } from './actions';
 
 export interface QueryRow {
   query: string;
@@ -17,6 +17,8 @@ export interface ZeroRow {
   query: string;
   searches: number;
   wishlisted: boolean;
+  /** At least one reader tapped "Ask for this book" (only those can be linked and told). */
+  requested: boolean;
 }
 export interface Synonym {
   id: string;
@@ -77,12 +79,20 @@ export function TuningView({
   const [proRemove, setProRemove] = useState<string[]>([]);
   const [draft, setDraft] = useState<NewPromo>({ query: '', bookId: '', book: '', position: 1, until: '' });
   const [found, setFound] = useState<{ id: string; title: string; author: string }[]>([]);
+  const [linking, setLinking] = useState<{ query: string; text: string } | null>(null);
+  const [linkFound, setLinkFound] = useState<{ id: string; title: string; author: string; status: string }[]>([]);
 
   useEffect(() => {
     if (draft.bookId || draft.book.trim().length < 2) return setFound([]);
     const t = setTimeout(() => void findBooks(draft.book).then(setFound), 250);
     return () => clearTimeout(t);
   }, [draft.book, draft.bookId]);
+
+  useEffect(() => {
+    if (!linking || linking.text.trim().length < 2) return setLinkFound([]);
+    const t = setTimeout(() => void findLinkableBooks(linking.text).then(setLinkFound), 250);
+    return () => clearTimeout(t);
+  }, [linking]);
 
   const settingsChanged =
     settings.typo !== saved.typo || settings.authors !== saved.authors || settings.unreleased !== saved.unreleased;
@@ -97,6 +107,19 @@ export function TuningView({
         setZero(z => z.map(x => (x.query === row.query ? { ...x, wishlisted: false } : x)));
         void setRequestStatus(row.query, 'open');
       });
+    });
+  const link = (query: string, book: { id: string; title: string; status: string }) =>
+    start(async () => {
+      const r = await linkRequest(query, book.id);
+      if (!r.ok) return showToast(r.error ?? "Couldn't link the request.");
+      setLinking(null);
+      setZero(z => z.filter(x => x.query !== query));
+      const who = r.linked === 1 ? 'The reader who asked' : `The ${n(r.linked ?? 0)} readers who asked`;
+      showToast(
+        book.status === 'live'
+          ? `“${query}” linked to ${book.title}. ${who} ${r.linked === 1 ? 'has' : 'have'} been told.`
+          : `“${query}” linked to ${book.title}. ${who} will be told when it goes live.`,
+      );
     });
   const addSynonym = () => {
     const terms = synText
@@ -254,13 +277,63 @@ export function TuningView({
                       <tr key={r.query}>
                         <td>{r.query}</td>
                         <td className="n">{n(r.searches)}</td>
-                        <td>
-                          {r.wishlisted ? (
-                            <span className="tag">On the wishlist</span>
+                        <td style={{ position: 'relative' }}>
+                          {linking?.query === r.query ? (
+                            <div className="row">
+                              <label className="search" style={{ minWidth: 0, flex: 1 }}>
+                                <input
+                                  autoFocus
+                                  placeholder="Find the book"
+                                  aria-label={`Book to link to “${r.query}”`}
+                                  value={linking.text}
+                                  onChange={e => setLinking({ query: r.query, text: e.target.value })}
+                                  onKeyDown={e => e.key === 'Escape' && setLinking(null)}
+                                />
+                              </label>
+                              <button type="button" className="btn btn-g sm" onClick={() => setLinking(null)}>
+                                Cancel
+                              </button>
+                              {linkFound.length ? (
+                                <div className="menu" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5 }}>
+                                  {linkFound.map(b => (
+                                    <a
+                                      key={b.id}
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-disabled={busy}
+                                      onClick={() => !busy && link(r.query, b)}
+                                      onKeyDown={e => e.key === 'Enter' && !busy && link(r.query, b)}
+                                    >
+                                      {b.title}{' '}
+                                      <span className="muted">
+                                        · {b.author}
+                                        {b.status === 'live' ? '' : b.status === 'scheduled' ? ' · Coming soon' : ' · Not published yet'}
+                                      </span>
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
                           ) : (
-                            <button type="button" className="btn btn-g sm" disabled={busy} onClick={() => wishlist(r)}>
-                              Add to wishlist
-                            </button>
+                            <div className="row" style={{ justifyContent: 'flex-end' }}>
+                              {r.wishlisted ? (
+                                <span className="tag">On the wishlist</span>
+                              ) : (
+                                <button type="button" className="btn btn-g sm" disabled={busy} onClick={() => wishlist(r)}>
+                                  Add to wishlist
+                                </button>
+                              )}
+                              {r.requested ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-g sm"
+                                  disabled={busy}
+                                  onClick={() => setLinking({ query: r.query, text: '' })}
+                                >
+                                  Link to a book
+                                </button>
+                              ) : null}
+                            </div>
                           )}
                         </td>
                       </tr>
