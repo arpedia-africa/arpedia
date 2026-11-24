@@ -62,7 +62,7 @@ export function openTarget(t: Target | null | undefined) {
   if (href) router.push(href);
 }
 
-export type PushTrigger = 'follow' | 'join' | 'unlock';
+export type PushTrigger = 'follow' | 'join' | 'unlock' | 'notify';
 type PushTrack = (
   event: 'push_permission_prompted' | 'push_permission_result',
   props: Record<string, string | boolean>,

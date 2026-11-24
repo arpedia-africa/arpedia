@@ -91,6 +91,37 @@ export default function BookPage() {
     },
   });
 
+  // Notify me on a coming-soon book (rule 4, flow 02 `notify_me`): on also saves it to Library › Saved.
+  const notifyKey = ['book-notify', id] as const;
+  const notifyOn = useQuery({
+    queryKey: notifyKey,
+    enabled: !!id && !!d?.coming_soon,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('notify_me_on', { p_book: id });
+      if (error) throw error;
+      return data === true;
+    },
+  });
+  const notify = useMutation({
+    mutationFn: async (on: boolean) => {
+      const { error } = await supabase.rpc('notify_me', { p_book: id, p_on: on });
+      if (error) throw error;
+    },
+    onMutate: (on) => qc.setQueryData(notifyKey, on),
+    onSuccess: (_d, on) => {
+      toast({
+        message: on ? 'We’ll tell you when it’s out. It’s in your Saved books.' : 'Okay, we won’t tell you.',
+      });
+      if (on) askPush('notify');
+      qc.setQueryData(savedKey, on ? true : (saved.data ?? false));
+      void qc.invalidateQueries({ queryKey: ['library'] });
+    },
+    onError: (_e, on) => {
+      qc.setQueryData(notifyKey, !on);
+      toast({ message: 'Couldn’t update that. Try again.' });
+    },
+  });
+
   // Buy N credits (rule 29): the sheet stays open and shows the new balance; nothing is spent.
   const pack = useBuyPack([bookKey(id)]);
 
@@ -148,6 +179,8 @@ export default function BookPage() {
   }
 
   const m = toModel(d);
+  const waiting = d.coming_soon && (notifyOn.data ?? false);
+  if (waiting) m.mainLabel = 'We’ll notify you';
   const finished = (d.progress?.max_percent ?? 0) >= FINISHED_PERCENT;
   return (
     <Screen top="org" contentStyle={{ backgroundColor: c.white }}>
@@ -180,7 +213,11 @@ export default function BookPage() {
             if (!finished) track('discussion_locked_tapped', { percent: d.progress?.max_percent ?? 0 });
             go('discussion');
           },
-          onMain: () => router.push({ pathname: '/read/[id]', params: { id } }),
+          onMain: () => {
+            if (!d.coming_soon) return router.push({ pathname: '/read/[id]', params: { id } });
+            if (!online) return toast({ message: 'Connect to continue' });
+            if (!notify.isPending) notify.mutate(!waiting);
+          },
           onUnlockAll: () => openSheet('all'),
           onPayGo: () => openSheet('paygo'),
           onPayRest: () => openSheet('all'),
