@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { ForgotSheet, LoginView, type FieldErrors, type LoginValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
 import { signInWithGoogle } from '../../features/01/google';
+import { signInWithPassword } from '../../features/01/passwordSignIn';
 import {
   COPY,
   afterSignIn,
@@ -34,10 +35,7 @@ export default function Login() {
     running.current = true;
     setBusy('password');
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email.trim(),
-        password: values.password,
-      });
+      const { data, error } = await signInWithPassword(values.email.trim(), values.password);
       if (error) {
         const reason = isNetworkError(error) ? 'network' : isRateLimited(error) ? 'rate_limited' : 'wrong';
         track('login_failed', { reason });
