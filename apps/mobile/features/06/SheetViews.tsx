@@ -1,6 +1,12 @@
 import { TextInput, View } from 'react-native';
 import { Btn, Press, Text, Toggle, fontFamily, useTheme } from '@arpedia/ui';
-import { DETAILS_MAX, REACTIONS, type Reaction } from '@arpedia/core';
+import {
+  DETAILS_MAX,
+  REACTIONS,
+  REASON_LABELS,
+  type Reaction,
+  type ReportReason as AnyReason,
+} from '@arpedia/core';
 
 // Flow 06 sheet bodies (`s-msg-actions`, `s-report`) that mirror prototype elements one to one.
 
@@ -121,7 +127,13 @@ export const REPORT_REASONS = [
   { key: 'copyright', label: 'Copyright infringement' },
   { key: 'other', label: 'Something else' },
 ] as const;
-export type ReportReason = (typeof REPORT_REASONS)[number]['key'];
+/** Any report reason; the sheet shows the list for the content type (flow 14 rule 3). */
+export type ReportReason = AnyReason;
+const SHEET_LABELS: Record<ReportReason, string> = {
+  ...REASON_LABELS,
+  ...Object.fromEntries(REPORT_REASONS.map((r) => [r.key, r.label])),
+};
+const SHEET_REASONS: readonly ReportReason[] = REPORT_REASONS.map((r) => r.key);
 
 /** `s-report` body: intro, radio list, details field, Also block toggle, Cancel and Send report. */
 export function ReportBody({
@@ -130,6 +142,7 @@ export function ReportBody({
   details,
   alsoBlock,
   canBlock,
+  reasons = SHEET_REASONS,
   sending,
   onReason,
   onDetails,
@@ -142,6 +155,8 @@ export function ReportBody({
   details: string;
   alsoBlock: boolean;
   canBlock: boolean;
+  /** Reasons for this content type (`reasonsFor`); the prototype's eight when left out. */
+  reasons?: readonly ReportReason[];
   sending?: boolean;
   onReason: (r: ReportReason) => void;
   onDetails: (d: string) => void;
@@ -158,15 +173,15 @@ export function ReportBody({
         {`Moderators review reports within 24 hours for serious reports and within 3 days for others. ${first} won't know who reported.`}
       </Text>
       <View accessibilityRole="radiogroup" style={{ marginHorizontal: -s(18) }}>
-        {REPORT_REASONS.map((r, i) => {
-          const on = reason === r.key;
+        {reasons.map((key, i) => {
+          const on = reason === key;
           return (
             <Press
-              key={r.key}
-              onPress={() => onReason(r.key)}
+              key={key}
+              onPress={() => onReason(key)}
               accessibilityRole="radio"
               accessibilityState={{ checked: on }}
-              accessibilityLabel={r.label}
+              accessibilityLabel={SHEET_LABELS[key]}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -190,7 +205,7 @@ export function ReportBody({
                 }}
               />
               <Text size={15.5} weight={700} oneLine style={{ flex: 1 }}>
-                {r.label}
+                {SHEET_LABELS[key]}
               </Text>
             </Press>
           );
