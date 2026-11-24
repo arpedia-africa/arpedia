@@ -6618,7 +6618,7 @@ isOneToOne: false
                            },
 "admin_pending_bans":
 { Args: Record<PropertyKey, never>; Returns: {
-              "action_id": string,"created_at": string,"decided_by_name": string,"is_minor": boolean,"reason": string,"user_id": string,"user_name": string
+              "action_id": string,"created_at": string,"decided_by_name": string,"is_minor": boolean,"reason": string,"report_id": string,"user_id": string,"user_name": string
             }[]
                            },
 "admin_report_counts":
