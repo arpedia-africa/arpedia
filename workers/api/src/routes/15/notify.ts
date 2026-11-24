@@ -170,6 +170,12 @@ export function plan(n: Notice, l: Lookup): Plan {
         id(n.group_id) ? { kind: 'group', id: n.group_id as string } : undefined,
       );
       break;
+    case 'welcome':
+      email('welcome');
+      break;
+    case 'receipt':
+      email('receipt', { amount: money(n.amount_kobo), item: str(n.item), date: day(n.paid_at) });
+      break;
     case 'billing_issue':
       typed('renewal_failed', {}, { kind: 'screen', screen: 'plans' });
       email('renewal_failed', { plan: '', amount: '', date: '' });

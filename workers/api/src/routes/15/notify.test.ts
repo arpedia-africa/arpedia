@@ -61,6 +61,34 @@ describe('plan', () => {
     ]);
   });
 
+  it('welcome and receipt are emails only, with amount, item and date', () => {
+    expect(plan({ kind: 'welcome', user_id: READER }, L)).toEqual({
+      push: [],
+      mail: [{ key: 'welcome', user_id: READER, vars: {} }],
+    });
+    expect(
+      plan(
+        {
+          kind: 'receipt',
+          user_id: READER,
+          amount_kobo: 240000,
+          item: 'Quarterly plan',
+          paid_at: '2026-11-24T08:00:00Z',
+        },
+        L,
+      ),
+    ).toEqual({
+      push: [],
+      mail: [
+        {
+          key: 'receipt',
+          user_id: READER,
+          vars: { amount: '₦2,400', item: 'Quarterly plan', date: '24 Nov 2026' },
+        },
+      ],
+    });
+  });
+
   it('billing issue uses the renewal_failed push and email', () => {
     const p = plan({ kind: 'billing_issue', user_id: READER, subscription_id: 'x' }, L);
     expect(p.push.map((x) => x.type)).toEqual(['renewal_failed']);
