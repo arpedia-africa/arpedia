@@ -593,7 +593,7 @@ export function useReader(
     track('chapter_undo', {
       seconds_since: Math.max(0, Math.round((Date.now() - (t.undo_until - 600_000)) / 1000)),
     });
-    files.current.forgetKey(t.chapter_uid);
+    await files.current.forgetKey(t.chapter_uid);
     const fresh = await refresh();
     const a = accessMap(fresh, files.current, await files.current.licenceValid());
     setAccess(a);

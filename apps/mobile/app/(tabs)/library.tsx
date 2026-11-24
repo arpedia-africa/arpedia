@@ -129,7 +129,14 @@ export default function Library() {
     }
     return out;
   }, [offline.entries, downloads, shelves]);
-  const offlineIds = useMemo(() => new Set(offlineEntries.map((e) => e.bookId)), [offlineEntries]);
+  // Rule 15: the Offline pill means "opens without a connection", so only a valid licence counts.
+  const offlineIds = useMemo(
+    () =>
+      new Set(
+        offlineEntries.filter((e) => e.validUntil != null && e.validUntil > Date.now()).map((e) => e.bookId),
+      ),
+    [offlineEntries],
+  );
   const onRefreshed = useCallback(
     (ok: boolean) => track('offline_shelf_refresh', { result: ok ? 'ok' : 'failed' }),
     [track],

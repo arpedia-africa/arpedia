@@ -105,13 +105,19 @@ export class BookFiles {
       valid_until: Date.parse(r.licence.valid_until),
       device_received_at: now,
     };
+    await this.persist();
+    await this.seeClock(now);
+  }
+
+  /** The key bundle on disk, sealed under the local master key (rule 4). */
+  private async persist() {
+    if (!this.licence) return;
     const stored: StoredKeys = {
       ...this.licence,
       keys: Object.fromEntries([...this.keys].map(([k, v]) => [k, btoa(String.fromCharCode(...v))])),
     };
     this.dir.create({ intermediates: true, idempotent: true });
     await this.keysFile().write(await sealLocal(enc.encode(JSON.stringify(stored)), this.label()));
-    await this.seeClock(now);
   }
 
   private label() {
@@ -159,8 +165,10 @@ export class BookFiles {
   hasFreeKey() {
     return this.keys.has(FREE);
   }
-  forgetKey(chapterUid: string) {
-    this.keys.delete(chapterUid);
+  /** Undo (rule 59): the chapter's key leaves memory and the sealed bundle on disk. */
+  async forgetKey(chapterUid: string) {
+    if (!this.keys.delete(chapterUid)) return;
+    await this.persist().catch(() => undefined);
   }
 
   /** The sealed bytes of a file: from disk, else fetched once and kept (ciphertext only). */

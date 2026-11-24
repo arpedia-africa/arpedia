@@ -29,7 +29,9 @@ export const BANNERS_KEY = bannersKey('home_top');
 export function useBanners(placement: CardPlacement) {
   return useQuery({
     queryKey: bannersKey(placement),
-    staleTime: 15 * 60_000,
+    // Rule 22: fresh on app open (the persisted copy is older than a minute) and every 15 minutes.
+    staleTime: 60_000,
+    refetchInterval: 15 * 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_active_banners', {
         p_placement: placement,
