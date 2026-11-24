@@ -47,6 +47,8 @@ export interface ChatDb {
   setLiveCount(groupId: string, count: number): Promise<void>;
   touchLastSeen(groupId: string, userId: string): Promise<void>;
   canQuote(userId: string, bookId: string, chapter: number): Promise<boolean>;
+  /** Push for stored messages (flow 15 push_fanout); readers with the chat open are skipped. */
+  pushMessages(messageIds: string[], openIds: string[]): Promise<void>;
 }
 
 export class RpcError extends Error {
@@ -96,5 +98,8 @@ export function serviceDb(url: string, serviceKey: string): ChatDb {
     setLiveCount: (g, n) => call<void>('set_live_count', { p_group: g, p_count: n }),
     touchLastSeen: (g, u) => call<void>('touch_last_seen', { p_group: g, p_user: u }),
     canQuote: (u, b, c) => call<boolean>('can_quote', { p_user: u, p_book: b, p_chapter: c }),
+    pushMessages: async (ids, open) => {
+      await call<number>('chat_pushes', { p_message_ids: ids, p_open: open });
+    },
   };
 }
