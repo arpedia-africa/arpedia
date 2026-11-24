@@ -18,8 +18,8 @@ Everything Google Play needs before the closed beta and the production rollout o
 - [ ] Phone screenshots (at least 4, 1080×1920 or similar): Home, book page with price, reader, Library, a club. From a release build with real books, never the kit gallery.
 - [ ] Category: Books & Reference. Tags: books, reading, stories.
 - [ ] Contact email (support@arpedia.africa or the owner's choice), website `https://arpedia.africa`.
-- [ ] **Privacy policy URL:** `https://arpedia.africa/privacy` (the app links it at sign-up). The page must be live and match the Data safety answers.
-- [ ] Terms: `https://arpedia.africa/terms`.
+- [ ] **Privacy policy URL:** `https://arpedia.africa/legal/privacy` (the api Worker serves the published Privacy policy, RUNBOOK §2). The page must be live and match the Data safety answers.
+- [ ] Terms: `https://arpedia.africa/legal/terms`.
 
 ## App content (Policy → App content)
 - [ ] **Privacy policy** URL as above.
@@ -29,7 +29,7 @@ Everything Google Play needs before the closed beta and the production rollout o
 - [ ] **Target audience:** 16 and over (Q1 answered: 16+ only). Not designed for children.
 - [ ] **News app:** no. **Government app:** no. **Financial features:** none (in-app purchases only). **Health:** no.
 - [ ] **Data safety** form (below).
-- [ ] **Account deletion:** in the app (Profile → Settings → Delete account, flow 10) **and** a web link where someone can ask for deletion without the app (Play requirement). Owner: publish a page, e.g. `https://arpedia.africa/delete-account`, that explains the in-app steps and offers an email request to support. Enter it in Data safety → Data deletion.
+- [ ] **Account deletion:** in the app (Profile → Settings → Delete account, flow 10) **and** a web link where someone can ask for deletion without the app (Play requirement). The page is `https://arpedia.africa/legal/delete-account`: the api Worker always shows the in-app steps and an email request to support (even when the database is down), then the published Delete-account text. Enter it in Data safety → Data deletion.
 
 ### Data safety answers
 Encrypted in transit: **yes**. Users can request deletion: **yes** (in app and on the web page). Data is not sold. Confirm each row with the privacy policy before submitting.
