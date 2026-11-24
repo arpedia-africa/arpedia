@@ -98,7 +98,9 @@ export default function Signup() {
     try {
       if (!(await signInWithGoogle())) return;
       const { data } = await supabase.auth.getUser();
-      track('signup_completed', { method: 'google' });
+      // An account Google already had signs in here too: that is a login, not a sign-up.
+      const fresh = !!data.user && Date.now() - Date.parse(data.user.created_at) < 5 * 60_000;
+      track(fresh ? 'signup_completed' : 'login_succeeded', { method: 'google' });
       if (data.user) await afterSignIn(data.user.id);
     } catch (e) {
       setErrors({

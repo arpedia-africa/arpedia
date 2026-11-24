@@ -59,6 +59,9 @@ export default function Plans() {
     if (shelf.data) track('paywall_viewed', { source: 'onboarding', plan_shown: 'quarterly' });
   }, [shelf.data, track]);
   useEffect(() => {
+    track('onboarding_step_viewed', { step: 'plans' });
+  }, [track]);
+  useEffect(() => {
     if (store.data && !store.data.available) setError(STORE_UNAVAILABLE);
   }, [store.data]);
 
