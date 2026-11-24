@@ -28,7 +28,10 @@ export function MenuBody({ items }: { items: MoreItem[] }) {
   );
 }
 
-/** The ⋯ menu items for a book (Gift hidden for coming-soon books, Tip hidden on your own book). */
+/**
+ * The ⋯ menu items for a book (Gift hidden for coming-soon books, Tip hidden on your own book).
+ * Download, Gift and Tip also hide while their feature flag is off (flow 16 rule 27).
+ */
 export function moreItems({
   author,
   comingSoon,
@@ -38,6 +41,7 @@ export function moreItems({
   onGift,
   onTip,
   onReport,
+  flags = { downloads: true, gifts: true, tips: true },
 }: {
   author: string;
   comingSoon: boolean;
@@ -47,6 +51,7 @@ export function moreItems({
   onGift: () => void;
   onTip: () => void;
   onReport: () => void;
+  flags?: { downloads: boolean; gifts: boolean; tips: boolean };
 }): MoreItem[] {
   const off = 'Connect to continue';
   const first = author.split(' ')[0] || 'the author';
@@ -54,28 +59,40 @@ export function moreItems({
     ...(comingSoon
       ? []
       : [
-          {
-            key: 'download',
-            title: 'Download for offline',
-            sub: 'Whole book with Unlock all; paid chapters with pay as you read',
-            onPress: onDownload,
-          },
-          {
-            key: 'gift',
-            title: 'Gift this book',
-            sub: online ? 'Send it to a friend with your credits' : off,
-            onPress: onGift,
-          },
+          ...(flags.downloads
+            ? [
+                {
+                  key: 'download',
+                  title: 'Download for offline',
+                  sub: 'Whole book with Unlock all; paid chapters with pay as you read',
+                  onPress: onDownload,
+                },
+              ]
+            : []),
+          ...(flags.gifts
+            ? [
+                {
+                  key: 'gift',
+                  title: 'Gift this book',
+                  sub: online ? 'Send it to a friend with your credits' : off,
+                  onPress: onGift,
+                },
+              ]
+            : []),
         ]),
     ...(isAuthor
       ? []
       : [
-          {
-            key: 'tip',
-            title: 'Tip the author',
-            sub: online ? `Credits go straight to ${first}` : off,
-            onPress: onTip,
-          },
+          ...(flags.tips
+            ? [
+                {
+                  key: 'tip',
+                  title: 'Tip the author',
+                  sub: online ? `Credits go straight to ${first}` : off,
+                  onPress: onTip,
+                },
+              ]
+            : []),
           {
             key: 'report',
             title: 'Report this book',

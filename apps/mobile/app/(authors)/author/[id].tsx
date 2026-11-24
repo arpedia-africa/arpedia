@@ -28,6 +28,7 @@ import {
   useAuthorProfile,
   type AuthorProfile,
 } from '../../../features/08/data';
+import { useFlag } from '../../../features/16/config';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const n = (v: number) => v.toLocaleString('en-NG');
@@ -81,6 +82,8 @@ export default function AuthorPage() {
   const track = useTrack();
   const qc = useQueryClient();
   const online = useOnline();
+  const tipsOn = useFlag('tips', true);
+  const messagesOn = useFlag('author_messages', true);
   const profile = useAuthorProfile(id);
   const p = profile.data;
   const [tab, setTab] = useState<AuthorTab>('posts');
@@ -272,9 +275,9 @@ export default function AuthorPage() {
             if (p.following) setOverlay('unfollow');
             else follow.mutate(true);
           },
-          onMessage: reason ? undefined : openMessage,
+          onMessage: reason || !messagesOn ? undefined : openMessage,
           onTip:
-            p.state === 'active' && firstBook
+            tipsOn && p.state === 'active' && firstBook
               ? () => {
                   if (!online) return offline();
                   track('tip_started_from_profile', { author_id: id });

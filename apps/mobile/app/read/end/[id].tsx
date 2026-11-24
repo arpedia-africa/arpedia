@@ -14,6 +14,7 @@ import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import { useTrack } from '../../../features/04/analytics';
 import { BookEndView } from '../../../features/04/BookEndView';
 import { useBuyPack } from '../../../features/09/buyPack';
+import { useFlag } from '../../../features/16/config';
 
 const n = (v: number) => v.toLocaleString('en-NG');
 
@@ -31,6 +32,7 @@ export default function BookEnd() {
   const { c } = useTheme();
   const track = useTrack();
   const online = useOnline();
+  const tipsOn = useFlag('tips', true);
   const page = useBookPage(id);
   const d = page.data;
   const [tip, setTip] = useState(false);
@@ -107,7 +109,9 @@ export default function BookEnd() {
           stars: d.my_review?.stars ?? 0,
           discussionSub: `${n(d.comments)} ${d.comments === 1 ? 'comment' : 'comments'} · spoilers allowed`,
           author:
-            authorName && !d.is_author ? { name: authorName, tone: avatarTone(d.book.author.id) } : null,
+            tipsOn && authorName && !d.is_author
+              ? { name: authorName, tone: avatarTone(d.book.author.id) }
+              : null,
           tipFrom: Math.min(...TIP_PRESETS),
           next: next
             ? { id: next.id, title: next.title, author: next.author ?? '', tone: coverTone(next.id) }

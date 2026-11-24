@@ -14,6 +14,7 @@ import {
   type InboxTab,
 } from '../../features/06/InboxViews';
 import { toneFor, useInbox, useInboxCounts, useMarkAllRead, type InboxRow } from '../../features/06/data';
+import { useFlag } from '../../features/16/config';
 
 /** Last message as "Sender: text"; groups filter shows "Type · N members" instead (rule 3). */
 function rowSub(r: InboxRow, tab: InboxTab): string {
@@ -63,7 +64,9 @@ export default function Community() {
     }, [refetchInbox, refetchCounts]),
   );
 
-  const openRooms = () => router.push('/rooms');
+  // The Reading rooms entries hide while the reading_rooms flag is off (flow 16 rule 27).
+  const roomsOn = useFlag('reading_rooms', true);
+  const openRooms = roomsOn ? () => router.push('/rooms') : undefined;
   const openDiscover = () => router.push('/discover');
   const rows = (inbox.data ?? []).map((r) => toRowView(r, tab));
   // Rule 2: reading rooms open s-room (flow 07), author communities s-author-community and a DM

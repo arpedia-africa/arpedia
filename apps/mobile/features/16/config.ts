@@ -58,8 +58,12 @@ export function useRemoteCopy(key: string, fallback: string, vars: Record<string
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 }
 
-export function useFlag(key: string) {
-  return useAppConfig().data?.flags[key] === true;
+/**
+ * A feature flag for this reader (rule 27). `fallback` is used until the config loads (or when it
+ * cannot): kill switches for live features pass true so nothing disappears offline.
+ */
+export function useFlag(key: string, fallback = false) {
+  return useAppConfig().data?.flags[key] ?? fallback;
 }
 
 export function usePendingPolicies(userId: string | undefined) {

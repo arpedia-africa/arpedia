@@ -14,11 +14,18 @@ import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../../features/03/UnlockViews';
 import { DOWNLOAD_STARTED, downloadBook } from '../../../features/04/download';
 import { useBuyPack } from '../../../features/09/buyPack';
+import { useFlag } from '../../../features/16/config';
 
 export default function BookPage() {
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
   const { c, s } = useTheme();
   const toast = useToast();
+  // Flow 16 rule 27 kill switches; on until the config says otherwise.
+  const flags = {
+    downloads: useFlag('offline_downloads', true),
+    gifts: useFlag('gifts', true),
+    tips: useFlag('tips', true),
+  };
   const track = useTrack();
   const qc = useQueryClient();
   const page = useBookPage(id);
@@ -225,6 +232,7 @@ export default function BookPage() {
               setOverlay('tip');
             },
             onReport: () => setOverlay('report'),
+            flags,
           })}
         />
       </Sheet>
