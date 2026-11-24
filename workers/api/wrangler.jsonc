@@ -29,6 +29,8 @@
         "APP_ENV": "staging",
         "SUPABASE_URL": "https://wsblzfpiflefqpbsqkuy.supabase.co",
       },
+      // Not inherited from the top level: without this the deployed Worker has no cron.
+      "triggers": { "crons": ["* * * * *"] },
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-staging" }],
       "durable_objects": {
         "bindings": [
@@ -45,6 +47,7 @@
         // Links in emails (verify email) and saved avatar URLs.
         "PUBLIC_API_URL": "https://api.arpedia.africa",
       },
+      "triggers": { "crons": ["* * * * *"] },
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books-prod" }],
       "durable_objects": {
         "bindings": [

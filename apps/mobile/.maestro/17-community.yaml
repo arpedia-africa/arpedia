@@ -96,10 +96,13 @@ appId: com.arpedia.reader
 - tapOn: 'Also block Chioma'
 - takeScreenshot: community-${WIDTH}-report
 - tapOn: 'Send report'
+# The toast is short; best effort here, staff.mjs check-report proves the report and the block.
+- assertVisible:
+    text: 'Report sent.*'
+    optional: true
 - extendedWaitUntil:
-    visible: 'Report sent.*'
+    notVisible: 'Why are you reporting this?'
     timeout: 15000
-- assertNotVisible: 'Why are you reporting this?'
 - openLink: arpedia://blocked
 - extendedWaitUntil:
     visible: 'Chioma Okafor'
