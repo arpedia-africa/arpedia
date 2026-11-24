@@ -3,7 +3,7 @@
 -- right people, once.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(20);
 
 -- Ada (author, club owner), Bola and Chidi (members), Dayo (follower who has the chat open).
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -86,6 +86,15 @@ select is(pg_temp.to((select m from pg_temp.pushes('club_message') m offset 1 li
 select is(pg_temp.to((select m from pg_temp.pushes('club_message') m offset 2 limit 1)),
   array['15a00000-0000-4000-a000-000000000001', '15a00000-0000-4000-a000-000000000004'],
   'the latest message goes to the others, never twice to Chidi');
+
+-- Two author replies in one batch: the reader gets one push.
+insert into public.messages (id, group_id, sender_id, client_id, kind, body, state, created_at) values
+  ('15a00000-0000-4000-d000-000000000007', '15a00000-0000-4000-c000-000000000002', '15a00000-0000-4000-a000-000000000001',
+   gen_random_uuid(), 'text', 'One more thing', 'visible', now() + interval '1 second'),
+  ('15a00000-0000-4000-d000-000000000008', '15a00000-0000-4000-c000-000000000002', '15a00000-0000-4000-a000-000000000001',
+   gen_random_uuid(), 'text', 'and another', 'visible', now() + interval '2 seconds');
+select is(public.chat_pushes(array['15a00000-0000-4000-d000-000000000007', '15a00000-0000-4000-d000-000000000008']::uuid[]),
+  1, 'quick DM replies fold into one push');
 
 -- ─── author_new_post ────────────────────────────────────────────────────────
 insert into public.follows (follower_id, followee_id) values

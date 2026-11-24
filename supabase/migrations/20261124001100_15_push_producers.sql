@@ -37,7 +37,8 @@ begin
     order by x.group_id, x.created_at, x.id
   loop
     if m.kind = 'dm' then
-      if m.sender_id is distinct from m.owner_id then continue; end if;
+      -- One push per thread per batch, like a group: the latest reply.
+      if m.sender_id is distinct from m.owner_id or not m.is_last then continue; end if;
       select array_agg(gm.user_id) into v_targets from public.group_members gm
        where gm.group_id = m.group_id and gm.user_id <> m.sender_id and gm.banned_at is null;
       if v_targets is null then continue; end if;
@@ -58,7 +59,8 @@ begin
      where gm.group_id = m.group_id and gm.user_id <> m.sender_id and gm.banned_at is null
        and (gm.user_id = m.reply_sender
             or (position('@' in m.preview) > 0
-                and m.preview ilike '%@' || split_part(public.sender_name(gm.user_id), ' ', 1) || '%'));
+                and strpos(lower(m.preview),
+                           '@' || lower(nullif(split_part(btrim(public.sender_name(gm.user_id)), ' ', 1), ''))) > 0));
     if m.is_last then
       select array_agg(gm.user_id) into v_targets from public.group_members gm
        where gm.group_id = m.group_id and gm.user_id <> m.sender_id and gm.banned_at is null
@@ -88,9 +90,9 @@ begin
      or (tg_op = 'UPDATE' and old.published_at is not null) then
     return null;
   end if;
-  select array_agg(f.follower_id) into v_fans from (
-    select fo.follower_id from public.follows fo
-    where fo.followee_id = new.author_id and fo.follower_id <> new.author_id limit 10000) f;
+  -- Every follower: the dispatcher works through the list in chunks.
+  select array_agg(fo.follower_id) into v_fans from public.follows fo
+   where fo.followee_id = new.author_id and fo.follower_id <> new.author_id;
   if v_fans is not null then
     perform public.enqueue_push('author_new_post', v_fans, jsonb_build_object(
       'vars', jsonb_build_object('author', public._author_pen_name(new.author_id), 'preview', new.title),
