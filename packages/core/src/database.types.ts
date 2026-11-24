@@ -5811,6 +5811,9 @@ isOneToOne: false
 "_charge_undone":
 { Args: { "p_at": string,"p_chapter": string,"p_user": string }; Returns: boolean
                            },
+"_check_gift":
+{ Args: { "p_recipient": string,"p_user": string }; Returns: undefined
+                           },
 "_check_spend_rate":
 { Args: { "p_user": string }; Returns: undefined
                            },
@@ -5899,6 +5902,11 @@ isOneToOne: false
                            },
 "_genre_name":
 { Args: { "p_slug": string }; Returns: string
+                           },
+"_gift_people":
+{ Args: { "p_user": string }; Returns: {
+              "id": string,"why": string
+            }[]
                            },
 "_has_link_or_phone":
 { Args: { "p_text": string }; Returns: boolean
