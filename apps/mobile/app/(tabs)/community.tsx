@@ -66,8 +66,17 @@ export default function Community() {
   const openRooms = () => router.push('/rooms');
   const openDiscover = () => router.push('/discover');
   const rows = (inbox.data ?? []).map((r) => toRowView(r, tab));
-  // Reading rooms open s-room (flow 07); every other group opens its chat (rule 2).
-  const roomIds = new Set((inbox.data ?? []).filter((r) => r.kind === 'room').map((r) => r.group_id));
+  // Rule 2: reading rooms open s-room (flow 07), author communities s-author-community and a DM
+  // with an author s-dm (flow 08, paid messages); every other group opens its chat.
+  const byId = new Map((inbox.data ?? []).map((r) => [r.group_id, r]));
+  const open = (id: string) => {
+    const r = byId.get(id);
+    if (r?.kind === 'room') router.push({ pathname: '/room/[id]', params: { id } });
+    else if (r?.kind === 'author') router.push({ pathname: '/community/[id]', params: { id } });
+    else if (r?.kind === 'dm' && r.is_author && r.other_user_id)
+      router.push({ pathname: '/dm/[id]', params: { id: r.other_user_id } });
+    else router.push(`/chat/${id}`);
+  };
 
   return (
     <Screen top="org" contentStyle={{ paddingBottom: s(28) }}>
@@ -88,14 +97,7 @@ export default function Community() {
       ) : rows.length === 0 ? (
         <InboxEmpty tab={tab} onDiscover={openDiscover} onRooms={openRooms} />
       ) : (
-        <InboxList
-          rows={rows}
-          onOpen={(r) =>
-            roomIds.has(r.id)
-              ? router.push({ pathname: '/room/[id]', params: { id: r.id } })
-              : router.push(`/chat/${r.id}`)
-          }
-        />
+        <InboxList rows={rows} onOpen={(r) => open(r.id)} />
       )}
       {tab === 'all' ? <ReadTogether onRooms={openRooms} onDiscover={openDiscover} /> : null}
     </Screen>
