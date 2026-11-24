@@ -43,7 +43,7 @@ export interface SealInput {
    * Keys to keep when a live revision is sealed again (preview rebuild): K_free and the chapter keys
    * by chapter uid, so copies already on phones still open. Chapters without one get a new key.
    */
-  keys?: { free: Uint8Array; chapters: Record<string, Uint8Array> };
+  keys?: { free?: Uint8Array; chapters: Record<string, Uint8Array> };
 }
 
 export interface SealedAnchor {

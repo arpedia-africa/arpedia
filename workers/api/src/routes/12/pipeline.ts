@@ -389,9 +389,8 @@ export async function previewRebuild(env: Env, bookId: string): Promise<void> {
         ] as const,
     ),
   );
-  const free = held.find(([uid]) => uid === null)?.[1];
-  const keys = free && {
-    free,
+  const keys = {
+    free: held.find(([uid]) => uid === null)?.[1],
     chapters: Object.fromEntries(held.filter(([uid]) => uid !== null)) as Record<string, Uint8Array>,
   };
 
@@ -406,12 +405,12 @@ export async function previewRebuild(env: Env, bookId: string): Promise<void> {
     pages: rev.pages ?? work.pages,
     masterKey: master,
     anchors: work.anchors,
-    ...(keys ? { keys } : {}),
+    keys,
   });
   const artifact = `books/${rev.id}/p${String(target).replace('.', '_')}-${crypto.randomUUID().slice(0, 8)}/`;
   await Promise.all(Object.entries(out.files).map(([path, bytes]) => env.BOOKS.put(artifact + path, bytes)));
 
-  const { error: cErr } = await db.rpc('complete_preview_rebuild', {
+  const { data: done, error: cErr } = await db.rpc('complete_preview_rebuild', {
     p_rev: rev.id,
     p_target: target,
     p_seal: {
@@ -427,6 +426,9 @@ export async function previewRebuild(env: Env, bookId: string): Promise<void> {
     } as unknown as Json,
   });
   if (cErr) throw cErr;
+  // Overtaken (a newer override or revision queued its own rebuild): these files are never served.
+  if (!(done as { applied?: boolean } | null)?.applied)
+    await Promise.all(Object.keys(out.files).map((path) => env.BOOKS.delete(artifact + path)));
 }
 
 /** Run one stage if the revision still wants it. */
