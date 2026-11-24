@@ -12,7 +12,7 @@ import { WebView } from 'react-native-webview';
 import { percentToParagraph, timeLeftLabel } from '@arpedia/core';
 import { placeToolbar, type HighlightColor, type Rect, type SelectionDetail } from '@arpedia/reader';
 import { readerHtml } from '@arpedia/reader/html';
-import { EmptyState, useTheme, useToast } from '@arpedia/ui';
+import { Btn, EmptyState, useTheme, useToast } from '@arpedia/ui';
 import { useBookPage, useOnline } from '../../features/03/book';
 import { rpcError, UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
@@ -308,11 +308,12 @@ export default function ReaderScreen() {
         color: a.kind === 'bookmark' ? null : a.color,
         note: a.kind === 'note' ? a.note_text : null,
         scope: a.kind === 'note' ? 'Private' : null,
+        unsaved: r.unsaved.has(a.client_id),
       });
     }
     return out;
     // chapterLabel reads st, which the deps cover.
-  }, [r.annotations, st]);
+  }, [r.annotations, r.unsaved, st]);
   const openAnnotation = (clientId: string) => {
     const a = r.annotations.find((x) => x.client_id === clientId);
     setPanel(null);
@@ -379,6 +380,18 @@ export default function ReaderScreen() {
             body="Try again. If it keeps happening, report it and we'll fix the book."
             action={{ label: 'Try again', onPress: r.retry }}
           />
+          {st ? (
+            <Btn
+              label="Report a problem"
+              variant="g"
+              size="md"
+              style={{ alignSelf: 'center' }}
+              onPress={() => {
+                setReporting('idle');
+                setPanel('report');
+              }}
+            />
+          ) : null}
         </View>
       );
     }
