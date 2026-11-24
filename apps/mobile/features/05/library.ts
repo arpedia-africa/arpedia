@@ -345,6 +345,44 @@ export async function setSaved(qc: QueryClient, item: LibraryItem, on: boolean) 
   await saveOps([...ops, op]);
 }
 
+/**
+ * A progress change in the reader, applied to the mirror at once (rule 34, chip counts rule 7):
+ * percent, chapter and last opened on every shelf, the book joins Reading, and each shelf keeps its
+ * sort order. The server copy replaces it on the next refetch.
+ */
+export function applyProgress(
+  qc: QueryClient,
+  bookId: string,
+  p: { percent: number; chapter_uid: string | null; at?: string },
+) {
+  const known = mirrorBooks(qc).get(bookId);
+  if (!known) return;
+  const at = p.at ?? new Date().toISOString();
+  const next: LibraryItem = {
+    ...known,
+    percent: p.percent,
+    max_percent: Math.max(known.max_percent, p.percent),
+    chapter_uid: p.chapter_uid ?? known.chapter_uid,
+    last_opened_at: at,
+    shelves: { ...known.shelves, reading: known.shelves.reading || !known.shelves.finished },
+  };
+  const joinsReading = next.shelves.reading && !known.shelves.reading;
+  for (const [key, d] of qc.getQueriesData<Pages>({ queryKey: ['library'] })) {
+    if (!d) continue;
+    const shelf = key[1] as AccountShelf;
+    const sort = key[2] as LibrarySort;
+    const had = shelfItems(d).some((i) => i.book_id === bookId);
+    const pages = d.pages.map((pg, n) => {
+      let items = pg.items.map((i) => (i.book_id === bookId ? next : i));
+      if (shelf === 'reading' && joinsReading && !had && n === 0) items = [...items, next];
+      items = items.sort(compareItems(shelf, sort));
+      const counts = joinsReading ? { ...pg.counts, reading: pg.counts.reading + 1 } : pg.counts;
+      return { ...pg, items, counts };
+    });
+    qc.setQueryData<Pages>(key, { ...d, pages });
+  }
+}
+
 /** Toggle (rule 8): on the phone first, then profiles.library_view (best effort). */
 export function saveView(view: 'grid' | 'list') {
   useLibraryPrefs.getState().setView(view);
