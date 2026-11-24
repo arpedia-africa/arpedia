@@ -24,12 +24,13 @@ begin
     v_kind := i ->> 'kind';
     v_at := least(coalesce((i ->> 'updated_at')::timestamptz, now()), now());
     v_vis := coalesce(i ->> 'visibility', 'private');
-    v_group := case when v_vis = 'club' then (i ->> 'shared_group_id')::uuid end;
     if v_vis not in ('private', 'club') then perform public._raise('bad_batch'); end if;
-    -- Shared with a club: highlights and notes only, and only to a group the reader is in.
+    -- A tombstone is stored private: nothing about a deleted note is shared.
+    v_group := case when v_vis = 'club' and not coalesce((i ->> 'deleted')::boolean, false)
+                    then (i ->> 'shared_group_id')::uuid end;
+    -- Shared with a club: highlights and notes only, and only to a group the reader is in (not banned).
     if v_vis = 'club' and not coalesce((i ->> 'deleted')::boolean, false) and (
-         v_kind = 'bookmark' or v_group is null
-         or not exists (select 1 from public.group_members m where m.group_id = v_group and m.user_id = v_user)) then
+         v_kind = 'bookmark' or v_group is null or not public.is_group_member(v_group, v_user)) then
       perform public._raise('not_member');
     end if;
     if not coalesce((i ->> 'deleted')::boolean, false) then
