@@ -61,6 +61,34 @@ describe('plan', () => {
     ]);
   });
 
+  it('welcome and receipt are emails only, with amount, item and date', () => {
+    expect(plan({ kind: 'welcome', user_id: READER }, L)).toEqual({
+      push: [],
+      mail: [{ key: 'welcome', user_id: READER, vars: {} }],
+    });
+    expect(
+      plan(
+        {
+          kind: 'receipt',
+          user_id: READER,
+          amount_kobo: 240000,
+          item: 'Quarterly plan',
+          paid_at: '2026-11-24T08:00:00Z',
+        },
+        L,
+      ),
+    ).toEqual({
+      push: [],
+      mail: [
+        {
+          key: 'receipt',
+          user_id: READER,
+          vars: { amount: '₦2,400', item: 'Quarterly plan', date: '24 Nov 2026' },
+        },
+      ],
+    });
+  });
+
   it('billing issue uses the renewal_failed push and email', () => {
     const p = plan({ kind: 'billing_issue', user_id: READER, subscription_id: 'x' }, L);
     expect(p.push.map((x) => x.type)).toEqual(['renewal_failed']);
@@ -205,6 +233,7 @@ function fakeDb(
   opts: {
     rows?: Record<string, { msg_id: number; read_ct: number; message: Notice }[]>;
     failPush?: boolean;
+    verifyToken?: string | null;
   } = {},
 ) {
   const calls: { fn: string; args: Record<string, unknown> }[] = [];
@@ -219,6 +248,8 @@ function fakeDb(
         return { data: opts.rows?.[args.p_queue as string] ?? [], error: null };
       case 'notify_queue_done':
         return { data: true, error: null };
+      case 'issue_email_verification':
+        return { data: opts.verifyToken ?? null, error: null };
       default:
         throw new Error(`unexpected rpc ${fn}`);
     }
@@ -257,6 +288,49 @@ describe('deliverNotices', () => {
     expect(
       await deliverNotices(env, db, [{ kind: 'sanction_notice', user_id: FAN, message: 'x' }], sendMail),
     ).toEqual([true]);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it('verify email: a fresh one-time link at send time', async () => {
+    const { db, calls } = fakeDb({ verifyToken: 'ab'.repeat(24) });
+    const sendMail = vi.fn(async () => true);
+    const live = { PUBLIC_API_URL: 'https://api.arpedia.africa/' } as Env;
+    expect(await deliverNotices(live, db, [{ kind: 'verify_email', user_id: READER }], sendMail)).toEqual([
+      true,
+    ]);
+    expect(calls.find((c) => c.fn === 'issue_email_verification')?.args).toEqual({ p_user: READER });
+    expect(sendMail).toHaveBeenCalledWith(
+      live,
+      db,
+      'verify_email',
+      'ngozi@example.com',
+      { first_name: 'Ngozi', link: `https://api.arpedia.africa/v1/email-verify?t=${'ab'.repeat(24)}` },
+      READER,
+    );
+  });
+
+  it('verify email: nothing sent once the address is proven, or with no public URL', async () => {
+    const sendMail = vi.fn(async () => true);
+    const proven = fakeDb({ verifyToken: null });
+    const live = { PUBLIC_API_URL: 'https://api.arpedia.africa' } as Env;
+    expect(
+      await deliverNotices(live, proven.db, [{ kind: 'verify_email', user_id: READER }], sendMail),
+    ).toEqual([true]);
+    const local = fakeDb({ verifyToken: 'ab'.repeat(24) });
+    expect(
+      await deliverNotices(env, local.db, [{ kind: 'verify_email', user_id: READER }], sendMail),
+    ).toEqual([true]);
+    expect(local.calls.some((c) => c.fn === 'issue_email_verification')).toBe(false);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it('verify email: a deployed Worker without a public URL keeps the notice for a retry', async () => {
+    const sendMail = vi.fn(async () => true);
+    const { db } = fakeDb({ verifyToken: 'ab'.repeat(24) });
+    const staging = { APP_ENV: 'staging' } as Env;
+    expect(await deliverNotices(staging, db, [{ kind: 'verify_email', user_id: READER }], sendMail)).toEqual([
+      false,
+    ]);
     expect(sendMail).not.toHaveBeenCalled();
   });
 

@@ -2098,6 +2098,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"email_verifications": {
+                  Row: {
+                    "created_at": string,"email": string,"expires_at": string,"token_hash": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"email": string,"expires_at": string,"token_hash": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string,"expires_at"?: string,"token_hash"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "email_verifications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "email_verifications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"entitlements": {
                   Row: {
                     "book_id": string,"chapter_uid": string | null,"created_at": string,"id": string,"ledger_id": number | null,"revoked_at": string | null,"revoked_reason": string | null,"scope": Database["public"]['Enums']["entitlement_scope"],"source": Database["public"]['Enums']["entitlement_source"],"user_id": string
@@ -6905,6 +6931,9 @@ isOneToOne: false
 "confirm_chapters":
 { Args: { "p_actor": string,"p_result": Json,"p_rev": string }; Returns: Json
                            },
+"confirm_email_verification":
+{ Args: { "p_token": string }; Returns: string
+                           },
 "count_books":
 { Args: { "p_genre"?: string,"p_length_bands"?: (string)[] }; Returns: number
                            },
@@ -7392,6 +7421,9 @@ isOneToOne: false
                            },
 "is_staff_any":
 { Args: { "p_roles": (Database["public"]['Enums']["staff_role"])[] }; Returns: boolean
+                           },
+"issue_email_verification":
+{ Args: { "p_user": string }; Returns: string
                            },
 "job_credit_daily_snapshot":
 { Args: Record<PropertyKey, never>; Returns: undefined
