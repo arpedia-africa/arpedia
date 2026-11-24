@@ -21,25 +21,49 @@ const since = (iso: string) => {
   return days <= 0 ? 'Today' : days === 1 ? 'Since yesterday' : `${days} days`;
 };
 
-/** Tasks for the signed-in role, most urgent first. Bans waiting for a Super admin (flow 14 rule 17). */
-async function tasksFor(role: string | undefined): Promise<Task[]> {
-  if (role !== 'super_admin') return [];
+/**
+ * Tasks for the signed-in role, most urgent first. Super admins: bans waiting for them (flow 14 rule
+ * 17) and plan price changes someone else proposed (flow 16 rule 17).
+ */
+async function tasksFor(staff: { id: string; role: string } | null): Promise<Task[]> {
+  if (staff?.role !== 'super_admin') return [];
   const supabase = await serverSupabase();
-  const { data } = await supabase.rpc('admin_pending_bans');
-  return (data ?? []).map((b) => ({
+  const [{ data }, { data: changes }] = await Promise.all([
+    supabase.rpc('admin_pending_bans'),
+    supabase
+      .from('approval_requests')
+      .select('id, payload, requested_by, created_at, requester:profiles!approval_requests_requested_by_fkey(full_name)')
+      .eq('kind', 'price_change')
+      .eq('status', 'pending')
+      .neq('requested_by', staff.id)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at'),
+  ]);
+  const prices = (changes ?? []).map((c) => {
+    const p = c.payload as { plan_code?: string; name?: string };
+    return {
+      id: c.id,
+      href: `/pricing/${p.plan_code ?? ''}?change=${c.id}`,
+      title: `Confirm or reject the ${p.name ?? 'plan'} price change`,
+      sub: `${c.requester?.full_name ?? 'A staff member'} proposed it · nothing changes until you confirm`,
+      due: since(c.created_at),
+    };
+  });
+  const bans = (data ?? []).map((b) => ({
     id: b.action_id,
     href: b.report_id ? `/reports/${b.report_id}` : '/reports',
     title: `Confirm or turn down a ban on ${b.user_name ?? 'a reader'}`,
     sub: `${b.decided_by_name ?? 'A moderator'} asked for it${b.reason ? ` · ${b.reason}` : ''}${b.is_minor ? ' · under 18' : ''}`,
     due: since(b.created_at),
   }));
+  return [...bans, ...prices];
 }
 
 /** Home = My tasks for the signed-in role (s-overview markup). Tasks arrive with the flows that create them. */
 export default async function Home() {
   const staff = await getStaff();
   const first = staff?.name.split(' ')[0] ?? '';
-  const tasks = await tasksFor(staff?.role);
+  const tasks = await tasksFor(staff);
   return (
     <section className="screen enter">
       <div className="band band--home">
