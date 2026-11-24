@@ -15,7 +15,8 @@ export type NormalizedType =
   | 'pause'
   | 'resume'
   | 'refund'
-  | 'chargeback';
+  | 'chargeback'
+  | 'unpaid';
 
 export interface NormalizedEvent {
   type: NormalizedType;
@@ -35,6 +36,9 @@ export interface NormalizedEvent {
   refund_kobo?: number;
   pause_until?: string;
   flutterwave_plan_id?: string;
+  /** `unpaid` only: the charge's state and what it was for. */
+  status?: 'pending' | 'failed';
+  kind?: 'plan' | 'topup';
 }
 
 export interface IngestInput {
@@ -223,6 +227,35 @@ export function normalizeFlutterwaveCharge(
       period_start: start.toISOString(),
       period_end: end.toISOString(),
       ...money,
+    },
+  };
+}
+
+/**
+ * A Flutterwave charge that came back pending or failed (spec check 09-14): stored as a
+ * transaction with that status so the admin Pending and Failed pills show; it grants nothing.
+ * Keyed by status, so a pending charge that later succeeds is still applied as `charge:{id}`.
+ */
+export function normalizeFlutterwaveUnpaid(tx: FlutterwaveTx): IngestInput | Ignored {
+  const status = tx.status === 'pending' || tx.status === 'failed' ? tx.status : null;
+  if (!status) return { ignore: `status ${tx.status}` };
+  if (tx.currency !== 'NGN') return { ignore: `currency ${tx.currency}` };
+  const ref = parseTxRef(tx.tx_ref);
+  if (!ref) return { ignore: 'unknown tx_ref' };
+  return {
+    provider: 'flutterwave',
+    eventId: `charge:${tx.id}:${status}`,
+    eventType: 'charge.completed',
+    occurredAt: new Date(tx.created_at).toISOString(),
+    normalized: {
+      type: 'unpaid',
+      user_id: ref.userId,
+      store: 'web',
+      txn_id: String(tx.id),
+      status,
+      kind: ref.kind,
+      ...(ref.kind === 'plan' ? { plan_code: ref.code } : { topup_code: ref.code }),
+      gross_kobo: Math.round(tx.amount * 100),
     },
   };
 }
