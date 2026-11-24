@@ -7594,6 +7594,12 @@ isOneToOne: false
 "notify_lookup":
 { Args: { "p_books"?: (string)[],"p_follow_authors"?: (string)[],"p_roles"?: (string)[],"p_users"?: (string)[] }; Returns: Json
                            },
+"notify_me":
+{ Args: { "p_book": string,"p_on"?: boolean }; Returns: boolean
+                           },
+"notify_me_on":
+{ Args: { "p_book": string }; Returns: boolean
+                           },
 "notify_queue_done":
 { Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean
                            },
