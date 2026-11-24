@@ -42,6 +42,8 @@
       "vars": {
         "APP_ENV": "production",
         "SUPABASE_URL": "https://arpedia.supabase.co",
+        // Links in emails (verify email) and saved avatar URLs.
+        "PUBLIC_API_URL": "https://api.arpedia.africa",
       },
       "r2_buckets": [{ "binding": "BOOKS", "bucket_name": "arpedia-books" }],
       "durable_objects": {
