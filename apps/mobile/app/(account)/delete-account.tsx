@@ -6,6 +6,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { Screen } from '@arpedia/ui';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
+import { usePlanScreen } from '../../features/09/data';
 import { requestDeletion, rpcReason, useProfileSummary } from '../../features/10/data';
 import { DeleteAccountFoot, DeleteAccountView } from '../../features/10/SettingsViews';
 
@@ -28,6 +29,13 @@ export default function DeleteAccount() {
       return data;
     },
   });
+
+  // A Google Play plan keeps billing after the account is gone unless it is cancelled in Play (rule 34).
+  const sub = usePlanScreen().data?.subscription;
+  const storePlan =
+    sub?.store === 'play' && sub.auto_renew && !['cancelled', 'expired', 'refunded'].includes(sub.status)
+      ? sub.plan.name
+      : null;
 
   const del = async () => {
     setBusy(true);
@@ -69,7 +77,7 @@ export default function DeleteAccount() {
           credits: credits.data,
           finished: summary.data?.books_read,
           highlights: summary.data?.highlights,
-          storePlan: null,
+          storePlan,
         }}
         text={text}
         onText={setText}

@@ -10,7 +10,8 @@ import { supabase } from '@/lib/supabase';
 import { avatarTone } from '../../../features/03/BookViews';
 import { useOnline } from '../../../features/03/book';
 import { rpcError } from '../../../features/03/UnlockSheet';
-import { OptionList, type OptionItem } from '../../../features/06/SheetViews';
+import { OptionList, ReportBody, type OptionItem, type ReportReason } from '../../../features/06/SheetViews';
+import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 import { useTrack } from '../../../features/08/analytics';
 import {
   CommentBox,
@@ -88,6 +89,11 @@ export default function PostPage() {
   const [replyTo, setReplyTo] = useState<{ parent: string; name: string } | null>(null);
   const [pending, setPending] = useState<Pending[]>([]);
   const [menu, setMenu] = useState<CommentRow | null>(null);
+  const [reporting, setReporting] = useState<CommentRow | null>(null);
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [details, setDetails] = useState('');
+  const [alsoBlock, setAlsoBlock] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -290,8 +296,10 @@ export default function PostPage() {
                 sub: 'Tell Arpedia about this comment',
                 onPress: () => {
                   setMenu(null);
-                  // Comment reports route through flow 14's create_report (not on this branch yet).
-                  toast({ message: 'Reporting comments is coming soon. You can block them now.' });
+                  setReason(null);
+                  setDetails('');
+                  setAlsoBlock(false);
+                  setReporting(menu);
                 },
               },
             ]
@@ -422,6 +430,48 @@ export default function PostPage() {
       </KeyboardAvoidingView>
       <Sheet open={!!menu} onClose={() => setMenu(null)} title={menu ? menu.name : undefined}>
         <OptionList items={menuItems} />
+      </Sheet>
+      <Sheet open={!!reporting} onClose={() => setReporting(null)} title="Why are you reporting this?">
+        {reporting ? (
+          <ReportBody
+            name={reporting.name}
+            reason={reason}
+            details={details}
+            alsoBlock={alsoBlock}
+            canBlock={!!reporting.user_id}
+            sending={sendingReport}
+            onReason={setReason}
+            onDetails={setDetails}
+            onAlsoBlock={setAlsoBlock}
+            onCancel={() => setReporting(null)}
+            onSend={() => {
+              if (!reason) return;
+              setSendingReport(true);
+              createReport(
+                {
+                  content_type: 'post_comment',
+                  content_id: reporting.id,
+                  reason,
+                  details: details.trim() || null,
+                  also_block: alsoBlock,
+                },
+                !online,
+              )
+                .then(
+                  (ref) => {
+                    setReporting(null);
+                    toast({ message: ref === null ? REPORT_SAVED : REPORT_SENT, duration: 6000 });
+                    if (alsoBlock && ref !== null) {
+                      void qc.invalidateQueries({ queryKey: commentsKey(id) });
+                      if (d) void qc.invalidateQueries({ queryKey: authorKey(d.author_id) });
+                    }
+                  },
+                  (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
+                )
+                .finally(() => setSendingReport(false));
+            }}
+          />
+        ) : null}
       </Sheet>
     </Screen>
   );

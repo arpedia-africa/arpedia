@@ -7130,6 +7130,9 @@ isOneToOne: false
 "export_pii_columns":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
                            },
+"export_reader_data":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
 "export_rows":
 { Args: { "p_id": string,"p_limit": number,"p_offset": number }; Returns: Json
                            },

@@ -35,6 +35,15 @@ export function readerInk(theme: ReaderTheme) {
   };
 }
 
+/**
+ * "Chapter 3 · The Market", or just "Chapter 3" when the chapter has no title of its own (the
+ * pipeline names untitled chapters "Chapter N", which read "Chapter 1 · Chapter 1").
+ */
+export function chapterLabel(n: number, title: string | null | undefined) {
+  const t = title?.trim() ?? '';
+  return !t || new RegExp(`^chapter\\s+${n}$`, 'i').test(t) ? `Chapter ${n}` : `Chapter ${n} · ${t}`;
+}
+
 /** `.rd-top`: back, title and sub line, bookmark, more. */
 export function ReaderTop({
   theme,
@@ -551,7 +560,9 @@ export function ChapterCard(p: {
       <Text size={13} weight={600} color="onOrg" oneLine>
         Next up
       </Text>
-      <Text variant="h2" color="onOrg" numberOfLines={2}>{`Chapter ${p.number} · ${p.title}`}</Text>
+      <Text variant="h2" color="onOrg" numberOfLines={2}>
+        {chapterLabel(p.number, p.title)}
+      </Text>
       <KeyValue
         white
         rows={[
