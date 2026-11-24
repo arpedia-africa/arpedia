@@ -535,6 +535,7 @@ export function StudioEarningsView({
   rows,
   payouts,
   state,
+  offlineNote,
   onBack,
   onRetry,
 }: {
@@ -543,6 +544,8 @@ export function StudioEarningsView({
   rows: KeyValueRow[];
   payouts: PayoutRow[];
   state: 'ready' | 'loading' | 'offline' | 'failed';
+  /** Shown above the figures while offline with cached values ("You're offline. Updated 2 hours ago."). */
+  offlineNote?: string | null;
   onBack: () => void;
   onRetry: () => void;
 }) {
@@ -589,6 +592,7 @@ export function StudioEarningsView({
       ) : (
         <>
           <View style={{ paddingTop: s(16), paddingHorizontal: s(16), gap: s(8) }}>
+            {offlineNote ? <Callout tone="quiet">{offlineNote}</Callout> : null}
             <KeyValue rows={rows} />
             <Text size={12} color="ink3" style={{ lineHeight: s(12) * 1.4 }}>
               Readers who pay as they read pay chapter by chapter, so someone who stops halfway pays half.
