@@ -48,7 +48,19 @@ export interface Deps {
   now(): number;
   /** Ask for flush() to run in `ms` (the DO alarm). */
   scheduleFlush(ms: number): void;
+  /**
+   * The flow 14 `moderate-text` Worker (safety-rule muted words, links, phone numbers). Absent or
+   * failing, the conversation falls back to its own link and phone checks.
+   */
+  moderate?(text: string, opts: { surface: 'chat' | 'dm'; sender_new: boolean }): Promise<Moderation>;
 }
+
+export interface Moderation {
+  action: 'allow' | 'hide' | 'hide_and_report' | 'blur' | 'warn';
+  reason?: string;
+}
+
+export const MODERATE_TIMEOUT_MS = 2_000;
 
 export const ACCESS_TTL_MS = 60_000;
 export const FLUSH_MS = 1_000;
@@ -176,12 +188,27 @@ export class Conversation {
       )
         return err('quote_not_allowed');
     }
-    if (a.new_account && LINK.test(body)) return err('rejected_by_rules');
-    if (PHONE.test(body.replace(/[\s-]/g, ''))) return err('phone_number');
+    // Fails open (local checks only) so a slow or down api Worker never stalls the chat.
+    const m = body ? await this.moderate(body, a) : null;
+    if (m) {
+      // Phone numbers: hide and ask the sender to edit (flow 14 rule 23); blocked links are
+      // refused outright. Neither is stored. Blur and Warn have no chat form, so they deliver.
+      if (m.reason === 'phone_number') return err('phone_number');
+      if (m.reason === 'link') return err('rejected_by_rules');
+    } else {
+      if (a.new_account && LINK.test(body)) return err('rejected_by_rules');
+      if (PHONE.test(body.replace(/[\s-]/g, ''))) return err('phone_number');
+    }
 
-    const hidden = a.muted_words.some((w) => w && body.toLowerCase().includes(w.toLowerCase()));
+    // Channel muted words add to the safety rules, never replace them (flow 14 rule 24).
+    const hidden =
+      m?.action === 'hide' ||
+      m?.action === 'hide_and_report' ||
+      a.muted_words.some((w) => w && body.toLowerCase().includes(w.toLowerCase()));
+    // Taken after the moderate call, so slow mode and the rate window count from the real send.
+    const sentAt = this.d.now();
     // Strictly increasing per conversation, so ids, times and the queue keep send order.
-    const ts = Math.max(now, this.lastTs + 1);
+    const ts = Math.max(sentAt, this.lastTs + 1);
     this.lastTs = ts;
     const id = uuid7(ts);
     const created_at = new Date(ts).toISOString();
@@ -198,9 +225,9 @@ export class Conversation {
       created_at,
     };
     await this.d.queue.put(`q:${String(ts).padStart(15, '0')}:${id}`, item);
-    window.push(now);
+    window.push(sentAt);
     const next: SenderState = {
-      last: now,
+      last: sentAt,
       sends: window,
       recent: [...s.recent, { client_id: f.client_id, id, created_at, hidden }].slice(-RECENT_PER_SENDER),
     };
@@ -387,6 +414,24 @@ export class Conversation {
         .filter((u) => !this.access.has(u)),
     );
     await Promise.all([...missing].map((u) => this.accessFor(u).catch(() => undefined)));
+  }
+
+  /** The safety-rule check, or null when the Worker is absent, slow or down. */
+  private async moderate(text: string, a: Access): Promise<Moderation | null> {
+    if (!this.d.moderate) return null;
+    const surface = a.kind === 'dm' ? 'dm' : 'chat';
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), MODERATE_TIMEOUT_MS);
+    });
+    try {
+      return await Promise.race([
+        this.d.moderate(text, { surface, sender_new: a.new_account }).catch(() => null),
+        timeout,
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async senderState(userId: string): Promise<SenderState> {

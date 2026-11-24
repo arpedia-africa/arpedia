@@ -1,11 +1,32 @@
 import { CLOSE_FORBIDDEN, type ServerFrame } from '@arpedia/core';
 import { DurableObject } from 'cloudflare:workers';
-import { Conversation, type Peer, type SenderState } from './conversation';
+import {
+  Conversation,
+  MODERATE_TIMEOUT_MS,
+  type Deps,
+  type Moderation,
+  type Peer,
+  type SenderState,
+} from './conversation';
 import { serviceDb, type PersistItem } from './db';
 import type { Env } from './env';
 
 interface Attachment {
   userId: string;
+}
+
+/** POST /v1/trust/moderate on the api Worker, with the internal key (Workers call each other). */
+function moderateText(api: Fetcher, serviceKey: string): NonNullable<Deps['moderate']> {
+  return async (text, opts) => {
+    const res = await api.fetch('https://api/v1/trust/moderate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Internal-Key': serviceKey },
+      body: JSON.stringify({ text, ...opts }),
+      signal: AbortSignal.timeout(MODERATE_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`moderate ${res.status}`);
+    return (await res.json()) as Moderation;
+  };
 }
 
 /**
@@ -45,6 +66,7 @@ export class ConversationDO extends DurableObject<Env> {
           if (at === null || at > Date.now() + ms) return storage.setAlarm(Date.now() + ms);
         });
       },
+      moderate: this.env.API ? moderateText(this.env.API, this.env.SUPABASE_SERVICE_ROLE_KEY) : undefined,
     });
     return this.conv;
   }
