@@ -4016,14 +4016,14 @@ isOneToOne: false
                   ]
                 },"reading_rooms": {
                   Row: {
-                    "book_id": string,"code": string,"created_at": string,"ended_at": string | null,"ended_by": string | null,"group_id": string,"host_id": string | null,"join_policy": Database["public"]['Enums']["room_join_policy"],"last_activity_at": string,"locked_before_end": string | null,"locked_by_staff": boolean,"max_members": number,"pace": Database["public"]['Enums']["room_pace"],"starts_at": string,"state": Database["public"]['Enums']["room_state"],"transcript_purge_at": string | null
+                    "book_id": string,"code": string,"created_at": string,"ended_at": string | null,"ended_by": string | null,"group_id": string,"host_id": string | null,"join_policy": Database["public"]['Enums']["room_join_policy"],"last_activity_at": string,"locked_before_end": string | null,"locked_by_staff": boolean,"max_members": number,"pace": Database["public"]['Enums']["room_pace"],"start_notified_at": string | null,"starts_at": string,"state": Database["public"]['Enums']["room_state"],"transcript_purge_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "book_id": string,"code": string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id": string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
+                    "book_id": string,"code": string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id": string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"start_notified_at"?: string | null,"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
                   }
                   Update: {
-                    "book_id"?: string,"code"?: string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id"?: string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
+                    "book_id"?: string,"code"?: string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id"?: string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"start_notified_at"?: string | null,"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -6824,6 +6824,9 @@ isOneToOne: false
 "change_staff_role":
 { Args: { "p_role": Database["public"]['Enums']["staff_role"],"p_user": string }; Returns: undefined
                            },
+"chat_pushes":
+{ Args: { "p_message_ids": (string)[],"p_open"?: (string)[] }; Returns: number
+                           },
 "claim_ask_author":
 { Args: { "p_claim": string,"p_days"?: number,"p_note"?: string }; Returns: undefined
                            },
@@ -7537,6 +7540,20 @@ isOneToOne: false
 "notification_pref":
 { Args: { "p_pref": string,"p_user": string }; Returns: boolean
                            },
+"notify_lookup":
+{ Args: { "p_books"?: (string)[],"p_follow_authors"?: (string)[],"p_roles"?: (string)[],"p_users"?: (string)[] }; Returns: Json
+                           },
+"notify_queue_done":
+{ Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean
+                           },
+"notify_queue_read":
+{ Args: { "p_qty"?: number,"p_queue": string,"p_vt"?: number }; Returns: unknown[]
+                          SetofOptions: {
+        from: "*"
+        to: "message_record"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "onboarding_step_ord":
 { Args: { "p_step": string }; Returns: number
                            },
@@ -7867,6 +7884,9 @@ isOneToOne: false
                            },
 "room_staff":
 { Args: { "p_edit": boolean }; Returns: boolean
+                           },
+"room_start_pushes":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "rotate_integration_key":
 { Args: { "p_service": string,"p_stepup": string }; Returns: number
