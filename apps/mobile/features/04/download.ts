@@ -1,6 +1,7 @@
 // Download for offline from the book page (flow 03 rule 15, flow 04 rule 70): the whole book when
 // the reader owns it, else their unlocked chapters plus the free preview, else the preview only.
 import { supabase } from '@/lib/supabase';
+import { trackedDownload, type Track } from './analytics';
 import { BookFiles } from './bookfiles';
 import type { ReaderState } from './state';
 
@@ -10,6 +11,7 @@ export type DownloadScope = 'whole' | 'some' | 'preview';
 export async function downloadBook(
   bookId: string,
   onScope?: (scope: DownloadScope) => void,
+  track?: Track,
 ): Promise<DownloadScope> {
   const { data, error } = await supabase.rpc('get_reader_state', { p_book: bookId });
   if (error) throw error;
@@ -21,7 +23,9 @@ export async function downloadBook(
       ? 'some'
       : 'preview';
   onScope?.(scope);
-  await new BookFiles(bookId, st.revision.id, owns).downloadAll();
+  await trackedDownload(track, bookId, scope, () =>
+    new BookFiles(bookId, st.revision.id, owns).downloadAll(),
+  );
   return scope;
 }
 

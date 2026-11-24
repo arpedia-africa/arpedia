@@ -15,6 +15,7 @@ import {
 import { Sheet, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { downloadBook } from '../04/download';
+import { useTrack as useReaderTrack } from '../04/analytics';
 import { useTrack } from './analytics';
 import { bookKey, type BookPageData } from './book';
 import { LowBody, NoSubBody, PayGoBody, UnlockAllBody, type UnlockMode } from './UnlockViews';
@@ -79,6 +80,7 @@ export function UnlockSheet({
   const qc = useQueryClient();
   const toast = useToast();
   const track = useTrack();
+  const trackReader = useReaderTrack();
   const [variant, setVariant] = useState<Variant>('all');
   // One idempotency key per opening, reused for every retry of the same tap (rule 19).
   const [key, setKey] = useState('');
@@ -163,7 +165,7 @@ export function UnlockSheet({
       });
       toast({ message: `Unlocked · ${n(r.balance)} credits left` });
       // Rule 20: the whole book downloads for offline in the background; a failure retries later.
-      void downloadBook(d.book.id).catch(() => undefined);
+      void downloadBook(d.book.id, undefined, trackReader).catch(() => undefined);
     },
     onError: async (e) => {
       const { code, detail } = rpcError(e);

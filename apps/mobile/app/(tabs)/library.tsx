@@ -16,6 +16,7 @@ import { coverTone } from '../../features/03/BookViews';
 import { useOnline } from '../../features/03/book';
 import { MenuBody } from '../../features/03/MoreSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
+import { useTrack as useReaderTrack } from '../../features/04/analytics';
 import { useTrack } from '../../features/05/analytics';
 import {
   ACCOUNT_SHELVES,
@@ -87,6 +88,7 @@ export default function Library() {
   const qc = useQueryClient();
   const toast = useToast();
   const track = useTrack();
+  const trackReader = useReaderTrack();
   const online = useOnline();
   usePendingOpsSync();
   useEffect(() => void adoptSavedView(), []);
@@ -301,7 +303,7 @@ export default function Library() {
           setMenu(null);
           if (!online) return toast({ message: 'Connect to continue' });
           toast({ message: `Downloading ${menu.title}` });
-          void downloadBook(qc, menu.id);
+          void downloadBook(qc, menu.id, trackReader);
         },
         onRemoveDownload: () => {
           const bytes = offlineEntries.find((e) => e.bookId === menu.id)?.bytes ?? 0;
@@ -419,7 +421,7 @@ export default function Library() {
             if (!e) return;
             if (downloads[e.bookId] === 'paused') {
               if (!online) return toast({ message: 'Connect to continue' });
-              return void downloadBook(qc, e.bookId);
+              return void downloadBook(qc, e.bookId, trackReader);
             }
             void openOffline(e);
           }}
@@ -546,7 +548,7 @@ export default function Library() {
           toast({ message: `Paid ${n(left)} credits · ${it.title} is yours to keep` });
           void qc.invalidateQueries({ queryKey: ['library'] });
           void qc.invalidateQueries({ queryKey: ['book-page', it.book_id] });
-          void downloadBook(qc, it.book_id);
+          void downloadBook(qc, it.book_id, trackReader);
         }}
       />
       {unlock ? (

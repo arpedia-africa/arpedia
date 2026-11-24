@@ -16,6 +16,7 @@ import {
 } from '@tanstack/react-query';
 import { compareItems, type LibraryItem, type LibrarySort, type Shelf } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { trackedDownload, type Track as ReaderTrack } from '../04/analytics';
 import { BookFiles, offlineBooks, removeDownload, type OfflineBook } from '../04/bookfiles';
 import { readerKey, type ReaderState } from '../04/state';
 
@@ -245,7 +246,7 @@ export function useLicenceRefresh(entries: OfflineEntry[], onDone: (ok: boolean)
  * Download for offline (cover menu, rule 14; after Pay the rest, rule 21): the files the reader is
  * entitled to (whole book when owned), sealed as received. Progress shows on the Offline shelf.
  */
-export async function downloadBook(qc: QueryClient, bookId: string): Promise<void> {
+export async function downloadBook(qc: QueryClient, bookId: string, track?: ReaderTrack): Promise<void> {
   const { setDownload } = useLibrarySession.getState();
   cancelled.delete(bookId);
   setDownload(bookId, 0);
@@ -258,11 +259,15 @@ export async function downloadBook(qc: QueryClient, bookId: string): Promise<voi
     stopIfCancelled();
     const st = data as unknown as ReaderState;
     qc.setQueryData(readerKey(bookId), st);
-    const f = new BookFiles(bookId, st.revision.id, st.owns_book || st.is_author);
-    await f.downloadAll((done, total) => {
-      stopIfCancelled();
-      setDownload(bookId, Math.floor((done / total) * 100));
-    });
+    const owns = st.owns_book || st.is_author;
+    const f = new BookFiles(bookId, st.revision.id, owns);
+    const scope = owns ? 'whole' : st.chapters.some((c) => c.access === 'unlocked') ? 'some' : 'preview';
+    await trackedDownload(track, bookId, scope, () =>
+      f.downloadAll((done, total) => {
+        stopIfCancelled();
+        setDownload(bookId, Math.floor((done / total) * 100));
+      }),
+    );
     setDownload(bookId, null);
   } catch {
     // A cancel (rule 27 long-press) drops what was fetched; anything else pauses the download.

@@ -6,6 +6,7 @@ import { FINISHED_PERCENT, TIP_PRESETS } from '@arpedia/core';
 import { Callout, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { useTrack } from '../../../features/03/analytics';
+import { useTrack as useReaderTrack } from '../../../features/04/analytics';
 import { BookPageSkeleton, BookPageView } from '../../../features/03/BookViews';
 import { bookKey, toModel, useBookPage, useOnline, type BookPageData } from '../../../features/03/book';
 import { GiftSheet, TipSheet } from '../../../features/03/GiftSheet';
@@ -27,6 +28,7 @@ export default function BookPage() {
     tips: useFlag('tips', true),
   };
   const track = useTrack();
+  const trackReader = useReaderTrack();
   const qc = useQueryClient();
   const page = useBookPage(id);
   const d = page.data;
@@ -212,10 +214,14 @@ export default function BookPage() {
             onDownload: () => {
               setOverlay(null);
               if (!online) return toast({ message: 'Connect to continue' });
-              downloadBook(id, (scope) => {
-                track('download_requested', { book_id: id, scope });
-                toast({ message: DOWNLOAD_STARTED[scope] });
-              }).then(
+              downloadBook(
+                id,
+                (scope) => {
+                  track('download_requested', { book_id: id, scope });
+                  toast({ message: DOWNLOAD_STARTED[scope] });
+                },
+                trackReader,
+              ).then(
                 () => toast({ message: 'Ready offline' }),
                 () => toast({ message: 'Couldn’t download. Try again.' }),
               );

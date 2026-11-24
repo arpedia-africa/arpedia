@@ -35,6 +35,7 @@ import {
   useReaderState,
   type ReaderState,
 } from './state';
+import { useTrack } from './analytics';
 import { deviceId, WorkerError } from './worker';
 import { flushAnnotations, queuedAnnotations, saveAnnotations, type AnnotationRow } from './annotationQueue';
 
@@ -108,8 +109,14 @@ function accessMap(
   return out;
 }
 
-export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?: string; payGo?: boolean }) {
+export function useReader(
+  bookId: string,
+  opts: { gateRoom: GateRoom; startCfi?: string; payGo?: boolean; source?: string },
+) {
   const qc = useQueryClient();
+  const track = useTrack();
+  const openedAt = useRef(Date.now());
+  const readyTracked = useRef(false);
   const q = useReaderState(bookId);
   const state = q.data;
   const [phase, setPhase] = useState<ReaderPhase>('loading');
@@ -184,6 +191,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       const m = await f.loadManifest();
       const ok = await f.licenceValid();
       if (!live) return;
+      if (!ok && f.licenceUntil() != null) track('license_expired_open_attempt');
       setManifest(m);
       setAccess(accessMap(state, f, ok));
       // Offline writes go up first, so the pull already has them; any still waiting are drawn on top.
@@ -199,6 +207,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       setError(String((e as Error)?.message ?? e));
       const offline = e instanceof WorkerError && e.code === 'offline';
       setPhase(offline ? 'offline' : 'error');
+      if (!offline) track('reader_error', { code: e instanceof WorkerError ? e.code : 'prepare_failed' });
       if (!offline)
         captureError(e, { book_id: bookId, revision_id: revisionId, bundle_version: BRIDGE_VERSION });
     });
@@ -311,7 +320,13 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         gate_room: gateRoom.current,
       },
     });
-  }, [manifest, state, access, settings, drawList, send, opts.startCfi]);
+    track('reader_opened', {
+      book_id: bookId,
+      source: opts.source ?? (opts.startCfi ? 'link' : 'direct'),
+      owned: state.owns_book,
+      percent: Math.floor(p?.percent ?? 0),
+    });
+  }, [manifest, state, access, settings, drawList, send, opts.startCfi, opts.source, track, bookId]);
 
   useEffect(() => {
     if (phase === 'ready') openBook();
@@ -499,6 +514,11 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           payload: { access: a, reload_section: true, gate_room: gateRoom.current },
         });
         if (r.status === 'ok' && r.spent > 0) {
+          track('chapter_unlocked', {
+            chapter_ord: chapterNumber(fresh, chapterUid),
+            price: r.spent,
+            source,
+          });
           setToast({
             chapter_uid: chapterUid,
             ord: chapterNumber(fresh, chapterUid),
@@ -510,8 +530,11 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         return { ok: a[chapterUid] === 'unlocked' || a[chapterUid] === 'open' };
       } catch (err) {
         const { code } = rpcError(err);
+        track('chapter_unlock_failed', { reason: code === 'network' ? 'offline' : code });
         if (code === 'insufficient_credits') {
           confirmCharge(pending.current, userId.current, chapterUid);
+          const price = state.chapters.find((c) => c.chapter_uid === chapterUid)?.price_credits ?? 0;
+          track('low_balance_in_reader', { missing: Math.max(0, price - state.balance) });
           setLowFor(chapterUid);
           return { ok: false, reason: 'insufficient_credits' };
         }
@@ -522,7 +545,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         setCharging(null);
       }
     },
-    [state, bookId, refresh, send],
+    [state, bookId, refresh, send, track],
   );
 
   const undo = useCallback(async () => {
@@ -549,6 +572,9 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       );
       return;
     }
+    track('chapter_undo', {
+      seconds_since: Math.max(0, Math.round((Date.now() - (t.undo_until - 600_000)) / 1000)),
+    });
     files.current.forgetKey(t.chapter_uid);
     const fresh = await refresh();
     const a = accessMap(fresh, files.current, await files.current.licenceValid());
@@ -564,7 +590,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (last) send({ type: 'goTo', payload: { para_id: last.id } });
     }
     setNotice(`Chapter ${t.ord} returned · ${t.spent} credits back`);
-  }, [toast, refresh, send, loc?.chapter_uid, manifest]);
+  }, [toast, refresh, send, loc?.chapter_uid, manifest, track]);
 
   // ─── Bridge (rule D) ───────────────────────────────────────────────────────
   const onMessage = useCallback(
@@ -610,6 +636,10 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           return;
         }
         case 'relocate':
+          if (!readyTracked.current) {
+            readyTracked.current = true;
+            track('reader_ready_ms', { ms: Date.now() - openedAt.current });
+          }
           onRelocate(m.payload);
           return;
         case 'start.moved':
@@ -627,10 +657,12 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           // The preview cut holds until the reader picks a way to pay; with Pay as you read it charges
           // the rest of that chapter like any locked chapter (rules 52, 54).
           if (gate_kind === 'preview' && !payGo.current) {
+            track('page_turn_held', { gate_kind });
             send({ type: 'advance.decision', reply_to: id, payload: { allow: false, reason: 'preview' } });
             return;
           }
           if (!settings.auto_unlock) {
+            track('page_turn_held', { gate_kind });
             send({ type: 'advance.decision', reply_to: id, payload: { allow: false, reason: 'auto_off' } });
             return;
           }
@@ -639,6 +671,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           const r = await unlockChapter(from_chapter_uid, 'auto');
           clearTimeout(slow);
           if (r.reason === 'offline') setNotice('Connect to unlock this chapter');
+          if (!r.ok) track('page_turn_held', { gate_kind });
           send({ type: 'advance.decision', reply_to: id, payload: { allow: r.ok, reason: r.reason } });
           return;
         }
@@ -666,6 +699,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           // Missing or undecryptable files were already fetched again once in BookFiles.read (rule 19).
           setPhase('error');
           setError(m.payload.detail);
+          track('reader_error', { code: m.payload.code });
           captureError(new Error(`reader ${m.payload.code}: ${m.payload.detail}`), {
             book_id: bookId,
             revision_id: files.current?.revisionId,
@@ -677,7 +711,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           return;
       }
     },
-    [openBook, onRelocate, send, settings.auto_unlock, unlockChapter, bookId],
+    [openBook, onRelocate, send, settings.auto_unlock, unlockChapter, bookId, track],
   );
 
   // ─── Settings (rule 63) ────────────────────────────────────────────────────
@@ -686,13 +720,14 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       const next = { ...settings, [key]: value };
       setSettings(next);
       send({ type: 'settings.apply', payload: next });
+      track('settings_changed', { key });
       const { error: e } = await supabase.rpc('set_reader_setting', {
         p_key: key,
         p_value: settingValue(key, value) as never,
       });
       if (e) setNotice('Couldn’t save that setting. It still applies on this phone.');
     },
-    [settings, send],
+    [settings, send, track],
   );
 
   // ─── Annotation sync (rule 43): offline writes wait on the phone ──────────
@@ -743,6 +778,8 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         visibility: 'private',
       };
       setAnnotations((l) => [...l, a]);
+      if (note) track('note_saved', { shared: false });
+      else track('highlight_created', { color });
       send({
         type: 'annotations.set',
         payload: {
@@ -772,7 +809,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         },
       ]);
     },
-    [selection, state, bookId, send, saveRows],
+    [selection, state, bookId, send, saveRows, track],
   );
 
   /** Add, edit or clear the note on an existing highlight (rule 36). Last write wins (rule 43). */
@@ -782,6 +819,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (!a || !state) return;
       const next: Annotation = { ...a, kind: text ? 'note' : 'highlight', note_text: text || null };
       setAnnotations((l) => l.map((x) => (x.client_id === clientId ? next : x)));
+      if (text) track('note_saved', { shared: false });
       send({
         type: 'annotations.set',
         payload: {
@@ -809,7 +847,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         },
       ]);
     },
-    [annotations, state, bookId, send, saveRows],
+    [annotations, state, bookId, send, saveRows, track],
   );
 
   // ─── Bookmarks (rule 40) ───────────────────────────────────────────────────

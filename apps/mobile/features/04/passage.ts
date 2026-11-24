@@ -5,6 +5,7 @@ import * as Crypto from 'expo-crypto';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { rpcError } from '../03/UnlockSheet';
+import { useTrack } from './analytics';
 
 export interface PassageComment {
   id: string;
@@ -34,6 +35,7 @@ export const threadKey = (book: string, para: string) => ['passage-thread', book
 
 export function usePassageThread(bookId: string, paraId: string | null) {
   const qc = useQueryClient();
+  const track = useTrack();
   const [pending, setPending] = useState<PassageComment[]>([]);
   const q = useQuery({
     queryKey: threadKey(bookId, paraId ?? ''),
@@ -78,9 +80,10 @@ export function usePassageThread(bookId: string, paraId: string | null) {
         t ? { ...t, count: t.count + 1, comments: [...t.comments, saved] } : t,
       );
       setPending((l) => l.filter((c) => c.id !== localId));
+      track('passage_comment_posted');
       return null;
     },
-    [bookId, paraId, qc],
+    [bookId, paraId, qc, track],
   );
 
   const react = useCallback(

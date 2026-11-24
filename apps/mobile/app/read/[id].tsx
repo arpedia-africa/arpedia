@@ -31,6 +31,7 @@ import {
   readerInk,
 } from '../../features/04/ReaderViews';
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
+import { useTrack } from '../../features/04/analytics';
 import { usePassageThread } from '../../features/04/passage';
 import { useShareToClub } from '../../features/04/ShareClubSheet';
 import { ChapterLowSheet, PayRestSheet } from '../../features/04/PaySheets';
@@ -53,7 +54,8 @@ const HINT_KEY = 'reader.hint.seen';
 const OTHER_COLORS: HighlightColor[] = ['yellow', 'green', 'pink', 'blue', 'purple', 'peach'];
 
 export default function ReaderScreen() {
-  const { id, cfi } = useLocalSearchParams<{ id: string; cfi?: string }>();
+  const { id, cfi, from } = useLocalSearchParams<{ id: string; cfi?: string; from?: string }>();
+  const track = useTrack();
   const { s } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -68,7 +70,7 @@ export default function ReaderScreen() {
     const chapter = autoUnlock ? 0 : cardH.chapter + s(16);
     return { preview: payGo ? chapter : cardH.preview + s(16), chapter };
   }, [cardH, autoUnlock, payGo, s]);
-  const r = useReader(id, { gateRoom, startCfi: cfi, payGo });
+  const r = useReader(id, { gateRoom, startCfi: cfi, payGo, source: from });
   useEffect(() => setAutoUnlockLocal(r.settings.auto_unlock), [r.settings.auto_unlock]);
   useEffect(() => {
     if ((r.state?.paid_credits ?? 0) > 0) setPayGo(true);
@@ -236,6 +238,28 @@ export default function ReaderScreen() {
     });
   }, [sel, pageH, s]);
 
+  // Flow 04 analytics for what the reader sees: the preview end, a chapter card, the toolbar.
+  const seenPreview = useRef(false);
+  useEffect(() => {
+    if (!previewGate || seenPreview.current) return;
+    seenPreview.current = true;
+    track('preview_end_seen');
+  }, [previewGate, track]);
+  const cardChapter = st && gateChapter && chapterGate && !autoUnlock ? gateChapter : null;
+  const seenCard = useRef<string | null>(null);
+  useEffect(() => {
+    if (!st || !cardChapter || seenCard.current === cardChapter.chapter_uid) return;
+    seenCard.current = cardChapter.chapter_uid;
+    track('chapter_card_seen', {
+      chapter_ord: chapterNumber(st, cardChapter.chapter_uid),
+      price: cardChapter.price_credits,
+    });
+  }, [st, cardChapter, track]);
+  const placementKind = placement?.kind;
+  useEffect(() => {
+    if (sel && placementKind) track('selection_toolbar_shown', { placement: placementKind });
+  }, [sel, placementKind, track]);
+
   const menuAnnotation = menuFor ? r.annotations.find((a) => a.client_id === menuFor.clientId) : null;
   const menuPlacement = useMemo(() => {
     if (!menuFor || !pageH) return null;
@@ -362,6 +386,16 @@ export default function ReaderScreen() {
     st && threadData?.chapter_ord != null ? st.chapters.find((c) => c.ord === threadData.chapter_ord) : null;
   const threadChapterNo = st && threadChapter ? chapterNumber(st, threadChapter.chapter_uid) : null;
   const threadCount = (threadData?.count ?? 0) + thread.pending.length;
+  // One discussion_opened per opening, once the thread's count is known.
+  const seenThread = useRef<string | null>(null);
+  useEffect(() => {
+    if (panel !== 'discuss' || !discussFor || !threadData || seenThread.current === discussFor.para) return;
+    seenThread.current = discussFor.para;
+    track('discussion_opened', { count: threadData.count });
+  }, [panel, discussFor, threadData, track]);
+  useEffect(() => {
+    if (panel !== 'discuss') seenThread.current = null;
+  }, [panel]);
 
   // ─── States ───────────────────────────────────────────────────────────────
   const body = () => {
@@ -503,7 +537,11 @@ export default function ReaderScreen() {
             offline={!online}
             autoUnlock={autoUnlock}
             onUnlock={() => void r.unlockChapter(gateChapter.chapter_uid, 'tap')}
-            onPayRest={() => (st.paid_credits > 0 ? setPanel('payrest') : setSheet('all'))}
+            onPayRest={() => {
+              track('pay_rest', { left: st.remaining });
+              if (st.paid_credits > 0) setPanel('payrest');
+              else setSheet('all');
+            }}
             onAuto={(v) => {
               setAutoUnlockLocal(v);
               void r.changeSetting('auto_unlock', v);
