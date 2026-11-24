@@ -1,5 +1,8 @@
+import { Hono } from 'hono';
+import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
-import type { Env } from '../../env';
+import type { AppEnv, Env } from '../../env';
+import { userDb } from '../12/http';
 
 // Flow 16 rule 39: health checks every minute (the api Worker's cron). Only what can be measured
 // without calling a provider with a secret: the database, R2, and payment webhooks as received.
@@ -91,3 +94,21 @@ export async function checkIntegrations(env: Env): Promise<void> {
   const results = await Promise.all(jobs);
   for (const r of results as { error: unknown }[]) if (r.error) console.error('integration health', r.error);
 }
+
+// POST /v1/integrations/check: "Check all now" (rule 39) runs the checks at once. The staff
+// member's own token calls request_integration_check, which needs manage_settings and records who
+// asked; only then does the Worker run the same checks as the cron.
+const integrations = new Hono<AppEnv>();
+
+integrations.post('/check', requireUser, async (c) => {
+  const { error } = await userDb(c).rpc('request_integration_check');
+  if (error) {
+    if (error.code === '42501') return c.json({ error: 'not_allowed' }, 403);
+    console.error('request_integration_check', error.message);
+    return c.json({ error: 'check_failed' }, 500);
+  }
+  await checkIntegrations(c.env);
+  return c.json({ ok: true });
+});
+
+export default integrations;
