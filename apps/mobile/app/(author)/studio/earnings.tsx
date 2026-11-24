@@ -6,6 +6,7 @@ import { isNetworkError, useSession } from '../../../features/01/session';
 import { useTrack } from '../../../features/11/analytics';
 import { monthName, num, payoutOf, useStudioEarnings, type AuthorMonth } from '../../../features/11/studio';
 import { StudioEarningsView, type PayoutRow } from '../../../features/11/StudioViews';
+import { updatedAgo, useOnline } from '../../../features/09/data';
 import { useEarningsTrack } from '../../../features/13/analytics';
 import {
   accountLabel,
@@ -24,6 +25,7 @@ export default function StudioEarnings() {
   const q = useStudioEarnings(uid);
   const lines = usePayoutLines(uid);
   const account = usePayoutAccount(uid);
+  const online = useOnline();
   useEffect(() => {
     track('studio_earnings_viewed');
     trackEarnings('earnings_viewed');
@@ -33,7 +35,16 @@ export default function StudioEarnings() {
     const line = lines.data?.get(m.month.slice(0, 7));
     return line ? lineRow(m, line, account.data ?? null) : payoutRow(m, account.data ?? null);
   };
-  const state = d ? 'ready' : q.isError ? (isNetworkError(q.error) ? 'offline' : 'failed') : 'loading';
+  // Offline: the last cached figures with when they were fetched (flow 13 Offline). With nothing
+  // cached the query pauses rather than fails, so offline is decided by the connection too.
+  const state = d
+    ? 'ready'
+    : !online || (q.isError && isNetworkError(q.error))
+      ? 'offline'
+      : q.isError
+        ? 'failed'
+        : 'loading';
+  const offlineNote = d && !online ? `You’re offline. ${updatedAgo(q.dataUpdatedAt)}.` : null;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/studio'));
 
   return (
@@ -44,6 +55,7 @@ export default function StudioEarnings() {
         rows={d ? splitRows(d.month) : []}
         payouts={d ? d.history.filter((m) => m.earned_kobo > 0).map(toRow) : []}
         state={state}
+        offlineNote={offlineNote}
         onBack={back}
         onRetry={() => void q.refetch()}
       />
