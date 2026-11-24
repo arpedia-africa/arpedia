@@ -245,6 +245,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@arpedia/convert':
+        specifier: workspace:*
+        version: link:../../packages/convert
       '@arpedia/core':
         specifier: workspace:*
         version: link:../../packages/core

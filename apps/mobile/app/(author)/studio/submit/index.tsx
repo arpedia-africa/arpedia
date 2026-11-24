@@ -6,13 +6,13 @@ import { Screen } from '@arpedia/ui';
 import { useSession } from '../../../../features/01/session';
 import { useTrack } from '../../../../features/11/analytics';
 import { fileSize, STUDIO } from '../../../../features/11/application';
+import { startUpload } from '../../../../features/11/convert';
 import {
   coverLine,
   pickCover,
   pickManuscript,
   SubmitError,
   submitStep,
-  uploadBook,
   type PickedFile,
 } from '../../../../features/11/submit';
 import {
@@ -79,8 +79,9 @@ export default function SubmitUpload() {
     if (Object.keys(err).length || !file || !cover) return;
     setBusy(true);
     track('book_submit_started', { source_type: values.source });
+    track('book_upload_started', { source_type: values.source, bytes: file.size });
     try {
-      const rev = await uploadBook(values, file, cover, book, replace === '1');
+      const rev = await startUpload(values, file, cover, book, replace === '1');
       void qc.invalidateQueries({ queryKey: ['studio-books', uid] });
       void qc.invalidateQueries({ queryKey: ['studio-home', uid] });
       router.replace(submitStep('processing', rev));
