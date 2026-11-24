@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { Screen, useTheme, useToast } from '@arpedia/ui';
+import { Screen, useTheme } from '@arpedia/ui';
 import { groupTypeLabel, inboxTime, memberCount } from '@arpedia/core';
 import {
   CommunityHero,
@@ -48,7 +48,6 @@ function toRowView(r: InboxRow, tab: InboxTab, now = new Date()): InboxRowView {
 
 export default function Community() {
   const { s } = useTheme();
-  const toast = useToast();
   const [tab, setTab] = useState<InboxTab>('all');
   const inbox = useInbox(tab);
   const counts = useInboxCounts();
@@ -64,10 +63,11 @@ export default function Community() {
     }, [refetchInbox, refetchCounts]),
   );
 
-  // Reading rooms (s-rooms) are flow 07.
-  const openRooms = () => toast({ message: 'Reading rooms come in a later part of the build.' });
+  const openRooms = () => router.push('/rooms');
   const openDiscover = () => router.push('/discover');
   const rows = (inbox.data ?? []).map((r) => toRowView(r, tab));
+  // Reading rooms open s-room (flow 07); every other group opens its chat (rule 2).
+  const roomIds = new Set((inbox.data ?? []).filter((r) => r.kind === 'room').map((r) => r.group_id));
 
   return (
     <Screen top="org" contentStyle={{ paddingBottom: s(28) }}>
@@ -88,7 +88,14 @@ export default function Community() {
       ) : rows.length === 0 ? (
         <InboxEmpty tab={tab} onDiscover={openDiscover} onRooms={openRooms} />
       ) : (
-        <InboxList rows={rows} onOpen={(r) => router.push(`/chat/${r.id}`)} />
+        <InboxList
+          rows={rows}
+          onOpen={(r) =>
+            roomIds.has(r.id)
+              ? router.push({ pathname: '/room/[id]', params: { id: r.id } })
+              : router.push(`/chat/${r.id}`)
+          }
+        />
       )}
       {tab === 'all' ? <ReadTogether onRooms={openRooms} onDiscover={openDiscover} /> : null}
     </Screen>
