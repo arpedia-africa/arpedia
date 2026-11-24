@@ -2,7 +2,7 @@
 -- belongs to; bookmarks and other groups are refused.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(7);
+select plan(9);
 
 insert into auth.users (id, email)
 select ('40430000-0000-4000-a000-00000000000' || n)::uuid, 'u' || n || '@flow04s.test' from generate_series(1, 2) n;
@@ -65,6 +65,16 @@ select is(public.upsert_annotations(pg_temp.note('40430000-0000-4000-f000-000000
   'switching sharing off makes it private again');
 select is(public.upsert_annotations(pg_temp.note('40430000-0000-4000-f000-000000000005', 'note', null))
   -> 0 ->> 'visibility', 'private', 'private notes work as before');
+select is(public.upsert_annotations(jsonb_set(pg_temp.note('40430000-0000-4000-f000-000000000006', 'bookmark',
+  '40430000-0000-4000-b000-000000000002'), '{0,deleted}', 'true')) -> 0 ->> 'visibility', 'private',
+  'a tombstone is stored private');
+
+reset role;
+update public.group_members set banned_at = now() where group_id = '40430000-0000-4000-b000-000000000001';
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"40430000-0000-4000-a000-000000000001","role":"authenticated"}', true);
+select throws_ok($$select public.upsert_annotations(pg_temp.note('40430000-0000-4000-f000-000000000007', 'note',
+  '40430000-0000-4000-b000-000000000001'))$$, 'P0001', 'not_member', 'not after being banned from the club');
 
 select * from finish();
 rollback;
