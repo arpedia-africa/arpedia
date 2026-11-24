@@ -58,10 +58,28 @@ function sh(cmd, argv) {
   heartbeat();
 }
 
+/** The local api and chat Workers must answer, or every step fails in confusing ways. */
+function workersUp() {
+  for (const port of [8787, 8788]) {
+    try {
+      execSync(
+        `curl -s -m 10 -o ${process.platform === 'win32' ? 'NUL' : '/dev/null'} http://127.0.0.1:${port}/`,
+      );
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
 function runJourney(name, steps) {
   let ok = true;
   for (const w of widths) {
     console.log(`\n══ ${name} at ${w}dp ══`);
+    if (!workersUp()) {
+      console.error('✗ the local Workers are not answering on 8787/8788: start `pnpm dev:workers`');
+      return false;
+    }
     sh('pnpm', ['db:reset']);
     // Seal the seed books into the api Worker's local R2 (the reader needs real chapter files).
     sh('node', ['tools/seed-reader-files.mjs']);
