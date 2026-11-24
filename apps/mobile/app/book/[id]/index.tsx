@@ -222,13 +222,18 @@ export default function BookPage() {
               if (d.balance < Math.min(...TIP_PRESETS)) return short(Math.min(...TIP_PRESETS));
               setOverlay('tip');
             },
-            onReport: () => online && setOverlay('report'),
+            onReport: () => setOverlay('report'),
           })}
         />
       </Sheet>
       <GiftSheet book={d} open={overlay === 'gift'} onClose={() => setOverlay(null)} onShort={short} />
       <TipSheet book={d} open={overlay === 'tip'} onClose={() => setOverlay(null)} onShort={short} />
-      <ReportSheet bookId={d.book.id} open={overlay === 'report'} onClose={() => setOverlay(null)} />
+      <ReportSheet
+        bookId={d.book.id}
+        open={overlay === 'report'}
+        online={online}
+        onClose={() => setOverlay(null)}
+      />
     </Screen>
   );
 }
