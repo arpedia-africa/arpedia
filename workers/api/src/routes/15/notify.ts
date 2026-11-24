@@ -47,8 +47,11 @@ export interface Plan {
 }
 
 const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
-const id = (v: unknown) => (typeof v === 'string' && v ? v : null);
-const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Ids that aren't uuids are ignored, so one malformed notice can't fail the batch lookup.
+const id = (v: unknown) => (typeof v === 'string' && UUID.test(v) ? v : null);
+const ids = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && UUID.test(x)) : [];
 const day = (v: unknown) => (typeof v === 'string' && v ? ledgerDay(v) : '');
 const money = (v: unknown) => (typeof v === 'number' ? naira(v) : '');
 const firstLine = (v: unknown) => str(v).split('\n')[0]!.slice(0, 140);
@@ -386,7 +389,14 @@ export async function deliverNotices(
   sendMail: SendMail = sendTemplateEmail,
 ): Promise<boolean[]> {
   if (!notices.length) return [];
-  const l = await lookup(db, needs(notices));
+  let l: Lookup;
+  try {
+    l = await lookup(db, needs(notices));
+  } catch (e) {
+    // Retried like any failure, so the 5-try limit still applies.
+    console.error('[notify] lookup', e);
+    return notices.map(() => false);
+  }
   const out: boolean[] = [];
   for (const n of notices) {
     try {
@@ -433,7 +443,7 @@ export async function drainNotify(
       sendMail,
     );
     for (const [i, r] of rows.entries()) {
-      const give = !ok[i] && r.read_ct > 5;
+      const give = !ok[i] && r.read_ct >= 5;
       if (!ok[i] && !give) continue;
       if (give) {
         console.error('[notify] dropping after 5 tries', queue, r.message.kind, r.msg_id);

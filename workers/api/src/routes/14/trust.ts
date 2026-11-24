@@ -267,7 +267,14 @@ export async function drainTrustOutbox(env: Env): Promise<{ handled: number }> {
     try {
       if (item.kind === 'ticket_reply') await sendTicketReply(env, item);
       if (item.kind === 'rules_changed') cached = null;
-      if (delivered[i]) done.push(row.msg_id);
+      // trust_queue_read has no read count: a notice still failing an hour after it was written
+      // (_trust_notify stamps `at`) is given up, so a bad one can't retry forever.
+      const at = Date.parse(String((row.message as { at?: unknown }).at ?? ''));
+      const stale = Number.isFinite(at) && Date.now() - at > 3_600_000;
+      if (delivered[i] || stale) {
+        if (!delivered[i]) console.error('[trust outbox] dropping after an hour', item.kind, row.msg_id);
+        done.push(row.msg_id);
+      }
     } catch (e) {
       console.error('[trust outbox]', item.kind, e);
     }

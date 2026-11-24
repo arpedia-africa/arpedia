@@ -268,6 +268,16 @@ describe('deliverNotices', () => {
   });
 });
 
+describe('bad input', () => {
+  it('ignores ids that are not uuids, and a failing lookup only marks the batch for retry', async () => {
+    expect(needs([{ kind: 'gift_received', user_id: 'not-a-uuid', book_id: 42 }]).users).toEqual([]);
+    const rpc = vi.fn(async () => ({ data: null, error: new Error('lookup down') }));
+    expect(
+      await deliverNotices(env, { rpc } as never, [{ kind: 'plan_extended', user_id: READER }], vi.fn()),
+    ).toEqual([false]);
+  });
+});
+
 describe('drainNotify', () => {
   it('acks delivered notices, keeps failed ones, drops one that failed 5 times', async () => {
     const rows = {
