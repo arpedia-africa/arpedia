@@ -16,6 +16,21 @@ export interface Plan {
   sort: number;
 }
 
+/** "web price ₦900 → ₦1,000, 300 → 320 credits" for a proposed plan change (only what moves). */
+export function describePlanChange(
+  now: Pick<Plan, 'price_web_kobo' | 'credits' | 'bonus_credits'> | undefined,
+  next: Pick<Plan, 'price_web_kobo' | 'credits' | 'bonus_credits'>,
+): string {
+  const parts: string[] = [];
+  if (!now || now.price_web_kobo !== next.price_web_kobo)
+    parts.push(now ? `web price ${naira(now.price_web_kobo)} → ${naira(next.price_web_kobo)}` : `web price ${naira(next.price_web_kobo)}`);
+  if (!now || now.credits !== next.credits)
+    parts.push(now ? `${now.credits.toLocaleString('en-NG')} → ${next.credits.toLocaleString('en-NG')} credits` : `${next.credits.toLocaleString('en-NG')} credits`);
+  if (now && now.bonus_credits !== next.bonus_credits)
+    parts.push(`${now.bonus_credits.toLocaleString('en-NG')} → ${next.bonus_credits.toLocaleString('en-NG')} bonus credits`);
+  return parts.join(', ') || 'no price change';
+}
+
 export interface Topup {
   code: string;
   credits: number;

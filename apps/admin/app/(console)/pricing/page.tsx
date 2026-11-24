@@ -11,5 +11,5 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
   const staff = await requireStaff();
   if (!canOpen('pricing', staff.permissions)) return <NoAccess page="pricing" label="Plans and pricing" role={staff.role} />;
   const { flash } = await searchParams;
-  return <PricingBody flash={flash?.slice(0, 200)} />;
+  return <PricingBody flash={flash?.slice(0, 200)} viewer={{ id: staff.id, superAdmin: staff.role === 'super_admin' }} />;
 }

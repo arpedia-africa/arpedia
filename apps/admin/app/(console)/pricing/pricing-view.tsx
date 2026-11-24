@@ -2,11 +2,21 @@ import Link from 'next/link';
 import { aboutBooks, naira } from '@arpedia/core';
 import { loadPricing } from './data';
 import { FlashToast } from './flash';
-import { dayLabel, describeChange, nairaDec, num } from './format';
+import { dayLabel, describeChange, describePlanChange, nairaDec, num } from './format';
 
-/** s-pricing: plans, top-ups, what a book costs under the rules, and the price history. */
-export async function PricingBody({ flash }: { flash?: string | null }) {
-  const { plans, topups, avgBook, rules, ruleVersions, planVersions } = await loadPricing();
+/**
+ * s-pricing: plans, top-ups, what a book costs under the rules, and the price history. Price changes
+ * waiting for a second person (rule 17) show as a note above Plans; a Super admin who didn't propose
+ * one gets a Review link.
+ */
+export async function PricingBody({
+  flash,
+  viewer,
+}: {
+  flash?: string | null;
+  viewer: { id: string; superAdmin: boolean };
+}) {
+  const { plans, topups, avgBook, rules, ruleVersions, planVersions, priceChanges } = await loadPricing();
   if (!rules) throw new Error('No pricing rules found');
   const perPage = rules.credits_per_page;
   const creditValue = rules.credit_value_kobo;
@@ -48,9 +58,31 @@ export async function PricingBody({ flash }: { flash?: string | null }) {
       <div className="page">
         <div className="note warn">
           <div className="grow">
-            In-app prices are set in Google Play Console and App Store Connect, not here. Web prices change immediately.
+            In-app prices are set in Google Play Console and App Store Connect, not here. Web price changes wait for a
+            second person: a Super admin confirms them.
           </div>
         </div>
+        {priceChanges.map(c => {
+          const plan = plans.find(p => p.code === c.plan_code);
+          const mine = c.requested_by === viewer.id;
+          return (
+            <div key={c.id} className="note warn">
+              <div className="grow">
+                <b>{`${c.name}: ${describePlanChange(plan, c)}`}</b>
+                {`Proposed by ${mine ? 'you' : (c.by ?? 'a staff member')} on ${dayLabel(c.created_at)}, from ${dayLabel(c.effective_from)}. ${
+                  mine
+                    ? `Waiting for ${viewer.superAdmin ? 'another' : 'a'} Super admin to confirm.`
+                    : 'Nothing changes until a Super admin confirms.'
+                }`}
+              </div>
+              {viewer.superAdmin && !mine && (
+                <Link className="btn btn-p sm" href={`/pricing/${c.plan_code}?change=${c.id}`}>
+                  Review
+                </Link>
+              )}
+            </div>
+          );
+        })}
         <div className="panel panel--flush">
           <div className="panel__head">
             <h2>Plans</h2>
