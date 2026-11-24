@@ -5866,6 +5866,32 @@ isOneToOne: false
 "_do_credit_return":
 { Args: { "p_actor": string,"p_return": string }; Returns: string
                            },
+"_duplicate_web_charge":
+{ Args: { "p_at": string,"p_code": string,"p_kind": string,"p_txn": string,"p_user": string }; Returns: {
+              "created_at": string,
+"credits_granted": number,
+"fee_kobo": number,
+"flag": string | null,
+"gross_kobo": number,
+"id": string,
+"kind": string,
+"net_kobo": number | null,
+"period_start": string | null,
+"plan_code": string | null,
+"refunded_kobo": number,
+"status": string,
+"store": string,
+"store_txn_id": string,
+"subscription_id": string | null,
+"topup_code": string | null,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "transactions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "_earning_settings":
 { Args: Record<PropertyKey, never>; Returns: {
               "changed_by": string | null,
@@ -5906,6 +5932,9 @@ isOneToOne: false
                            },
 "_finished":
 { Args: { "p_book": string,"p_user": string }; Returns: boolean
+                           },
+"_flag_duplicate_charge":
+{ Args: { "p_first": string,"p_tx": string }; Returns: undefined
                            },
 "_fulfil_requests":
 { Args: { "p_book": string }; Returns: undefined

@@ -60,6 +60,19 @@ const firstLine = (v: unknown) => str(v).split('\n')[0]!.slice(0, 140);
 const STAFF_ROLE: Record<string, string> = {
   application_sla: 'publisher',
   staff_alert: 'moderator',
+  finance_alert: 'finance',
+};
+
+/** Finance alerts from flow 09's payments_out queue. */
+const FINANCE_ALERT: Record<string, [subject: string, message: string]> = {
+  chargeback: [
+    'A web payment was disputed (chargeback)',
+    'Unspent credits were taken back and the plan ended. The Flutterwave fee is lost. See Credits → Anomalies.',
+  ],
+  duplicate_charge: [
+    'A reader was charged twice within a minute',
+    'The second charge is waiting in Refunds as "Refund the duplicate".',
+  ],
 };
 
 /** Book notices that name the book's author by `author_id` or only by `book_id`. */
@@ -335,6 +348,14 @@ export function plan(n: Notice, l: Lookup): Plan {
         [str(n.severity), str(n.reason)].filter(Boolean).join(' · ') || 'Open Reports in the console.',
       );
       break;
+    case 'finance_alert': {
+      const [subject, message] = FINANCE_ALERT[str(n.alert)] ?? [
+        `Payment alert: ${str(n.alert) || 'unknown'}`,
+        'See Credits → Anomalies.',
+      ];
+      staff('finance', subject, `${message} Transaction ${str(n.transaction_id)}.`);
+      break;
+    }
     case 'sanction_notice':
       typed('moderation_notice');
       email('sanction_notice', { message: str(n.message) });
