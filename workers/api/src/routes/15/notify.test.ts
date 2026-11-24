@@ -324,6 +324,16 @@ describe('deliverNotices', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
+  it('verify email: a deployed Worker without a public URL keeps the notice for a retry', async () => {
+    const sendMail = vi.fn(async () => true);
+    const { db } = fakeDb({ verifyToken: 'ab'.repeat(24) });
+    const staging = { APP_ENV: 'staging' } as Env;
+    expect(
+      await deliverNotices(staging, db, [{ kind: 'verify_email', user_id: READER }], sendMail),
+    ).toEqual([false]);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
   it('a failing push leaves that notice for a retry', async () => {
     const { db } = fakeDb({ failPush: true });
     expect(

@@ -33,7 +33,7 @@ begin
   end if;
   perform pgmq.send('user_notify', jsonb_build_object('kind', 'receipt', 'user_id', new.user_id,
     'transaction_id', new.id, 'amount_kobo', new.gross_kobo, 'item', coalesce(v_item, 'Arpedia'),
-    'paid_at', new.created_at));
+    'paid_at', now()));  -- when it succeeded, not when checkout began
   return null;
 end $$;
 revoke all on function public._receipt_notice() from public, anon, authenticated;

@@ -373,10 +373,12 @@ export type SendMail = typeof sendTemplateEmail;
 
 /**
  * A one-time verify link, or null when the address is already proven (or the account is gone).
- * Without PUBLIC_API_URL (local) there is nowhere to point the link, so nothing is sent.
+ * Without PUBLIC_API_URL there is nowhere to point the link: local skips it, a deployed Worker
+ * fails the notice so it is retried once the variable is set (preflight requires it).
  */
 async function verifyLink(env: Env, db: Db, userId: string): Promise<string | null> {
   if (!env.PUBLIC_API_URL) {
+    if (env.APP_ENV === 'staging' || env.APP_ENV === 'production') throw new Error('PUBLIC_API_URL is not set');
     console.warn('[notify] verify_email skipped: PUBLIC_API_URL is not set');
     return null;
   }
