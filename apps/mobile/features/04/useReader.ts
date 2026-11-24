@@ -25,6 +25,7 @@ import { captureError } from '@/lib/telemetry';
 import { useOnline } from '../03/book';
 import { rpcError } from '../03/UnlockSheet';
 import { applyProgress } from '../05/library';
+import { syncRoomProgress } from '../07/data';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
 import {
@@ -370,6 +371,9 @@ export function useReader(
         p_device_name: Device.modelName ?? undefined,
         p_at: new Date().toISOString(),
       } as never);
+      // Flow 07 rule 24: rooms reading this book see the new place live (capped by the row above).
+      const ord = files.current?.manifest?.chapters.find((c) => c.chapter_uid === d.chapter_uid)?.ord;
+      if (ord != null) syncRoomProgress(bookId, d.percent, ord);
     },
     [bookId, loc, state, qc],
   );

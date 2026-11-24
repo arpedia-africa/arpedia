@@ -68,6 +68,7 @@ import {
   finishedLabel,
   roomDayLabel,
   roomShareMessage,
+  useApplyRoomProgress,
   useRoom,
   useRoomActions,
   useRoomAnnotations,
@@ -146,10 +147,15 @@ export default function RoomScreen() {
   const roomQ = useRoom(gid);
   const room = roomQ.data;
   const history = useRoomHistory(gid);
-  const chat = useChat(gid, (e, wait) => {
-    if (e === 'slow_mode') return toast({ message: postBlockCopy('slow_mode', { waitSeconds: wait }) });
-    toast({ message: sendErrorCopy(e) });
-  });
+  const applyProgress = useApplyRoomProgress(gid);
+  const chat = useChat(
+    gid,
+    (e, wait) => {
+      if (e === 'slow_mode') return toast({ message: postBlockCopy('slow_mode', { waitSeconds: wait }) });
+      toast({ message: sendErrorCopy(e) });
+    },
+    applyProgress,
+  );
   const action = useChatAction(gid);
   const acts = useRoomActions(gid);
   const track = useRoomsTrack();

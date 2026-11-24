@@ -11,6 +11,7 @@ import {
   type PostBlock,
   type QuotePayload,
   type Reaction,
+  type RoomProgressFrame,
   type SendError,
   type ServerFrame,
 } from '@arpedia/core';
@@ -103,7 +104,12 @@ async function refreshSelf(gid: string) {
  * One socket per open chat. Merges live frames into the history cache, tracks presence and the
  * composer block, and keeps the pending queue (sent in order when the socket opens).
  */
-export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: number) => void) {
+export function useChat(
+  gid: string,
+  onError?: (e: SendError, waitSeconds?: number) => void,
+  /** Reading rooms (flow 07 rule 24): a member's synced place, relayed by the api Worker. */
+  onProgress?: (f: RoomProgressFrame) => void,
+) {
   const qc = useQueryClient();
   const ws = useRef<WebSocket | null>(null);
   const [state, setState] = useState<SocketState>('connecting');
@@ -115,6 +121,8 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
   pendingRef.current = pending;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
 
   const patchHistory = useCallback(
     (fn: (list: ChatMessage[]) => ChatMessage[]) =>
@@ -147,8 +155,11 @@ export function useChat(gid: string, onError?: (e: SendError, waitSeconds?: numb
     let attempt = 0;
     let hellos = 0;
 
-    const onFrame = (f: ServerFrame) => {
+    const onFrame = (f: ServerFrame | RoomProgressFrame) => {
       switch (f.type) {
+        case 'progress':
+          onProgressRef.current?.(f);
+          break;
         case 'hello':
           setReadingNow(f.reading_now);
           setBlock({ reason: f.post_block, until: f.post_block_until });

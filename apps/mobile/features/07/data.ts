@@ -9,6 +9,7 @@ import {
   type PostBlock,
   type RoomJoinPolicy,
   type RoomPace,
+  type RoomProgressFrame,
   type RoomState,
 } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
@@ -153,6 +154,22 @@ export function useRoomsSummary(enabled: boolean) {
       return { people: [...people.values()], readingNow: people.size + unnamed, books: [...books.values()] };
     },
   });
+}
+
+/** Live `progress` frames (rule 24) move that member's chip on the header at once. */
+export function useApplyRoomProgress(id: string) {
+  const qc = useQueryClient();
+  return (f: RoomProgressFrame) =>
+    qc.setQueryData<Room>(roomKey(id), (r) =>
+      r && r.header.some((h) => h.user_id === f.user_id)
+        ? {
+            ...r,
+            header: r.header.map((h) =>
+              h.user_id === f.user_id ? { ...h, percent: f.percent, finished: f.finished } : h,
+            ),
+          }
+        : r,
+    );
 }
 
 export function useRoom(id: string) {
