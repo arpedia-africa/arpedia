@@ -138,6 +138,24 @@ describe('plan', () => {
     ]);
   });
 
+  it('finance alerts email Finance (spec check 09-8)', () => {
+    const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
+    expect(needs([{ kind: 'finance_alert', alert: 'chargeback', transaction_id: 't1' }]).roles).toEqual([
+      'finance',
+    ]);
+    const cb = plan({ kind: 'finance_alert', alert: 'chargeback', transaction_id: 't1' }, l);
+    expect(cb.push).toEqual([]);
+    expect(cb.mail).toHaveLength(1);
+    expect(cb.mail[0]).toMatchObject({ key: 'staff_alert', user_id: MOD });
+    expect(cb.mail[0]!.vars.subject).toBe('A web payment was disputed (chargeback)');
+    expect(cb.mail[0]!.vars.message).toMatch(/Transaction t1\.$/);
+    const dup = plan({ kind: 'finance_alert', alert: 'duplicate_charge', transaction_id: 't2' }, l);
+    expect(dup.mail[0]!.vars.subject).toBe('A reader was charged twice within a minute');
+    expect(plan({ kind: 'finance_alert', alert: 'odd', transaction_id: 't3' }, l).mail[0]!.vars.subject).toBe(
+      'Payment alert: odd',
+    );
+  });
+
   it('a book going live tells the author and their followers (not the author twice)', () => {
     const p = plan({ kind: 'book_live', book_id: BOOK, author_id: AUTHOR }, L);
     expect(p.push.map((x) => [x.type, x.user_ids])).toEqual([
