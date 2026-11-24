@@ -2,7 +2,7 @@
 // the revision and does nothing unless it is still the current generation, so a message delivered
 // twice (waitUntil and the cron safety net) is harmless. Sealed files go under a fresh prefix per
 // attempt; only complete_seal makes one live.
-import type { Json } from '@arpedia/core';
+import { type Json, keyLabel, unwrapKey } from '@arpedia/core';
 import {
   type BaseChapter,
   type BookAnchors,
@@ -13,6 +13,7 @@ import {
   assignAnchors,
   carryCopyright,
   checkChapters,
+  recutPreview,
   safeUnzip,
   sealBook,
   verifyPackage,
@@ -281,10 +282,9 @@ function diff(base: WorkCopy, next: WorkCopy) {
 
 const stable = (o: unknown) => JSON.stringify(o, Object.keys((o ?? {}) as object).sort());
 
-export async function sealStage(env: Env, db: Db, rev: Revision) {
-  const work = await loadWork(env, rev.id, rev.work_version);
-  if (!work) throw new Error(`working copy v${rev.work_version} missing for ${rev.id}`);
-  const prefix = workPrefix(rev.id, work.imagesFrom ?? rev.work_version);
+/** The images a working copy's chapters use, from the version that holds them. */
+async function workImages(env: Env, rev: Revision, work: WorkCopy, version: number) {
+  const prefix = workPrefix(rev.id, work.imagesFrom ?? version);
   const paths = [
     ...new Set(work.chapters.flatMap((c) => c.blocks.flatMap((b) => (b.images ?? []).map((i) => i.path)))),
   ];
@@ -298,6 +298,13 @@ export async function sealStage(env: Env, db: Db, rev: Revision) {
       }),
     ),
   );
+  return images;
+}
+
+export async function sealStage(env: Env, db: Db, rev: Revision) {
+  const work = await loadWork(env, rev.id, rev.work_version);
+  if (!work) throw new Error(`working copy v${rev.work_version} missing for ${rev.id}`);
+  const images = await workImages(env, rev, work, rev.work_version);
 
   const out = await sealBook({
     bookId: rev.book_id,
@@ -343,6 +350,87 @@ export async function sealStage(env: Env, db: Db, rev: Revision) {
   if (error) throw error;
 }
 
+/**
+ * Preview override (flow 03 admin rule 2): seal the live revision again with the cut the book wants
+ * now (the override, else the revision's own). Keys are kept, so copies on phones still open; the
+ * book keeps its price. complete_preview_rebuild makes it live only if nothing changed meanwhile.
+ */
+export async function previewRebuild(env: Env, bookId: string): Promise<void> {
+  const db = serviceDb(env);
+  const { data: book, error } = await db
+    .from('books')
+    .select('id, title, current_revision_id, preview_override_percent, price_override_credits')
+    .eq('id', bookId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!book?.current_revision_id) return;
+  const rev = await revision(db, book.current_revision_id);
+  const version = rev.sealed_work_version;
+  if (!rev.artifact_prefix || version === null) return;
+  const target = Number(book.preview_override_percent ?? rev.preview_percent ?? 10);
+  const price = book.price_override_credits ?? rev.price_credits ?? 0;
+
+  const work = await loadWork(env, rev.id, version);
+  if (!work) throw new Error(`working copy v${version} missing for ${rev.id}`);
+  const { preview, chapters } = recutPreview(work.chapters, target, price);
+
+  const { data: bundle, error: kErr } = await db.rpc('worker_key_bundle', {
+    p_revision: rev.id,
+    p_chapter_uids: work.anchors.uids,
+  });
+  if (kErr) throw kErr;
+  const master = unb64(env.BOOK_MASTER_KEY);
+  const held = await Promise.all(
+    (bundle as unknown as { keys: { chapter_uid: string | null; wrapped_key: string }[] }).keys.map(
+      async (k) =>
+        [
+          k.chapter_uid,
+          await unwrapKey(master, unb64(k.wrapped_key), keyLabel(rev.id, k.chapter_uid)),
+        ] as const,
+    ),
+  );
+  const keys = {
+    free: held.find(([uid]) => uid === null)?.[1],
+    chapters: Object.fromEntries(held.filter(([uid]) => uid !== null)) as Record<string, Uint8Array>,
+  };
+
+  const out = await sealBook({
+    bookId: rev.book_id,
+    revisionId: rev.id,
+    title: (rev.meta as { title?: string } | null)?.title ?? book.title ?? '',
+    chapters,
+    images: await workImages(env, rev, work, version),
+    preview,
+    price,
+    pages: rev.pages ?? work.pages,
+    masterKey: master,
+    anchors: work.anchors,
+    keys,
+  });
+  const artifact = `books/${rev.id}/p${String(target).replace('.', '_')}-${crypto.randomUUID().slice(0, 8)}/`;
+  await Promise.all(Object.entries(out.files).map(([path, bytes]) => env.BOOKS.put(artifact + path, bytes)));
+
+  const { data: done, error: cErr } = await db.rpc('complete_preview_rebuild', {
+    p_rev: rev.id,
+    p_target: target,
+    p_seal: {
+      artifact_prefix: artifact,
+      manifest_key: artifact + 'manifest.json',
+      chapters: out.chapters,
+      keys: out.keys,
+      prices: out.prices,
+      preview_percent: preview.percent,
+      preview_cut_para_id: work.anchors.ids[preview.chapter]![preview.paragraph]!,
+      preview_cut_chapter_uid: work.anchors.uids[preview.chapter]!,
+      free_through_ord: preview.freeThrough,
+    } as unknown as Json,
+  });
+  if (cErr) throw cErr;
+  // Overtaken (a newer override or revision queued its own rebuild): these files are never served.
+  if (!(done as { applied?: boolean } | null)?.applied)
+    await Promise.all(Object.keys(out.files).map((path) => env.BOOKS.delete(artifact + path)));
+}
+
 /** Run one stage if the revision still wants it. */
 export async function runStage(env: Env, msg: StageMsg): Promise<void> {
   const db = serviceDb(env);
@@ -353,14 +441,32 @@ export async function runStage(env: Env, msg: StageMsg): Promise<void> {
     await sealStage(env, db, rev);
 }
 
+/** A job on book_verify that is not a revision stage. */
+interface JobMsg {
+  kind: string;
+  book_id?: string;
+}
+
 /** Cron safety net (every minute): retry what waitUntil did not finish; give up after 3 tries. */
 export async function consumeQueue(env: Env): Promise<void> {
   const db = serviceDb(env);
   const { data, error } = await db.rpc('book_queue_read', { p_queue: 'book_verify', p_vt: 600, p_qty: 5 });
   if (error) throw error;
-  for (const m of (data ?? []) as unknown as { msg_id: number; read_ct: number; message: StageMsg }[]) {
+  for (const m of (data ?? []) as unknown as {
+    msg_id: number;
+    read_ct: number;
+    message: StageMsg | JobMsg;
+  }[]) {
     try {
-      if (m.read_ct > 3 && m.message.stage === 'seal') {
+      if ('kind' in m.message) {
+        const job = m.message;
+        // preview_rebuild is the only job; anything else (the retired reprice_all: pricing rules
+        // apply in apply_pricing_rules, flow 16) is acked so it can't block the queue.
+        if (job.kind === 'preview_rebuild' && job.book_id) {
+          if (m.read_ct > 3) console.error('preview rebuild gave up', job);
+          else await previewRebuild(env, job.book_id);
+        } else console.warn('book_verify: unknown job dropped', job);
+      } else if (m.read_ct > 3 && m.message.stage === 'seal') {
         // Not the author's file: keep their confirmed chapters, retry hourly, alert the Publisher.
         const { error: sf } = await db.rpc('seal_failed', {
           p_rev: m.message.revision_id,
