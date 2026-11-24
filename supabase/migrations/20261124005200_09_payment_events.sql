@@ -171,14 +171,18 @@ begin
       v_dup := case when v_store = 'web'
         then public._duplicate_web_charge(v_user, 'plan', v_plan, n ->> 'txn_id', e.occurred_at) end;
       v_fresh := not v_has_sub or v_sub.status in ('expired', 'refunded');
-      if not v_has_sub then
+      if v_dup.id is not null then
+        -- A duplicate never opens or changes a subscription, and carries none, so refunding it
+        -- cannot end the plan the first charge paid for.
+        null;
+      elsif not v_has_sub then
         -- Also covers a RENEWAL that arrives before its INITIAL_PURCHASE.
         insert into public.subscriptions (user_id, plan_code, status, store, store_original_txn_id, period_start,
                                           period_end, last_event_at, flutterwave_plan_id)
         values (v_user, v_plan, 'active', v_store, n ->> 'original_txn_id', (n ->> 'period_start')::timestamptz,
                 (n ->> 'period_end')::timestamptz, e.occurred_at, n ->> 'flutterwave_plan_id')
         returning * into v_sub;
-      elsif not v_stale and v_dup.id is null then
+      elsif not v_stale then
         update public.subscriptions set plan_code = v_plan, status = 'active', auto_renew = true,
           pending_plan_code = null, pause_until = null, ended_at = null, last_event_at = e.occurred_at,
           flutterwave_plan_id = coalesce(n ->> 'flutterwave_plan_id', flutterwave_plan_id)
@@ -186,7 +190,8 @@ begin
       end if;
       insert into public.transactions (user_id, kind, plan_code, subscription_id, store, store_txn_id,
                                        gross_kobo, fee_kobo, period_start)
-      values (v_user, 'plan', v_plan, v_sub.id, v_store, n ->> 'txn_id', coalesce((n ->> 'gross_kobo')::bigint, 0),
+      values (v_user, 'plan', v_plan, case when v_dup.id is null then v_sub.id end, v_store, n ->> 'txn_id',
+              coalesce((n ->> 'gross_kobo')::bigint, 0),
               coalesce((n ->> 'fee_kobo')::bigint, 0), (n ->> 'period_start')::timestamptz)
       on conflict (store, store_txn_id) do update set status = 'succeeded', subscription_id = excluded.subscription_id,
         gross_kobo = excluded.gross_kobo, fee_kobo = excluded.fee_kobo, period_start = excluded.period_start

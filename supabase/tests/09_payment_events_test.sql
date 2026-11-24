@@ -2,7 +2,7 @@
 -- failed Flutterwave charges, all through ingest_payment_event (the Workers' contract).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 insert into auth.users (id, email)
 select ('90900000-0000-4000-a000-0000000000' || n)::uuid, 'pe' || n || '@flow09.test'
@@ -37,9 +37,8 @@ select is(pg_temp.ev('revenuecat', 'pe41-1', interval '2 hours',
   pg_temp.plan_ev('90900000-0000-4000-a000-000000000041', 'play', 'GPA.41', 'GPA.41-0')) ->> 'outcome',
   'initial_purchase +300', 'the first account buys the plan');
 select is(pg_temp.ev('revenuecat', 'pe42-1', interval '1 hour',
-  pg_temp.plan_ev('90900000-0000-4000-a000-000000000042', 'play', 'GPA.41', 'GPA.41-1')),
-  jsonb_build_object('id', (select id from public.payment_events where event_id = 'pe42-1'),
-                     'duplicate', false, 'outcome', 'linked_elsewhere: recorded, not applied'),
+  pg_temp.plan_ev('90900000-0000-4000-a000-000000000042', 'play', 'GPA.41', 'GPA.41-1')) - 'id',
+  jsonb_build_object('duplicate', false, 'outcome', 'linked_elsewhere: recorded, not applied'),
   'a purchase for the same store subscription from another account is recorded, not an error');
 select is(pg_temp.granted('90900000-0000-4000-a000-000000000042'), 0, 'the second account gets no credits');
 select ok(not exists (select 1 from public.transactions where store_txn_id = 'GPA.41-1'),
@@ -59,6 +58,10 @@ select is(pg_temp.granted('90900000-0000-4000-a000-000000000043'), 300, 'credits
 select results_eq($$select store_txn_id, flag from public.transactions
                     where user_id = '90900000-0000-4000-a000-000000000043' order by store_txn_id$$,
   $$values ('7001'::text, null::text), ('7002', 'duplicate_charge')$$, 'only the second charge is flagged');
+select results_eq($$select (select subscription_id from public.transactions where store_txn_id = '7002'),
+                           (select count(*)::int from public.subscriptions
+                            where user_id = '90900000-0000-4000-a000-000000000043')$$,
+  $$values (null::uuid, 1)$$, 'the duplicate carries no subscription, so refunding it cannot end the plan');
 select results_eq($$select r.recommendation, r.status, r.amount_kobo from public.refund_requests r
                     join public.transactions t on t.id = r.transaction_id where t.store_txn_id = '7002'$$,
   $$values ('duplicate'::text, 'waiting'::text, 90000::bigint)$$, 'it waits in Refunds as Refund the duplicate');
