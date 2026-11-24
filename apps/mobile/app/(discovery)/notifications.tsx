@@ -17,6 +17,7 @@ import { useSession } from '../../features/01/session';
 import { useOnline } from '../../features/09/data';
 import { useCreateAppeal, useMyModeration } from '../../features/14/appeal';
 import { AppealSheet, DecisionCards } from '../../features/14/AppealViews';
+import { useTrack } from '../../features/02/analytics';
 
 /** `s-notifications`: New and Earlier, category tabs, Mark all read (rules 30–33). */
 export default function Notifications() {
@@ -25,6 +26,7 @@ export default function Notifications() {
   const [category, setCategory] = useState<NotifCategory>('all');
   const feed = useNotifications(category);
   const mark = useMarkRead();
+  const track = useTrack();
   const pages = feed.data?.pages;
   const items = pages?.flatMap((p) => p.items) ?? [];
   const unread = pages?.[0]?.unread ?? 0;
@@ -50,6 +52,7 @@ export default function Notifications() {
   const open = (row: NotifRow) => {
     const n = items.find((x) => x.id === row.id);
     if (!n) return;
+    track('notification_opened', { kind: n.kind });
     if (!n.read_at) mark.one.mutate(n.id);
     openTarget(n);
   };

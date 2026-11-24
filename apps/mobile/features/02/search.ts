@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { isSearchable, normalizeQuery, type LengthBand } from '@arpedia/core';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isSearchable, normalizeQuery, type LengthBand, type LibraryItem } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { mirrorBooks } from '../05/library';
 import type { HomeBook } from './home';
 import type { Scope } from './SearchViews';
 
@@ -49,6 +50,21 @@ export function useOnline() {
     [],
   );
   return online;
+}
+
+/* ─── Offline matches (rule 22) ──────────────────────────────────────────── */
+/** Books in the reader's library (the persisted Library mirror) whose title or author matches. */
+export function useLibraryMatches(q: string, enabled: boolean): LibraryItem[] {
+  const qc = useQueryClient();
+  const norm = normalizeQuery(q);
+  if (!enabled || !norm) return [];
+  return [...mirrorBooks(qc).values()]
+    .filter(
+      (b) =>
+        normalizeQuery(b.title).includes(norm) ||
+        (b.author_name != null && normalizeQuery(b.author_name).includes(norm)),
+    )
+    .slice(0, 8);
 }
 
 /** Debounced value (suggestions wait 200 ms after the last letter). */
