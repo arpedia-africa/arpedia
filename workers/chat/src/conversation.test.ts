@@ -345,6 +345,21 @@ describe('moderate-text (flow 14)', () => {
     expect(ada.frames.at(-1)).toMatchObject({ error: 'rejected_by_rules' });
   });
 
+  it('counts slow mode from when the message is sent, after the check', async () => {
+    let tick: (ms: number) => void = () => undefined;
+    const t = setup(async () => {
+      tick(1_500);
+      return { action: 'allow' };
+    });
+    tick = t.tick;
+    t.table.set('ada', access({ slow_mode_seconds: 30 }));
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    t.tick(29_000);
+    await t.send(ada, 2);
+    expect(ada.frames.at(-1)).toMatchObject({ error: 'slow_mode', wait_seconds: 1 });
+  });
+
   it('falls back to its own checks when the Worker is down or slow', async () => {
     vi.useFakeTimers();
     try {
