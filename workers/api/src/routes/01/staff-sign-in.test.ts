@@ -69,6 +69,16 @@ describe('password sign-in with the per-email lockout (spec check 01-3)', () => 
     expect(serviceDb).toHaveBeenCalledWith(env, { 'Sb-Forwarded-For': '102.89.1.2' });
   });
 
+  it('an Auth outage is not counted as a wrong password', async () => {
+    rpc.mockResolvedValueOnce({ data: false, error: null });
+    signInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { status: 503, message: 'down' },
+    });
+    await expect(post({ email: 'ngozi@example.com', password: 'pw' })).resolves.toHaveProperty('status', 500);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
   it('missing fields are refused without a lookup', async () => {
     const res = await post({ email: '', password: 'pw' });
     expect(res.status).toBe(401);

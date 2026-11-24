@@ -36,6 +36,8 @@ signIn.post('/', async (c) => {
   const { data, error } = await db.auth.signInWithPassword({ email, password });
   if (error || !data.session) {
     if (error?.status === 429) return c.json({ error: 'rate_limited' }, 429);
+    // Only a real wrong password counts: an Auth outage must not lock readers out.
+    if (error && error.status !== 400) throw new Error(`sign-in failed: ${error.status} ${error.message}`);
     const { error: noteError } = await db.rpc('note_staff_signin_failure', { p_email: email });
     if (noteError) throw new Error(`note_staff_signin_failure failed: ${noteError.message}`);
     return c.json({ error: 'refused' }, 401);

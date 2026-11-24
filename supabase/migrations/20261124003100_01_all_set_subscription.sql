@@ -1,7 +1,8 @@
 -- Spec check 01-6: s-all-set (rule 30) reads the reader's subscription row for the plan and the
 -- renewal date, so a Play-side date or plan change shows correctly. Credits still come from the
 -- latest plan_grant ledger row. Without a live subscription (webhook not in yet) the plan falls
--- back to that ledger row and `renews_at` stays null (the app then derives it as before).
+-- back to that ledger row and `renews_at` stays null (the app then derives it as before). A
+-- cancelled or paused plan still in its period reports `renewing: false` and no renewal date.
 create or replace function public.get_all_set() returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -11,6 +12,7 @@ declare
   g_at timestamptz;
   s_plan text;
   s_end timestamptz;
+  s_renews boolean;
 begin
   if uid is null then
     raise exception 'sign in first' using errcode = '42501';
@@ -19,15 +21,21 @@ begin
     from public.credit_ledger l
     where l.user_id = uid and l.reason = 'plan_grant' and l.delta > 0
     order by l.created_at desc limit 1;
-  select s.plan_code, s.period_end into s_plan, s_end
+  -- A plan cancelled or paused inside its paid period is still the plan, but it does not renew.
+  select s.plan_code, s.period_end, s.status in ('active', 'grace', 'billing_retry')
+    into s_plan, s_end, s_renews
     from public.subscriptions s
-    where s.user_id = uid and s.status in ('active', 'grace', 'billing_retry')
+    where s.user_id = uid
+      and (s.status in ('active', 'grace', 'billing_retry')
+           or (s.status in ('cancelled', 'paused') and s.period_end > now()))
     order by s.period_end desc limit 1;
   return jsonb_build_object(
     'credits', g_credits,
     'plan', coalesce(s_plan, g_plan),
     'granted_at', g_at,
-    'renews_at', s_end,
+    'renews_at', case when s_renews then s_end end,
+    -- Null without a subscription row; false when it will not renew.
+    'renewing', s_renews,
     'book', (
       select jsonb_build_object('id', b.id, 'title', b.title, 'price', r.price_credits)
       from public.books b
