@@ -14,7 +14,12 @@ begin
   select jsonb_build_object(
            'exported_at', now(),
            'account', jsonb_build_object('id', u.id, 'email', u.email, 'created_at', u.created_at),
-           'profile', (select to_jsonb(p) from public.profiles p where p.id = p_user_id))
+           'profile', (select to_jsonb(p) - coalesce((select array_agg(c.column_name::text)
+                                                        from information_schema.columns c
+                                                        where c.table_schema = 'public' and c.table_name = 'profiles'
+                                                          and c.column_name ~* '(token|secret|key_|_key$|hash|password|otp|ciphertext)'),
+                                                       '{}')
+                       from public.profiles p where p.id = p_user_id))
     into v_out
   from auth.users u where u.id = p_user_id;
   if v_out is null then
