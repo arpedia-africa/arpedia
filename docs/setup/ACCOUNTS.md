@@ -22,19 +22,20 @@ One list for the owner, the account set-up chat and the builders. **Look here be
 | Android signing | v25 upload key, Play service account | `ANDROID_*`, `PLAY_SERVICE_ACCOUNT_JSON` | `release-android.yml` |
 | Firebase | `google-services.json` for `com.arpedia.reader` | `FIREBASE_GOOGLE_SERVICES_JSON` | App build |
 
-**Staging is live (24 Nov 2026):** `https://arpedia-api-staging.arpedia-africa.workers.dev` and `https://arpedia-chat-staging.arpedia-africa.workers.dev` (workers.dev name `arpedia-africa`: don't rename, app builds use it). Database migrated, 6 sample books from `tools/launch/staging-content.mjs`. No admin console or Super admin yet. Still to do in the dashboard: turn off **Confirm email** on `arpedia-staging`. The `STAGING_*` keys below are in `secrets.env`: never change `STAGING_BOOK_MASTER_KEY` or the books can't be opened.
+**Staging is live (24 Nov 2026):** `https://arpedia-api-staging.arpedia-africa.workers.dev` and `https://arpedia-chat-staging.arpedia-africa.workers.dev` (workers.dev name `arpedia-africa`: don't rename, app builds use it). Database migrated, 6 sample books from `tools/launch/staging-content.mjs`. No admin console or Super admin yet. **Confirm email** is off on `arpedia-staging` only. The `STAGING_*` keys below are in `secrets.env`: never change `STAGING_BOOK_MASTER_KEY` or the books can't be opened.
 
 **v25, never touch:** Supabase ref `qtsfpwmksiqtqjwthydz` (paused), R2 buckets `arpedia-books` and `arpedia-ota`, and any Worker, route or DNS record v25 uses.
 
 ## In progress or still needed
-| Service | State (24 Nov 2026) | Saved as | Name in the Worker |
+| Service | State (25 Nov 2026) | Saved as | Name in the Worker |
 |---|---|---|---|
-| Resend | In progress, in the existing v25 account. `arpedia.africa` there is already verified (leave it). `mail.arpedia.africa` added with its DNS records; still to do: verify, save the key, Supabase SMTP, DMARC | `RESEND_API_KEY` | `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` |
+| Resend | `mail.arpedia.africa` verified, in the existing v25 account (`arpedia.africa` there: leave it). Key `supabase-smtp` is sending-only and limited to that domain. Custom SMTP saved on both Supabase projects; no real email sent yet. Still to do: a test email, DMARC, the webhook secret, and setting the Worker secret | `RESEND_API_KEY` | `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` |
 | RevenueCat and Play products | Not started (reuse the v25 project) | `REVENUECAT_ANDROID_PUBLIC_KEY`, `REVENUECAT_SECRET_KEY` | `REVENUECAT_API_KEY`, `REVENUECAT_WEBHOOK_AUTH` |
 | Google sign-in, FCM, Vision | Not started (reuse the v25 project) | `GOOGLE_OAUTH_*`, `FCM_SERVICE_ACCOUNT_JSON`, `GOOGLE_VISION_API_KEY` | Sign-in and push: set in Supabase and Expo |
 | Expo push | Not started | `EXPO_ACCESS_TOKEN` | `EXPO_ACCESS_TOKEN`, `PUSH_MODE` |
 | Flutterwave test keys, then the webhook | Not started | `FLW_TEST_*` | `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH` |
-| Sentry, PostHog | Not started | `SENTRY_*`, `POSTHOG_KEY` | App variables `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_POSTHOG_KEY` |
+| Sentry | Organisation `arpedia`, US region (reported as the owner's choice). Projects `mobile`, `admin`, `workers`. Token `arpedia-ci` has only `org:ci`: it reads releases, but the crash-free check in `tools/launch/preflight.mjs` gets 403 on `stats_v2`, so that check needs its own read-only token. Not in any build yet; only the app reads a DSN today (nothing in admin or the Workers does) | `SENTRY_DSN_MOBILE`, `SENTRY_DSN_ADMIN`, `SENTRY_DSN_WORKERS`, `SENTRY_AUTH_TOKEN` | App variable `EXPO_PUBLIC_SENTRY_DSN` |
+| PostHog | The account is US. **Owner to choose US or EU** before a key is made. The app defaults to the EU host, so US also needs `EXPO_PUBLIC_POSTHOG_HOST` | `POSTHOG_KEY` (not set) | App variables `EXPO_PUBLIC_POSTHOG_KEY`, `EXPO_PUBLIC_POSTHOG_HOST` |
 | R2 `arpedia-backups` | Production only. Needs its own token: `arpedia-r2-2` doesn't cover it | `R2_*` in the GitHub `backup` environment | Backup workflow |
 | Apple | Waits for the partner account | `ASC_*`, `APNS_*`, `APPLE_*` | iOS only |
 
