@@ -35,7 +35,7 @@ One list for the owner, the account set-up chat and the builders. **Look here be
 | Expo push | Not started | `EXPO_ACCESS_TOKEN` | `EXPO_ACCESS_TOKEN`, `PUSH_MODE` |
 | Flutterwave test keys, then the webhook | Not started | `FLW_TEST_*` | `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH` |
 | Sentry | Organisation `arpedia`, US region (reported as the owner's choice). Projects `mobile`, `admin`, `workers`. Token `arpedia-ci` has only `org:ci`: it reads releases, but the crash-free check in `tools/launch/preflight.mjs` gets 403 on `stats_v2`, so that check needs its own read-only token. Not in any build yet; only the app reads a DSN today (nothing in admin or the Workers does) | `SENTRY_DSN_MOBILE`, `SENTRY_DSN_ADMIN`, `SENTRY_DSN_WORKERS`, `SENTRY_AUTH_TOKEN` | App variable `EXPO_PUBLIC_SENTRY_DSN` |
-| PostHog | The account is US. **Owner to choose US or EU** before a key is made. The app defaults to the EU host, so US also needs `EXPO_PUBLIC_POSTHOG_HOST` | `POSTHOG_KEY` (not set) | App variables `EXPO_PUBLIC_POSTHOG_KEY`, `EXPO_PUBLIC_POSTHOG_HOST` |
+| PostHog | US project, **provisional: the owner has not chosen US or EU, so do not deploy with it yet.** The key only works on the US host. The app defaults to the EU host, so US also needs `EXPO_PUBLIC_POSTHOG_HOST` | `POSTHOG_KEY`, `POSTHOG_HOST` (both US) | App variables `EXPO_PUBLIC_POSTHOG_KEY`, `EXPO_PUBLIC_POSTHOG_HOST` |
 | R2 `arpedia-backups` | Production only. Needs its own token: `arpedia-r2-2` doesn't cover it | `R2_*` in the GitHub `backup` environment | Backup workflow |
 | Apple | Waits for the partner account | `ASC_*`, `APNS_*`, `APPLE_*` | iOS only |
 
