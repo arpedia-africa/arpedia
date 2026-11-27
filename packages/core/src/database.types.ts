@@ -5863,6 +5863,9 @@ isOneToOne: false
 "_banner_target_ok":
 { Args: { "p_target": Json }; Returns: boolean
                            },
+"_book_author":
+{ Args: { "p_rev": string }; Returns: string
+                           },
 "_book_card":
 { Args: { "p_book": string }; Returns: Json
                            },
