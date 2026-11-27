@@ -20,6 +20,7 @@ import {
 } from '@arpedia/convert';
 import { serviceDb } from '../../db';
 import type { Env } from '../../env';
+import { screenBook } from './screening';
 
 export type { WorkCopy };
 
@@ -213,7 +214,16 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
         suggestion: 'Ask the author for the Word file if the chapters look wrong.',
       },
     );
+  // Plagiarism and content policy (rules 24, 25): a check that can't run is skipped, never blocking.
+  const screen = await screenBook(env, work.chapters);
+  v.flags.push(...screen.flags);
   const flags = locateFlags(v.flags, anchors);
+  const { error: se } = await db.rpc('record_screening', {
+    p_rev: rev.id,
+    p_generation: rev.generation,
+    p_checks: screen.checks as unknown as Json,
+  });
+  if (se) throw se;
   const { error } = await db.rpc('complete_verify', {
     p_rev: rev.id,
     p_generation: rev.generation,

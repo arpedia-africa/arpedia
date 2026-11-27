@@ -382,6 +382,31 @@ describe('staff alert preferences (16-14)', () => {
   });
 });
 
+describe('screening_skipped (12-3)', () => {
+  it('tells Operations admins which book check could not run', () => {
+    const p = plan(
+      {
+        kind: 'screening_skipped',
+        role: 'operations_admin',
+        book_id: BOOK,
+        checks: ['plagiarism', 'policy'],
+      },
+      { ...L, staff: { operations_admin: [MOD] } },
+    );
+    expect(p.mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: 'A book check was skipped',
+          message:
+            'Harmattan Letters: the plagiarism and content policy check could not run (the provider did not answer). Look at the book before it goes live.',
+        },
+      },
+    ]);
+  });
+});
+
 describe('needs', () => {
   it('collects people, books, staff roles and followed authors', () => {
     const n = needs([
