@@ -62,11 +62,13 @@ export default function WriteReview() {
       setError(
         code === 'not_finished'
           ? 'Finish the book to review it.'
-          : code === 'network'
-            ? 'No connection. Your review wasn’t posted. Try again.'
-            : code === 'signed_out'
-              ? 'You’re signed out. Sign in again to post your review.'
-              : 'Something went wrong. Try again.',
+          : code === 'rejected_by_rules'
+            ? 'New accounts can’t add links or phone numbers to reviews yet. Remove it and post again.'
+            : code === 'network'
+              ? 'No connection. Your review wasn’t posted. Try again.'
+              : code === 'signed_out'
+                ? 'You’re signed out. Sign in again to post your review.'
+                : 'Something went wrong. Try again.',
       );
     },
   });
