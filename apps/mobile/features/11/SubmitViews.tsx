@@ -13,6 +13,7 @@ import {
   OnHero,
   Petals,
   Press,
+  Skeleton,
   Text,
   useBottomInset,
   useTheme,
@@ -721,6 +722,7 @@ function PageCard({ page, width }: { page: PreviewPage; width: number }) {
 
 export function SubmitPreviewView({
   pages,
+  pagesLoading = false,
   readiness,
   readinessLabel,
   checklist,
@@ -732,6 +734,8 @@ export function SubmitPreviewView({
   onBack,
 }: {
   pages: PreviewPage[] | null;
+  /** The pages are on their way: three card-sized skeletons hold the row. */
+  pagesLoading?: boolean;
   /** 0–100 */
   readiness: number;
   readinessLabel: string;
@@ -757,7 +761,24 @@ export function SubmitPreviewView({
         onBack={onBack}
       />
       <View style={{ paddingTop: s(16), paddingHorizontal: s(16), paddingBottom: s(28), gap: s(16) }}>
-        {pages ? (
+        {pagesLoading ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: s(12),
+              marginHorizontal: -s(16),
+              paddingHorizontal: s(16),
+              paddingTop: s(4),
+              paddingBottom: s(8),
+              overflow: 'hidden',
+            }}
+            accessibilityLabel="Loading your pages"
+          >
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} width={pageW} height={s(250)} radius={s(16)} />
+            ))}
+          </View>
+        ) : pages?.length ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
