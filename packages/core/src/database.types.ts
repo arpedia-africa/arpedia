@@ -7265,6 +7265,9 @@ isOneToOne: false
 "get_book_page":
 { Args: { "p_book": string }; Returns: Json
                            },
+"get_close_matches":
+{ Args: { "p_q": string }; Returns: Json
+                           },
 "get_config_screen":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
