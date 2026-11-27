@@ -1488,14 +1488,14 @@ isOneToOne: false
                   ]
                 },"copyright_claims": {
                   Row: {
-                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
+                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Update: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Relationships: [
                     {
@@ -1888,14 +1888,14 @@ isOneToOne: false
                   ]
                 },"earning_cycles": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"checks": Json | null,"closed_at": string | null,"created_at": string,"credits_books": number,"credits_tips_messages": number,"earnings_kobo": number,"hold_days": number | null,"id": string,"ledger_check": Json | null,"legacy": boolean,"min_payout_kobo": number | null,"month": string,"net_revenue_kobo": number | null,"payout_date": string | null,"prepared_at": string | null,"prepared_by": string | null,"status": Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at": string | null,"approved_by": string | null,"checks": Json | null,"closed_at": string | null,"created_at": string,"credits_books": number,"credits_tips_messages": number,"earnings_kobo": number,"hold_days": number | null,"id": string,"ledger_check": Json | null,"legacy": boolean,"min_payout_kobo": number | null,"month": string,"net_revenue_kobo": number | null,"payout_date": string | null,"prepared_at": string | null,"prepared_by": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["earning_cycle_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month": string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month": string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month"?: string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month"?: string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
                   }
                   Relationships: [
                     {
@@ -4042,14 +4042,14 @@ isOneToOne: false
                   ]
                 },"reading_rooms": {
                   Row: {
-                    "book_id": string,"code": string,"created_at": string,"ended_at": string | null,"ended_by": string | null,"group_id": string,"host_id": string | null,"join_policy": Database["public"]['Enums']["room_join_policy"],"last_activity_at": string,"locked_before_end": string | null,"locked_by_staff": boolean,"max_members": number,"pace": Database["public"]['Enums']["room_pace"],"start_notified_at": string | null,"starts_at": string,"state": Database["public"]['Enums']["room_state"],"transcript_purge_at": string | null
+                    "book_id": string,"code": string,"created_at": string,"end_notified_at": string | null,"ended_at": string | null,"ended_by": string | null,"group_id": string,"host_id": string | null,"join_policy": Database["public"]['Enums']["room_join_policy"],"last_activity_at": string,"locked_before_end": string | null,"locked_by_staff": boolean,"max_members": number,"pace": Database["public"]['Enums']["room_pace"],"start_notified_at": string | null,"starts_at": string,"state": Database["public"]['Enums']["room_state"],"transcript_purge_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "book_id": string,"code": string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id": string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"start_notified_at"?: string | null,"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
+                    "book_id": string,"code": string,"created_at"?: string,"end_notified_at"?: string | null,"ended_at"?: string | null,"ended_by"?: string | null,"group_id": string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"start_notified_at"?: string | null,"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
                   }
                   Update: {
-                    "book_id"?: string,"code"?: string,"created_at"?: string,"ended_at"?: string | null,"ended_by"?: string | null,"group_id"?: string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"start_notified_at"?: string | null,"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
+                    "book_id"?: string,"code"?: string,"created_at"?: string,"end_notified_at"?: string | null,"ended_at"?: string | null,"ended_by"?: string | null,"group_id"?: string,"host_id"?: string | null,"join_policy"?: Database["public"]['Enums']["room_join_policy"],"last_activity_at"?: string,"locked_before_end"?: string | null,"locked_by_staff"?: boolean,"max_members"?: number,"pace"?: Database["public"]['Enums']["room_pace"],"start_notified_at"?: string | null,"starts_at"?: string,"state"?: Database["public"]['Enums']["room_state"],"transcript_purge_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -4826,6 +4826,32 @@ isOneToOne: false
       foreignKeyName: "staff_alert_prefs_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"staff_alert_reads": {
+                  Row: {
+                    "read_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "read_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "read_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "staff_alert_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "staff_alert_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
       referencedRelation: "public_profiles"
       referencedColumns: ["id"]
     }
@@ -5736,6 +5762,17 @@ isOneToOne: false
 "_author_state":
 { Args: { "p_author": string }; Returns: string
                            },
+"_automod_hits":
+{ Args: { "p_surface": string,"p_text": string }; Returns: {
+              "action": string,"category": string,"id": string
+            }[]
+                           },
+"_automod_norm":
+{ Args: { "p": string }; Returns: string
+                           },
+"_automod_pattern":
+{ Args: { "p_needle": string }; Returns: string
+                           },
 "_balance":
 { Args: { "p_user": string }; Returns: number
                            },
@@ -5857,6 +5894,9 @@ isOneToOne: false
 "_cycle_ledger":
 { Args: { "p_month": string }; Returns: Json
                            },
+"_cycle_net_revenue":
+{ Args: { "p_month": string }; Returns: number
+                           },
 "_cycle_start":
 { Args: { "p_month": string }; Returns: string
                            },
@@ -5913,6 +5953,9 @@ isOneToOne: false
 { Args: { "p_room": string }; Returns: undefined
                            },
 "_erase_account_base":
+{ Args: { "p_deletion": string }; Returns: boolean
+                           },
+"_erase_account_v2":
 { Args: { "p_deletion": string }; Returns: boolean
                            },
 "_event_plan_code":
@@ -6488,6 +6531,9 @@ isOneToOne: false
 "_staff_acts_on_readers":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"_staff_alert_on":
+{ Args: { "p_kind": string,"p_uid": string }; Returns: boolean
+                           },
 "_staff_name":
 { Args: { "p_user": string }; Returns: string
                            },
@@ -6533,6 +6579,11 @@ isOneToOne: false
                            },
 "_transfer_status_applies":
 { Args: { "p_current": Database["public"]['Enums']["payout_status"],"p_next": Database["public"]['Enums']["payout_status"] }; Returns: boolean
+                           },
+"_trending_target":
+{ Args: { "p_q": string }; Returns: {
+              "author_id": string,"book_id": string
+            }[]
                            },
 "_trust_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
@@ -6913,6 +6964,9 @@ isOneToOne: false
 "claim_ask_author":
 { Args: { "p_claim": string,"p_days"?: number,"p_note"?: string }; Returns: undefined
                            },
+"claim_deadline_watch":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "claim_download_slot":
 { Args: { "p_device_key": string }; Returns: boolean
                            },
@@ -7175,6 +7229,9 @@ isOneToOne: false
 "exclude_gift_loop":
 { Args: { "p_ledger_ids": (number)[],"p_note"?: string }; Returns: number
                            },
+"exclude_gift_loop_alert":
+{ Args: { "p_alert": number,"p_note"?: string }; Returns: number
+                           },
 "expire_exports":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
                            },
@@ -7253,6 +7310,9 @@ isOneToOne: false
                            },
 "get_book_page":
 { Args: { "p_book": string }; Returns: Json
+                           },
+"get_close_matches":
+{ Args: { "p_q": string }; Returns: Json
                            },
 "get_config_screen":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -7372,6 +7432,9 @@ isOneToOne: false
 "get_public_policies":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"get_read_together":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "get_reader_state":
 { Args: { "p_book": string }; Returns: Json
                            },
@@ -7401,6 +7464,9 @@ isOneToOne: false
             }[]
                            },
 "get_search_home":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"get_staff_alerts":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
 "get_staff_context":
@@ -7492,7 +7558,13 @@ isOneToOne: false
 "job_credit_daily_snapshot":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"job_expire_approvals":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "job_expire_ended_subscriptions":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"job_gift_loop_detect":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "job_ledger_reconcile":
@@ -7594,6 +7666,9 @@ isOneToOne: false
                            },
 "mark_read":
 { Args: { "p_group": string,"p_up_to"?: string }; Returns: undefined
+                           },
+"mark_staff_alerts_read":
+{ Args: { "p_until"?: string }; Returns: string
                            },
 "marketing_pushes_7d":
 { Args: { "p_at"?: string,"p_user": string }; Returns: number
@@ -7699,6 +7774,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"payout_reminder_due":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "payout_transfer_created":
 { Args: { "p_payout": string,"p_transfer_id": string }; Returns: undefined
                            },
@@ -7733,6 +7811,9 @@ isOneToOne: false
                            },
 "preview_pricing_rules":
 { Args: { "p_rules": Json }; Returns: Json
+                           },
+"public_cover_key":
+{ Args: { "p_rev": string }; Returns: string
                            },
 "publish_due":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -7986,6 +8067,9 @@ isOneToOne: false
                            },
 "rollback_ota":
 { Args: { "p_stepup": string }; Returns: Json
+                           },
+"room_end_pushes":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "room_lifecycle":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -8416,6 +8500,9 @@ isOneToOne: false
 "staff_list_readers":
 { Args: { "p_filters"?: Json,"p_page"?: number,"p_query"?: string,"p_tab"?: string }; Returns: Json
                            },
+"staff_message_author":
+{ Args: { "p_author": string,"p_body": string }; Returns: Json
+                           },
 "staff_mfa_ok":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
@@ -8427,6 +8514,9 @@ isOneToOne: false
                            },
 "staff_request_campaign_review":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"staff_resend_receipt":
+{ Args: { "p_transaction": string }; Returns: Json
                            },
 "staff_reset_link_fresh":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -8504,6 +8594,9 @@ isOneToOne: false
       } },
 "staff_test_push":
 { Args: { "p_id": string }; Returns: boolean
+                           },
+"staff_update_author_profile":
+{ Args: { "p_author": string,"p_bio": string,"p_location": string,"p_pen_name": string }; Returns: Json
                            },
 "start_application":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -8777,6 +8870,9 @@ isOneToOne: false
                            },
 "worker_register_device":
 { Args: { "p_name": string,"p_public_key": string,"p_user": string }; Returns: string
+                           },
+"worker_service_health":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "worker_set_integration_health":
 { Args: { "p_error_note"?: string,"p_error_rate"?: number,"p_key_masked"?: string,"p_last_event_at"?: string,"p_last_event_text"?: string,"p_service": string,"p_status": string }; Returns: undefined

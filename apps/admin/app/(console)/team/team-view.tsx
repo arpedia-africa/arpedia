@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import type { StaffRole } from '@arpedia/core';
 import { Icon } from '@/components/icon';
+import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
 import { ROLE_ORDER, roleLabel } from '@/lib/staff-rules';
+import { sortRows } from '@/lib/table';
 import { changeRole, inviteStaff, resetTwoStep, setActive } from './actions';
 
 export interface TeamRow {
@@ -90,6 +92,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
   const [modal, setModal] = useState<Modal>(openInvite ? { kind: 'invite' } : null);
   const [, start] = useTransition();
   const [toastNode, showToast] = useToast();
+  const online = useOnline();
   const now = new Date();
 
   useEffect(() => {
@@ -106,15 +109,15 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
     };
   }, [menu]);
 
+  // You first, then staff before open invites, by role, then by name.
   const sorted = useMemo(
     () =>
-      [...rows].sort(
-        (a, b) =>
-          Number(b.isSelf) - Number(a.isSelf) ||
-          Number(a.kind === 'invite') - Number(b.kind === 'invite') ||
-          ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) ||
-          a.name.localeCompare(b.name),
-      ),
+      sortRows(rows, [
+        { id: 'self', value: r => r.isSelf, desc: true },
+        { id: 'invite', value: r => r.kind === 'invite' },
+        { id: 'role', value: r => ROLE_ORDER.indexOf(r.role) },
+        { id: 'name', value: r => r.name },
+      ]),
     [rows],
   );
   const shown = sorted.filter(r => {
@@ -123,12 +126,14 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
   });
   const disabled = rows.filter(r => r.kind === 'staff' && !r.active).length;
 
-  const run = (p: Promise<{ ok?: boolean; error?: string }>, ok: string, undo?: () => void) =>
+  const run = (p: () => Promise<{ ok?: boolean; error?: string }>, ok: string, undo?: () => void) => {
+    if (!navigator.onLine) return showToast("You're offline. Try again when the connection is back.");
     start(async () => {
-      const r = await p;
+      const r = await p();
       if (r.ok) showToast(ok, undo);
       else showToast(r.error ?? "That didn't save. Try again.");
     });
+  };
 
   return (
     <section className="screen enter">
@@ -138,7 +143,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
             <h1>Team and roles</h1>
           </div>
           <div className="band__acts">
-            <button type="button" className="btn btn-n" onClick={() => setModal({ kind: 'invite' })}>
+            <button type="button" className="btn btn-n" disabled={!online} onClick={() => setModal({ kind: 'invite' })}>
               <Icon name="uplus" />
               Invite staff
             </button>
@@ -154,6 +159,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
         </Link>
       </div>
       <div className="page">
+        <OfflineNote online={online} />
         <div className="toolbar">
           <label className="search">
             <Icon name="search" />
@@ -251,7 +257,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
                             type="button"
                             className="btn btn-g sm"
                             onClick={() =>
-                              run(inviteStaff(r.email, r.name, r.role), `Invite sent again to ${r.email}. It expires in 72 hours.`)
+                              run(() => inviteStaff(r.email, r.name, r.role), `Invite sent again to ${r.email}. It expires in 72 hours.`)
                             }
                           >
                             Resend
@@ -301,7 +307,7 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
                                 onRole={() => setModal({ kind: 'role', row: r })}
                                 onReset={() =>
                                   run(
-                                    resetTwoStep(r.id),
+                                    () => resetTwoStep(r.id),
                                     r.isSelf
                                       ? 'Two-step reset. You set it up again at your next sign-in.'
                                       : `Two-step reset for ${r.name}. They set it up again at next sign-in.`,
@@ -309,9 +315,9 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
                                 }
                                 onActive={active =>
                                   run(
-                                    setActive(r.id, active),
+                                    () => setActive(r.id, active),
                                     active ? `${r.name} can sign in again.` : `${r.name} disabled. Signed out everywhere within 1 minute.`,
-                                    active ? undefined : () => run(setActive(r.id, true), `${r.name} can sign in again.`),
+                                    active ? undefined : () => run(() => setActive(r.id, true), `${r.name} can sign in again.`),
                                   )
                                 }
                               />
@@ -460,6 +466,7 @@ function InviteModal({ onClose, onSent }: { onClose: () => void; onSent: (email:
   const [role, setRole] = useState<StaffRole>('support');
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
+  const online = useOnline();
   const who = firstName(name.trim()) || 'They';
   return (
     <Overlay label="Invite staff" onClose={onClose}>
@@ -513,7 +520,7 @@ function InviteModal({ onClose, onSent }: { onClose: () => void; onSent: (email:
         <button
           type="button"
           className="btn btn-p"
-          disabled={pending}
+          disabled={pending || !online}
           aria-busy={pending}
           onClick={() =>
             start(async () => {
@@ -535,6 +542,7 @@ function RoleModal({ row, onClose, onSaved }: { row: TeamRow; onClose: () => voi
   const [role, setRole] = useState<StaffRole>(row.role);
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
+  const online = useOnline();
   return (
     <Overlay label="Change role" onClose={onClose}>
       <div className="modal__h">
@@ -564,7 +572,7 @@ function RoleModal({ row, onClose, onSaved }: { row: TeamRow; onClose: () => voi
         <button
           type="button"
           className="btn btn-p"
-          disabled={pending || role === row.role}
+          disabled={pending || !online || role === row.role}
           aria-busy={pending}
           onClick={() =>
             start(async () => {

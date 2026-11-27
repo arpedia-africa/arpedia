@@ -5,12 +5,19 @@ import { Icon } from '@/components/icon';
 import { Chips, Empty, avClass, dayMonth, guard, initials, n0, planName } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
 import { RowLink } from '../books/row';
+import { ReturnDecision } from './returns';
 
 export const RECOMMENDATION: Record<string, string> = {
   full: 'Refund in full',
   partial: 'Partial or decline',
   decline: 'Decline',
   duplicate: 'Refund the duplicate',
+};
+
+const RETURN_REASON: Record<string, string> = {
+  skipped_ahead: 'Skipped ahead by mistake',
+  did_not_open: 'Chapter didn’t open or display',
+  wrong_book: 'Wrong book',
 };
 
 const GROUPS = {
@@ -22,14 +29,14 @@ type Group = keyof typeof GROUPS;
 
 /** Refund requests (s-refunds): web payments only, with credits used and a recommendation. Only Waiting carries a pill. */
 export async function RefundsScreen({ group, done }: { group?: string; done?: string }) {
-  const { denied } = await guard('refunds', 'Refunds');
+  const { staff, denied } = await guard('refunds', 'Refunds');
   if (denied) return denied;
 
   const current: Group = group === 'refunded' || group === 'declined' ? group : 'waiting';
   const supabase = await serverSupabase();
   const count = (g: Group) =>
     supabase.from('refund_requests').select('id', { count: 'exact', head: true }).in('status', [...GROUPS[g]]);
-  const [res, waiting, refunded, declined] = await Promise.all([
+  const [res, waiting, refunded, declined, returnsRes] = await Promise.all([
     supabase
       .from('refund_requests')
       .select(
@@ -43,9 +50,13 @@ export async function RefundsScreen({ group, done }: { group?: string; done?: st
     count('waiting'),
     count('refunded'),
     count('declined'),
+    // Chapter returns waiting for Finance (flow 14 rule 39); a role that can't list them sees none.
+    supabase.rpc('admin_list_credit_returns'),
   ]);
   if (res.error) throw res.error;
   const rows = res.data;
+  const returns = current === 'waiting' && !returnsRes.error ? (returnsRes.data ?? []) : [];
+  const canDecideReturns = staff.role === 'finance' || staff.role === 'super_admin';
   const counts = { waiting: waiting.count ?? 0, refunded: refunded.count ?? 0, declined: declined.count ?? 0 };
 
   return (
@@ -136,6 +147,49 @@ export async function RefundsScreen({ group, done }: { group?: string; done?: st
             </div>
           )}
         </div>
+        {returns.length > 0 && (
+          <div className="panel panel--flush">
+            <div className="panel__head">
+              <h2>Chapter returns waiting for Finance</h2>
+              <span className="sub">{`${n0(returns.length)} over 50 credits or a 4th return in 30 days`}</span>
+            </div>
+            <div className="tw">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Reader</th>
+                    <th>Chapter</th>
+                    <th className="r">Credits</th>
+                    <th>Reason</th>
+                    <th>Asked by</th>
+                    <th className="acts"></th>
+                  </tr>
+                </thead>
+                <tbody className="mn-tr">
+                  {returns.map(r => (
+                    <tr key={r.id}>
+                      <td>
+                        <Link className="link" href={`/users/${r.user_id}`}>
+                          {r.user_name || 'Reader'}
+                        </Link>
+                      </td>
+                      <td className="mn-wrap">{[r.book_title, r.chapter_title].filter(Boolean).join(' · ') || 'Chapter'}</td>
+                      <td className="n">{n0(r.credits)}</td>
+                      <td>{RETURN_REASON[r.reason] ?? r.reason}</td>
+                      <td>
+                        {r.requested_by_name || '—'}
+                        <small className="faint">{` · ${dayMonth(r.created_at)}`}</small>
+                      </td>
+                      <td className="acts">
+                        <ReturnDecision id={r.id} canDecide={canDecideReturns} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
       {done && <Flash msg={done} />}
     </section>

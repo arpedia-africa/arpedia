@@ -2,6 +2,7 @@
 import type { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import health from './00/health';
+import covers from './03/covers';
 import avatars from './01/avatars';
 import staffInvites from './01/staff-invites';
 import staffSignIn from './01/staff-sign-in';
@@ -29,6 +30,7 @@ export const routes: [path: string, router: Hono<AppEnv>][] = [
   ['/v1/staff-sign-in', staffSignIn],
   // Spec check 01-3: readers sign in through the same lockout.
   ['/v1/sign-in', staffSignIn],
+  ['/v1/covers', covers],
   ['/v1/rooms', rooms],
   ['/v1/author-applications', authorApplications],
   ['/v1/books', books],

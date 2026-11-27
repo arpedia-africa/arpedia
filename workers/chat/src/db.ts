@@ -49,7 +49,11 @@ export interface ChatDb {
   canQuote(userId: string, bookId: string, chapter: number): Promise<boolean>;
   /** Push for stored messages (flow 15 push_fanout); readers with the chat open are skipped. */
   pushMessages(messageIds: string[], openIds: string[]): Promise<void>;
+  /** Messages in the group whose state changed since `since` (ISO), newest first, at most 100. */
+  changedStates(groupId: string, since: string): Promise<{ id: string; state: MessageState }[]>;
 }
+
+export type MessageState = 'visible' | 'auto_hidden' | 'removed' | 'deleted';
 
 export class RpcError extends Error {
   constructor(
@@ -112,6 +116,20 @@ export function serviceDb(url: string, serviceKey: string): ChatDb {
         { p_message_ids: ids, p_open: open },
         AbortSignal.timeout(PUSH_TIMEOUT_MS),
       );
+    },
+    changedStates: async (g, since) => {
+      const q = new URLSearchParams({
+        select: 'id,state',
+        group_id: `eq.${g}`,
+        state_changed_at: `gte.${since}`,
+        order: 'state_changed_at.desc',
+        limit: '100',
+      });
+      const res = await fetch(`${url}/rest/v1/messages?${q}`, {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+      });
+      if (!res.ok) throw new RpcError(res.status, undefined, await res.text());
+      return (await res.json()) as { id: string; state: MessageState }[];
     },
   };
 }

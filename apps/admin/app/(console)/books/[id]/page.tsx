@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/supabase/server';
 import { coverClass, date } from '../shared';
 import { BookHead } from './book-head';
 import { ToastButton } from './book-menu';
+import { loadShelves } from './shelves';
 
 const n0 = (n: number) => n.toLocaleString('en-NG');
 
@@ -47,6 +48,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
         .gte('created_at', new Date(Date.now() - 90 * 864e5).toISOString()),
     ]);
 
+  const shelves = await loadShelves(supabase, book);
   const title = book.title;
   const author = book.author?.full_name ?? '';
   const price = eff?.effective_price ?? rev?.price_credits ?? null;
@@ -172,10 +174,32 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
               <div className="panel__head">
                 <h2>On the Discover shelves</h2>
               </div>
-              <div className="empty">
-                <b>Not on any shelf yet</b>
-                <span>Shelves and Trending placements show here once Discover curation is set up.</span>
-              </div>
+              {shelves.length ? (
+                <div className="list">
+                  {shelves.map(r => (
+                    <div className="li" key={r.key}>
+                      <span className="li__body">
+                        <b>{r.title}</b>
+                        <small>{r.detail}</small>
+                      </span>
+                      {r.edit ? (
+                        <Link className="link" href={r.edit}>
+                          Edit
+                        </Link>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <b>Not on any shelf yet</b>
+                  <span>
+                    {book.status === 'live'
+                      ? 'It shows here once it is pinned to a shelf, ranks in Top 10 or leads its genre.'
+                      : 'Books join Discover shelves once they are live.'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

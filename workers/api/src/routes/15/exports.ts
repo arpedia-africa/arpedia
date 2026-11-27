@@ -5,6 +5,7 @@
 import { csvRow } from '@arpedia/core';
 import { serviceDb } from '../../db';
 import type { Env } from '../../env';
+import { deliverNotices } from './notify';
 
 type Db = ReturnType<typeof serviceDb>;
 const PAGE = 1000;
@@ -21,6 +22,7 @@ export async function buildExport(env: Env, db: Db, id: string): Promise<void> {
     columns: string[];
     status: string;
     created_at: string;
+    created_by: string;
   } | null;
   // A retry after a crash mid-build finds it `building`: build again (the file key is the same).
   if (!e || (e.status !== 'counting' && e.status !== 'building')) return;
@@ -56,7 +58,12 @@ export async function buildExport(env: Env, db: Db, id: string): Promise<void> {
     p_file_key: key,
   });
   if (se) throw se;
-  // TODO(flow 16): staff bell alert "Your export is ready" once the staff bell exists.
+  // Rule 29: the creator hears it is ready. The console has no staff bell, so it is an email; a
+  // failed send is logged and never rebuilds the file.
+  const [ok] = await deliverNotices(env, db, [
+    { kind: 'export_ready', user_id: e.created_by, export_kind: e.kind, row_count: count },
+  ]).catch(() => [false]);
+  if (!ok) console.error('export_ready not sent', id);
 }
 
 export async function buildExports(env: Env): Promise<void> {

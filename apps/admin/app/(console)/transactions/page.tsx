@@ -6,6 +6,7 @@ import { Icon } from '@/components/icon';
 import { Chips, Empty, PAGE_SIZE, PLATFORM, Pager, dayMonth, guard, n0, pageNo, planName, safeTerm, shortRef, thisMonth } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
 import { Menu } from '../books/menu';
+import { RowLink } from '../books/row';
 
 export const metadata: Metadata = { title: 'Transactions · Arpedia Admin' };
 
@@ -179,7 +180,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                     const net = t.status === 'failed' || t.status === 'pending' ? 0 : Math.max(0, (t.net_kobo ?? t.gross_kobo) - t.refunded_kobo);
                     const platform = PLATFORM[t.store] ?? t.store;
                     return (
-                      <tr key={t.id}>
+                      <RowLink key={t.id} href={`/transactions/${t.id}`}>
                         <td className="nw" title={ledgerDate(t.created_at)}>{`${dayMonth(t.created_at)}, ${ledgerDate(t.created_at).slice(-5)}`}</td>
                         <td>
                           <div className="who">
@@ -217,7 +218,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                             <span className="st-plain">{STATUS_LABEL[t.status] ?? t.status}</span>
                           )}
                         </td>
-                      </tr>
+                      </RowLink>
                     );
                   })}
                 </tbody>
