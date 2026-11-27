@@ -114,7 +114,8 @@ export const pageAccess: Record<string, string[]> = {
   subscriptions: ['view_money'],
   transactions: ['view_money'],
   refunds: ['refund'],
-  credits: ['grant_credits'],
+  // Finance removes credits and approves big grants (14 rule 38), so it opens Credits too.
+  credits: ['grant_credits', 'refund'],
   pricing: ['change_prices'],
   promos: ['change_prices'],
   royalties: ['release_payouts'],

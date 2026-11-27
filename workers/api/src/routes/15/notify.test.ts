@@ -61,6 +61,29 @@ describe('plan', () => {
     ]);
   });
 
+  it('a staff credit grant: credits and the staff message, opening Credits (14-11)', () => {
+    const p = plan(
+      { kind: 'credits_granted', user_id: READER, credits: 1200, message: 'Hi Ngozi, enjoy.\nTicket #1' },
+      L,
+    );
+    expect(p.mail).toEqual([]);
+    expect(p.push).toEqual([
+      {
+        type: 'account_notice',
+        user_ids: [READER],
+        data: {
+          vars: { title: 'We added 1,200 credits to your account', body: 'Hi Ngozi, enjoy.' },
+          target: { kind: 'screen', screen: 'credits' },
+        },
+      },
+    ]);
+    const bare = plan({ kind: 'credits_granted', user_id: READER, credits: 90, message: null }, L);
+    expect(bare.push[0]!.data.vars).toEqual({
+      title: 'We added 90 credits to your account',
+      body: 'Enjoy your reading',
+    });
+  });
+
   it('welcome and receipt are emails only, with amount, item and date', () => {
     expect(plan({ kind: 'welcome', user_id: READER }, L)).toEqual({
       push: [],
