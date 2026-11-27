@@ -5,7 +5,7 @@ import { ledgerDate, ledgerDay, naira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { PLATFORM, guard, n0, planName } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
-import { ExtendPanel } from './client';
+import { ExtendPanel, SubscriptionActions } from './client';
 
 export const metadata: Metadata = { title: 'Subscription · Arpedia Admin' };
 
@@ -73,7 +73,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
       .limit(50),
     supabase
       .from('transactions')
-      .select('gross_kobo, fee_kobo, created_at')
+      .select('id, status, gross_kobo, fee_kobo, created_at')
       .eq('subscription_id', s.id)
       .eq('kind', 'plan')
       .order('created_at', { ascending: false })
@@ -101,6 +101,9 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
   const store = PLATFORM[s.store] ?? s.store;
   const canExtend = staff.role === 'finance' || staff.role === 'super_admin';
   const timeline = events.data ?? [];
+  // Resend receipt (rule 33): web plans only, for the latest payment that went through.
+  const receiptTx =
+    s.store === 'web' && canExtend && paid && ['succeeded', 'refunded', 'disputed'].includes(paid.status) ? paid.id : null;
 
   return (
     <section className="screen enter">
@@ -124,6 +127,11 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
                 .join(' · ')}
             </div>
           </div>
+          {receiptTx && (
+            <div className="ph__acts">
+              <SubscriptionActions transactionId={receiptTx} name={name} />
+            </div>
+          )}
         </div>
       </div>
       <div className="page">

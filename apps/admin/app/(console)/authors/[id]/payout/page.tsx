@@ -233,6 +233,7 @@ export default async function AuthorPayoutPage({ params }: { params: Promise<{ i
               paused={paused}
               reason={p?.hold?.reason ?? ((a.profile.payouts_paused_reason as PauseReason | null) || null)}
               setBy={p?.hold?.set_name ?? null}
+              note={p?.hold?.note ?? null}
               canEdit={canEdit}
             />
             <details className="fold">

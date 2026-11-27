@@ -9,14 +9,21 @@ type Result = { ok: true; message: string } | { ok: false; error: string };
 export type PauseReason = 'account_dispute' | 'suspected_fraud' | 'author_request' | 'other';
 
 /** Pause or lift an author's payouts (rule 12): reason required, logged, the author is not told. */
-export async function setPayoutHold(author: string, pause: boolean, reason: PauseReason | null, name: string): Promise<Result> {
+export async function setPayoutHold(
+  author: string,
+  pause: boolean,
+  reason: PauseReason | null,
+  name: string,
+  note = '',
+): Promise<Result> {
+  if (pause && reason === 'other' && note.trim().length < 3) return { ok: false, error: 'Say why in a few words.' };
   const supabase = await serverSupabase();
   const first = name.split(' ')[0] ?? 'this author';
   const { error } = pause
     ? await supabase.rpc('pause_author_payouts', {
         p_author: author,
         p_reason: reason ?? 'other',
-        p_note: reason === 'other' ? 'Other (set in the console)' : undefined,
+        p_note: note.trim() || undefined,
       })
     : await supabase.rpc('lift_pause', { p_author: author });
   if (error) {
@@ -26,7 +33,7 @@ export async function setPayoutHold(author: string, pause: boolean, reason: Paus
         error,
         {
           '42501': 'Only Finance and Super admins can pause payouts.',
-          reason_required: 'Choose a reason to pause.',
+          reason_required: reason === 'other' ? 'Say why in a few words.' : 'Choose a reason to pause.',
           not_paused: 'Payouts were already on.',
         },
         "Couldn't save. Nothing changed. Try again.",
