@@ -341,6 +341,8 @@ function Check({ ok, bad, children }: { ok: boolean | null; bad: string; childre
   );
 }
 
+const RETRY_AT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+
 function StatusLine({ c, isSuper, iPrepared }: { c: CycleDetail; isSuper: boolean; iPrepared: boolean }) {
   const line = (dot: string, b: string, rest: string) => (
     <div className="sline">
@@ -362,6 +364,12 @@ function StatusLine({ c, isSuper, iPrepared }: { c: CycleDetail; isSuper: boolea
         `Two people must agree before money moves.${isSuper && !iPrepared ? ' You are a Super admin, so you can approve.' : iPrepared ? ' You prepared it, so another Super admin approves.' : ''}`,
       );
     case 'releasing':
+      if (c.retrying)
+        return line(
+          'warn',
+          'Paused, retrying.',
+          `Flutterwave did not take ${c.retrying.count === 1 ? '1 transfer' : `${c.retrying.count} transfers`} (${naira(c.retrying.kobo)}). No money moved.${c.retrying.next_at ? ` The next try is ${RETRY_AT.format(new Date(c.retrying.next_at))}.` : ''} Finance was emailed.`,
+        );
       return line('warn', `Released by ${c.approved_name ?? 'a Super admin'} · transfers are going out.`, 'The month shows Paid once Flutterwave confirms every transfer.');
     case 'paid':
       return line('', 'Paid.', 'Flutterwave confirmed every transfer.');
