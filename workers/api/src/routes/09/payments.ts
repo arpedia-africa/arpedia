@@ -2,9 +2,11 @@ import { Hono } from 'hono';
 import {
   fwSubscriptionKey,
   normalizeFlutterwaveCharge,
+  normalizeFlutterwaveRefund,
   normalizeFlutterwaveUnpaid,
   normalizeRevenueCat,
   safeEqual,
+  type FlutterwaveRefund,
   type FlutterwaveTx,
   type IngestInput,
   type Ignored,
@@ -245,10 +247,56 @@ payments.post('/flutterwave', async (c) => {
     return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
   }
 
-  // Refunds we start ourselves are completed by the queue drain (complete_refund), so the
-  // refund webhook is only acknowledged here.
+  if (/refund/i.test(body.event ?? body['event.type'] ?? '')) {
+    const out = await applyDashboardRefund(c.env, db, body.data.id);
+    return c.json(out.body, out.status);
+  }
+
   return c.json({ ok: true, ignored: `event ${body.event}` });
 });
+
+/**
+ * A refund made in the Flutterwave dashboard (spec check 09-13): re-queried by refund id and applied
+ * like a store refund (paid share off the purchase, unspent credits clawed back). A refund Finance
+ * started in admin is skipped here: the queue drain completes it (complete_refund), and applying it
+ * twice would claw back twice.
+ */
+async function applyDashboardRefund(
+  env: Env,
+  db: Db,
+  refundId: number | undefined,
+): Promise<{ status: 200 | 500; body: Record<string, unknown> }> {
+  if (!refundId) return { status: 200, body: { ok: true, ignored: 'no refund id' } };
+  let refund: FlutterwaveRefund;
+  try {
+    refund = await flw<FlutterwaveRefund>(env, `/refunds/${refundId}`);
+  } catch (e) {
+    // Flutterwave doesn't know it (4xx): nothing to apply. Otherwise let Flutterwave retry.
+    if (e instanceof FlwError && e.status < 500) return { status: 200, body: { ok: true, ignored: 'unknown refund' } };
+    throw e;
+  }
+  const { data: tx, error } = await db
+    .from('transactions')
+    .select('id, user_id')
+    .eq('store', 'web')
+    .eq('store_txn_id', String(refund.tx_id))
+    .maybeSingle();
+  if (error) throw new Error(`transactions: ${error.message}`);
+  if (!tx) return { status: 200, body: { ok: true, ignored: 'unknown transaction' } };
+  const { data: own, error: ownErr } = await db
+    .from('refund_requests')
+    .select('id')
+    .eq('transaction_id', tx.id)
+    .or(`status.eq.refunding,flutterwave_refund_id.eq.${refund.id}`)
+    .limit(1);
+  if (ownErr) throw new Error(`refund_requests: ${ownErr.message}`);
+  if (own?.length) return { status: 200, body: { ok: true, ignored: 'refund started in admin' } };
+  const mapped = normalizeFlutterwaveRefund(refund, tx.user_id);
+  if (isIgnored(mapped)) return { status: 200, body: { ok: true, ignored: mapped.ignore } };
+  const res = await ingest(db, mapped, { refund });
+  if (res.error) return { status: 500, body: { error: 'apply_failed', id: res.id } };
+  return { status: 200, body: { ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome } };
+}
 
 // ─── Outbound queue ─────────────────────────────────────────────────────────
 type OutMsg =
