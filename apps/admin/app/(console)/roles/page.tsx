@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { StaffRole } from '@arpedia/core';
 import { Icon } from '@/components/icon';
+import { OfflineBanner } from '@/components/online';
 import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
 import { ROLE_ORDER, roleLabel } from '@/lib/staff-rules';
@@ -101,6 +102,7 @@ export default async function RolesPage() {
         </a>
       </div>
       <div className="page">
+        <OfflineBanner />
         <div className="split">
           <div className="panel panel--flush">
             {matrix(main)}
