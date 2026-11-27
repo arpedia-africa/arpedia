@@ -1488,14 +1488,14 @@ isOneToOne: false
                   ]
                 },"copyright_claims": {
                   Row: {
-                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
+                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Update: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Relationships: [
                     {
@@ -6928,6 +6928,9 @@ isOneToOne: false
                            },
 "claim_ask_author":
 { Args: { "p_claim": string,"p_days"?: number,"p_note"?: string }; Returns: undefined
+                           },
+"claim_deadline_watch":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "claim_download_slot":
 { Args: { "p_device_key": string }; Returns: boolean
