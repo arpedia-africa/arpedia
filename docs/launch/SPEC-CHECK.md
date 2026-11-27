@@ -525,7 +525,7 @@ Ids 10-5, 10-7, 10-8, 10-17 (Privacy, Downloads/Credits/Subscription rows, Becom
 | - [ ] | 16-25 | Admin side | "Preview as" (Super admin views another role's sidebar and Home, audited) is absent | `apps/admin/components/shell.tsx` (absent) | later | A |
 | - [ ] | 16-26 | Server: access token hook / Analytics | No custom access token hook (`staff_role`, `aal` claims; `config.toml` hook commented out) and no Sentry `staff_role` tag in admin | `supabase/config.toml:297` | later | A |
 | - [ ] | 16-27 | Data: audit_log | `audit_log` is not partitioned by month; list shows IP only, no place | `supabase/migrations/20261117000000_00_foundation.sql:95` | later | A |
-| - [ ] | 16-28 | Open Q4 | One-Super-admin warning shows on Roles page only, not on every Super admin's Home | `apps/admin/app/(console)/page.tsx:10` | later | A |
+| - [x] | 16-28 | Open Q4 | One-Super-admin warning shows on Roles page only, not on every Super admin's Home. **Fixed (A2, 27 Nov):** while there is one Super admin, their Home lists the task "Add a second Super admin" (opens Team), in the same task-row markup | `apps/admin/app/(console)/page.tsx:10` | later | A |
 | - [x] | 16-29 | 17 | Pending approval requests are never moved to `expired` by any job (only when someone tries to decide) | `supabase/migrations/20261120001600_16_settings.sql:248` **Fixed:** `job_expire_approvals` (pg_cron every 15 minutes) moves pending requests past `expires_at` to expired; `decide_approval`'s own mark was rolled back by its raise. | later | A |
 
 78 rules checked, 29 gaps.
