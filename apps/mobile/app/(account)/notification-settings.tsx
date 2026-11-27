@@ -9,7 +9,8 @@ import { NotifPrefsView } from '../../features/10/SettingsViews';
 import { useTrack as useEngageTrack } from '../../features/15/analytics';
 import { pushEnabled } from '../../features/15/push';
 
-// Flow 10 · Notification preferences (s-notif-prefs, rules 19–23). Toggles save on tap.
+// Flow 10 · Notification preferences (s-notif-prefs, rules 19–23; flow 15 rule 3). Toggles save
+// on tap with a "Saved" toast; Club and room messages also opens its three choices.
 export default function NotificationSettings() {
   const toast = useToast();
   const track = useTrack();
@@ -38,11 +39,26 @@ export default function NotificationSettings() {
         onBack={() => router.back()}
         onFeed={() => router.push('/notifications')}
         onOpenSettings={() => void Linking.openSettings()}
+        onMessages={(level) =>
+          setPref.mutate(
+            { k: 'messages_level', v: level },
+            {
+              onSuccess: () => {
+                toast({ message: 'Saved' });
+                track('notif_pref_changed', { key: 'messages_level', value: level });
+                track15('notif_prefs_changed', { field: 'messages_level', value: level });
+              },
+              onError: () => toast({ message: "Couldn't save that. Try again." }),
+            },
+          )
+        }
         onToggle={(k, v) =>
           setPref.mutate(
             { k, v },
             {
               onSuccess: () => {
+                // Rule 3 (flow 15): no confirmation screen, a "Saved" toast.
+                toast({ message: 'Saved' });
                 track('notif_pref_changed', { key: k, value: v });
                 // Flow 15 names the same change for analytics_daily.
                 if (k === 'quiet_enabled') track15('quiet_hours_changed', { value: v });

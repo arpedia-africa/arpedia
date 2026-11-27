@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import type { CollectionKind, CollectionPage } from './CollectionViews';
-import type { DeviceRow, NotifKey, NotifPrefs } from './SettingsViews';
+import type { DeviceRow, MessagesLevel, NotifKey, NotifPrefs } from './SettingsViews';
 
 const api = process.env.EXPO_PUBLIC_API_URL ?? '';
 
@@ -57,17 +57,28 @@ export function useNotifPrefs() {
   });
 }
 
+/** What a change looks like at once: `clubs` and `messages_level` move together (flow 15 rule 3). */
+export function patchPrefs(p: NotifPrefs, change: NotifChange): NotifPrefs {
+  if (change.k === 'messages_level') return { ...p, messages_level: change.v, clubs: change.v !== 'off' };
+  if (change.k === 'clubs') {
+    const was = p.messages_level ?? (p.clubs ? 'mentions' : 'off');
+    return { ...p, clubs: change.v, messages_level: change.v ? (was === 'off' ? 'mentions' : was) : 'off' };
+  }
+  return { ...p, [change.k]: change.v };
+}
+export type NotifChange = { k: NotifKey; v: boolean } | { k: 'messages_level'; v: MessagesLevel };
+
 /** Saves on tap; a failed save puts the toggle back (rule 21). */
 export function useSetNotifPref() {
   return useMutation({
     networkMode: 'offlineFirst',
-    mutationFn: async ({ k, v }: { k: NotifKey; v: boolean }) => {
+    mutationFn: async ({ k, v }: NotifChange) => {
       const { error } = await supabase.rpc('set_notification_preferences', { p_patch: { [k]: v } });
       if (error) throw error;
     },
-    onMutate: ({ k, v }) => {
+    onMutate: (change) => {
       const before = queryClient.getQueryData<NotifPrefs>(prefsKey);
-      if (before) queryClient.setQueryData<NotifPrefs>(prefsKey, { ...before, [k]: v });
+      if (before) queryClient.setQueryData<NotifPrefs>(prefsKey, patchPrefs(before, change));
       return { before };
     },
     onError: (_e, _v, ctx) => {
