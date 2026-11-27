@@ -6598,6 +6598,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_statement_rows":
+{ Args: { "p_author": string,"p_from": string,"p_to": string }; Returns: {
+              "book_id": string,"credits": number,"is_tip": boolean,"kobo": number,"title": string
+            }[]
+                           },
 "_step":
 { Args: { "p_rev": string,"p_step": string }; Returns: undefined
                            },
@@ -6995,6 +7000,9 @@ isOneToOne: false
                            },
 "can_read_room_annotation":
 { Args: { "p_room": string }; Returns: boolean
+                           },
+"can_request_statement":
+{ Args: { "p_author": string }; Returns: boolean
                            },
 "can_support":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -7747,6 +7755,11 @@ isOneToOne: false
 "my_earning_cycles":
 { Args: Record<PropertyKey, never>; Returns: {
               "id": string,"month": string,"payout_date": string,"status": Database["public"]['Enums']["earning_cycle_status"]
+            }[]
+                           },
+"my_statements":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"id": string,"kind": Database["public"]['Enums']["statement_kind"],"month": string
             }[]
                            },
 "norm_query":
@@ -8702,6 +8715,20 @@ isOneToOne: false
       } },
 "start_author_dm":
 { Args: { "p_author": string }; Returns: Json
+                           },
+"statement_download_key":
+{ Args: { "p_id": string }; Returns: string
+                           },
+"statement_source":
+{ Args: { "p_author": string,"p_cycle": string }; Returns: Json
+                           },
+"statement_ytd_source":
+{ Args: { "p_author": string,"p_year"?: number }; Returns: Json
+                           },
+"statements_due":
+{ Args: { "p_limit"?: number }; Returns: {
+              "author_id": string,"cycle_id": string
+            }[]
                            },
 "studio_books":
 { Args: Record<PropertyKey, never>; Returns: Json
