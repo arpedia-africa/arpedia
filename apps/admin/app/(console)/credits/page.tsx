@@ -5,7 +5,7 @@ import { AUTHOR_RATE, ledgerDate, naira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { Empty, dayMonth, guard, n0, thisMonth } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
-import { ApprovalButtons, FreezeGifting } from './client';
+import { ApprovalButtons, FreezeGiftLoop, FreezeGifting } from './client';
 
 export const metadata: Metadata = { title: 'Credits · Arpedia Admin' };
 
@@ -248,8 +248,12 @@ export default async function CreditsPage() {
                           <small>{sub}</small>
                         </Link>
                         <span className="li__trail">
-                          <span className="st st-err">Likely farming</span>
-                          {!frozen && <FreezeGifting frozen={false} />}
+                          {a.kind !== 'gift_loop' && <span className="st st-err">Likely farming</span>}
+                          {a.kind === 'gift_loop' ? (
+                            <FreezeGiftLoop alertId={a.id} frozen={frozen} />
+                          ) : (
+                            !frozen && <FreezeGifting frozen={false} />
+                          )}
                         </span>
                       </div>
                     ) : (

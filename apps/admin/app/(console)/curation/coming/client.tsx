@@ -16,6 +16,8 @@ export interface Candidate {
   notify: number;
   onShelf: boolean;
   cover: string;
+  /** Who has a copyright claim open on the book (new or waiting on the author), if anyone. */
+  claimant: string | null;
 }
 
 const TEASER_MAX = 140;
@@ -183,6 +185,14 @@ export function ComingDrawer({ candidates, initial }: { candidates: Candidate[];
                   'Nobody has tapped Notify me yet. Readers who do get one push when it goes live.'
                 )}
               </span>
+              {c.claimant ? (
+                <div className="note warn">
+                  <span className="grow">
+                    <b>Copyright claim open</b>
+                    {c.claimant} has a claim on this book. Check Copyright claims before it launches.
+                  </span>
+                </div>
+              ) : null}
             </>
           )}
         </div>

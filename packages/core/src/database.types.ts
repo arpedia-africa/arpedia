@@ -1488,14 +1488,14 @@ isOneToOne: false
                   ]
                 },"copyright_claims": {
                   Row: {
-                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
+                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Update: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Relationships: [
                     {
@@ -5894,6 +5894,9 @@ isOneToOne: false
 "_cycle_ledger":
 { Args: { "p_month": string }; Returns: Json
                            },
+"_cycle_net_revenue":
+{ Args: { "p_month": string }; Returns: number
+                           },
 "_cycle_start":
 { Args: { "p_month": string }; Returns: string
                            },
@@ -5950,6 +5953,9 @@ isOneToOne: false
 { Args: { "p_room": string }; Returns: undefined
                            },
 "_erase_account_base":
+{ Args: { "p_deletion": string }; Returns: boolean
+                           },
+"_erase_account_v2":
 { Args: { "p_deletion": string }; Returns: boolean
                            },
 "_event_plan_code":
@@ -6958,6 +6964,9 @@ isOneToOne: false
 "claim_ask_author":
 { Args: { "p_claim": string,"p_days"?: number,"p_note"?: string }; Returns: undefined
                            },
+"claim_deadline_watch":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "claim_download_slot":
 { Args: { "p_device_key": string }; Returns: boolean
                            },
@@ -7219,6 +7228,9 @@ isOneToOne: false
                            },
 "exclude_gift_loop":
 { Args: { "p_ledger_ids": (number)[],"p_note"?: string }; Returns: number
+                           },
+"exclude_gift_loop_alert":
+{ Args: { "p_alert": number,"p_note"?: string }; Returns: number
                            },
 "expire_exports":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
@@ -7550,6 +7562,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "job_expire_ended_subscriptions":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"job_gift_loop_detect":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "job_ledger_reconcile":
