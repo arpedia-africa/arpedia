@@ -61,6 +61,29 @@ describe('plan', () => {
     ]);
   });
 
+  it('a staff credit grant: credits and the staff message, opening Credits (14-11)', () => {
+    const p = plan(
+      { kind: 'credits_granted', user_id: READER, credits: 1200, message: 'Hi Ngozi, enjoy.\nTicket #1' },
+      L,
+    );
+    expect(p.mail).toEqual([]);
+    expect(p.push).toEqual([
+      {
+        type: 'account_notice',
+        user_ids: [READER],
+        data: {
+          vars: { title: 'We added 1,200 credits to your account', body: 'Hi Ngozi, enjoy.' },
+          target: { kind: 'screen', screen: 'credits' },
+        },
+      },
+    ]);
+    const bare = plan({ kind: 'credits_granted', user_id: READER, credits: 90, message: null }, L);
+    expect(bare.push[0]!.data.vars).toEqual({
+      title: 'We added 90 credits to your account',
+      body: 'Enjoy your reading',
+    });
+  });
+
   it('welcome and receipt are emails only, with amount, item and date', () => {
     expect(plan({ kind: 'welcome', user_id: READER }, L)).toEqual({
       push: [],
@@ -255,6 +278,24 @@ describe('plan', () => {
       L,
     );
     expect([t.push.map((x) => x.type), t.mail]).toEqual([['ticket_reply'], []]);
+  });
+
+  it('late tickets: one email to Support per run, with the oldest ref (14-25)', () => {
+    const l = { ...L, staff: { ...L.staff, support: [MOD] } };
+    expect(plan({ kind: 'ticket_late', count: 3, oldest_ref: 'TKT-1042' }, l).mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: '3 support tickets are past their first-reply time',
+          message: 'First replies are promised within 1 day. Oldest: TKT-1042. Open Support in the console.',
+        },
+      },
+    ]);
+    expect(plan({ kind: 'ticket_late', count: 1 }, l).mail[0]!.vars.subject).toBe(
+      'A support ticket is past its first-reply time',
+    );
+    expect(needs([{ kind: 'ticket_late', count: 1 }]).roles).toEqual(['support']);
   });
 
   it('unknown, live and rules_changed send nothing', () => {

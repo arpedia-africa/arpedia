@@ -71,6 +71,7 @@ const STAFF_ROLE: Record<string, string> = {
   claim_new: 'publisher',
   claim_deadline: 'publisher',
   system_alert: 'operations_admin',
+  ticket_late: 'support',
 };
 
 /** Finance alerts from flow 09's payments_out queue. */
@@ -82,6 +83,15 @@ const FINANCE_ALERT: Record<string, [subject: string, message: string]> = {
   duplicate_charge: [
     'A reader was charged twice within a minute',
     'The second charge is waiting in Refunds as "Refund the duplicate".',
+  ],
+  // Flow 09 store_reconcile (weekly).
+  store_unmatched: [
+    'Store payments do not match our records',
+    "This week's check found payments that Google Play or Flutterwave and Arpedia disagree on. See Credits → Anomalies.",
+  ],
+  store_reconcile_failed: [
+    "This week's store payment check did not run",
+    'Google Play or Flutterwave did not answer the weekly check. It runs again next Monday.',
   ],
 };
 
@@ -230,6 +240,15 @@ export function plan(n: Notice, l: Lookup): Plan {
         screen: 'plans',
       });
       break;
+    case 'credits_granted': {
+      // Flow 14 rule 38: sent only once a staff grant is in the balance (never while it waits).
+      const credits = str(n.credits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      notice(`We added ${credits} credits to your account`, firstLine(n.message) || 'Enjoy your reading', {
+        kind: 'screen',
+        screen: 'credits',
+      });
+      break;
+    }
     case 'renewal_reminder': {
       const plan = str(n.plan).replace(/^./, (c) => c.toUpperCase());
       const date = day(n.period_end);
@@ -367,6 +386,18 @@ export function plan(n: Notice, l: Lookup): Plan {
         n.severity === 'high' ? undefined : 'high_severity_reports',
       );
       break;
+    case 'ticket_late': {
+      // Flow 14 rule 35: one alert per sla_watch run, however many tickets went late.
+      const count = Number(n.count) || 1;
+      staff(
+        'support',
+        count === 1
+          ? 'A support ticket is past its first-reply time'
+          : `${count} support tickets are past their first-reply time`,
+        `First replies are promised within 1 day.${n.oldest_ref ? ` Oldest: ${str(n.oldest_ref)}.` : ''} Open Support in the console.`,
+      );
+      break;
+    }
     case 'claim_new':
       staff(
         'publisher',
@@ -396,7 +427,8 @@ export function plan(n: Notice, l: Lookup): Plan {
         `Payment alert: ${str(n.alert) || 'unknown'}`,
         'See Credits → Anomalies.',
       ];
-      staff('finance', subject, `${message} Transaction ${str(n.transaction_id)}.`);
+      const txn = str(n.transaction_id);
+      staff('finance', subject, txn ? `${message} Transaction ${txn}.` : message);
       break;
     }
     case 'export_ready': {
