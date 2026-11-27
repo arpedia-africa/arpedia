@@ -8818,6 +8818,9 @@ isOneToOne: false
 "worker_register_device":
 { Args: { "p_name": string,"p_public_key": string,"p_user": string }; Returns: string
                            },
+"worker_service_health":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "worker_set_integration_health":
 { Args: { "p_error_note"?: string,"p_error_rate"?: number,"p_key_masked"?: string,"p_last_event_at"?: string,"p_last_event_text"?: string,"p_service": string,"p_status": string }; Returns: undefined
                            },
