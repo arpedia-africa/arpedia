@@ -3,6 +3,7 @@ import { NoAccess } from '@/components/no-access';
 import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
+import { sortRows } from '@/lib/table';
 import { ClaimsView, type ClaimRow } from './claims-view';
 import type { ClaimTab } from './labels';
 
@@ -34,7 +35,7 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     late: c.late,
   });
   // Newest first, as on s-claims; late ones show their Due date in bold.
-  const openRows = (open.data ?? []).map(toRow).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const openRows = sortRows((open.data ?? []).map(toRow), [{ id: 'created', value: c => c.createdAt, desc: true }]);
   const waiting = openRows.filter((c) => c.status === 'waiting_on_author');
   const decidedRows = (decided.data ?? []).map(toRow).reverse();
   const rows = tab === 'decided' ? decidedRows : tab === 'waiting' ? waiting : openRows;
