@@ -22,6 +22,7 @@ import {
 } from '@arpedia/reader';
 import { supabase } from '@/lib/supabase';
 import { rpcError } from '../03/UnlockSheet';
+import { applyProgress } from '../05/library';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
 import {
@@ -313,6 +314,8 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (!d || !state || !d.chapter_uid) return;
       clearTimeout(syncTimer.current);
       lastSync.current = Date.now();
+      // The Library shows the new place when the reader goes back, online or not (flow 05 rule 34).
+      applyProgress(qc, bookId, { percent: d.percent, chapter_uid: d.chapter_uid });
       const device = await deviceId().catch(() => null);
       await supabase.rpc('sync_reading_progress', {
         p_book: bookId,
@@ -327,7 +330,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         p_at: new Date().toISOString(),
       } as never);
     },
-    [bookId, loc, state],
+    [bookId, loc, state, qc],
   );
 
   const onRelocate = useCallback(
