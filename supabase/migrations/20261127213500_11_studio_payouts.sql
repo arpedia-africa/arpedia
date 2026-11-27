@@ -34,7 +34,8 @@ language sql stable security definer set search_path = '' as $$
     select case b.status when 'verified' then 'verified' when 'needs_review' then 'pending'
                          when 'rejected' then 'failed' else 'not_set' end
     from public.author_bank_accounts b where b.author_id = p_author
-    order by b.created_at desc limit 1), 'not_set')
+    -- The live account (one at most) wins over replaced or rejected ones, then the newest.
+    order by b.status in ('verified', 'needs_review') desc, b.created_at desc, b.id limit 1), 'not_set')
 $$;
 
 -- The next payout already worked out by a closed month: the earliest line waiting to be sent.
