@@ -12,6 +12,7 @@ import { countsPayload, loadWork, locateFlags, runStage, type WorkCopy } from '.
 import desk from './desk';
 import { rpcError, signedUrl, userDb } from './http';
 import staff from './staff';
+import staffEdit from './staff-edit';
 import { verifyUpload } from './tokens';
 
 const MB = 1024 * 1024;
@@ -58,6 +59,7 @@ books.get('/objects/:token/:path{.+}', async (c) => {
 books.use('*', requireUser);
 books.route('/', staff);
 books.route('/desk', desk);
+books.route('/staff-edit', staffEdit);
 
 const UploadBody = z.object({
   book_id: z.uuid().optional(),
@@ -208,7 +210,10 @@ books.post('/confirm', async (c) => {
     return c.json({ error: 'invalid_request' }, 400);
   }
   // The text checks run again on the edited chapters, so a renamed chapter loses its title flag.
-  const flags = locateFlags(checkChapters(next.chapters, { untitledBook: next.untitledBook }), next.anchors);
+  const flags = locateFlags(
+    checkChapters(next.chapters, { untitledBook: next.untitledBook, tocChapters: next.tocChapters }),
+    next.anchors,
+  );
   // The author's confirm RPC checks ownership before anything is stored.
   const { data, error } = await db.rpc('confirm_chapters', {
     p_rev: rev.id,

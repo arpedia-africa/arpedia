@@ -17,6 +17,15 @@ export interface Access {
   sender_name: string;
   sender_avatar: string | null;
   sender_is_author: boolean;
+  /** Flow 14 safety settings (rule 23); absent from an older RPC, so the defaults apply. */
+  limits?: ChatLimits;
+}
+
+export interface ChatLimits {
+  messages_per_minute?: number;
+  /** Same text this many times inside the window is refused (0 = off). */
+  identical_messages?: number;
+  identical_window_minutes?: number;
 }
 
 export interface PersistItem {

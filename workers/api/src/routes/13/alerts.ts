@@ -5,7 +5,7 @@ import { ledgerDay, naira } from '@arpedia/core';
 // A type alias (not an interface) so it fits the dispatcher's open-ended Notice.
 export type PayoutAlert = {
   kind: 'payout_alert';
-  alert: 'payout_reminder' | 'transfer_stuck' | 'payout_failed';
+  alert: 'payout_reminder' | 'transfer_stuck' | 'payout_failed' | 'payout_retrying';
   subject: string;
   message: string;
 };
@@ -76,5 +76,22 @@ export function failedAlert(reference: string, amountKobo: number, reason: strin
     message:
       `${naira(amountKobo)} could not be sent after 3 tries (${reason.slice(0, 200)}). ` +
       'Open the payout run to retry it.',
+  };
+}
+
+/** Spec check 13-11: Flutterwave would not take a transfer; payouts pause and retry by themselves. */
+export function retryAlert(reference: string, reason: string, delaySeconds: number): PayoutAlert {
+  const wait =
+    delaySeconds >= 3600
+      ? plural(Math.round(delaySeconds / 3600), 'hour')
+      : plural(Math.ceil(delaySeconds / 60), 'minute');
+  return {
+    kind: 'payout_alert',
+    alert: 'payout_retrying',
+    subject: 'Payouts paused: Flutterwave did not take a transfer',
+    message:
+      `Flutterwave did not take ${reference} (${reason.slice(0, 200)}). No money moved. ` +
+      `Payouts in this run try again by themselves in ${wait}; a transfer that fails 3 times is marked failed ` +
+      'and you will be told. Check the Flutterwave dashboard and balance.',
   };
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { naira } from '@arpedia/core';
 import { api } from '@/lib/api';
+import { stepUp, stepUpError } from '@/lib/stepup';
 import { serverSupabase } from '@/lib/supabase/server';
 import { verifyCode } from '../pricing/verify';
 import { payoutError } from './shared';
@@ -54,14 +55,18 @@ export async function prepareCycle(cycle: string, month: string): Promise<Result
   return { ok: true, message: `${month} prepared. A Super admin who didn't prepare it can now approve and release.` };
 }
 
-/** Release (Super admin, not the preparer, fresh 2-step code). Safe to call twice. */
+/**
+ * Release (Super admin, not the preparer). Needs a fresh code, used once within 5 minutes (flow 16
+ * rule 6). Safe to call twice: a second release replays, with a new code.
+ */
 export async function releaseCycle(cycle: string, otp: string, label: string): Promise<Result> {
-  if (otp.replace(/\D/g, '').length !== 6) return { ok: false, error: 'Enter the 6-digit code.', needCode: true };
-  const bad = await verifyCode(otp);
-  if (bad) return { ok: false, error: bad, needCode: true };
+  const step = await stepUp(otp, 'release_payout');
+  if ('error' in step) return { ok: false, error: step.error, needCode: true };
   const supabase = await serverSupabase();
-  const { data, error } = await supabase.rpc('release_cycle', { p_cycle: cycle });
+  const { data, error } = await supabase.rpc('release_cycle', { p_cycle: cycle, p_stepup: step.id });
   if (error) {
+    const expired = stepUpError(error.message);
+    if (expired) return { ok: false, error: expired, needCode: true };
     return {
       ok: false,
       error: payoutError(
