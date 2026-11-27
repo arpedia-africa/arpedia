@@ -827,6 +827,7 @@ export function SubmitDoneView({
   price,
   earn,
   submittedOn,
+  steps,
   onClose,
 }: {
   title: string;
@@ -836,6 +837,8 @@ export function SubmitDoneView({
   earn: string;
   /** "12 November" */
   submittedOn: string;
+  /** "What happens next" for an update (rule 25); a first submit uses the review steps. */
+  steps?: { title: string; sub: string; done?: boolean }[];
   onClose: () => void;
 }) {
   const { c, s } = useTheme();
@@ -883,15 +886,17 @@ export function SubmitDoneView({
         </Text>
         <View style={{ paddingTop: s(8) }}>
           <Timeline
-            steps={[
-              { title: 'Submitted', sub: submittedOn, done: true },
-              { title: 'Review', sub: 'Our team reads it and checks the formatting' },
-              {
-                title: 'Approved, or sent back with a list',
-                sub: 'If sent back, you get a short list of fixes',
-              },
-              { title: 'Published', sub: 'Your followers are notified' },
-            ]}
+            steps={
+              steps ?? [
+                { title: 'Submitted', sub: submittedOn, done: true },
+                { title: 'Review', sub: 'Our team reads it and checks the formatting' },
+                {
+                  title: 'Approved, or sent back with a list',
+                  sub: 'If sent back, you get a short list of fixes',
+                },
+                { title: 'Published', sub: 'Your followers are notified' },
+              ]
+            }
           />
         </View>
       </View>
