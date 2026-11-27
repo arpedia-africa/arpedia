@@ -191,6 +191,23 @@ export function memoryPendingStore(): PendingStore {
 
 // ─── Offline licence (rule 71) ──────────────────────────────────────────────
 export const LICENSE_DAYS = 7;
+/** Flow 10 rule 31: a device past the download limit still reads online, on a short licence. */
+export const ONLINE_LICENSE_MINUTES = 60;
+
+/**
+ * The licence a key request gets. A download, or any device under the limit, gets the full 7 days
+ * (recorded). Reading online on a device past the limit gets a short licence that is not recorded,
+ * so it never takes a download slot; a download there is refused.
+ */
+export function licenceTerms(
+  issuedAt: number,
+  online: boolean,
+  limitReached: boolean,
+): { validUntil: number; record: boolean } | 'device_limit' {
+  if (!limitReached) return { validUntil: issuedAt + LICENSE_DAYS * 86_400_000, record: true };
+  if (!online) return 'device_limit';
+  return { validUntil: issuedAt + ONLINE_LICENSE_MINUTES * 60_000, record: false };
+}
 
 export interface License {
   /** Server time at issue (ms). */

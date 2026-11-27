@@ -14,6 +14,7 @@ import { MenuBody, ReportSheet, moreItems } from '../../../features/03/MoreSheet
 import { UnlockSheet } from '../../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../../features/03/UnlockViews';
 import { DOWNLOAD_STARTED, downloadBook } from '../../../features/04/download';
+import { WorkerError } from '../../../features/04/worker';
 import { useBuyPack } from '../../../features/09/buyPack';
 import { useTipPresets } from '../../../features/09/data';
 import { useFlag } from '../../../features/16/config';
@@ -267,7 +268,14 @@ export default function BookPage() {
                 trackReader,
               ).then(
                 () => toast({ message: 'Ready offline' }),
-                () => toast({ message: 'Couldn’t download. Try again.' }),
+                (e: unknown) =>
+                  toast({
+                    // Flow 10 rule 31: downloads work on 3 devices; reading online still works here.
+                    message:
+                      e instanceof WorkerError && e.code === 'device_limit'
+                        ? 'Remove a device to download here. Settings › Security lists them.'
+                        : 'Couldn’t download. Try again.',
+                  }),
               );
             },
             onGift: () => {

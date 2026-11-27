@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   chargeKey,
   confirmCharge,
+  licenceTerms,
   licenseValid,
   memoryPendingStore,
   pageAt,
@@ -142,5 +143,17 @@ describe('licence clock', () => {
   it('treats a clock moved back as expired', () => {
     expect(licenseValid(l, 503 * day, 504 * day)).toBe(false);
     expect(licenseValid(l, 499 * day, 0)).toBe(false);
+  });
+});
+
+describe('licence terms (flow 10 rule 31)', () => {
+  const day = 86_400_000;
+  it('gives 7 recorded days under the device limit, online or download', () => {
+    expect(licenceTerms(0, true, false)).toEqual({ validUntil: 7 * day, record: true });
+    expect(licenceTerms(0, false, false)).toEqual({ validUntil: 7 * day, record: true });
+  });
+  it('lets a fourth device read online on a short unrecorded licence, but not download', () => {
+    expect(licenceTerms(0, true, true)).toEqual({ validUntil: 60 * 60_000, record: false });
+    expect(licenceTerms(0, false, true)).toBe('device_limit');
   });
 });

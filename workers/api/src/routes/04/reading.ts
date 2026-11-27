@@ -2,7 +2,7 @@
 // release the keys a reader is entitled to (wrapped to the device's RSA-OAEP public key), and sign
 // short-lived links to the encrypted files. entitled_chapters runs with the reader's JWT, so the
 // database decides which chapters; the service role only reads the wrapped keys for those.
-import { keyLabel, LICENSE_DAYS, unwrapKey } from '@arpedia/core';
+import { keyLabel, licenceTerms, LICENSE_DAYS, unwrapKey } from '@arpedia/core';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { requireUser } from '../../auth';
@@ -65,6 +65,8 @@ const KeysBody = z.object({
   revision_id: z.guid(),
   device_id: z.guid(),
   chapter_uids: z.array(z.guid()).max(500).optional(),
+  /** Reading online (opening the book), not an offline download. */
+  online: z.boolean().optional(),
 });
 
 interface Bundle {
@@ -106,7 +108,7 @@ async function keyBundle(c: Context<AppEnv>, body: z.infer<typeof KeysBody>) {
   if (!device || device.revoked_at) return { error: { code: 'P0001', message: 'bad_device' } };
 
   const issued = Date.now();
-  const validUntil = issued + LICENSE_DAYS * DAY;
+  let validUntil = issued + LICENSE_DAYS * DAY;
   const lic = await db.rpc('worker_record_license', {
     p_user: c.var.user.sub,
     p_device: body.device_id,
@@ -114,7 +116,13 @@ async function keyBundle(c: Context<AppEnv>, body: z.infer<typeof KeysBody>) {
     p_revision: body.revision_id,
     p_valid_until: new Date(validUntil).toISOString(),
   });
-  if (lic.error) return { error: lic.error };
+  if (lic.error) {
+    // Flow 10 rule 31: past the download limit, reading online still works (short, unrecorded).
+    if (lic.error.code !== 'P0001' || lic.error.message !== 'device_limit') return { error: lic.error };
+    const terms = licenceTerms(issued, body.online ?? false, true);
+    if (terms === 'device_limit') return { error: lic.error };
+    validUntil = terms.validUntil;
+  }
 
   // 3. Unwrap with the master key, re-wrap to the device. Plain keys exist only in this request.
   const bundle = await db.rpc('worker_key_bundle', { p_revision: body.revision_id, p_chapter_uids: wanted });
