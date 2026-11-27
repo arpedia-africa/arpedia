@@ -357,6 +357,18 @@ export function plan(n: Notice, l: Lookup): Plan {
       staff('finance', subject, `${message} Transaction ${str(n.transaction_id)}.`);
       break;
     }
+    case 'export_ready': {
+      // Flow 15 rule 29, to the staff member who made the export (no file or row data in the mail).
+      const what = str(n.export_kind).replace(/_/g, ' ') || 'export';
+      const rows = typeof n.row_count === 'number' ? n.row_count : null;
+      email('staff_alert', {
+        subject: `Your ${what} export is ready`,
+        message:
+          (rows == null ? '' : `${rows.toLocaleString('en-NG')} ${rows === 1 ? 'row' : 'rows'}. `) +
+          'Download it from Exports in the console within 7 days.',
+      });
+      break;
+    }
     case 'payout_alert':
       // Flow 13 writes its own copy (payout reminder, stuck transfers, failed payouts).
       staff('finance', str(n.subject) || 'Payout alert', str(n.message) || 'Open Royalties in the console.');

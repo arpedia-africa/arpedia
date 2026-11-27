@@ -138,6 +138,25 @@ describe('plan', () => {
     ]);
   });
 
+  it('an export that is ready emails the staff member who made it (15-19)', () => {
+    const n = { kind: 'export_ready', user_id: MOD, export_kind: 'author_earnings', row_count: 1234 };
+    expect(needs([n]).users).toEqual([MOD]);
+    expect(plan(n, L)).toEqual({
+      push: [],
+      mail: [
+        {
+          key: 'staff_alert',
+          user_id: MOD,
+          vars: {
+            subject: 'Your author earnings export is ready',
+            message: '1,234 rows. Download it from Exports in the console within 7 days.',
+          },
+        },
+      ],
+    });
+    expect(plan({ ...n, row_count: 1 }, L).mail[0]!.vars.message).toMatch(/^1 row\. /);
+  });
+
   it('payout alerts email Finance with flow 13 copy', () => {
     const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
     const n = {
