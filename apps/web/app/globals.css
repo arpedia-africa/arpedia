@@ -928,13 +928,15 @@ ol {
 }
 .code {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
 }
 .code span {
   display: grid;
   place-items: center;
-  width: 40px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 40px;
   height: 52px;
   border-radius: 12px;
   background: var(--surface);
@@ -1051,4 +1053,16 @@ ol {
   .faq summary::after {
     transition: none;
   }
+}
+
+/* Fixes from the visual pass */
+h3 {
+  line-height: 1.2;
+}
+.band-night a,
+.earn a {
+  color: var(--org);
+}
+.steps li strong {
+  display: block;
 }

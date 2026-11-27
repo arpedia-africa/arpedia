@@ -18,7 +18,9 @@ describe('parseWorkerPolicy', () => {
 
   it('treats the one-line placeholder as not published', () => {
     expect(
-      parseWorkerPolicy(page('<p>Privacy policy\n\nThe full text is published at arpedia.africa/legal/privacy.</p>')),
+      parseWorkerPolicy(
+        page('<p>Privacy policy\n\nThe full text is published at arpedia.africa/legal/privacy.</p>'),
+      ),
     ).toBeNull();
   });
 

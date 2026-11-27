@@ -115,8 +115,8 @@ export default function Home() {
               Never read a book alone again.
             </h1>
             <p className="lede rise" style={{ '--i': 2 } as React.CSSProperties}>
-              Subscribe, get credits, and unlock Christian novels, clean books, and African stories,
-              in the same room as the readers, the clubs, and the authors behind them.
+              Subscribe, get credits, and unlock Christian novels, clean books, and African stories, in the
+              same room as the readers, the clubs, and the authors behind them.
             </p>
             <div className="hero__cta rise" style={{ '--i': 3 } as React.CSSProperties}>
               <StoreBadges />
@@ -193,8 +193,8 @@ export default function Home() {
               <li>
                 <b>Unlock it all, or pay as you read</b>
                 <span>
-                  Pay as you read takes a chapter&apos;s credits only when you move past its first
-                  page. Changed your mind? Undo within 10 minutes. Re-reading is free.
+                  Pay as you read takes a chapter&apos;s credits only when you move past its first page.
+                  Changed your mind? Undo within 10 minutes. Re-reading is free.
                 </span>
               </li>
               <li>
@@ -203,7 +203,9 @@ export default function Home() {
               </li>
               <li>
                 <b>Read on a real phone</b>
-                <span>Built for Android phones on mobile data, with books you can download and read offline.</span>
+                <span>
+                  Built for Android phones on mobile data, with books you can download and read offline.
+                </span>
               </li>
             </ul>
           </div>
@@ -219,8 +221,8 @@ export default function Home() {
               Credits, in plain naira.
             </h2>
             <p className="lede">
-              Your plan gives you credits every time it renews. You spend credits to unlock books.
-              One credit is worth the same on every plan.
+              Your plan gives you credits every time it renews. You spend credits to unlock books. One credit
+              is worth the same on every plan.
             </p>
           </div>
 
@@ -275,7 +277,9 @@ export default function Home() {
 
           <div className="topups">
             <h3>Need more? Top up.</h3>
-            <p className="lede">Top-ups are for subscribers, at ₦3 a credit. They never expire while your account is open.</p>
+            <p className="lede">
+              Top-ups are for subscribers, at ₦3 a credit. They never expire while your account is open.
+            </p>
             <ul>
               <li>200 credits for ₦600</li>
               <li>500 credits for ₦1,500</li>
@@ -284,10 +288,10 @@ export default function Home() {
           </div>
 
           <p className="fine">
-            Prices are the in-app prices, billed by Google Play and renewed until you cancel. Book
-            counts are approximate, using a 125-credit book. Unused plan credits roll over for one
-            period, up to one plan&apos;s worth. You can pause for 1 to 3 months before you cancel,
-            and your credits are kept. See the <a href="/legal/refunds">refund policy</a>.
+            Prices are the in-app prices, billed by Google Play and renewed until you cancel. Book counts are
+            approximate, using a 125-credit book. Unused plan credits roll over for one period, up to one
+            plan&apos;s worth. You can pause for 1 to 3 months before you cancel, and your credits are kept.
+            See the <a href="/legal/refunds">refund policy</a>.
           </p>
         </div>
       </section>
@@ -302,27 +306,29 @@ export default function Home() {
         </div>
         <ol className="steps">
           <li>
-            Bring your book and cover.
-            <span>Apply in the app and upload your manuscript as EPUB, Word or PDF.</span>
+            <div>
+              <strong>Bring your book and cover.</strong>
+              <span>Apply in the app and upload your manuscript as EPUB, Word or PDF.</span>
+            </div>
           </li>
           <li>
-            We check it and publish it for readers.
-            <span>Every book is checked before it goes live.</span>
+            <div>
+              <strong>We check it and publish it for readers.</strong>
+              <span>Every book is checked before it goes live.</span>
+            </div>
           </li>
           <li>
-            Meet the people reading you.
-            <span>In rooms, notes, and replies.</span>
+            <div>
+              <strong>Meet the people reading you.</strong>
+              <span>In rooms, notes, and replies.</span>
+            </div>
           </li>
         </ol>
         <div className="earn">
           <b>₦1.60</b>
           <span>
-            for every credit readers spend on your book, paid monthly. A 125-credit book pays you
-            ₦200 each time a reader unlocks it in full.{' '}
-            <a href="/legal/author-agreement" style={{ color: 'inherit' }}>
-              Read the Author Agreement
-            </a>
-            .
+            for every credit readers spend on your book, paid monthly. A 125-credit book pays you ₦200 each
+            time a reader unlocks it in full. <a href="/legal/author-agreement">Read the Author Agreement</a>.
           </span>
         </div>
       </section>

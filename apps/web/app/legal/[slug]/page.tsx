@@ -45,9 +45,8 @@ function DeleteSteps() {
       </ol>
       <h3>Without the app</h3>
       <p>
-        Email <a href={DELETE_MAIL}>{SUPPORT_EMAIL}</a> from the email address on your account, with
-        the subject &quot;Delete my account&quot;. We reply to confirm it is you, then delete the
-        account.
+        Email <a href={DELETE_MAIL}>{SUPPORT_EMAIL}</a> from the email address on your account, with the
+        subject &quot;Delete my account&quot;. We reply to confirm it is you, then delete the account.
       </p>
       <a className="btn btn-p" href={DELETE_MAIL}>
         Email a deletion request

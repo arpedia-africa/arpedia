@@ -90,7 +90,10 @@ export function parseWorkerPolicy(page: string): PublishedPolicy | null {
     .replace(/<section class="steps">[\s\S]*?<\/section>/, '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .trim();
-  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (text.length < MIN_PUBLISHED_TEXT) return null;
   return { title: decode(h1[1]!.replace(/<[^>]*>/g, '')), meta: decode(meta[1]!), html };
 }

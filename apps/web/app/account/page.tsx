@@ -19,9 +19,8 @@ export default function AccountPage() {
             <b>Subscription</b> to see your plan or to pause or cancel.
           </p>
           <p>
-            Subscribed through Google Play or the App Store? Change or cancel it in your store
-            subscriptions. Paid on the web? <a href="/support">Write to support</a> and we will help
-            with your plan.
+            Subscribed through Google Play or the App Store? Change or cancel it in your store subscriptions.
+            Paid on the web? <a href="/support">Write to support</a> and we will help with your plan.
           </p>
           <StoreBadges />
           <p>

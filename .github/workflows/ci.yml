@@ -50,6 +50,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-placeholder
+      - name: Website build
+        run: pnpm --filter @arpedia/web build
 
   database:
     name: database

@@ -7,21 +7,11 @@ export function StoreBadges({ className = '' }: { className?: string }) {
   return (
     <div className={`badges ${className}`.trim()}>
       <a href={stores.play} className="badge">
-        <img
-          src="/badges/google-play-badge.svg"
-          alt="Get it on Google Play"
-          width={162}
-          height={48}
-        />
+        <img src="/badges/google-play-badge.svg" alt="Get it on Google Play" width={162} height={48} />
       </a>
       {stores.appStore ? (
         <a href={stores.appStore} className="badge">
-          <img
-            src="/badges/app-store-badge.svg"
-            alt="Download on the App Store"
-            width={144}
-            height={48}
-          />
+          <img src="/badges/app-store-badge.svg" alt="Download on the App Store" width={144} height={48} />
         </a>
       ) : null}
     </div>
@@ -79,7 +69,9 @@ export function SiteFooter() {
           <ul>
             {POLICIES.map((p) => (
               <li key={p.slug}>
-                <a href={`/legal/${p.slug}`}>{p.title.replace('Delete your Arpedia account', 'Delete account')}</a>
+                <a href={`/legal/${p.slug}`}>
+                  {p.title.replace('Delete your Arpedia account', 'Delete account')}
+                </a>
               </li>
             ))}
           </ul>

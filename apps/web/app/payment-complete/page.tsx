@@ -27,18 +27,18 @@ export default async function PaymentComplete({ searchParams }: Props) {
         <div className="prose" style={{ marginTop: 20 }}>
           {ok ? (
             <p>
-              Thank you. Return to the Arpedia app. Your credits or plan will appear within a minute.
-              If they do not, close and reopen the app.
+              Thank you. Return to the Arpedia app. Your credits or plan will appear within a minute. If they
+              do not, close and reopen the app.
             </p>
           ) : cancelled ? (
             <p>
-              You cancelled the payment and have not been charged. You can return to the Arpedia app
-              and try again.
+              You cancelled the payment and have not been charged. You can return to the Arpedia app and try
+              again.
             </p>
           ) : (
             <p>
-              We could not confirm this payment. If you were charged, your credits will still be
-              added once the payment is confirmed. Otherwise return to the app and try again.
+              We could not confirm this payment. If you were charged, your credits will still be added once
+              the payment is confirmed. Otherwise return to the app and try again.
             </p>
           )}
           {txRef ? (
