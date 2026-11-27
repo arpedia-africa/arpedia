@@ -7191,6 +7191,9 @@ isOneToOne: false
 "exclude_gift_loop":
 { Args: { "p_ledger_ids": (number)[],"p_note"?: string }; Returns: number
                            },
+"exclude_gift_loop_alert":
+{ Args: { "p_alert": number,"p_note"?: string }; Returns: number
+                           },
 "expire_exports":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
                            },
@@ -7518,6 +7521,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "job_expire_ended_subscriptions":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"job_gift_loop_detect":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "job_ledger_reconcile":

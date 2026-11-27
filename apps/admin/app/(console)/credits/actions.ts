@@ -27,6 +27,39 @@ export async function setGiftingFrozen(frozen: boolean): Promise<Result> {
   };
 }
 
+/**
+ * Freeze gifting on a gift-loop row (13 rule 4): the loop's gift credits are kept out of author
+ * earnings, the alert closes, and gifting is frozen app-wide unless it already is. Undo lifts the
+ * freeze only; the exclusion stays (it is append-only and the loop was confirmed).
+ */
+export async function freezeGiftLoop(alertId: number, alreadyFrozen: boolean): Promise<Result & { froze?: boolean }> {
+  const supabase = await serverSupabase();
+  const { data, error } = await supabase.rpc('exclude_gift_loop_alert', { p_alert: alertId });
+  if (error) {
+    return {
+      ok: false,
+      error: rpcError(
+        error.code,
+        error.message,
+        { '42501': 'Only Finance and Super admins can keep credits out of earnings.', not_found: 'This alert is gone. Refresh the page.' },
+        "Couldn't freeze this loop. Nothing changed. Try again.",
+      ),
+    };
+  }
+  let froze = false;
+  if (!alreadyFrozen) {
+    const f = await supabase.rpc('set_gifting_frozen', { p_frozen: true });
+    froze = !f.error;
+  }
+  revalidatePath('/credits');
+  const kept = data ? `${n0(data)} gift${data === 1 ? '' : 's'} in this loop won’t earn.` : 'This loop was already kept out of earnings.';
+  return {
+    ok: true,
+    froze,
+    message: froze ? `Gifting frozen for everyone. ${kept}` : alreadyFrozen ? kept : `${kept} Gifting couldn’t be frozen. Try Freeze gifting again.`,
+  };
+}
+
 /** Approve or turn down a grant over 500 credits. A second person decides: not the one who asked. */
 export async function decideGrant(requestId: string, approve: boolean): Promise<Result> {
   const supabase = await serverSupabase();
