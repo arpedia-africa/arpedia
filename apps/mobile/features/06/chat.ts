@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { onlineManager } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   CLOSE_FORBIDDEN,
   OFFLINE_QUEUE_MAX,
@@ -121,6 +122,46 @@ export function useChat(
   const [lastSentAt, setLastSentAt] = useState(0);
   const pendingRef = useRef(pending);
   pendingRef.current = pending;
+  // States: offline. The queue lives on the phone per reader and conversation, so a message typed
+  // offline still goes out (same client_id, never twice) after the app is closed and reopened.
+  const queueKey = useRef<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      const uid = (await supabase.auth.getSession()).data.session?.user.id;
+      if (!uid || !live) return;
+      const key = `chat.queue.${uid}.${gid}`;
+      const raw = await AsyncStorage.getItem(key).catch(() => null);
+      if (!live) return;
+      queueKey.current = key;
+      const saved = raw ? (JSON.parse(raw) as Pending[]) : [];
+      if (!saved.length) return;
+      setPending((cur) => [...saved.filter((s) => !cur.some((c) => c.client_id === s.client_id)), ...cur]);
+      if (ws.current?.readyState === WebSocket.OPEN)
+        for (const p of saved)
+          ws.current.send(
+            JSON.stringify({
+              type: 'send',
+              client_id: p.client_id,
+              body: p.body,
+              reply_to_id: p.reply_to_id,
+              quote: p.quote,
+            }),
+          );
+    })();
+    return () => {
+      live = false;
+      queueKey.current = null;
+    };
+  }, [gid]);
+  useEffect(() => {
+    const key = queueKey.current;
+    if (!key) return;
+    const waiting = pending.filter((p) => p.status === 'sending');
+    void (
+      waiting.length ? AsyncStorage.setItem(key, JSON.stringify(waiting)) : AsyncStorage.removeItem(key)
+    ).catch(() => undefined);
+  }, [pending]);
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
   const onProgressRef = useRef(onProgress);
