@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Share, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authorCount, authorRating, postTime, ratingLabel } from '@arpedia/core';
 import { Btn, Callout, EmptyState, Screen, Sheet, Text, useTheme, useToast } from '@arpedia/ui';
@@ -281,7 +281,7 @@ export default function AuthorPage() {
                   setOverlay('tip');
                 }
               : undefined,
-          onEditProfile: () => toast({ message: 'Edit your author profile in Author Studio' }),
+          onEditProfile: () => router.push('/studio/profile' as Href),
           onCommunity: p.community
             ? () => {
                 const g = p.community!;

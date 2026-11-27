@@ -12,8 +12,8 @@ import { WebView } from 'react-native-webview';
 import { percentToParagraph, timeLeftLabel } from '@arpedia/core';
 import { placeToolbar, type HighlightColor, type Rect, type SelectionDetail } from '@arpedia/reader';
 import { readerHtml } from '@arpedia/reader/html';
-import { EmptyState, useTheme, useToast } from '@arpedia/ui';
-import { useBookPage, useOnline } from '../../features/03/book';
+import { Btn, EmptyState, useTheme, useToast } from '@arpedia/ui';
+import { bookKey, useBookPage, useOnline } from '../../features/03/book';
 import { rpcError, UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
 import {
@@ -31,6 +31,7 @@ import {
 } from '../../features/04/ReaderViews';
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
 import { usePassageThread } from '../../features/04/passage';
+import { useShareToClub } from '../../features/04/ShareClubSheet';
 import { ChapterLowSheet, PayRestSheet } from '../../features/04/PaySheets';
 import {
   ChaptersSheet,
@@ -41,6 +42,7 @@ import {
   type ChapterRowModel,
 } from '../../features/04/ReaderSheets';
 import { chapterNumber, useReader } from '../../features/04/useReader';
+import { useBuyPack } from '../../features/09/buyPack';
 
 const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
@@ -86,6 +88,8 @@ export default function ReaderScreen() {
   const [discussFor, setDiscussFor] = useState<{ para: string; quote: string | null } | null>(null);
   const thread = usePassageThread(id, panel === 'discuss' ? (discussFor?.para ?? null) : null);
   const book = useBookPage(id);
+  // Top-ups from the reader's low-balance sheets (rule 60): nothing is spent automatically.
+  const pack = useBuyPack([bookKey(id)]);
 
   const back = useCallback(() => {
     void r.syncNow();
@@ -160,6 +164,7 @@ export default function ReaderScreen() {
   }, [r.elsewhere, r, toast]);
 
   const st = r.state;
+  const share = useShareToClub(st);
   const theme = r.settings.theme;
   const ink = readerInk(theme);
   const chapter = st?.chapters.find((c) => c.chapter_uid === r.loc?.chapter_uid) ?? null;
@@ -257,8 +262,6 @@ export default function ReaderScreen() {
     [r.settings.highlight_color],
   );
 
-  // Sharing a passage to a club needs a club for this book, which has no lookup yet.
-  const soon = () => toast({ message: 'Coming soon' });
   // The book room lives in Community (flow 06).
   const toRoom = () => router.push('/community');
   const shareBook = () => {
@@ -317,11 +320,12 @@ export default function ReaderScreen() {
         color: a.kind === 'bookmark' ? null : a.color,
         note: a.kind === 'note' ? a.note_text : null,
         scope: a.kind === 'note' ? 'Private' : null,
+        unsaved: r.unsaved.has(a.client_id),
       });
     }
     return out;
     // chapterLabel reads st, which the deps cover.
-  }, [r.annotations, st]);
+  }, [r.annotations, r.unsaved, st]);
   const openAnnotation = (clientId: string) => {
     const a = r.annotations.find((x) => x.client_id === clientId);
     setPanel(null);
@@ -388,6 +392,18 @@ export default function ReaderScreen() {
             body="Try again. If it keeps happening, report it and we'll fix the book."
             action={{ label: 'Try again', onPress: r.retry }}
           />
+          {st ? (
+            <Btn
+              label="Report a problem"
+              variant="g"
+              size="md"
+              style={{ alignSelf: 'center' }}
+              onPress={() => {
+                setReporting('idle');
+                setPanel('report');
+              }}
+            />
+          ) : null}
         </View>
       );
     }
@@ -515,7 +531,7 @@ export default function ReaderScreen() {
               r.clearSelection();
               startDiscuss(sel.para_id_start, quote);
             }}
-            onClub={soon}
+            onClub={() => (share.start(sel), r.clearSelection())}
             onShare={() => {
               const quote = sel.text.slice(0, 500);
               const title = st?.book.title;
@@ -733,7 +749,14 @@ export default function ReaderScreen() {
               r.clearLow();
               void r.refresh();
             }}
-            onTopUp={() => router.push('/credits')}
+            // Back on page 1 of the chapter with the new balance once the credits land.
+            onTopUp={(p) =>
+              void pack.buy(p).then((ok) => {
+                if (!ok) return;
+                r.clearLow();
+                void r.refresh();
+              })
+            }
             onLibrary={() => {
               r.clearLow();
               void r.syncNow();
@@ -776,6 +799,7 @@ export default function ReaderScreen() {
             onRetry={(c) => void thread.post(c.body ?? '', discussFor?.quote ?? null, c.id)}
             onReact={(c, k) => void thread.react(c, k)}
           />
+          {share.element}
         </>
       ) : null}
       {book.data ? (
@@ -792,7 +816,7 @@ export default function ReaderScreen() {
             setSheet(null);
           }}
           onPlans={() => router.push('/plan')}
-          onBuyPack={() => router.push('/credits')}
+          onBuyPack={(p) => void pack.buy(p)}
         />
       ) : null}
     </View>

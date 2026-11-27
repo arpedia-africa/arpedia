@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AvatarTone } from '@arpedia/ui';
-import type { Database } from '@arpedia/core';
+import { tabBadgeLabel, type Database } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 
 // Flow 06 server data: inbox rows, filter counts, Mark all read (RPCs in 20261119000600_06_community).
@@ -34,16 +34,22 @@ export function useInbox(filter: InboxFilter) {
   });
 }
 
+async function fetchCounts() {
+  const { data, error } = await supabase.rpc('get_inbox_counts');
+  if (error) throw error;
+  return data as unknown as InboxCounts;
+}
+
 export function useInboxCounts() {
-  return useQuery({
-    queryKey: countsKey,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_inbox_counts');
-      if (error) throw error;
-      return data as unknown as InboxCounts;
-    },
-    refetchInterval: POLL_MS,
-  });
+  return useQuery({ queryKey: countsKey, queryFn: fetchCounts, refetchInterval: POLL_MS });
+}
+
+/** Community tab badge (rule 5): unread conversations, muted excluded, "9+" cap. Same cache as the
+ * inbox counts; outside Community it refreshes every minute and when the app comes back. */
+export function useCommunityBadge(): string | undefined {
+  const q = useQuery({ queryKey: countsKey, queryFn: fetchCounts, refetchInterval: 60_000 });
+  const n = q.data?.tab ?? 0;
+  return n > 0 ? tabBadgeLabel(n) : undefined;
 }
 
 export function useMarkAllRead() {

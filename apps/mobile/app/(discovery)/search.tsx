@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { TextInput } from 'react-native';
 import { Keyboard, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,10 +33,12 @@ import {
 import { avatarTone, coverTone, useHome } from '../../features/02/home';
 import { listBook } from '../../features/02/explore';
 import { discoveryLinks } from '../../features/02/links';
+import { useTrack } from '../../features/02/analytics';
 import {
   logSearch,
   useCloseMatches,
   useDebounced,
+  useLibraryMatches,
   useOnline,
   useRecent,
   useRequestBook,
@@ -56,9 +58,13 @@ export default function Search() {
   const qc = useQueryClient();
   const go = discoveryLinks(toast);
   const input = useRef<ComponentRef<typeof TextInput>>(null);
-  const [text, setText] = useState('');
-  const [submitted, setSubmitted] = useState<string | null>(null);
-  const [focused, setFocused] = useState(true);
+  // `q`: text typed elsewhere (Library's "Search all books") runs at once.
+  const initial = useLocalSearchParams<{ q?: string }>().q?.trim() ?? '';
+  const [text, setText] = useState(initial);
+  const [submitted, setSubmitted] = useState<string | null>(() =>
+    isSearchable(normalizeQuery(initial)) ? normalizeQuery(initial) : null,
+  );
+  const [focused, setFocused] = useState(!initial);
   const [scope, setScope] = useState<Scope>('all');
   const [filters, setFilters] = useState(NO_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -66,11 +72,14 @@ export default function Search() {
   const [requested, setRequested] = useState<number | null>(null);
 
   const online = useOnline();
+  const track = useTrack();
+  useEffect(() => track('search_opened'), [track]);
   const recent = useRecent();
   const home = useSearchHome();
   const firstName = useHome().data?.first_name?.trim() ?? null;
   const typing = submitted == null || normalizeQuery(text) !== submitted;
   const suggest = useSuggest(text, online && typing);
+  const inLibrary = useLibraryMatches(text, !online && typing);
   const result = useSearch(submitted, filters);
   const draftQ = useDebounced(draft, 250);
   const draftResult = useSearch(filterOpen ? submitted : null, draftQ);
@@ -122,7 +131,10 @@ export default function Search() {
     if (logged.current === key) return;
     logged.current = key;
     logSearch(submitted, resultCount);
-  }, [resultCount, submitted, filters]);
+    track('search_submitted', { query_length: submitted.length, scope, result_count: resultCount });
+    if (resultCount === 0) track('search_no_results', { query_length: submitted.length });
+    // `scope` is read at log time only; changing tabs is not a new search.
+  }, [resultCount, submitted, filters, track]);
 
   /* ─── Empty state ─── */
   const pickRecent = (r: Recent) =>
@@ -210,11 +222,20 @@ export default function Search() {
     const q = normalizeQuery(text);
     const head: Suggestion = { kind: 'all', query: text.trim() };
     if (!online) {
-      // Offline: only recent searches match (the library arrives with flow 05).
+      // Offline (rule 22): books in the reader's library, then recent books and authors.
+      const books = inLibrary.map((b): Suggestion & { kind: 'book' } => ({
+        kind: 'book',
+        id: b.book_id,
+        title: b.title,
+        sub: b.author_name ? `Book · ${b.author_name}` : 'Book',
+        tone: coverTone(b.book_id),
+      }));
+      const seen = new Set(books.map((b) => b.id));
       return [
         head,
+        ...books,
         ...recent.items
-          .filter((r) => r.kind !== 'query' && normalizeQuery(r.label).includes(q))
+          .filter((r) => r.kind !== 'query' && !seen.has(r.id!) && normalizeQuery(r.label).includes(q))
           .map((r): Suggestion =>
             r.kind === 'book'
               ? { kind: 'book', id: r.id!, title: r.label, sub: 'Book', tone: coverTone(r.id!) }
@@ -227,6 +248,9 @@ export default function Search() {
   const pickSuggestion = (it: Suggestion) => {
     const q = normalizeQuery(text);
     if (it.kind === 'all') return run(text);
+    track('search_suggestion_tapped', {
+      type: it.kind === 'person' ? (it.letters ? 'club' : 'author') : it.kind,
+    });
     logSearch(q, (suggest.data ?? []).length, { type: it.kind === 'person' ? 'author' : it.kind, id: it.id });
     if (it.kind === 'book') return openBook(it.id, it.title);
     if (it.kind === 'genre') return go.explore(it.id);
@@ -254,7 +278,10 @@ export default function Search() {
             asking={request.isPending}
             onAsk={() =>
               request.mutate(submitted ?? '', {
-                onSuccess: (n) => setRequested(n),
+                onSuccess: (n) => {
+                  track('book_requested');
+                  setRequested(n);
+                },
                 onError: (e) => toast({ message: e.message || 'Couldn’t send that. Try again.' }),
               })
             }
@@ -437,6 +464,11 @@ export default function Search() {
           }
           onReset={() => setDraft(NO_FILTER)}
           onShow={() => {
+            track('filter_applied', {
+              genre: draft.genre,
+              length_bands: draft.bands.join(','),
+              result_count: draftCount ?? -1,
+            });
             setFilters(draft);
             setFilterOpen(false);
           }}

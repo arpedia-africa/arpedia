@@ -66,12 +66,61 @@ export function routeForStep(step: string | undefined) {
   return screen ? (`/(onboarding)/${screen}` as const) : ('/home' as const);
 }
 
-/** After any sign-in: register the phone, then Home or the first unfinished onboarding step. */
+/** Thrown by afterSignIn for a deleted account that can't be restored (flow 10 rule 36, edge cases). */
+export class AccountDeleted extends Error {
+  constructor() {
+    super('account_deleted');
+  }
+}
+export const isAccountDeleted = (e: unknown) => e instanceof AccountDeleted;
+
+/**
+ * Edge case: a plan bought on the web (flow 09, Flutterwave) skips the paywall. True when the
+ * reader's subscription still runs; offline or a failed read says false, so the paywall shows.
+ */
+export async function hasLivePlan() {
+  const { data, error } = await supabase.rpc('get_plan_screen');
+  if (error) return false;
+  const sub = (data as { subscription: { status: string; period_end: string } | null } | null)?.subscription;
+  if (!sub || sub.status === 'expired' || sub.status === 'refunded') return false;
+  return new Date(sub.period_end).getTime() > Date.now();
+}
+
+/**
+ * After any sign-in: stop a deleted account, register the phone, then Home or the first unfinished
+ * onboarding step. Staff's "Delete after 30 days" comes back by signing in within the grace.
+ */
 export async function afterSignIn(uid: string) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('onboarding_step, deleted_at')
+    .eq('id', uid)
+    .single();
+  if (data?.deleted_at) {
+    const { data: restored } = await supabase.rpc('restore_my_account');
+    if (restored !== true) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      throw new AccountDeleted();
+    }
+  }
   void registerDevice();
-  const { data } = await supabase.from('profiles').select('onboarding_step').eq('id', uid).single();
   void queryClient.invalidateQueries({ queryKey: profileKey(uid) });
   router.replace(routeForStep(data?.onboarding_step));
+}
+
+/**
+ * Log out on this phone (flow 10 rule 17): its push token goes first, so the next account's pushes
+ * never reach it (flow 15 rule 11). Offline, the sign-out still happens.
+ */
+export async function signOutHere() {
+  try {
+    const key = await SecureStore.getItemAsync(DEVICE_KEY);
+    if (key) await supabase.rpc('remove_push_token', { p_device_id: key });
+  } catch {
+    // offline: sign out anyway
+  }
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+  queryClient.clear();
 }
 
 // ─── Device registration (rule 31) ──────────────────────────────────────────
@@ -109,6 +158,7 @@ export const COPY = {
   tooMany: 'Too many tries. Try again in 15 minutes or reset your password.',
   googleFailed: 'Google sign-in didn’t work. Try again.',
   generic: 'Something went wrong. Try again.',
+  deleted: 'This account was deleted.',
 };
 
 /** Network failures from supabase-js surface as fetch TypeErrors or status 0. */

@@ -48,6 +48,8 @@ export interface AnnotRowModel {
   note: string | null;
   /** Club name when shared, else "Private" on notes. */
   scope: string | null;
+  /** Written offline and still waiting to sync (States: Error): marked "Not saved yet". */
+  unsaved?: boolean;
 }
 
 export type NotesTab = 'highlight' | 'note' | 'bookmark';
@@ -118,11 +120,12 @@ export function NotesSheet({
                   ...(i > 0 ? { borderTopWidth: bw(1), borderTopColor: c.line, paddingTop: s(14) } : null),
                 }}
               >
-                {r.label || r.scope ? (
+                {r.label || r.scope || r.unsaved ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8) }}>
                     <Text variant="xs" color="ink3" oneLine style={{ flex: 1 }}>
                       {r.label ?? ''}
                     </Text>
+                    {r.unsaved ? <Pill label="Not saved yet" tone="grey" /> : null}
                     {r.scope ? (
                       <Pill
                         label={r.scope}

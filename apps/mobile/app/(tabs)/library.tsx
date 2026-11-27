@@ -19,6 +19,7 @@ import type { UnlockMode } from '../../features/03/UnlockViews';
 import { useTrack } from '../../features/05/analytics';
 import {
   ACCOUNT_SHELVES,
+  adoptSavedView,
   downloadBook,
   refreshLicence,
   removeBookDownload,
@@ -88,6 +89,7 @@ export default function Library() {
   const track = useTrack();
   const online = useOnline();
   usePendingOpsSync();
+  useEffect(() => void adoptSavedView(), []);
 
   const { view, sort, setSort } = useLibraryPrefs();
   const { shelf, setShelf, downloads } = useLibrarySession();
@@ -166,8 +168,9 @@ export default function Library() {
   const openBook = (id: string) => router.push({ pathname: '/book/[id]', params: { id, source: 'library' } });
   const browse = (from: ShelfName | 'search', cta: string) => {
     track('library_empty_cta', { shelf: from, cta });
-    // Home and Explore are flow 02's.
-    router.navigate('/home');
+    // Rule 30: Explore (flow 02); "Search all books" carries the typed text to global search.
+    if (from === 'search') router.push({ pathname: '/search', params: { q: query.trim() } });
+    else router.push('/explore');
   };
 
   const changeShelf = (k: ShelfName) => {
@@ -287,6 +290,7 @@ export default function Library() {
     ? coverMenu({
         saved: !!menu.item?.shelves.saved,
         offline: offlineIds.has(menu.id),
+        downloading: downloads[menu.id] != null,
         downloadable: !!menu.item && (menu.item.owns_book || menu.item.paid_credits > 0),
         online,
         onBook: () => {
@@ -301,10 +305,11 @@ export default function Library() {
         },
         onRemoveDownload: () => {
           const bytes = offlineEntries.find((e) => e.bookId === menu.id)?.bytes ?? 0;
+          const inFlight = downloads[menu.id] != null;
           setMenu(null);
           removeBookDownload(qc, menu.id);
           track('download_removed', { book_id: menu.id, bytes });
-          toast({ message: `Removed ${menu.title} from this phone` });
+          toast({ message: inFlight ? 'Download cancelled' : `Removed ${menu.title} from this phone` });
         },
         onUnsave: () => {
           const it = menu.item;
@@ -417,6 +422,10 @@ export default function Library() {
               return void downloadBook(qc, e.bookId);
             }
             void openOffline(e);
+          }}
+          onLongPress={(b) => {
+            // Rule 27: cancel a download in flight (or paused) from a long-press.
+            if (downloads[b.id] != null) setMenu({ item: find(b.id), id: b.id, title: b.title });
           }}
           onMore={(b) => setMenu({ item: find(b.id), id: b.id, title: b.title })}
         />

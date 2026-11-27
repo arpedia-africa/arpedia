@@ -11,6 +11,7 @@
     "lint": "eslint app src"
   },
   "dependencies": {
+    "@arpedia/convert": "workspace:*",
     "@arpedia/core": "workspace:*",
     "@arpedia/reader": "workspace:*",
     "@arpedia/ui": "workspace:*",
@@ -51,6 +52,7 @@
     "react-native": "0.88.1",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-nitro-modules": "^0.37.2",
+    "react-native-purchases": "^11.0.4",
     "react-native-quick-base64": "^3.0.2",
     "react-native-quick-crypto": "1.1.10",
     "react-native-reanimated": "4.7.1",

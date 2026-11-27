@@ -6,7 +6,14 @@ import { supabase } from '@/lib/supabase';
 import { ForgotSheet, LoginView, type FieldErrors, type LoginValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
 import { signInWithGoogle } from '../../features/01/google';
-import { COPY, afterSignIn, isNetworkError, isRateLimited } from '../../features/01/session';
+import { signInWithPassword } from '../../features/01/passwordSignIn';
+import {
+  COPY,
+  afterSignIn,
+  isAccountDeleted,
+  isNetworkError,
+  isRateLimited,
+} from '../../features/01/session';
 
 export default function Login() {
   const track = useTrack();
@@ -28,10 +35,7 @@ export default function Login() {
     running.current = true;
     setBusy('password');
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email.trim(),
-        password: values.password,
-      });
+      const { data, error } = await signInWithPassword(values.email.trim(), values.password);
       if (error) {
         const reason = isNetworkError(error) ? 'network' : isRateLimited(error) ? 'rate_limited' : 'wrong';
         track('login_failed', { reason });
@@ -42,7 +46,9 @@ export default function Login() {
       track('login_succeeded', { method: 'email' });
       await afterSignIn(data.user.id);
     } catch (e) {
-      setErrors({ form: isNetworkError(e) ? COPY.offline : COPY.generic });
+      setErrors({
+        form: isAccountDeleted(e) ? COPY.deleted : isNetworkError(e) ? COPY.offline : COPY.generic,
+      });
     } finally {
       running.current = false;
       setBusy(null);
@@ -60,6 +66,7 @@ export default function Login() {
       track('login_succeeded', { method: 'google' });
       if (data.user) await afterSignIn(data.user.id);
     } catch (e) {
+      if (isAccountDeleted(e)) return setErrors({ form: COPY.deleted });
       track('login_failed', { reason: 'google' });
       setErrors({ form: isNetworkError(e) ? COPY.offline : COPY.googleFailed });
     } finally {

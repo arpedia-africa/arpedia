@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { RefreshControl, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { EmptyState, Screen, Section, Sheet, Skeleton, useTheme, useToast } from '@arpedia/ui';
@@ -18,6 +18,7 @@ import {
 } from '../../features/02/ListViews';
 import { chipGenres, listBook, useCatalogue, useFilterCount, useGenres } from '../../features/02/explore';
 import { discoveryLinks } from '../../features/02/links';
+import { useTrack } from '../../features/02/analytics';
 
 /** `s-explore` + `s-explore-filter`: genre chips, the whole catalogue, filter and sort (rules 12–17). */
 export default function Explore() {
@@ -33,6 +34,9 @@ export default function Explore() {
   // Sheet choices apply on "Show N books"; until then they are a draft.
   const [draftGenre, setDraftGenre] = useState<string | null>(genre);
   const [draftBands, setDraftBands] = useState<LengthBand[]>(bands);
+
+  const track = useTrack();
+  useEffect(() => track('explore_opened'), [track]);
 
   const genres = useGenres();
   const list = useCatalogue(genre, bands, sort);
@@ -130,6 +134,11 @@ export default function Explore() {
           onBand={(b) => setDraftBands((cur) => (cur.includes(b) ? cur.filter((x) => x !== b) : [...cur, b]))}
           onReset={() => (setDraftGenre(null), setDraftBands([]))}
           onShow={() => {
+            track('filter_applied', {
+              genre: draftGenre,
+              length_bands: draftBands.join(','),
+              result_count: draftCount ?? -1,
+            });
             setGenre(draftGenre);
             setBands(draftBands);
             setFilterOpen(false);

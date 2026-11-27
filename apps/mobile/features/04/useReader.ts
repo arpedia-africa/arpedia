@@ -21,7 +21,10 @@ import {
   type StartPosition,
 } from '@arpedia/reader';
 import { supabase } from '@/lib/supabase';
+import { captureError } from '@/lib/telemetry';
+import { useOnline } from '../03/book';
 import { rpcError } from '../03/UnlockSheet';
+import { applyProgress } from '../05/library';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
 import {
@@ -33,6 +36,7 @@ import {
   type ReaderState,
 } from './state';
 import { deviceId, WorkerError } from './worker';
+import { flushAnnotations, queuedAnnotations, saveAnnotations, type AnnotationRow } from './annotationQueue';
 
 export type ReaderPhase = 'loading' | 'ready' | 'error' | 'offline' | 'expired';
 
@@ -69,6 +73,8 @@ interface LocalPosition {
   cfi: string;
   para_id: string | null;
   offset: number;
+  /** Missing on places saved before rule 11's chapter fallback. */
+  chapter_uid?: string | null;
   percent: number;
   at: number;
 }
@@ -180,14 +186,21 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (!live) return;
       setManifest(m);
       setAccess(accessMap(state, f, ok));
+      // Offline writes go up first, so the pull already has them; any still waiting are drawn on top.
+      const uid = userId.current;
+      if (uid) await flushAnnotations(uid).catch(() => 0);
       const { data } = await supabase.rpc('pull_annotations', { p_book: bookId });
-      const items = ((data as { items?: Annotation[] } | null)?.items ?? []).filter((a) => !a.deleted);
-      if (live) setAnnotations(items);
+      const pulled = ((data as { items?: Annotation[] } | null)?.items ?? []).filter((a) => !a.deleted);
+      const waiting = uid ? (await queuedAnnotations(uid)).filter((r) => r.book_id === bookId) : [];
+      if (live) setAnnotations(withQueued(pulled, waiting));
       setPhase('ready');
     })().catch((e) => {
       if (!live) return;
       setError(String((e as Error)?.message ?? e));
-      setPhase(e instanceof WorkerError && e.code === 'offline' ? 'offline' : 'error');
+      const offline = e instanceof WorkerError && e.code === 'offline';
+      setPhase(offline ? 'offline' : 'error');
+      if (!offline)
+        captureError(e, { book_id: bookId, revision_id: revisionId, bundle_version: BRIDGE_VERSION });
     });
     return () => {
       live = false;
@@ -236,20 +249,24 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     if (!ready.current || !manifest || !state || opened.current) return;
     opened.current = true;
     const p = state.position;
-    const server: StartPosition =
-      p && p.revision_id === state.revision.id && p.cfi
-        ? { cfi: p.cfi }
-        : p?.para_id
-          ? { para_id: p.para_id, offset: p.char_offset ?? 0 }
-          : {};
+    // Each place carries its fallbacks (rule 11): the CFI on the same revision, then the paragraph,
+    // then the saved chapter's start.
+    const server: StartPosition = p
+      ? {
+          ...(p.revision_id === state.revision.id && p.cfi ? { cfi: p.cfi } : null),
+          ...(p.para_id ? { para_id: p.para_id, offset: p.char_offset ?? 0 } : null),
+          ...(p.chapter_uid ? { chapter_uid: p.chapter_uid } : null),
+        }
+      : {};
     const mine = localPos.current;
-    const local: StartPosition | null = !mine
-      ? null
-      : mine.revision_id === state.revision.id
-        ? { cfi: mine.cfi }
-        : mine.para_id
-          ? { para_id: mine.para_id, offset: mine.offset }
-          : null;
+    const local: StartPosition | null =
+      mine && (mine.revision_id === state.revision.id || mine.para_id || mine.chapter_uid)
+        ? {
+            ...(mine.revision_id === state.revision.id ? { cfi: mine.cfi } : null),
+            ...(mine.para_id ? { para_id: mine.para_id, offset: mine.offset } : null),
+            ...(mine.chapter_uid ? { chapter_uid: mine.chapter_uid } : null),
+          }
+        : null;
     // Rule 11: the server position if newer than this phone's, else this phone's. Rule 67: another
     // device more than 5% ahead is offered, and this phone's place stays (Stay is the default).
     let start: StartPosition = server;
@@ -313,6 +330,8 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (!d || !state || !d.chapter_uid) return;
       clearTimeout(syncTimer.current);
       lastSync.current = Date.now();
+      // The Library shows the new place when the reader goes back, online or not (flow 05 rule 34).
+      applyProgress(qc, bookId, { percent: d.percent, chapter_uid: d.chapter_uid });
       const device = await deviceId().catch(() => null);
       await supabase.rpc('sync_reading_progress', {
         p_book: bookId,
@@ -327,7 +346,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         p_at: new Date().toISOString(),
       } as never);
     },
-    [bookId, loc, state],
+    [bookId, loc, state, qc],
   );
 
   const onRelocate = useCallback(
@@ -341,6 +360,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           cfi: d.cfi,
           para_id: d.para_id,
           offset: d.offset,
+          chapter_uid: d.chapter_uid,
           percent: d.percent,
           at: Date.now(),
         };
@@ -458,8 +478,18 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           book_completed: boolean;
         };
         confirmCharge(pending.current, userId.current, chapterUid);
-        // The key may lag the charge: retried by the access effect on every refresh.
-        await files.current.refreshKeys(r.book_completed ? undefined : [chapterUid]).catch(() => undefined);
+        // The key may lag the charge: the card stays busy while /keys is retried with backoff
+        // (1, 2, 4 s); the access effect still retries on every later refresh.
+        const want = r.book_completed ? undefined : [chapterUid];
+        for (let i = 0; ; i++) {
+          const fc = files.current;
+          const got = await fc.refreshKeys(want).then(
+            () => fc.hasKey(chapterUid),
+            () => false,
+          );
+          if (got || i === 3) break;
+          await new Promise((res) => setTimeout(res, 1000 * 2 ** i));
+        }
         const fresh = await refresh();
         const ok = await files.current.licenceValid();
         const a = accessMap(fresh, files.current, ok);
@@ -505,12 +535,17 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     });
     if (e) {
       const { code } = rpcError(e);
+      // Codes from `undo_chapter_unlock` (flow 04 rule 59).
       setNotice(
-        code === 'read_too_far'
+        code === 'already_read'
           ? 'You’ve already read this chapter'
           : code === 'undo_expired'
             ? 'Undo has run out. You can ask Support to return it.'
-            : 'Couldn’t undo that. Try again.',
+            : code === 'book_unlocked'
+              ? 'You unlocked the whole book, so this can’t be undone'
+              : code === 'already_undone'
+                ? 'This chapter was already returned'
+                : 'Couldn’t undo that. Try again.',
       );
       return;
     }
@@ -522,8 +557,14 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       type: 'access.update',
       payload: { access: a, reload_section: true, gate_room: gateRoom.current },
     });
+    // Inside the returned chapter: move back to the end of the chapter before it.
+    if (loc?.chapter_uid === t.chapter_uid && manifest) {
+      const i = manifest.chapters.findIndex((c) => c.chapter_uid === t.chapter_uid);
+      const last = i > 0 ? manifest.chapters[i - 1]?.paragraphs.at(-1) : undefined;
+      if (last) send({ type: 'goTo', payload: { para_id: last.id } });
+    }
     setNotice(`Chapter ${t.ord} returned · ${t.spent} credits back`);
-  }, [toast, refresh, send]);
+  }, [toast, refresh, send, loc?.chapter_uid, manifest]);
 
   // ─── Bridge (rule D) ───────────────────────────────────────────────────────
   const onMessage = useCallback(
@@ -536,7 +577,14 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       },
     ) => {
       const m = parseFromWeb(raw);
-      if (!m) return;
+      if (!m) {
+        // The message itself may hold book text, so only the fact is sent.
+        captureError(new Error('reader: unknown bridge message'), {
+          book_id: bookId,
+          bundle_version: BRIDGE_VERSION,
+        });
+        return;
+      }
       switch (m.type) {
         case 'ready':
           ready.current = true;
@@ -563,6 +611,9 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
         }
         case 'relocate':
           onRelocate(m.payload);
+          return;
+        case 'start.moved':
+          setNotice('Your place moved a little after an update');
           return;
         case 'tap':
           lastActive.current = Date.now();
@@ -612,15 +663,21 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           );
           return;
         case 'error':
-          if (m.payload.code === 'resource_missing' || m.payload.code === 'decrypt_failed') setPhase('error');
-          else setPhase('error');
+          // Missing or undecryptable files were already fetched again once in BookFiles.read (rule 19).
+          setPhase('error');
           setError(m.payload.detail);
+          captureError(new Error(`reader ${m.payload.code}: ${m.payload.detail}`), {
+            book_id: bookId,
+            revision_id: files.current?.revisionId,
+            chapter_uid: m.payload.chapter_uid ?? lastChapter.current,
+            bundle_version: BRIDGE_VERSION,
+          });
           return;
         default:
           return;
       }
     },
-    [openBook, onRelocate, send, settings.auto_unlock, unlockChapter],
+    [openBook, onRelocate, send, settings.auto_unlock, unlockChapter, bookId],
   );
 
   // ─── Settings (rule 63) ────────────────────────────────────────────────────
@@ -637,6 +694,36 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     },
     [settings, send],
   );
+
+  // ─── Annotation sync (rule 43): offline writes wait on the phone ──────────
+  const [unsaved, setUnsaved] = useState<ReadonlySet<string>>(new Set());
+  const loadUnsaved = useCallback(async () => {
+    const uid = userId.current;
+    const rows = uid ? await queuedAnnotations(uid) : [];
+    setUnsaved(new Set(rows.filter((r) => r.book_id === bookId).map((r) => r.client_id)));
+  }, [bookId]);
+
+  const saveRows = useCallback(
+    async (rows: AnnotationRow[]) => {
+      const r = await saveAnnotations(userId.current, rows);
+      // The highlight stays drawn either way; a queued one is sent when the network is back.
+      if (r === 'queued') setNotice('Saved on this phone. It will sync when you’re back online.');
+      else if (r === 'refused') setNotice('Couldn’t save that. Try again.');
+      if (r === 'queued' || unsaved.size) void loadUnsaved();
+    },
+    [loadUnsaved, unsaved.size],
+  );
+
+  const online = useOnline();
+  useEffect(() => {
+    const uid = userId.current;
+    if (!uid || phase !== 'ready') return;
+    if (online)
+      void flushAnnotations(uid)
+        .catch(() => 0)
+        .then(loadUnsaved);
+    else void loadUnsaved();
+  }, [online, phase, loadUnsaved]);
 
   // ─── Highlights (rules 35, 41) ─────────────────────────────────────────────
   const highlight = useCallback(
@@ -665,31 +752,27 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       });
       send({ type: 'selection.clear' });
       setSelection(null);
-      const { error: e } = await supabase.rpc('upsert_annotations', {
-        p_batch: [
-          {
-            client_id: a.client_id,
-            book_id: bookId,
-            revision_id: state.revision.id,
-            kind: a.kind,
-            color,
-            cfi_range: a.cfi_range,
-            chapter_uid: a.chapter_uid,
-            start_para_id: sel.para_id_start,
-            start_char: 0,
-            end_para_id: sel.para_id_end ?? sel.para_id_start,
-            end_char: 0,
-            quote: a.quote,
-            note_text: a.note_text,
-            visibility: 'private',
-            updated_at: new Date().toISOString(),
-          },
-        ] as never,
-      });
-      // The highlight stays drawn; the Notes screen marks it "Not saved yet" (States: Error).
-      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+      await saveRows([
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: a.kind,
+          color,
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: sel.para_id_start,
+          start_char: 0,
+          end_para_id: sel.para_id_end ?? sel.para_id_start,
+          end_char: 0,
+          quote: a.quote,
+          note_text: a.note_text,
+          visibility: 'private',
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [selection, state, bookId, send],
+    [selection, state, bookId, send, saveRows],
   );
 
   /** Add, edit or clear the note on an existing highlight (rule 36). Last write wins (rule 43). */
@@ -708,28 +791,25 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           replace: false,
         },
       });
-      const { error: e } = await supabase.rpc('upsert_annotations', {
-        p_batch: [
-          {
-            client_id: a.client_id,
-            book_id: bookId,
-            revision_id: state.revision.id,
-            kind: next.kind,
-            color: a.color,
-            cfi_range: a.cfi_range,
-            chapter_uid: a.chapter_uid,
-            start_para_id: a.start_para_id,
-            end_para_id: a.start_para_id,
-            quote: a.quote,
-            note_text: next.note_text,
-            visibility: 'private',
-            updated_at: new Date().toISOString(),
-          },
-        ] as never,
-      });
-      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+      await saveRows([
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: next.kind,
+          color: a.color,
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: a.start_para_id,
+          end_para_id: a.start_para_id,
+          quote: a.quote,
+          note_text: next.note_text,
+          visibility: 'private',
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [annotations, state, bookId, send],
+    [annotations, state, bookId, send, saveRows],
   );
 
   // ─── Bookmarks (rule 40) ───────────────────────────────────────────────────
@@ -765,54 +845,48 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     }
     setAnnotations((l) => (existing ? l.filter((x) => x.client_id !== a.client_id) : [...l, a]));
     setNotice(existing ? 'Bookmark removed' : 'Page bookmarked');
-    const { error: e } = await supabase.rpc('upsert_annotations', {
-      p_batch: [
-        {
-          client_id: a.client_id,
-          book_id: bookId,
-          revision_id: state.revision.id,
-          kind: 'bookmark',
-          cfi_range: a.cfi_range,
-          chapter_uid: a.chapter_uid,
-          start_para_id: a.start_para_id,
-          end_para_id: a.start_para_id,
-          quote: a.quote,
-          visibility: 'private',
-          deleted: !!existing,
-          updated_at: new Date().toISOString(),
-        },
-      ] as never,
-    });
-    if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
-  }, [loc, state, pageBookmark, bookmarks.length, bookId]);
+    await saveRows([
+      {
+        client_id: a.client_id,
+        book_id: bookId,
+        revision_id: state.revision.id,
+        kind: 'bookmark',
+        cfi_range: a.cfi_range,
+        chapter_uid: a.chapter_uid,
+        start_para_id: a.start_para_id,
+        end_para_id: a.start_para_id,
+        quote: a.quote,
+        visibility: 'private',
+        deleted: !!existing,
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+  }, [loc, state, pageBookmark, bookmarks.length, bookId, saveRows]);
 
   // ─── Highlight menu: colour and delete (rule 36) ───────────────────────────
   const saveOne = useCallback(
     async (a: Annotation, deleted = false) => {
       if (!state) return;
-      const { error: e } = await supabase.rpc('upsert_annotations', {
-        p_batch: [
-          {
-            client_id: a.client_id,
-            book_id: bookId,
-            revision_id: state.revision.id,
-            kind: a.kind,
-            color: a.color,
-            cfi_range: a.cfi_range,
-            chapter_uid: a.chapter_uid,
-            start_para_id: a.start_para_id,
-            end_para_id: a.start_para_id,
-            quote: a.quote,
-            note_text: a.note_text,
-            visibility: a.visibility,
-            deleted,
-            updated_at: new Date().toISOString(),
-          },
-        ] as never,
-      });
-      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+      await saveRows([
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: a.kind,
+          color: a.color,
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: a.start_para_id,
+          end_para_id: a.start_para_id,
+          quote: a.quote,
+          note_text: a.note_text,
+          visibility: a.visibility,
+          deleted,
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [state, bookId],
+    [state, bookId, saveRows],
   );
   const draw = useCallback(
     (a: Annotation) =>
@@ -932,6 +1006,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     lowFor,
     notice,
     annotations,
+    unsaved,
     web,
     send,
     onMessage,
@@ -957,6 +1032,31 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       void q.refetch();
     },
   };
+}
+
+/** Pulled annotations with this phone's unsent writes on top (a queued delete hides its row). */
+function withQueued(pulled: Annotation[], waiting: AnnotationRow[]): Annotation[] {
+  if (!waiting.length) return pulled;
+  const ids = new Set(waiting.map((r) => r.client_id));
+  const out = pulled.filter((a) => !ids.has(a.client_id));
+  for (const r of waiting) {
+    if (r.deleted) continue;
+    const old = pulled.find((a) => a.client_id === r.client_id);
+    out.push({
+      id: old?.id ?? r.client_id,
+      client_id: r.client_id,
+      kind: r.kind as Annotation['kind'],
+      color: ((r.color as HighlightColor | undefined) ?? 'yellow') as HighlightColor,
+      cfi_range: r.cfi_range as string,
+      chapter_uid: (r.chapter_uid as string | null) ?? null,
+      start_para_id: (r.start_para_id as string | null) ?? null,
+      quote: (r.quote as string | null) ?? null,
+      note_text: (r.note_text as string | null) ?? null,
+      visibility: 'private',
+      updated_at: r.updated_at,
+    });
+  }
+  return out;
 }
 
 /** "Chapter n": the chapter's number among chapters (parts aren't counted). */

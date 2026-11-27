@@ -77,7 +77,7 @@ export default function MyHighlights() {
         onRetry={() => void list.refetch()}
         onOpen={(g, i) =>
           g.owned
-            ? router.push({ pathname: '/reader/[book]', params: { book: g.book_id, cfi: i.cfi } } as never)
+            ? router.push({ pathname: '/read/[id]', params: { id: g.book_id, cfi: i.cfi ?? undefined } })
             : Alert.alert(g.title, 'Unlock or open this book again to read this part.', [
                 { text: 'Not now', style: 'cancel' },
                 {

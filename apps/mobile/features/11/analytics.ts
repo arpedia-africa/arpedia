@@ -11,6 +11,10 @@ export type AuthorEvent =
   | 'studio_opened'
   | 'book_submit_started'
   | 'book_processing_done'
+  // flow 12 rule 6: the phone's own conversion
+  | 'book_upload_started'
+  | 'convert_completed'
+  | 'convert_failed'
   | 'chapters_confirmed'
   | 'book_submitted'
   | 'book_update_submitted'

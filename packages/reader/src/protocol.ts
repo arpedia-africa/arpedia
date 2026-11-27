@@ -55,6 +55,8 @@ export interface StartPosition {
   para_id?: string;
   /** Words into the paragraph. */
   offset?: number;
+  /** The saved chapter: where the book opens when neither the CFI nor the paragraph resolves (rule 11). */
+  chapter_uid?: string;
 }
 
 export interface DrawAnnotation {
@@ -158,6 +160,8 @@ export type WebToNative =
       };
     }
   | { type: 'log'; payload: { level: 'info' | 'warn'; message: string } }
+  /** The saved place no longer exists (an update moved it); the book opened nearby (rule 11). */
+  | { type: 'start.moved'; payload?: undefined }
   | {
       type: 'error';
       payload: {
@@ -196,6 +200,7 @@ const WEB_TYPES = new Set<string>([
   'marker.tap',
   'search.result',
   'log',
+  'start.moved',
   'error',
 ]);
 

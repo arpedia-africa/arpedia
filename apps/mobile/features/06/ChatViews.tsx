@@ -171,10 +171,13 @@ export function Bubble({
   m,
   onLongPress,
   onRetry,
+  onOpenQuote,
 }: {
   m: BubbleView;
   onLongPress?: () => void;
   onRetry?: () => void;
+  /** Quote card: Open goes to that page in the reader (flow 06 rule 19). */
+  onOpenQuote?: () => void;
 }) {
   const { c, s, bw } = useTheme();
   const r = s(16);
@@ -236,7 +239,14 @@ export function Bubble({
         ) : null}
         {m.quote ? (
           // .quote-bub: white card, inset 1px line, Literata italic 12.5, source in UI 11.5
-          <View
+          <Press
+            onPress={onOpenQuote ?? (m.failed ? onRetry : undefined)}
+            // The card takes the touch, so it passes the bubble's long press on.
+            onLongPress={onLongPress}
+            delayLongPress={350}
+            accessibilityRole={onOpenQuote ? 'link' : undefined}
+            accessibilityLabel={`${m.quote.text} ${m.quote.source}`}
+            accessibilityHint={onOpenQuote ? 'Opens this page in the book' : undefined}
             style={{
               backgroundColor: c.white,
               borderRadius: s(10),
@@ -250,10 +260,17 @@ export function Bubble({
             <Text size={12.5} family="reading" italic color="ink2" style={{ lineHeight: s(12.5) * 1.4 }}>
               {m.quote.text}
             </Text>
-            <Text size={11.5} color="ink3" style={{ marginTop: s(4), lineHeight: s(11.5) * 1.4 }}>
-              {m.quote.source}
-            </Text>
-          </View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: s(8), marginTop: s(4) }}>
+              <Text size={11.5} color="ink3" style={{ flexShrink: 1, lineHeight: s(11.5) * 1.4 }}>
+                {m.quote.source}
+              </Text>
+              {onOpenQuote ? (
+                <Text size={11.5} weight={600} color="orgInk" oneLine style={{ marginLeft: 'auto' }}>
+                  Open
+                </Text>
+              ) : null}
+            </View>
+          </Press>
         ) : null}
         {m.body !== null ? (
           <Text size={14} style={{ lineHeight: s(14) * 1.4 }}>
