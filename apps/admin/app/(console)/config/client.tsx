@@ -6,7 +6,7 @@ import { isVersion } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
-import { rollbackOta, saveConfig, saveCopy, saveFlag } from './actions';
+import { rollbackOta, saveConfig, saveCopy, saveFlag, saveFlagSettings } from './actions';
 
 interface Stamp {
   updated_at: string | null;
@@ -90,6 +90,10 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
   const [copyText, setCopyText] = useState('');
   const [copyError, setCopyError] = useState<string | null>(null);
   const [verError, setVerError] = useState<{ key: string; text: string } | null>(null);
+  const [flagKey, setFlagKey] = useState<string | null>(null);
+  const [rollout, setRollout] = useState('');
+  const [flagVersion, setFlagVersion] = useState('');
+  const [flagError, setFlagError] = useState<string | null>(null);
 
   const run = (fn: () => Promise<{ ok: true } | { ok: false; error: string }>, done: string, undo?: () => void) =>
     start(async () => {
@@ -152,6 +156,39 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
         )}
       </td>
       <td>
+        {flagKey === f.key ? (
+          <div className="stack s4">
+            <div className="row" style={{ gap: 8 }}>
+              <div className="f grow">
+                <div className="inp">
+                  <input
+                    value={rollout}
+                    inputMode="numeric"
+                    maxLength={3}
+                    autoFocus
+                    onChange={e => setRollout(e.target.value.replace(/[^0-9]/g, ''))}
+                    aria-label={`${f.label} rollout percent`}
+                  />
+                </div>
+              </div>
+              <b className="num">%</b>
+              <div className="f grow">
+                <div className="inp">
+                  <input
+                    value={flagVersion}
+                    inputMode="decimal"
+                    placeholder="Any version"
+                    onChange={e => setFlagVersion(e.target.value)}
+                    aria-label={`${f.label} minimum app version`}
+                  />
+                </div>
+              </div>
+            </div>
+            <span className={flagError ? 'hint err-t' : 'hint'}>
+              {flagError ?? 'Rollout 0 to 100%, and the oldest app version that gets it (empty for any).'}
+            </span>
+          </div>
+        ) : (
         <div className="row" style={{ gap: 8 }}>
           <div className="meter grow">
             <i
@@ -161,12 +198,51 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
           </div>
           <b className="num">{`${f.rollout_percent}%`}</b>
         </div>
+        )}
       </td>
       <td className="nw">{stamp(f)}</td>
       <td>
         <span className="row" style={{ gap: 10 }}>
           <span className="st-plain">{f.enabled ? 'On' : 'Off'}</span>
-          {screen.can_edit && (
+          {screen.can_edit && flagKey === f.key && (
+            <>
+              <button className="btn btn-g sm" type="button" disabled={pending} onClick={() => setFlagKey(null)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-p sm"
+                type="button"
+                disabled={pending || !online || rollout === ''}
+                onClick={() =>
+                  start(async () => {
+                    const r = await saveFlagSettings(f.key, f.enabled, Number(rollout), flagVersion);
+                    if (!r.ok) return setFlagError(r.error);
+                    setFlagKey(null);
+                    show(`${f.label} now reaches ${Number(rollout)}% of readers${flagVersion.trim() ? ` on app ${flagVersion.trim()} or newer` : ''}. It is in the audit log.`);
+                    router.refresh();
+                  })
+                }
+              >
+                Save
+              </button>
+            </>
+          )}
+          {screen.can_edit && flagKey !== f.key && (
+            <button
+              className="btn btn-g sm"
+              type="button"
+              disabled={pending || !online}
+              onClick={() => {
+                setFlagKey(f.key);
+                setRollout(String(f.rollout_percent));
+                setFlagVersion(f.min_app_version ?? '');
+                setFlagError(null);
+              }}
+            >
+              Edit
+            </button>
+          )}
+          {screen.can_edit && flagKey !== f.key && (
             <button
               className="btn btn-q sm"
               type="button"

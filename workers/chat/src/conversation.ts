@@ -39,6 +39,9 @@ export interface SenderStore {
   put(userId: string, s: SenderState): Promise<void>;
 }
 
+/** How far back /enforce looks for moderated messages (a decision pushes right after it saves). */
+export const ENFORCE_WINDOW_MS = 10 * 60_000;
+
 export interface Deps {
   groupId: string;
   db: ChatDb;
@@ -353,13 +356,14 @@ export class Conversation {
    * Moderation push-down, after Postgres changed: re-read access (one user or everyone), close
    * sockets of people who may no longer be here, and tell the rest about the new composer state.
    */
-  async refresh(userId?: string, requester?: string): Promise<void> {
+  async refresh(userId?: string, requester?: string): Promise<boolean> {
     // Re-reading everyone costs a Postgres call per person here: only staff and the group's
     // owner or moderators may ask for that; anyone else refreshes just themselves.
     if (!userId && requester) {
       const r = await this.accessFor(requester, true);
       if (!(r.is_staff || r.role === 'owner' || r.role === 'moderator')) userId = requester;
     }
+    const everyone = !userId;
     if (userId) this.access.delete(userId);
     else this.access.clear();
     const seen = new Set<string>();
@@ -381,6 +385,22 @@ export class Conversation {
       );
     }
     await this.presenceChanged();
+    return everyone;
+  }
+
+  /**
+   * POST /enforce (spec: moderation push-down), after a staff or moderator decision: refresh
+   * access as above, then take messages moderated in the last few minutes (removed, hidden or
+   * deleted in Postgres) out of live clients. States are read from Postgres, never from the
+   * caller, and only a refresh of everyone (staff, owner, moderator) pushes them.
+   */
+  async enforce(userId?: string, requester?: string): Promise<void> {
+    if (!(await this.refresh(userId, requester))) return;
+    const since = new Date(this.d.now() - ENFORCE_WINDOW_MS).toISOString();
+    const changed = await this.d.db.changedStates(this.d.groupId, since).catch(() => []);
+    for (const m of changed) {
+      if (m.state !== 'visible') this.broadcast({ type: 'state', message_id: m.id, state: m.state });
+    }
   }
 
   /** Relay a change made over HTTPS (reaction, pin, delete) to live clients. */

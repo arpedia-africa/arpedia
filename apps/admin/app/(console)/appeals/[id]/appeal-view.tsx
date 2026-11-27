@@ -217,7 +217,7 @@ export function AppealView({
               <div className="fold__b">
                 <b>
                   Appellant ·{' '}
-                  <a className="link" href={`/readers/${a.user_id}`}>
+                  <a className="link" href={`/users/${a.user_id}`}>
                     Open reader
                   </a>
                 </b>

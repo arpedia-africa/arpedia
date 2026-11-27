@@ -58,7 +58,17 @@ export function PayoutHeadActions({ name, statement }: { name: string; statement
             <a role="button" tabIndex={0} onClick={pick('Messages to authors arrive with reader messages (flow 08).')}>
               {`Message ${first}`}
             </a>
-            <a role="button" tabIndex={0} onClick={pick('Choose a reason under Hold, then turn on Pause payouts.')}>
+            <a
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                // Pausing needs a reason, so this takes Finance to the Hold panel's reason.
+                setOpen(false);
+                const el = document.getElementById('ap-r') ?? document.getElementById('ap-switch');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el?.focus({ preventScroll: true });
+              }}
+            >
               Pause payouts
             </a>
           </div>
@@ -79,6 +89,7 @@ export function HoldPanel({
   paused,
   reason,
   setBy,
+  note,
   canEdit,
 }: {
   author: string;
@@ -86,18 +97,21 @@ export function HoldPanel({
   paused: boolean;
   reason: PauseReason | null;
   setBy: string | null;
+  note: string | null;
   canEdit: boolean;
 }) {
   const router = useRouter();
   const [toast, show] = useToast();
   const [pending, start] = useTransition();
   const [pick, setPick] = useState<PauseReason | ''>(reason ?? '');
+  const [why, setWhy] = useState('');
 
   const toggle = () => {
     if (!canEdit) return show('Only Finance and Super admins can pause payouts.');
     if (!paused && !pick) return show('Choose a reason to pause.');
+    if (!paused && pick === 'other' && why.trim().length < 3) return show('Say why in a few words.');
     start(async () => {
-      const r = await setPayoutHold(author, !paused, paused ? null : (pick as PauseReason), name);
+      const r = await setPayoutHold(author, !paused, paused ? null : (pick as PauseReason), name, pick === 'other' ? why : '');
       show(r.ok ? r.message : r.error);
       if (r.ok) router.refresh();
     });
@@ -120,6 +134,7 @@ export function HoldPanel({
             role="switch"
             aria-checked={paused}
             aria-label="Pause payouts"
+            id="ap-switch"
             disabled={pending}
             onClick={toggle}
           ></button>
@@ -127,7 +142,7 @@ export function HoldPanel({
         <div className="f">
           <label htmlFor="ap-r">Reason (required to pause)</label>
           {paused ? (
-            <span className="muted">{`${reason ? PAUSE_REASONS[reason] : 'No reason recorded'}${setBy ? ` · paused by ${setBy}` : ''}`}</span>
+            <span className="muted">{`${reason ? PAUSE_REASONS[reason] : 'No reason recorded'}${reason === 'other' && note ? `: ${note}` : ''}${setBy ? ` · paused by ${setBy}` : ''}`}</span>
           ) : (
             <>
               <div className="inp sel" style={{ position: 'relative' }}>
@@ -154,6 +169,21 @@ export function HoldPanel({
             </>
           )}
         </div>
+        {!paused && pick === 'other' && (
+          <div className="f">
+            <label htmlFor="ap-why">Why (logged, not shown to the author)</label>
+            <div className="inp">
+              <input
+                id="ap-why"
+                value={why}
+                maxLength={200}
+                disabled={!canEdit}
+                onChange={e => setWhy(e.target.value)}
+                placeholder="A few words for the audit log"
+              />
+            </div>
+          </div>
+        )}
       </div>
       {toast}
     </div>

@@ -31,7 +31,7 @@ async function pushToChat(groupId: string | null | undefined) {
   } = await supabase.auth.getSession();
   if (!session) return;
   try {
-    await fetch(`${process.env.CHAT_URL ?? 'http://127.0.0.1:8788'}/c/${groupId}/refresh`, {
+    await fetch(`${process.env.CHAT_URL ?? 'http://127.0.0.1:8788'}/c/${groupId}/enforce`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: '{}',
@@ -76,6 +76,16 @@ export async function assignToMe(reportId: string): Promise<ActionResult> {
   const { error } = await supabase.rpc('assign_report', { p_report: reportId });
   if (error) return failed(error.message);
   revalidatePath(`/reports/${reportId}`);
+  return { ok: true };
+}
+
+/** Change a report's severity (rule 4): every open report on the same content moves, and its due time follows. */
+export async function setSeverity(reportId: string, severity: 'high' | 'medium' | 'low'): Promise<ActionResult> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('set_report_severity', { p_report: reportId, p_severity: severity });
+  if (error) return failed(error.message);
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath('/reports');
   return { ok: true };
 }
 

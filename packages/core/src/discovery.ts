@@ -116,3 +116,19 @@ export function searchesLabel(n: number): string {
   if (n >= 1000) return `${(Math.round(n / 100) / 10).toString()}k searches this week`;
   return `${n} searches this week`;
 }
+
+/**
+ * Spec check 03-7, 05-7, 07-11: the public image URL for a `cover_key` from any RPC
+ * (`src/{revision}/cover`), served by the api Worker's `GET /v1/covers/{revision}`. Null when there
+ * is no cover, the key is not a cover key, or there is no api URL: the app then draws the sample tone.
+ */
+export function coverUrl(
+  apiUrl: string | null | undefined,
+  coverKey: string | null | undefined,
+): string | null {
+  const m = /^src\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/cover$/i.exec(
+    coverKey ?? '',
+  );
+  if (!m || !apiUrl) return null;
+  return `${apiUrl.replace(/\/+$/, '')}/v1/covers/${m[1]!.toLowerCase()}`;
+}

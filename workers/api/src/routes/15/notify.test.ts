@@ -138,6 +138,39 @@ describe('plan', () => {
     ]);
   });
 
+  it('an export that is ready emails the staff member who made it (15-19)', () => {
+    const n = { kind: 'export_ready', user_id: MOD, export_kind: 'author_earnings', row_count: 1234 };
+    expect(needs([n]).users).toEqual([MOD]);
+    expect(plan(n, L)).toEqual({
+      push: [],
+      mail: [
+        {
+          key: 'staff_alert',
+          user_id: MOD,
+          vars: {
+            subject: 'Your author earnings export is ready',
+            message: '1,234 rows. Download it from Exports in the console within 7 days.',
+          },
+        },
+      ],
+    });
+    expect(plan({ ...n, row_count: 1 }, L).mail[0]!.vars.message).toMatch(/^1 row\. /);
+  });
+
+  it('payout alerts email Finance with flow 13 copy', () => {
+    const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
+    const n = {
+      kind: 'payout_alert',
+      alert: 'payout_reminder',
+      subject: 'Payout day in 3 days',
+      message: 'm',
+    };
+    expect(needs([n]).roles).toEqual(['finance']);
+    expect(plan(n, l).mail).toEqual([
+      { key: 'staff_alert', user_id: MOD, vars: { subject: 'Payout day in 3 days', message: 'm' } },
+    ]);
+  });
+
   it('finance alerts email Finance (spec check 09-8)', () => {
     const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
     expect(needs([{ kind: 'finance_alert', alert: 'chargeback', transaction_id: 't1' }]).roles).toEqual([
@@ -227,6 +260,83 @@ describe('plan', () => {
   it('unknown, live and rules_changed send nothing', () => {
     for (const kind of ['live', 'rules_changed', 'something_new'])
       expect(plan({ kind, user_id: READER }, L)).toEqual({ push: [], mail: [] });
+  });
+});
+
+describe('staff alert preferences (16-14)', () => {
+  const OTHER = '77777777-7777-4777-8777-777777777777';
+  const l: Lookup = {
+    ...L,
+    staff: {
+      moderator: [MOD, OTHER],
+      publisher: [MOD, OTHER],
+      finance: [MOD, OTHER],
+      operations_admin: [MOD, OTHER],
+    },
+    staff_off: {
+      [OTHER]: [
+        'high_severity_reports',
+        'failed_payouts',
+        'copyright_claims',
+        'applications_waiting',
+        'system_health',
+      ],
+    },
+  };
+  const to = (n: Notice) => plan(n, l).mail.map((m) => m.user_id);
+
+  it('High-severity reports always arrive; other report alerts follow the switch', () => {
+    expect(to({ kind: 'staff_alert', severity: 'high', report_id: 'r' })).toEqual([MOD, OTHER]);
+    expect(to({ kind: 'staff_alert', severity: 'low', late: true })).toEqual([MOD]);
+  });
+
+  it('failed and stuck payouts follow the switch; the payout-day reminder always arrives', () => {
+    expect(to({ kind: 'payout_alert', alert: 'payout_failed', subject: 's', message: 'm' })).toEqual([MOD]);
+    expect(to({ kind: 'payout_alert', alert: 'transfer_stuck', subject: 's', message: 'm' })).toEqual([MOD]);
+    expect(to({ kind: 'payout_alert', alert: 'payout_reminder', subject: 's', message: 'm' })).toEqual([
+      MOD,
+      OTHER,
+    ]);
+  });
+
+  it('claims, waiting applications and system health follow their switches', () => {
+    const claim = plan(
+      { kind: 'claim_new', ref: 'CLM-0007', book_id: BOOK, claimant_name: 'Rotimi Press' },
+      l,
+    );
+    expect(claim.mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: 'New copyright claim on Harmattan Letters',
+          message: 'CLM-0007 from Rotimi Press. Open Claims in the console.',
+        },
+      },
+    ]);
+    expect(
+      to({ kind: 'claim_deadline', ref: 'CLM-0007', book_id: BOOK, due_at: '2026-11-29T10:00:00Z' }),
+    ).toEqual([MOD]);
+    expect(to({ kind: 'application_sla', count: 3 })).toEqual([MOD]);
+    const sys = plan(
+      {
+        kind: 'system_alert',
+        service: 'fcm',
+        label: 'Firebase Cloud Messaging',
+        status: 'failing',
+        note: '12 of 100 failed in 24 hours',
+      },
+      l,
+    );
+    expect(sys.mail.map((m) => m.user_id)).toEqual([MOD]);
+    expect(sys.mail[0]!.vars.subject).toBe('Firebase Cloud Messaging is failing');
+  });
+
+  it('asks the lookup for the roles of the new alerts', () => {
+    expect(needs([{ kind: 'claim_new' }, { kind: 'system_alert' }]).roles).toEqual([
+      'publisher',
+      'operations_admin',
+    ]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authorCount, authorRating, postTime, replyLabel, validMessage } from './authors';
+import { authorCount, authorRating, dmReplyHours, postTime, replyLabel, validMessage } from './authors';
 
 describe('authorCount', () => {
   it('is exact below 1,000, then k and m', () => {
@@ -57,5 +57,49 @@ describe('authorRating and validMessage', () => {
     expect(validMessage(' hi ')).toBe(true);
     expect(validMessage('x'.repeat(1000))).toBe(true);
     expect(validMessage('x'.repeat(1001))).toBe(false);
+  });
+});
+
+describe('dmReplyHours', () => {
+  const now = new Date('2026-11-27T12:00:00Z');
+  const msg = (
+    sender_id: string | null,
+    created_at: string,
+    extra: { kind?: string; state?: string } = {},
+  ) => ({
+    sender_id,
+    created_at,
+    kind: extra.kind ?? 'text',
+    state: extra.state ?? 'visible',
+  });
+
+  it('counts from the oldest reader message since the author last wrote', () => {
+    const thread = [
+      msg('reader', '2026-11-25T08:00:00Z'),
+      msg('author', '2026-11-25T09:00:00Z'),
+      msg('reader', '2026-11-27T06:30:00Z'),
+      msg('reader', '2026-11-27T11:00:00Z'),
+    ];
+    expect(dmReplyHours(thread, 'author', now)).toBe(5.5);
+  });
+
+  it('is null when nothing from the reader is waiting', () => {
+    expect(dmReplyHours([], 'author', now)).toBeNull();
+    expect(
+      dmReplyHours(
+        [msg('reader', '2026-11-27T10:00:00Z'), msg('author', '2026-11-27T11:00:00Z')],
+        'author',
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it('skips system lines and deleted messages', () => {
+    const thread = [
+      msg(null, '2026-11-27T01:00:00Z', { kind: 'system' }),
+      msg('reader', '2026-11-27T02:00:00Z', { state: 'deleted' }),
+      msg('reader', '2026-11-27T09:00:00Z'),
+    ];
+    expect(dmReplyHours(thread, 'author', now)).toBe(3);
   });
 });
