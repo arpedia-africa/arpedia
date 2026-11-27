@@ -4168,14 +4168,14 @@ isOneToOne: false
                   ]
                 },"reading_sessions": {
                   Row: {
-                    "active_seconds": number,"book_id": string,"client_id": string,"created_at": string,"device_id": string | null,"ended_at": string,"id": string,"started_at": string,"user_id": string
+                    "active_seconds": number,"book_id": string,"client_id": string,"created_at": string,"device_id": string | null,"ended_at": string,"id": string,"offline": boolean | null,"pages": number | null,"started_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "active_seconds": number,"book_id": string,"client_id": string,"created_at"?: string,"device_id"?: string | null,"ended_at": string,"id"?: string,"started_at": string,"user_id": string
+                    "active_seconds": number,"book_id": string,"client_id": string,"created_at"?: string,"device_id"?: string | null,"ended_at": string,"id"?: string,"offline"?: boolean | null,"pages"?: number | null,"started_at": string,"user_id": string
                   }
                   Update: {
-                    "active_seconds"?: number,"book_id"?: string,"client_id"?: string,"created_at"?: string,"device_id"?: string | null,"ended_at"?: string,"id"?: string,"started_at"?: string,"user_id"?: string
+                    "active_seconds"?: number,"book_id"?: string,"client_id"?: string,"created_at"?: string,"device_id"?: string | null,"ended_at"?: string,"id"?: string,"offline"?: boolean | null,"pages"?: number | null,"started_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -7791,7 +7791,7 @@ isOneToOne: false
 { Args: { "p_rows": Json }; Returns: (number)[]
                            },
 "log_reading_session":
-{ Args: { "p_active_seconds": number,"p_book": string,"p_client_id": string,"p_device_id": string,"p_ended_at": string,"p_started_at": string }; Returns: undefined
+{ Args: { "p_active_seconds": number,"p_book": string,"p_client_id": string,"p_device_id": string,"p_ended_at": string,"p_offline"?: boolean,"p_pages"?: number,"p_started_at": string }; Returns: undefined
                            },
 "log_search":
 { Args: { "p_q": string,"p_result_count": number,"p_tapped_id"?: string,"p_tapped_type"?: string }; Returns: undefined
@@ -8610,6 +8610,9 @@ isOneToOne: false
                            },
 "staff_analytics_funnel":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"staff_analytics_reading":
+{ Args: { "p_from": string,"p_limit"?: number,"p_to": string }; Returns: Json
                            },
 "staff_by_role":
 { Args: Record<PropertyKey, never>; Returns: {
