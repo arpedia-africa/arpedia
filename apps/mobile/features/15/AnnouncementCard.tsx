@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Petals, Press, Sheet, Text, useTheme } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
+import { useTrack } from './analytics';
 import { openTarget, send, type Target } from './push';
 
 // Home announcement card (flow 15 rule 21), mirroring the admin preview `.sy-bcard`
@@ -111,29 +112,40 @@ export function AnnouncementCard({
 
 function useDismiss(placement: Placement) {
   const qc = useQueryClient();
+  const track = useTrack();
   const key = bannersKey(placement);
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc('dismiss_banner', { p_banner: id });
       if (error) throw error;
     },
-    onMutate: (id) => qc.setQueryData<Banner[]>(key, (old) => old?.filter((b) => b.id !== id)),
+    onMutate: (id) => {
+      track('banner_dismissed', { banner_id: id, placement });
+      qc.setQueryData<Banner[]>(key, (old) => old?.filter((b) => b.id !== id));
+    },
     onError: () => void qc.invalidateQueries({ queryKey: key }),
   });
 }
 
-function useShown(data: Banner[] | undefined) {
+function useShown(data: Banner[] | undefined, placement: Placement) {
+  const track = useTrack();
   const ids = (data ?? []).map((b) => b.id).join(',');
   useEffect(() => {
-    for (const id of ids.split(',').filter(Boolean))
+    for (const id of ids.split(',').filter(Boolean)) {
       send(supabase.rpc('banner_event', { p_banner: id, p_kind: 'shown' }));
-  }, [ids]);
+      track('banner_shown', { banner_id: id, placement });
+    }
+  }, [ids, placement, track]);
 }
 
-const tapped = (b: Banner) => {
-  send(supabase.rpc('banner_event', { p_banner: b.id, p_kind: 'tapped' }));
-  openTarget(b.target);
-};
+function useTapped(placement: Placement) {
+  const track = useTrack();
+  return (b: Banner) => {
+    send(supabase.rpc('banner_event', { p_banner: b.id, p_kind: 'tapped' }));
+    track('banner_tapped', { banner_id: b.id, placement });
+    openTarget(b.target);
+  };
+}
 
 /** Live banners for one placement; counts shown and tapped, dismiss hides it for good. Nothing when none. */
 export function Announcements({
@@ -146,7 +158,8 @@ export function Announcements({
   const { s } = useTheme();
   const { data } = useBanners(placement);
   const dismiss = useDismiss(placement);
-  useShown(data);
+  const tapped = useTapped(placement);
+  useShown(data, placement);
   if (!data?.length) return null;
   return (
     <View style={[{ gap: s(12) }, style]}>
@@ -180,6 +193,7 @@ export function LaunchAnnouncement() {
   const { s } = useTheme();
   const [, setTick] = useState(0);
   const dismiss = useDismiss('launch_modal');
+  const tapped = useTapped('launch_modal');
   useEffect(() => {
     if (launchAsked) return;
     launchAsked = true;
@@ -194,7 +208,7 @@ export function LaunchAnnouncement() {
       });
   }, []);
   const b = launchBanner;
-  useShown(b ? [b] : undefined);
+  useShown(b ? [b] : undefined, 'launch_modal');
   if (!b) return null;
   const close = () => {
     closedLaunch.add(b.id);

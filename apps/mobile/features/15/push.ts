@@ -2,11 +2,12 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router, type Href } from 'expo-router';
 import { useCallback, useEffect } from 'react';
-import { Linking } from 'react-native';
+import { AppState, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePostHog } from 'posthog-react-native';
 import { supabase } from '@/lib/supabase';
 import { registerDevice } from '../01/session';
+import { useTrack as useEngageTrack, type Track as EngageTrack } from './analytics';
 
 /** Where a push or announcement tap opens (flow 15 `open_target`). */
 export interface Target {
@@ -147,30 +148,51 @@ export function send(query: PromiseLike<unknown>) {
 // The tap that launched the app is also returned on later mounts: open it once.
 let handled: string | null = null;
 
-function open(response: Notifications.NotificationResponse | null) {
+type PushData = { push_id?: number; type?: string; campaign_id?: string; target?: Target } | undefined;
+
+function open(response: Notifications.NotificationResponse | null, track: EngageTrack) {
   const id = response?.notification.request.identifier;
   if (!id || id === handled) return;
   handled = id;
-  const data = response?.notification.request.content.data as
-    { push_id?: number; target?: Target } | undefined;
+  const data = response?.notification.request.content.data as PushData;
   if (!data) return;
   if (typeof data.push_id === 'number') send(supabase.rpc('push_opened', { p_push_id: data.push_id }));
+  track('push_opened', {
+    type: data.type ?? 'unknown',
+    campaign_id: data.campaign_id ?? '',
+    target: data.target?.kind ?? '',
+  });
   openTarget(data.target);
 }
+
+// session_start: on launch, and again after 30 minutes in the background.
+const SESSION_GAP_MS = 30 * 60_000;
 
 /**
  * Signed-in shell: registers the push token and opens what a tapped push points to, both from a
  * running app and from a cold start (the tap that launched the app).
  */
 export function usePushHandling() {
+  const track = useEngageTrack();
   useEffect(() => {
     void registerPushToken();
-    void Notifications.getLastNotificationResponseAsync().then(open);
-    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    void Notifications.getLastNotificationResponseAsync().then((r) => open(r, track));
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => open(r, track));
+    const got = Notifications.addNotificationReceivedListener((n) =>
+      track('push_received', { type: (n.request.content.data as PushData)?.type ?? 'unknown' }),
+    );
     const tokens = Notifications.addPushTokenListener(() => void registerPushToken());
+    track('session_start');
+    let away = 0;
+    const app = AppState.addEventListener('change', (st) => {
+      if (st === 'background') away = Date.now();
+      else if (st === 'active' && away && Date.now() - away > SESSION_GAP_MS) track('session_start');
+    });
     return () => {
       sub.remove();
+      got.remove();
       tokens.remove();
+      app.remove();
     };
-  }, []);
+  }, [track]);
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { RefreshControl, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { EmptyState, Screen, useTheme, useToast } from '@arpedia/ui';
@@ -10,6 +10,7 @@ import {
   type NotifRow,
 } from '../../features/02/NotificationViews';
 import { toRow, useMarkRead, useNotifications, type ServerNotif } from '../../features/02/notifications';
+import { useTrack as useEngageTrack } from '../../features/15/analytics';
 import { hrefFor } from '../../features/15/push';
 import { ListError } from '../../features/02/ListViews';
 import { APPEAL_SENT, appealSubject, decisionTitle, type ModerationRow } from '@arpedia/core';
@@ -27,6 +28,8 @@ export default function Notifications() {
   const feed = useNotifications(category);
   const mark = useMarkRead();
   const track = useTrack();
+  const track15 = useEngageTrack();
+  useEffect(() => track15('notification_feed_opened'), [track15]);
   const pages = feed.data?.pages;
   const items = pages?.flatMap((p) => p.items) ?? [];
   const unread = pages?.[0]?.unread ?? 0;
@@ -53,6 +56,7 @@ export default function Notifications() {
     const n = items.find((x) => x.id === row.id);
     if (!n) return;
     track('notification_opened', { kind: n.kind });
+    track15('notification_item_opened', { type: n.kind });
     if (!n.read_at) mark.one.mutate(n.id);
     openTarget(n);
   };
