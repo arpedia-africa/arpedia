@@ -5138,6 +5138,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"store_reconcile_runs": {
+                  Row: {
+                    "created_at": string,"error": string | null,"id": number,"matched": number,"ours_count": number,"provider": string,"provider_count": number,"status": string,"unmatched": number,"window_end": string,"window_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"error"?: string | null,"id"?: never,"matched"?: number,"ours_count"?: number,"provider": string,"provider_count"?: number,"status": string,"unmatched"?: number,"window_end": string,"window_start": string
+                  }
+                  Update: {
+                    "created_at"?: string,"error"?: string | null,"id"?: never,"matched"?: number,"ours_count"?: number,"provider"?: string,"provider_count"?: number,"status"?: string,"unmatched"?: number,"window_end"?: string,"window_start"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"subscriptions": {
                   Row: {
                     "auto_renew": boolean,"created_at": string,"ended_at": string | null,"flutterwave_plan_id": string | null,"id": string,"last_event_at": string,"pause_until": string | null,"pending_plan_code": string | null,"period_end": string,"period_start": string,"plan_code": string,"reminder_sent_for": string | null,"status": string,"store": string,"store_original_txn_id": string | null,"updated_at": string,"user_id": string
@@ -8058,6 +8072,9 @@ isOneToOne: false
                            },
 "record_statement":
 { Args: { "p_author": string,"p_cycle": string,"p_file_key": string,"p_kind": Database["public"]['Enums']["statement_kind"] }; Returns: string
+                           },
+"record_store_reconcile":
+{ Args: { "p_error"?: string,"p_items": Json,"p_matched": number,"p_ours_count": number,"p_provider": string,"p_provider_count": number,"p_status": string,"p_window_end": string,"p_window_start": string }; Returns: Json
                            },
 "redeem_promo":
 { Args: { "p_code": string }; Returns: Json
