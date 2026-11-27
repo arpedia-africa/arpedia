@@ -5,6 +5,7 @@ import { routes } from './routes';
 import { indexSearchText } from './routes/02/search-text';
 import { erasePending } from './routes/10/account';
 import { drainPayments } from './routes/09/payments';
+import { isReconcileTime, storeReconcile } from './routes/09/reconcile';
 import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
 import { checkIntegrations } from './routes/16/integrations';
@@ -44,7 +45,7 @@ export default {
   // author payouts (flow 13), integration health checks (flow 16) and pushes, campaigns and exports
   // (flow 15), notices from every flow and the trust outbox (flow 15 dispatcher, flow 14) and server analytics (flow 15); on the
   // hour, payouts pending over 48 hours; every 10 minutes, statements for released months; daily,
-  // the payout-day reminder to Finance (flow 13).
+  // the payout-day reminder to Finance (flow 13); weekly (Monday 03:00 in Lagos), store_reconcile (flow 09).
   scheduled: (event, env, ctx) =>
     ctx.waitUntil(
       Promise.allSettled([
@@ -66,6 +67,7 @@ export default {
         new Date(event.scheduledTime).getUTCHours() === 8
           ? [payoutReminder(env)]
           : []),
+        ...(isReconcileTime(event.scheduledTime) ? [storeReconcile(env, event.scheduledTime)] : []),
       ]),
     ),
 } satisfies ExportedHandler<Env>;
