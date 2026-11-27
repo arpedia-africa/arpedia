@@ -4,12 +4,14 @@
 //                                then pushed to live clients
 //   POST /c/{group_id}/refresh   re-read access after a change in Postgres (join, leave, staff actions)
 //   POST /c/{group_id}/enforce   refresh, then take messages moderated in Postgres out of live clients
+//   GET  /inbox                  WebSocket to the reader's InboxDO (Community tab: live counts)
 import { AuthError, bearer, verifySupabaseJwt } from '@arpedia/core/jwt';
 import type { ServerFrame } from '@arpedia/core';
 import { RpcError, rpc } from './db';
 import type { Env } from './env';
 
 export { ConversationDO } from './do';
+export { InboxDO } from './inbox-do';
 export type { Env } from './env';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -27,10 +29,11 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/health') return Response.json({ ok: true, service: 'chat', env: env.APP_ENV });
 
-    const m = url.pathname.match(ROUTE);
-    if (!m) return new Response('not found', { status: 404 });
-    const groupId = m[1]!.toLowerCase();
-    const sub = m[2];
+    const isInbox = url.pathname === '/inbox';
+    const m = isInbox ? null : url.pathname.match(ROUTE);
+    if (!isInbox && !m) return new Response('not found', { status: 404 });
+    const groupId = m ? m[1]!.toLowerCase() : '';
+    const sub = m?.[2];
 
     // Browsers and React Native can't set headers on a WebSocket, so the token may come as ?token=.
     const token =
@@ -46,6 +49,14 @@ export default {
     } catch (e) {
       if (e instanceof AuthError) return json({ error: 'unauthorized' }, 401);
       throw e;
+    }
+
+    if (isInbox) {
+      if (!env.INBOX) return json({ error: 'not found' }, 404);
+      if (request.headers.get('Upgrade') !== 'websocket') return json({ error: 'expected websocket' }, 426);
+      const headers = new Headers(request.headers);
+      headers.set('X-User-Id', userId);
+      return env.INBOX.get(env.INBOX.idFromName(userId)).fetch(new Request('https://inbox/ws', { headers }));
     }
 
     const stub = env.CONVERSATION.get(env.CONVERSATION.idFromName(groupId));

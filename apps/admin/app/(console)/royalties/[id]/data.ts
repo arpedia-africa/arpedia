@@ -54,6 +54,8 @@ export interface CycleDetail {
   previous_failed: number;
   previous_failed_month: string | null;
   author_rate_kobo: number;
+  /** Transfers waiting to be tried again after Flutterwave refused them (13-11). */
+  retrying?: { count: number; next_at: string | null; kobo: number } | null;
 }
 
 export async function loadCycle(supabase: Supa, id: string) {
@@ -63,7 +65,14 @@ export async function loadCycle(supabase: Supa, id: string) {
     if (error.message === 'not_found' || error.code === '22P02') return { missing: true as const };
     throw error;
   }
-  return { cycle: data as unknown as CycleDetail };
+  const cycle = data as unknown as CycleDetail;
+  if (cycle.status === 'releasing' || cycle.status === 'paid_with_failures') {
+    // Finance and Super admin only; anyone else simply sees no retry state.
+    const { data: r } = await supabase.rpc('admin_cycle_retrying', { p_cycle: id });
+    const retrying = r as unknown as CycleDetail['retrying'];
+    cycle.retrying = retrying && retrying.count > 0 ? retrying : null;
+  }
+  return { cycle };
 }
 
 /** Lines that are paid (or will be) this run, held lines, and carried ones. */

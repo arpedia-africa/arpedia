@@ -208,7 +208,10 @@ books.post('/confirm', async (c) => {
     return c.json({ error: 'invalid_request' }, 400);
   }
   // The text checks run again on the edited chapters, so a renamed chapter loses its title flag.
-  const flags = locateFlags(checkChapters(next.chapters, { untitledBook: next.untitledBook }), next.anchors);
+  const flags = locateFlags(
+    checkChapters(next.chapters, { untitledBook: next.untitledBook, tocChapters: next.tocChapters }),
+    next.anchors,
+  );
   // The author's confirm RPC checks ownership before anything is stored.
   const { data, error } = await db.rpc('confirm_chapters', {
     p_rev: rev.id,

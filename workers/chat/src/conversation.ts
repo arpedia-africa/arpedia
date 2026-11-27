@@ -7,6 +7,7 @@ import {
   uuid7,
   type ChatMessage,
   type ClientFrame,
+  type InboxServerFrame,
   type SendError,
   type ServerFrame,
 } from '@arpedia/core';
@@ -42,6 +43,24 @@ export interface SenderStore {
 /** How far back /enforce looks for moderated messages (a decision pushes right after it saves). */
 export const ENFORCE_WINDOW_MS = 10 * 60_000;
 
+/**
+ * Inbox sockets watching this conversation (flow 06: unread counts and "reading now" reach the
+ * inbox through the per-user InboxDO, fed by the group DOs). Watchers live in DO storage with an
+ * expiry, so hibernation keeps them and a lost InboxDO drops out on its own.
+ */
+export interface InboxLink {
+  list(): Promise<Map<string, number>>;
+  put(userId: string, until: number): Promise<void>;
+  delete(userIds: string[]): Promise<void>;
+  /** Deliver frames to the user's InboxDO; false when it has no open socket any more. */
+  notify(userId: string, frames: InboxServerFrame[]): Promise<boolean>;
+}
+
+/** A watch lasts this long unless the InboxDO renews it (it renews at half time). */
+export const WATCH_TTL_MS = 10 * 60_000;
+/** Most inbox sockets one conversation feeds; past that, those inboxes keep polling. */
+export const WATCHERS_MAX = 500;
+
 export interface Deps {
   groupId: string;
   db: ChatDb;
@@ -56,6 +75,8 @@ export interface Deps {
    * failing, the conversation falls back to its own link and phone checks.
    */
   moderate?(text: string, opts: { surface: 'chat' | 'dm'; sender_new: boolean }): Promise<Moderation>;
+  /** Absent: no inbox feed (inboxes poll). */
+  inbox?: InboxLink;
 }
 
 export interface Moderation {
@@ -117,8 +138,83 @@ export class Conversation {
     if (n === this.readingNow) return;
     this.readingNow = n;
     const hidden = this.anyAccess()?.member_count ?? 0;
-    this.broadcast({ type: 'presence', reading_now: hidden > 10_000 ? 0 : n });
+    const shown = hidden > 10_000 ? 0 : n;
+    this.broadcast({ type: 'presence', reading_now: shown });
     await this.d.db.setLiveCount(this.d.groupId, n).catch(() => undefined);
+    await this.tellInboxes(() => [{ type: 'reading_now', group_id: this.d.groupId, reading_now: shown }]);
+  }
+
+  /**
+   * An InboxDO asks to hear about this conversation for `userId`. Only people who may read it
+   * (members, staff, public previews) are taken; false tells the inbox to keep polling instead.
+   */
+  async watch(userId: string): Promise<boolean> {
+    const link = this.d.inbox;
+    if (!link) return false;
+    const a = await this.accessFor(userId, true).catch(() => null);
+    const all = await link.list();
+    if (!a || !canRead(a)) {
+      if (all.has(userId)) await link.delete([userId]);
+      return false;
+    }
+    const now = this.d.now();
+    const renewing = (all.get(userId) ?? 0) > now;
+    const live = [...all].filter(([, until]) => until > now).length;
+    if (!renewing && live >= WATCHERS_MAX) return false;
+    await link.put(userId, now + WATCH_TTL_MS);
+    return true;
+  }
+
+  async unwatch(userId: string): Promise<void> {
+    await this.d.inbox?.delete([userId]);
+  }
+
+  /**
+   * Send frames to every watching inbox. Access is checked again (cached 60 s), so someone who
+   * left or was banned stops hearing at once; expired, refused and closed watchers are dropped.
+   * Never throws: the inbox feed must not hold up the chat.
+   */
+  private async tellInboxes(frames: (userId: string, a: Access) => InboxServerFrame[]): Promise<void> {
+    const link = this.d.inbox;
+    if (!link) return;
+    try {
+      const all = await link.list();
+      if (!all.size) return;
+      const now = this.d.now();
+      const drop: string[] = [];
+      await Promise.all(
+        [...all].map(async ([uid, until]) => {
+          if (until <= now) return void drop.push(uid);
+          const a = await this.accessFor(uid).catch(() => null);
+          if (!a) return;
+          if (!canRead(a)) return void drop.push(uid);
+          const f = frames(uid, a);
+          if (!f.length) return;
+          const open = await link.notify(uid, f).catch(() => true);
+          if (!open) drop.push(uid);
+        }),
+      );
+      if (drop.length) await link.delete(drop);
+    } catch (e) {
+      console.error('inbox feed failed', e);
+    }
+  }
+
+  /**
+   * Newly stored, visible messages: tell each watching inbox, except about its own messages and
+   * those from people it blocked (they never count as unread for it either).
+   */
+  private async bump(batch: PersistItem[], results: PersistResult[]): Promise<void> {
+    const stored = results
+      .filter((r) => r.status === 'stored' && r.id)
+      .map((r) => batch.find((b) => b.id === r.id))
+      .filter((b): b is PersistItem => !!b && b.state === 'visible');
+    if (!stored.length) return;
+    await this.tellInboxes((uid, a) => {
+      const theirs = stored.filter((b) => b.sender_id !== uid && !a.blocked.includes(b.sender_id));
+      const last = theirs.reduce<string | null>((m, b) => (m && m > b.created_at ? m : b.created_at), null);
+      return last ? [{ type: 'activity', group_id: this.d.groupId, at: last }] : [];
+    });
   }
 
   async onFrame(peer: Peer, raw: string): Promise<void> {
@@ -301,6 +397,7 @@ export class Conversation {
           await this.d.queue.delete(keys);
           this.takeBack(batch, results);
           await this.push(results);
+          await this.bump(batch, results);
         }
       } finally {
         this.flushing = null;
@@ -317,6 +414,7 @@ export class Conversation {
         const results = await this.d.db.persist([item]);
         this.takeBack([item], results);
         await this.push(results);
+        await this.bump([item], results);
       } catch (e) {
         if (!permanent(e)) {
           this.d.scheduleFlush(RETRY_MS);

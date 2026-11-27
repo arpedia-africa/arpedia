@@ -185,6 +185,7 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
     pages: v.pages,
     price: v.price,
     untitledBook: v.untitledBook,
+    tocChapters: v.tocChapters,
   };
   // An update keeps the live revision's copyright page when the new file has none; the text checks
   // run again on the chapter list it was added to.
@@ -192,7 +193,7 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   if (carried) {
     work = carried;
     v.flags = [
-      ...checkChapters(work.chapters, { untitledBook: v.untitledBook }),
+      ...checkChapters(work.chapters, { untitledBook: v.untitledBook, tocChapters: v.tocChapters }),
       ...v.flags.filter((f) => !TEXT_CHECKS.includes(f.check_key)),
     ];
   }
