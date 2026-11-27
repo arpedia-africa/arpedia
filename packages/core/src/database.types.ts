@@ -5926,6 +5926,9 @@ isOneToOne: false
 "_erase_account_base":
 { Args: { "p_deletion": string }; Returns: boolean
                            },
+"_erase_account_v2":
+{ Args: { "p_deletion": string }; Returns: boolean
+                           },
 "_event_plan_code":
 { Args: { "n": Json }; Returns: string
                            },
