@@ -10,7 +10,8 @@
     "backgroundColor": "#FFFFFF",
     "ios": {
       "bundleIdentifier": "africa.arpedia.reader",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "associatedDomains": ["applinks:arpedia.africa", "applinks:www.arpedia.africa"]
     },
     "android": {
       "package": "com.arpedia.reader",
@@ -31,7 +32,68 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [{ "scheme": "https", "host": "arpedia.africa", "pathPrefix": "/r/" }],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "arpedia.africa",
+              "pathPrefix": "/c/"
+            },
+            {
+              "scheme": "https",
+              "host": "arpedia.africa",
+              "pathPrefix": "/r/"
+            },
+            {
+              "scheme": "https",
+              "host": "arpedia.africa",
+              "pathPrefix": "/book/"
+            },
+            {
+              "scheme": "https",
+              "host": "arpedia.africa",
+              "pathPrefix": "/author/"
+            },
+            {
+              "scheme": "https",
+              "host": "arpedia.africa",
+              "pathPrefix": "/community/"
+            },
+            {
+              "scheme": "https",
+              "host": "arpedia.africa",
+              "path": "/account"
+            },
+            {
+              "scheme": "https",
+              "host": "www.arpedia.africa",
+              "pathPrefix": "/c/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.arpedia.africa",
+              "pathPrefix": "/r/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.arpedia.africa",
+              "pathPrefix": "/book/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.arpedia.africa",
+              "pathPrefix": "/author/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.arpedia.africa",
+              "pathPrefix": "/community/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.arpedia.africa",
+              "path": "/account"
+            }
+          ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
