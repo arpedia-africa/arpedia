@@ -22,7 +22,7 @@ insert into public.books (id, author_id, title, status) values
 -- · 5 live, staff end 2 minutes ago · 6 live, host end.
 insert into public.groups (id, kind, name, owner_id, book_id, visibility)
 select ('70150000-0000-4000-f000-00000000000' || n)::uuid, 'room', 'Room number ' || n,
-       '70150000-0000-4000-a000-000000000001', '70150000-0000-4000-b000-00000000000' || case when n = 2 then 2 else 1 end,
+       '70150000-0000-4000-a000-000000000001', ('70150000-0000-4000-b000-00000000000' || case when n = 2 then 2 else 1 end)::uuid,
        'private'
 from generate_series(1, 6) n;
 insert into public.reading_rooms (group_id, book_id, host_id, code, starts_at, state)
