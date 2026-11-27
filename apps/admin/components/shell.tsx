@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { locate, type NavSection } from '@/lib/nav';
+import { searchTerm, type SearchHit } from '@/lib/search';
+import { searchRecords, type SearchResult } from '@/lib/search-actions';
 import { Icon } from './icon';
 
 const initials = (name: string) =>
@@ -156,16 +158,63 @@ export function Shell({ staff, nav, env, children }: ShellProps) {
   );
 }
 
-/** s-cmdk: search overlay. For now it finds console pages; records join as later flows add them. */
+/** One row of the search overlay: a record (reader, author, book, payment) or a console page. */
+interface Row {
+  href: string;
+  title: string;
+  detail?: string;
+  trail: string;
+  avatar?: SearchHit['avatar'];
+}
+
+/**
+ * s-cmdk: search overlay. Records (readers, authors, books, payments) come from searchRecords,
+ * only in the groups this role can open; console pages are matched here.
+ */
 function Search({ pages, onClose }: { pages: Page[]; onClose: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
+  const [found, setFound] = useState<{ q: string; result: SearchResult } | null>(null);
+  const [lostAt, setLostAt] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
-  const hits = useMemo(() => {
+  const term = searchTerm(q);
+
+  const pageHits = useMemo(() => {
     const t = q.trim().toLowerCase();
     return t ? pages.filter(p => `${p.section} ${p.label}`.toLowerCase().includes(t)) : pages;
   }, [q, pages]);
+
+  // Records: a short pause after typing, and only the answer for the latest query is kept.
+  useEffect(() => {
+    if (!term) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      if (!navigator.onLine) {
+        setLostAt(term);
+        return;
+      }
+      setLostAt(null);
+      searchRecords(term)
+        .then(result => live && setFound({ q: term, result }))
+        .catch(() => live && setFound({ q: term, result: { groups: [], failed: true } }));
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [term]);
+
+  const fresh = term && found?.q === term ? found.result : null;
+  const offline = !!term && lostAt === term;
+  const loading = !!term && !fresh && !offline;
+  const groups: { label: string; rows: Row[] }[] = [
+    ...(term && fresh ? fresh.groups.map(g => ({ label: g.label, rows: g.hits as Row[] })) : []),
+    ...(pageHits.length
+      ? [{ label: 'Pages', rows: pageHits.map(p => ({ href: p.href, title: p.label, trail: p.section })) }]
+      : []),
+  ];
+  const rows = groups.flatMap(g => g.rows);
 
   useEffect(() => input.current?.focus(), []);
   useEffect(() => setActive(0), [q]);
@@ -175,6 +224,7 @@ function Search({ pages, onClose }: { pages: Page[]; onClose: () => void }) {
     router.push(href);
   };
 
+  let n = 0;
   return (
     <section className="screen overlay enter">
       <a
@@ -195,35 +245,63 @@ function Search({ pages, onClose }: { pages: Page[]; onClose: () => void }) {
             aria-label="Search"
             onChange={e => setQ(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'ArrowDown') setActive(i => Math.min(i + 1, hits.length - 1));
+              if (e.key === 'ArrowDown') setActive(i => Math.min(i + 1, rows.length - 1));
               else if (e.key === 'ArrowUp') setActive(i => Math.max(i - 1, 0));
-              else if (e.key === 'Enter' && hits[active]) go(hits[active].href);
+              else if (e.key === 'Enter' && rows[active]) go(rows[active].href);
               else return;
               e.preventDefault();
             }}
           />
           <span className="kbd">Esc</span>
         </div>
-        <div className="cmdk__grp">Pages</div>
-        {hits.length ? (
-          hits.map((p, i) => (
-            <Link key={p.href} className={i === active ? 'li is-active' : 'li'} href={p.href} onClick={onClose}>
-              <span className="li__body">
-                <b>{p.label}</b>
-              </span>
-              <span className="li__trail">{p.section}</span>
-            </Link>
-          ))
-        ) : (
-          <div className="empty">
-            <b>Nothing matches that yet</b>
-            <span>Readers, books and payments become searchable as they arrive.</span>
+        {groups.map(g => (
+          <Fragment key={g.label}>
+            <div className="cmdk__grp">{g.label}</div>
+            {g.rows.map(r => {
+              const i = n++;
+              return (
+                <Link
+                  key={r.href}
+                  className={i === active ? 'li is-active' : 'li'}
+                  href={r.href}
+                  onClick={onClose}
+                  onMouseMove={() => setActive(i)}
+                >
+                  {r.avatar ? <span className={`av sm ${r.avatar.tone}`}>{r.avatar.text}</span> : null}
+                  <span className="li__body">
+                    <b>{r.title}</b>
+                    {r.detail ? <small>{r.detail}</small> : null}
+                  </span>
+                  <span className="li__trail">{r.trail}</span>
+                </Link>
+              );
+            })}
+          </Fragment>
+        ))}
+        {loading ? (
+          <div className="cmdk__grp" aria-live="polite">
+            Searching readers, books and payments…
           </div>
-        )}
+        ) : offline ? (
+          <div className="empty">
+            <b>You're offline</b>
+            <span>Records can't be searched until you're back online. Pages still open.</span>
+          </div>
+        ) : fresh?.failed ? (
+          <div className="empty">
+            <b>Some records couldn't be searched</b>
+            <span>Check your connection and try again.</span>
+          </div>
+        ) : !rows.length ? (
+          <div className="empty">
+            <b>Nothing matches that</b>
+            <span>Try a name, email, phone number, book title or store order id.</span>
+          </div>
+        ) : null}
         <div className="panel__foot">
           <span>Up and down to move · Enter to open</span>
           <span>
-            {hits.length} {hits.length === 1 ? 'result' : 'results'}
+            {rows.length} {rows.length === 1 ? 'result' : 'results'}
           </span>
         </div>
       </div>
