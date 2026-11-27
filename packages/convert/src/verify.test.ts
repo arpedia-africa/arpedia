@@ -109,6 +109,20 @@ describe('verifyPackage', () => {
     expect(r.ok && r.flags.map((f) => f.check_key)).toContain('too_short');
   });
 
+  it('keeps the title lines before the first chapter as the title page, not an untitled chapter', () => {
+    const r = verifyPackage(
+      epub({
+        'book.xhtml': `<p>Rain over Enugu</p><p>Ada Obi</p><p>Chapter 1</p>${para(200)}<p>Chapter 2</p>${para(200)}`,
+      }),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.chapters.map((c) => c.title)).toEqual(['Title page', 'Chapter 1', 'Chapter 2']);
+    expect(r.chapters[0]).toMatchObject({ front: 'title_page', words: 0 });
+    expect(r.words).toBe(400);
+    expect(r.flags.map((f) => f.check_key)).not.toContain('chapter_untitled');
+  });
+
   it('sends unreadable packages back', () => {
     expect(verifyPackage({ 'x.txt': strToU8('hello') })).toMatchObject({ ok: false, reason: 'unreadable' });
   });
