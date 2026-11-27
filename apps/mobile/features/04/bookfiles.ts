@@ -87,14 +87,14 @@ export class BookFiles {
   }
 
   /** Keys for chapters the reader just became entitled to (after an unlock). */
-  async refreshKeys(chapterUids?: string[]): Promise<void> {
+  async refreshKeys(chapterUids?: string[], online = true): Promise<void> {
     const device_id = await deviceId();
     const r = await fetchKeys({
       book_id: this.bookId,
       revision_id: this.revisionId,
       device_id,
       chapter_uids: chapterUids,
-      online: true,
+      online,
     });
     await this.storeKeys(r, !!chapterUids);
   }

@@ -220,7 +220,8 @@ export function useOfflineShelf() {
 export async function refreshLicence(b: OfflineBook): Promise<boolean> {
   const f = new BookFiles(b.bookId, b.revisionId, false);
   try {
-    await f.refreshKeys();
+    // A download's licence, not reading online: it keeps the 3-device limit (flow 10 rule 31).
+    await f.refreshKeys(undefined, false);
     return true;
   } catch {
     return false;
