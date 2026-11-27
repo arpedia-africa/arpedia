@@ -8741,6 +8741,9 @@ isOneToOne: false
 "staff_restore_campaign":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"staff_retry_revision":
+{ Args: { "p_rev": string }; Returns: Json
+                           },
 "staff_return_chapter":
 { Args: { "p_charge": number,"p_note"?: string,"p_reason_code": string }; Returns: Json
                            },
