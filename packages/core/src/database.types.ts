@@ -6079,6 +6079,9 @@ isOneToOne: false
 "_fast_lane_check":
 { Args: { "p_rev": string }; Returns: (string)[]
                            },
+"_finish_cycle":
+{ Args: { "p_cycle": string }; Returns: undefined
+                           },
 "_finished":
 { Args: { "p_book": string,"p_user": string }; Returns: boolean
                            },
@@ -6511,6 +6514,9 @@ isOneToOne: false
                            },
 "_release_cycle_base":
 { Args: { "p_cycle": string }; Returns: Json
+                           },
+"_release_cycle_send":
+{ Args: { "p_budget_kobo": number,"p_cycle": string }; Returns: Json
                            },
 "_remaining":
 { Args: { "p_book": string,"p_user": string }; Returns: number
@@ -8114,6 +8120,9 @@ isOneToOne: false
                            },
 "release_cycle":
 { Args: { "p_cycle": string,"p_stepup": string }; Returns: Json
+                           },
+"release_cycle_part":
+{ Args: { "p_budget_kobo": number,"p_cycle": string,"p_stepup": string }; Returns: Json
                            },
 "release_to_review":
 { Args: { "p_actor"?: string,"p_rev": string }; Returns: Json
