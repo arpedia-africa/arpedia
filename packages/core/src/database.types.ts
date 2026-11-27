@@ -7812,6 +7812,9 @@ isOneToOne: false
 "preview_pricing_rules":
 { Args: { "p_rules": Json }; Returns: Json
                            },
+"public_cover_key":
+{ Args: { "p_rev": string }; Returns: string
+                           },
 "publish_due":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
