@@ -83,6 +83,15 @@ const FINANCE_ALERT: Record<string, [subject: string, message: string]> = {
     'A reader was charged twice within a minute',
     'The second charge is waiting in Refunds as "Refund the duplicate".',
   ],
+  // Flow 09 store_reconcile (weekly).
+  store_unmatched: [
+    'Store payments do not match our records',
+    "This week's check found payments that Google Play or Flutterwave and Arpedia disagree on. See Credits → Anomalies.",
+  ],
+  store_reconcile_failed: [
+    "This week's store payment check did not run",
+    'Google Play or Flutterwave did not answer the weekly check. It runs again next Monday.',
+  ],
 };
 
 /** Book notices that name the book's author by `author_id` or only by `book_id`. */
@@ -396,7 +405,8 @@ export function plan(n: Notice, l: Lookup): Plan {
         `Payment alert: ${str(n.alert) || 'unknown'}`,
         'See Credits → Anomalies.',
       ];
-      staff('finance', subject, `${message} Transaction ${str(n.transaction_id)}.`);
+      const txn = str(n.transaction_id);
+      staff('finance', subject, txn ? `${message} Transaction ${txn}.` : message);
       break;
     }
     case 'export_ready': {
