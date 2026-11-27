@@ -298,7 +298,7 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 | - [ ] | 08-17 | Analytics: author_profile_viewed | `source` (book, search, post, community) is never passed because no screen navigates with it; every view logs "direct" or "dm" | `apps/mobile/app/(authors)/author/[id].tsx:95` | later | B |
 | - [ ] | 08-18 | Analytics: author_community_joined | Only fired from the profile card; joins from Discover or the chat Join button are not tracked | `apps/mobile/app/(authors)/community/[id].tsx:403` | later | B |
 | - [x] | 08-19 | Admin: author menu | More menu "Pause payouts" is a toast ("arrives with payouts (flow 13)") **Fixed:** Pause payouts opens the payout page, whose Hold panel pauses with the reason flow 13 rule 12 needs (`pause_author_payouts`), instead of a toast. | `apps/admin/app/(console)/authors/[id]/client.tsx:93` | later | A |
-| - [ ] | 08-20 | Done when 9 | pgTAP has no concurrent-send test (two sends, one balance) for `send_author_message` | `supabase/tests/08_authors_test.sql` (absent) | later | A |
+| - [x] | 08-20 | Done when 9 | pgTAP has no concurrent-send test (two sends, one balance) for `send_author_message` | `supabase/tests/08_authors_test.sql` (absent) | later | A |
 
 Id 08-3 (DM Report toast) is fixed on `origin/flow/17-journeys` and dropped; it stays open until that branch merges.
 
