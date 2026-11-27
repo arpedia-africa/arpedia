@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { APP_LINK_HOSTS, APP_LINK_PATHS, APP_LINK_PREFIXES, appLinkRoute } from './applinks';
+import { APP_LINK_HOSTS, APP_LINK_PATHS, APP_LINK_PREFIXES, appLinkRoute, clubInviteUrl } from './applinks';
 
 const ID = '8d2b0385-1c4e-4f2a-9b1d-2e6f7a8b9c0d';
 
@@ -35,6 +35,18 @@ describe('appLinkRoute', () => {
     expect(appLinkRoute('arpedia://join-code?code=grace-24a')).toBe('/join-code?code=GRACE24A');
     expect(appLinkRoute('arpedia://author/ada-obi')).toBe('/search?q=ada%20obi');
     expect(appLinkRoute(`arpedia://book/${ID}`)).toBe(`/book/${ID}`);
+  });
+
+  it('opens a private club invitation on its screen', () => {
+    const T = '0a1b2c3d4e5f60718293a4b5';
+    expect(clubInviteUrl(T)).toBe(`https://arpedia.africa/c/invite/${T}`);
+    expect(appLinkRoute(clubInviteUrl(T))).toBe(`/club-invite/${T}`);
+    expect(appLinkRoute(`https://www.arpedia.africa/c/invite/${T.toUpperCase()}`)).toBe(`/club-invite/${T}`);
+    expect(appLinkRoute(`arpedia://c/invite/${T}`)).toBe(`/club-invite/${T}`);
+    expect(appLinkRoute(`arpedia://club-invite/${T}`)).toBe(`/club-invite/${T}`);
+    expect(appLinkRoute('https://arpedia.africa/c/invite/not-a-token')).toBe('/community');
+    expect(appLinkRoute('https://arpedia.africa/c/invite/')).toBe('/community');
+    expect(appLinkRoute(`https://arpedia.africa/c/invite/${T}/x`)).toBe('/community');
   });
 
   it('leaves other links alone', () => {
