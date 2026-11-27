@@ -6031,6 +6031,9 @@ isOneToOne: false
 "_event_topup_code":
 { Args: { "n": Json }; Returns: string
                            },
+"_exclude_takedown":
+{ Args: { "p_actor": string,"p_book": string,"p_since": string }; Returns: number
+                           },
 "_expand":
 { Args: { "p_words": (string)[] }; Returns: (string)[]
                            },
