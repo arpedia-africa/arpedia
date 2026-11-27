@@ -280,7 +280,7 @@ function Search({ pages, onClose }: { pages: Page[]; onClose: () => void }) {
         ))}
         {loading ? (
           <div className="cmdk__grp" aria-live="polite">
-            Searching readers, books and payments…
+            Searching…
           </div>
         ) : offline ? (
           <div className="empty">
