@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppEnv, Env } from '../../env';
+import type * as Http from './http';
 
 const userRpc = vi.fn();
 const serviceRpc = vi.fn();
@@ -8,11 +9,13 @@ let row: Record<string, unknown> | null = null;
 vi.mock('../../db', () => ({
   serviceDb: () => ({
     rpc: serviceRpc,
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }) }) }),
+    from: () => ({
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }) }),
+    }),
   }),
 }));
 vi.mock('./http', async (orig) => ({
-  ...(await orig<typeof import('./http')>()),
+  ...(await orig<typeof Http>()),
   userDb: () => ({ rpc: userRpc }),
 }));
 
@@ -64,10 +67,15 @@ app.use('*', async (c, next) => {
 });
 app.route('/', edit);
 const post = (path: string, body: unknown) =>
-  app.request(path, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }, env, {
-    waitUntil: () => {},
-    passThroughOnException: () => {},
-  } as unknown as ExecutionContext);
+  app.request(
+    path,
+    { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } },
+    env,
+    {
+      waitUntil: () => {},
+      passThroughOnException: () => {},
+    } as unknown as ExecutionContext,
+  );
 
 const draft = (cover: boolean) => ({
   id: REV,
@@ -118,7 +126,10 @@ describe('POST /v1/books/staff-edit', () => {
   });
 
   it('replace cover: returns a signed upload link and waits for the cover', async () => {
-    userRpc.mockResolvedValue({ data: { revision_id: REV, revision_no: 2, cover_key: `src/${REV}/cover` }, error: null });
+    userRpc.mockResolvedValue({
+      data: { revision_id: REV, revision_no: 2, cover_key: `src/${REV}/cover` },
+      error: null,
+    });
     const res = await post('/', { book_id: BOOK, cover: true });
     expect(res.status).toBe(200);
     const json = (await res.json()) as { upload: string; status: string };
@@ -128,7 +139,10 @@ describe('POST /v1/books/staff-edit', () => {
   });
 
   it('passes database refusals through as HTTP statuses', async () => {
-    userRpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'staff_revise_book: staff only' } });
+    userRpc.mockResolvedValue({
+      data: null,
+      error: { code: '42501', message: 'staff_revise_book: staff only' },
+    });
     expect((await post('/', { book_id: BOOK, meta: { title: 'X' } })).status).toBe(403);
     userRpc.mockResolvedValue({ data: null, error: { code: '23505', message: 'another revision is open' } });
     expect((await post('/', { book_id: BOOK, meta: { title: 'X' } })).status).toBe(409);

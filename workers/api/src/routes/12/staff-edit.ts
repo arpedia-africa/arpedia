@@ -21,12 +21,12 @@ const edit = new Hono<AppEnv>();
 const Meta = z
   .object({
     title: z.string().trim().min(1).max(200).optional(),
-    subtitle: z.string().max(200).nullable().optional(),
-    description: z.string().max(5000).nullable().optional(),
+    subtitle: z.string().max(200).optional(),
+    description: z.string().max(5000).optional(),
     genres: z.array(z.string().max(40)).max(5).optional(),
     content_notes: z.array(z.string().max(40)).max(10).optional(),
-    age: z.string().max(10).nullable().optional(),
-    language: z.string().max(10).nullable().optional(),
+    age: z.string().max(10).optional(),
+    language: z.string().max(10).optional(),
   })
   .strict();
 
@@ -49,7 +49,10 @@ export function coverFlags(bytes: Uint8Array): { check_key: string; message: str
       message: `The cover is ${size.width} px wide; 800 px or more looks sharp.`,
     });
   if (size && size.height > 0 && (size.width / size.height < 0.55 || size.width / size.height > 0.7))
-    flags.push({ check_key: 'cover_aspect', message: 'The cover is not the usual book shape (about 2 : 3).' });
+    flags.push({
+      check_key: 'cover_aspect',
+      message: 'The cover is not the usual book shape (about 2 : 3).',
+    });
   return flags;
 }
 
@@ -61,7 +64,8 @@ async function copyPrefix(env: Env, from: string, to: string) {
     await Promise.all(
       page.objects.map(async (o) => {
         const obj = await env.BOOKS.get(o.key);
-        if (obj) await env.BOOKS.put(to + o.key.slice(from.length), obj.body, { httpMetadata: obj.httpMetadata });
+        if (obj)
+          await env.BOOKS.put(to + o.key.slice(from.length), obj.body, { httpMetadata: obj.httpMetadata });
       }),
     );
     cursor = page.truncated ? page.cursor : undefined;
