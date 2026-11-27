@@ -1660,14 +1660,14 @@ isOneToOne: true
                   ]
                 },"credit_grant_requests": {
                   Row: {
-                    "approved_by": string | null,"created_at": string,"credits": number,"decided_at": string | null,"id": string,"ledger_id": number | null,"reason": string,"requested_by": string,"status": string,"user_id": string
+                    "approved_by": string | null,"created_at": string,"credits": number,"decided_at": string | null,"id": string,"kind": string,"ledger_id": number | null,"message": string | null,"notify": boolean,"reason": string,"requested_by": string,"status": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_by"?: string | null,"created_at"?: string,"credits": number,"decided_at"?: string | null,"id"?: string,"ledger_id"?: number | null,"reason": string,"requested_by": string,"status"?: string,"user_id": string
+                    "approved_by"?: string | null,"created_at"?: string,"credits": number,"decided_at"?: string | null,"id"?: string,"kind"?: string,"ledger_id"?: number | null,"message"?: string | null,"notify"?: boolean,"reason": string,"requested_by": string,"status"?: string,"user_id": string
                   }
                   Update: {
-                    "approved_by"?: string | null,"created_at"?: string,"credits"?: number,"decided_at"?: string | null,"id"?: string,"ledger_id"?: number | null,"reason"?: string,"requested_by"?: string,"status"?: string,"user_id"?: string
+                    "approved_by"?: string | null,"created_at"?: string,"credits"?: number,"decided_at"?: string | null,"id"?: string,"kind"?: string,"ledger_id"?: number | null,"message"?: string | null,"notify"?: boolean,"reason"?: string,"requested_by"?: string,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -6096,6 +6096,12 @@ isOneToOne: false
               "id": string,"why": string
             }[]
                            },
+"_grant_notice":
+{ Args: { "p_credits": number,"p_message": string,"p_user": string }; Returns: undefined
+                           },
+"_grant_tier":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "_has_link_or_phone":
 { Args: { "p_text": string }; Returns: boolean
                            },
@@ -6508,6 +6514,9 @@ isOneToOne: false
                            },
 "_remaining":
 { Args: { "p_book": string,"p_user": string }; Returns: number
+                           },
+"_remove_credits":
+{ Args: { "p_actor": string,"p_credits": number,"p_meta"?: Json,"p_reason": string,"p_user": string }; Returns: number
                            },
 "_replace_chapters":
 { Args: { "p_chapters": Json,"p_rev": string }; Returns: undefined
@@ -8679,7 +8688,7 @@ isOneToOne: false
 { Args: { "p_user": string }; Returns: Json
                            },
 "staff_grant_credits":
-{ Args: { "p_credits": number,"p_reason": string,"p_user": string }; Returns: Json
+{ Args: { "p_credits": number,"p_message"?: string,"p_notify"?: boolean,"p_reason": string,"p_user": string }; Returns: Json
                            },
 "staff_list_banners":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -8707,6 +8716,9 @@ isOneToOne: false
                            },
 "staff_pause_campaign":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"staff_remove_credits":
+{ Args: { "p_credits": number,"p_reason": string,"p_user": string }; Returns: Json
                            },
 "staff_request_campaign_review":
 { Args: { "p_id": string }; Returns: undefined

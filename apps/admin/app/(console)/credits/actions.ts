@@ -60,7 +60,7 @@ export async function freezeGiftLoop(alertId: number, alreadyFrozen: boolean): P
   };
 }
 
-/** Approve or turn down a grant over 500 credits. A second person decides: not the one who asked. */
+/** Approve or turn down a waiting grant or removal. A second person decides: not the one who asked. */
 export async function decideGrant(requestId: string, approve: boolean): Promise<Result> {
   const supabase = await serverSupabase();
   const { error } = await supabase.rpc('decide_credit_grant', { p_request: requestId, p_approve: approve });
@@ -71,20 +71,31 @@ export async function decideGrant(requestId: string, approve: boolean): Promise<
         error.code,
         error.message,
         {
-          '42501': 'Only Finance and Super admins can approve a grant.',
+          '42501': 'Your role can’t decide this one. Grants over 500 and removals are for Finance and Super admins.',
           same_person: 'You asked for this grant, so someone else has to approve it.',
           not_pending: 'This request was already decided.',
+          not_enough_credits: 'The reader no longer has that many credits. Turn it down or wait.',
         },
         "Couldn't save the decision. Nothing changed. Try again.",
       ),
     };
   }
   revalidatePath('/credits');
-  return { ok: true, message: approve ? 'Grant approved. The credits are in the reader’s balance.' : 'Grant turned down. Nothing was added.' };
+  return { ok: true, message: approve ? 'Approved. The reader’s balance is updated.' : 'Turned down. Nothing changed.' };
 }
 
-/** Grant credits to a reader: up to 500 applies at once, over 500 waits for a second approver (rule 28). */
-export async function grantCredits(userId: string, credits: number, reason: string): Promise<Result> {
+/**
+ * Grant credits to a reader (14 rule 38): Support adds up to 200 at once, Operations and Super
+ * admins up to 500; more waits for a second person. With `notify` the reader gets `message` once
+ * the credits are in, never while the grant waits.
+ */
+export async function grantCredits(
+  userId: string,
+  credits: number,
+  reason: string,
+  notify = false,
+  message = '',
+): Promise<Result> {
   if (!Number.isInteger(credits) || credits < 1) return { ok: false, error: 'Enter a whole number of credits, 1 or more.' };
   if (reason.trim().length < 3) return { ok: false, error: 'Add a reason. It goes in the ledger and the audit log.' };
   const supabase = await serverSupabase();
@@ -92,6 +103,8 @@ export async function grantCredits(userId: string, credits: number, reason: stri
     p_user: userId,
     p_credits: credits,
     p_reason: reason.trim(),
+    p_notify: notify,
+    ...(notify && message.trim() ? { p_message: message.trim().slice(0, 300) } : {}),
   });
   if (error) {
     return {
@@ -103,9 +116,51 @@ export async function grantCredits(userId: string, credits: number, reason: stri
           '42501': 'Your role can’t grant credits.',
           bad_amount: 'Enter a whole number of credits between 1 and 100,000.',
           reason_required: 'Add a reason. It goes in the ledger and the audit log.',
+          message_too_long: 'Keep the message to the reader under 300 characters.',
           unknown_user: 'We couldn’t find this reader.',
         },
         "Couldn't grant the credits. Nothing changed. Try again.",
+      ),
+    };
+  }
+  const r = data as unknown as { status: 'applied' | 'pending'; approver?: 'finance' | 'operations_admin' };
+  revalidatePath(`/credits/${userId}`);
+  revalidatePath('/credits');
+  if (r.status === 'pending') {
+    const who = r.approver === 'operations_admin' ? 'an Operations admin, Finance or a Super admin' : 'Finance or a Super admin';
+    return {
+      ok: true,
+      status: 'pending',
+      message: `${n0(credits)} credits need ${who} to approve. Nothing was added yet${notify ? ' and the reader isn’t told until then' : ''}.`,
+    };
+  }
+  return { ok: true, status: 'applied', message: `${n0(credits)} credits added.${notify ? ' The reader was told.' : ''}` };
+}
+
+/** Remove credits (14 rule 38): Finance and Super admins; over 500 waits for a second one. Never below zero. */
+export async function removeCredits(userId: string, credits: number, reason: string): Promise<Result> {
+  if (!Number.isInteger(credits) || credits < 1) return { ok: false, error: 'Enter a whole number of credits, 1 or more.' };
+  if (reason.trim().length < 3) return { ok: false, error: 'Add a reason. It goes in the ledger and the audit log.' };
+  const supabase = await serverSupabase();
+  const { data, error } = await supabase.rpc('staff_remove_credits', {
+    p_user: userId,
+    p_credits: credits,
+    p_reason: reason.trim(),
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: rpcError(
+        error.code,
+        error.message,
+        {
+          '42501': 'Only Finance and Super admins can remove credits.',
+          bad_amount: 'Enter a whole number of credits between 1 and 100,000.',
+          reason_required: 'Add a reason. It goes in the ledger and the audit log.',
+          not_enough_credits: 'The reader doesn’t have that many credits. A balance never goes below zero.',
+          unknown_user: 'We couldn’t find this reader.',
+        },
+        "Couldn't remove the credits. Nothing changed. Try again.",
       ),
     };
   }
@@ -116,9 +171,9 @@ export async function grantCredits(userId: string, credits: number, reason: stri
     ? {
         ok: true,
         status: 'pending',
-        message: `${n0(credits)} credits need a second approver (Finance or Super admin). Nothing was added yet.`,
+        message: `Removing ${n0(credits)} credits needs a second Finance or Super admin. Nothing was removed yet.`,
       }
-    : { ok: true, status: 'applied', message: `${n0(credits)} credits added.` };
+    : { ok: true, status: 'applied', message: `${n0(credits)} credits removed.` };
 }
 
 export type ReturnReason = 'skipped_by_mistake' | 'did_not_open' | 'wrong_book';
