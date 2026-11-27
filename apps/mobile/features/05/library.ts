@@ -18,6 +18,7 @@ import { compareItems, type LibraryItem, type LibrarySort, type Shelf } from '@a
 import { supabase } from '@/lib/supabase';
 import { trackedDownload, type Track as ReaderTrack } from '../04/analytics';
 import { BookFiles, offlineBooks, removeDownload, type OfflineBook } from '../04/bookfiles';
+import { flushProgress } from '../04/progressQueue';
 import { readerKey, type ReaderState } from '../04/state';
 import { inMaintenance } from '../16/config';
 
@@ -312,6 +313,8 @@ let flushing = false;
 /** Send queued saves in order; a network failure keeps the rest for the next reconnect. */
 export async function flushPendingOps(qc: QueryClient) {
   if (flushing || !onlineManager.isOnline() || inMaintenance()) return;
+  // Reading places saved offline go up with the Library's own writes (flow 04 rule 66).
+  void flushProgress();
   flushing = true;
   try {
     let ops = await loadOps();

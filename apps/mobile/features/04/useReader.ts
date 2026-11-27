@@ -32,7 +32,7 @@ import { useOnline } from '../03/book';
 import { rpcError } from '../03/UnlockSheet';
 import { applyProgress } from '../05/library';
 import { syncRoomProgress } from '../07/data';
-import { inMaintenance } from '../16/config';
+import { flushProgress, sendProgress } from './progressQueue';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
 import {
@@ -365,10 +365,9 @@ export function useReader(
       lastSync.current = Date.now();
       // The Library shows the new place when the reader goes back, online or not (flow 05 rule 34).
       applyProgress(qc, bookId, { percent: d.percent, chapter_uid: d.chapter_uid });
-      // Flow 16 rule 26: maintenance holds sync; the place is kept on the phone (rule 66) and goes up later.
-      if (inMaintenance()) return;
+      // Offline, a failed call or maintenance (flow 16 rule 26): the newest place waits on the phone.
       const device = await deviceId().catch(() => null);
-      await supabase.rpc('sync_reading_progress', {
+      const sent = await sendProgress({
         p_book: bookId,
         p_revision: state.revision.id,
         p_cfi: d.cfi,
@@ -379,7 +378,8 @@ export function useReader(
         p_device_id: device ?? undefined,
         p_device_name: Device.modelName ?? undefined,
         p_at: new Date().toISOString(),
-      } as never);
+      });
+      if (!sent) return;
       // Flow 07 rule 24: rooms reading this book see the new place live (capped by the row above).
       const ord = files.current?.manifest?.chapters.find((c) => c.chapter_uid === d.chapter_uid)?.ord;
       if (ord != null) syncRoomProgress(bookId, d.percent, ord);
@@ -777,6 +777,7 @@ export function useReader(
   useEffect(() => {
     const uid = userId.current;
     if (!uid || phase !== 'ready') return;
+    if (online) void flushProgress();
     if (online)
       void flushAnnotations(uid)
         .catch(() => 0)
