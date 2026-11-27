@@ -92,7 +92,7 @@ Severity: **blocks launch** / **should fix** / **later**. Who: **A** server, dat
 | - [ ] | 00-5 | 23 / Done when 8 | The Maestro kit-gallery smoke test runs only nightly and on demand, not on pull requests. Draft PRs skip every gate. The file's own comment says this was deliberate, but the spec says PR. | `.github/workflows/ci.yml:107` | later | A |
 | - [x] | 00-6 | 13 | The command palette searches only console page names, but the top bar promises "Search readers, books, authors, payments". The empty state also admits records are not searchable. | `apps/admin/components/shell.tsx:133` | later | A |
 | - [ ] | 00-7 | 13 | TanStack Table is a dependency but no admin file imports it. The tables do not use it for data and sorting logic. | `apps/admin/package.json:19` | later | A |
-| - [ ] | 00-8 | 13 | The top-bar bell ("Staff alerts") is a plain link to `/account` and shows no alerts. | `apps/admin/components/shell.tsx:143` | later | A |
+| - [x] | 00-8 | 13 | The top-bar bell ("Staff alerts") is a plain link to `/account` and shows no alerts. | `apps/admin/components/shell.tsx:143` | later | A |
 | - [ ] | 00-9 | 10 (iOS) | The iOS fastlane lanes exist (`match`, `gym`, `pilot`), but no workflow runs them. The Apple team, `APPLE_TEAM_ID`, the certificates repo and the App Store Connect key are not set up. | `apps/mobile/fastlane/Fastfile:144` (no iOS workflow in `.github/workflows`) | later | owner |
 
 45 rules checked, 9 gaps.

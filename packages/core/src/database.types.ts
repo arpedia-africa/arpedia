@@ -4830,6 +4830,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"staff_alert_reads": {
+                  Row: {
+                    "read_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "read_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "read_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "staff_alert_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "staff_alert_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"staff_auth_failures": {
                   Row: {
                     "at": string,"email": string | null,"id": number,"kind": string,"user_id": string | null
@@ -6505,6 +6531,9 @@ isOneToOne: false
 "_staff_acts_on_readers":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"_staff_alert_on":
+{ Args: { "p_kind": string,"p_uid": string }; Returns: boolean
+                           },
 "_staff_name":
 { Args: { "p_user": string }; Returns: string
                            },
@@ -7437,6 +7466,9 @@ isOneToOne: false
 "get_search_home":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"get_staff_alerts":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "get_staff_context":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -7634,6 +7666,9 @@ isOneToOne: false
                            },
 "mark_read":
 { Args: { "p_group": string,"p_up_to"?: string }; Returns: undefined
+                           },
+"mark_staff_alerts_read":
+{ Args: { "p_until"?: string }; Returns: string
                            },
 "marketing_pushes_7d":
 { Args: { "p_at"?: string,"p_user": string }; Returns: number
