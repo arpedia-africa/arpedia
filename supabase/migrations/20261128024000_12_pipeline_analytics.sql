@@ -9,6 +9,14 @@
 -- distinct_id is the staff member who acted when there is one, else the book's author. Properties
 -- hold only counts, times, keys and decisions (no book text, no reader data).
 
+-- send_back carries its own `source` (fixer, quick_review, …); the outbox's `source: server` marker
+-- no longer overwrites a property of that name. No earlier event passes one.
+create or replace function public._track(p_event text, p_distinct text, p_props jsonb default '{}') returns void
+language sql security definer set search_path = '' as $$
+  insert into public.analytics_outbox (event, distinct_id, props)
+  values (p_event, coalesce(p_distinct, 'system'), jsonb_build_object('source', 'server') || coalesce(p_props, '{}'))
+$$;
+
 create function public._book_author(p_rev uuid) returns text
 language sql stable security definer set search_path = '' as $$
   select b.author_id::text from public.book_revisions r join public.books b on b.id = r.book_id where r.id = p_rev

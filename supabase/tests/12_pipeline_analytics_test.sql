@@ -71,7 +71,7 @@ select is(pg_temp.ev('desk_job'), '{"reason": "worker_failed", "wait_h": 6.0}'::
 
 insert into public.send_backs (revision_id, issues, sent_by, source) values
   ('12c00000-0000-4000-d000-000000000002', '[{"text": "a"}, {"text": "b"}]', '12c00000-0000-4000-a000-000000000002', 'fixer');
-select is(pg_temp.ev('send_back'), '{"source": "fixer", "issues": 2}'::jsonb, 'send_back with source and issue count');
+select is((select props from public.analytics_outbox where event = 'send_back'), '{"source": "fixer", "issues": 2}'::jsonb, 'send_back with source and issue count');
 
 insert into public.book_fixes (revision_id, op, inverse, work_version, staff_id) values
   ('12c00000-0000-4000-d000-000000000002', '{"op": "rename_chapter", "title": "One"}', '{}', 1,
