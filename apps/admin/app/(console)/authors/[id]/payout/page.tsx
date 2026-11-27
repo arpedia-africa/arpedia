@@ -94,7 +94,11 @@ export default async function AuthorPayoutPage({ params }: { params: Promise<{ i
               </span>
             </div>
           </div>
-          <PayoutHeadActions name={name} statement={cycleStatement?.month ? monthLabel(cycleStatement.month, { bare: true }) : null} />
+          <PayoutHeadActions
+            author={id}
+            name={name}
+            statement={cycleStatement?.month ? { id: cycleStatement.id, label: monthLabel(cycleStatement.month, { bare: true }) } : null}
+          />
         </div>
       </div>
       <div className="page">
@@ -214,10 +218,10 @@ export default async function AuthorPayoutPage({ params }: { params: Promise<{ i
                 <div className="row">
                   {p?.statements.length ? (
                     p.statements.slice(0, 2).map(s => (
-                      <span key={s.id} className="btn btn-g sm">
+                      <a key={s.id} className="btn btn-g sm" href={`/authors/${id}/payout/statements/${s.id}`}>
                         <Icon name="down" />
                         {s.kind === 'cycle' && s.month ? `${monthLabel(s.month, { bare: true })} PDF` : `${new Date(s.created_at).getUTCFullYear()} year to date`}
-                      </span>
+                      </a>
                     ))
                   ) : (
                     <span className="muted">None yet</span>

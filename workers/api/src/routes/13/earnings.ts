@@ -5,6 +5,7 @@
 //        Flutterwave, encrypt the number, score the name against the legal name, submit_bank_account
 //   GET  /v1/earnings/flutterwave/balance      Finance / Super admin: NGN balance, feeds prepare_cycle
 //   POST /v1/earnings/flutterwave/webhook      transfer events (verif-hash), re-queried by transfer id
+//   /v1/earnings/statements/…                  statement PDFs (./statements.ts)
 // Cron: drainPayouts (every minute) sends queued transfers with the payout reference as idempotency
 // key; pollPendingPayouts (hourly) re-queries transfers pending over 48 hours and raises the ones
 // still unsettled to Finance; payoutReminder (daily) tells Finance 3 days before payout day about
@@ -32,6 +33,7 @@ import { rpcError, userDb } from '../12/http';
 import { deliverNotices } from '../15/notify';
 import { failedAlert, reminderAlert, stuckAlert, type PayoutAlert, type ReminderDue } from './alerts';
 import { FlwError, payoutClient, type PayoutClient } from './flutterwave';
+import statements from './statements';
 
 type Db = SupabaseClient<Database>;
 
@@ -359,5 +361,7 @@ export async function payoutReminder(
   const balance = client ? await client.balanceKobo().catch(() => null) : null;
   await alert(reminderAlert(data as unknown as ReminderDue, balance));
 }
+
+earnings.route('/statements', statements);
 
 export default earnings;
