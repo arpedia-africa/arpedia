@@ -70,6 +70,7 @@ interface Renderer extends HTMLElement {
   start: number;
   end: number;
   viewSize: number;
+  size: number;
   atEnd: boolean;
   scrolled: boolean;
   getContents(): { index: number; doc: Document; overlayer?: Overlayer }[];
@@ -237,12 +238,61 @@ function gateTop(doc: Document): number | null {
   return v.x >= 0 && v.x < window.innerWidth && v.y < window.innerHeight ? v.y : null;
 }
 
+const PEEK_HIDDEN = 'data-arp-peek-hidden';
+/**
+ * A locked chapter's gate is its first page (rules 51, 53, 54): the peek file can run to several
+ * pages with a large font, so the blocks after the first page (and, with Auto-unlock off, after the
+ * room for the card) are hidden, so the gate's one page is the first page. Headings are never
+ * hidden. The section reloads with its full file on unlock, which shows them again (rule 8).
+ */
+function fitPeek(doc: Document): void {
+  if (!view) return;
+  const r = view.renderer;
+  const g = doc.querySelector<HTMLElement>('[data-arp-gate]');
+  if (!g) return;
+  doc.querySelectorAll(`[${PEEK_HIDDEN}]`).forEach((el) => {
+    (el as HTMLElement).style.removeProperty('display');
+    el.removeAttribute(PEEK_HIDDEN);
+  });
+  const first = doc.body.firstElementChild;
+  if (!first || first === g) return;
+  const size = r.size;
+  if (!(size > 0)) return;
+  const fits = () => {
+    const a = first.getBoundingClientRect();
+    const b = g.getBoundingClientRect();
+    return r.scrolled ? b.bottom - a.top <= size : b.left - a.left < size / 2;
+  };
+  const blocks = Array.from(doc.body.children).filter(
+    (el) => el !== g && el !== first && !/^H[1-6]$/.test(el.tagName),
+  );
+  while (!fits() && blocks.length > 0) {
+    const el = blocks.pop() as HTMLElement;
+    el.style.setProperty('display', 'none', 'important');
+    el.setAttribute(PEEK_HIDDEN, '');
+  }
+}
+/** The first paragraph the peek hid, if it starts on the page now shown (after an unlock). */
+function hiddenStartsHere(doc: Document, id: string | null): boolean {
+  if (!id || !view) return false;
+  const el = doc.getElementById(id);
+  if (!el) return false;
+  const v = toViewport(doc, el.getBoundingClientRect());
+  return v.x >= 0 && v.x < window.innerWidth && v.y >= 0 && v.y < window.innerHeight;
+}
+
 function onRelocate(loc: { cfi: string; range: Range }) {
   // While opening or reopening, foliate passes through the section start: not a real place.
   if (!manifest || !view || settling) return;
   const contents = view.renderer.getContents()[0];
   const index = contents?.index ?? currentIndex;
   const chapter = chapterAt(index);
+  if (contents && gateFor(index)?.kind === 'chapter') {
+    fitPeek(contents.doc);
+    // Held: a move that still left the first page (late font load, a slider drag) goes back to it.
+    const rr = view.renderer;
+    if (rr.scrolled ? rr.start > rr.size : rr.page > 1) return void view.goTo(index);
+  }
   // A page with no paragraph start on it (the tail of a long paragraph, the gate room) keeps the
   // place of the page before it in this chapter, so percent never steps back.
   const own = paraOf(loc.range.startContainer);
@@ -296,6 +346,9 @@ async function forward() {
   if (!gate) return view.next();
   if (advanceInFlight) return;
   advanceInFlight = true;
+  const doc = view.renderer.getContents()[0]?.doc;
+  const firstHidden = doc?.querySelector(`[${PEEK_HIDDEN}]`);
+  const hiddenId = firstHidden?.id || firstHidden?.querySelector('[id]')?.id || null;
   const id = nextId();
   const decision = await new Promise<{ allow: boolean; reason?: string }>((resolve) => {
     pendingAdvance.set(id, resolve);
@@ -307,7 +360,13 @@ async function forward() {
   });
   advanceInFlight = false;
   // On allow, native has already sent access.update (the section is reloaded with its full file).
-  if (decision.allow) await reopened.then(() => view?.next());
+  // A locked chapter's first page now shows the text the peek hid: stay, so none of it is skipped.
+  if (decision.allow)
+    await reopened.then(() => {
+      const d = view?.renderer.getContents()[0]?.doc;
+      if (d && gate.kind === 'chapter' && hiddenStartsHere(d, hiddenId)) return;
+      return view?.next();
+    });
 }
 
 // ─── Section setup ───────────────────────────────────────────────────────────
@@ -332,10 +391,13 @@ function decorate(doc: Document, index: number) {
   const gate = gateFor(index);
   const room = gate ? (gate.kind === 'preview' ? gateRoom.preview : gateRoom.chapter) : 0;
   doc.querySelector('[data-arp-gate]')?.remove();
-  if (room > 0) {
+  // A locked chapter always gets the marker (0 px with Auto-unlock on), so its peek can be fitted to
+  // the first page (rules 53, 54).
+  if (room > 0 || gate?.kind === 'chapter') {
     const g = doc.createElement('div');
     g.setAttribute('data-arp-gate', gate!.kind);
     g.style.height = `${room}px`;
+    g.style.breakInside = 'avoid';
     doc.body.append(g);
   }
   watchSelection(doc);
