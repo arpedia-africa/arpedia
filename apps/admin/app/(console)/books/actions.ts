@@ -80,3 +80,18 @@ export async function republish(bookId: string): Promise<{ ok: boolean; error?: 
   revalidatePath('/books');
   return { ok: true };
 }
+
+/** Retry a stuck job (12-14): a processing book with no new step for 10 minutes runs its step again. */
+export async function retryJob(revisionId: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('staff_retry_revision', { p_rev: revisionId });
+  if (error) {
+    if (error.code === '42501') return { ok: false, error: 'Only Operations admins can retry a job.' };
+    if (error.message === 'not_stuck') return { ok: false, error: 'It moved in the last 10 minutes. Give it a little longer.' };
+    if (error.message === 'not_processing' || error.message === 'nothing_to_retry')
+      return { ok: false, error: 'It already finished this step. Nothing to retry.' };
+    return { ok: false, error: "Couldn't retry. Try again." };
+  }
+  revalidatePath('/books/processing');
+  return { ok: true };
+}
