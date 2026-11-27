@@ -16,6 +16,7 @@ import {
 } from '@tanstack/react-query';
 import { compareItems, type LibraryItem, type LibrarySort, type Shelf } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { hasLivePlan } from '../01/session';
 import { trackedDownload, type Track as ReaderTrack } from '../04/analytics';
 import { BookFiles, offlineBooks, removeDownload, type OfflineBook } from '../04/bookfiles';
 import { flushProgress } from '../04/progressQueue';
@@ -224,6 +225,38 @@ export async function refreshLicence(b: OfflineBook): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+const REFRESH_EVERY_MS = 6 * 3_600_000;
+const REFRESH_KEY = 'library.licences.refreshed-at';
+
+/**
+ * Rule 29, app-wide (signed-in tabs): with a connection and a live plan, every download's licence is
+ * refreshed in the background at most every 6 hours, on start and whenever the phone comes back
+ * online, wherever the reader is in the app. Without a plan the Worker declines; nothing changes.
+ */
+export function useBackgroundLicenceRefresh() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    let busy = false;
+    const run = async () => {
+      if (busy || !onlineManager.isOnline()) return;
+      busy = true;
+      try {
+        const last = Number((await AsyncStorage.getItem(REFRESH_KEY).catch(() => null)) ?? 0);
+        if (Date.now() - last < REFRESH_EVERY_MS) return;
+        const books = await offlineBooks();
+        if (!books.length || !(await hasLivePlan())) return;
+        await Promise.all(books.map(refreshLicence));
+        await AsyncStorage.setItem(REFRESH_KEY, String(Date.now())).catch(() => undefined);
+        void qc.invalidateQueries({ queryKey: offlineKey });
+      } finally {
+        busy = false;
+      }
+    };
+    void run();
+    return onlineManager.subscribe((online) => online && void run());
+  }, [qc]);
 }
 
 export function useLicenceRefresh(entries: OfflineEntry[], onDone: (ok: boolean) => void) {

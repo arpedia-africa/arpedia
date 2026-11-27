@@ -216,7 +216,7 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 | - [x] | 05-8 | 27 | Cancel on long-press of a downloading book is not wired: `LibGrid` supports `onLongPress` but the Offline grid never passes it. | `apps/mobile/app/(tabs)/library.tsx:392` | should fix | B |
 | - [x] | 05-9 | 15 | Offline pill is shown for expired books too (it is built from every file on the phone, not "valid license"). **Fixed:** the pill (and the search shelf label) count only books whose licence is still valid. | `apps/mobile/app/(tabs)/library.tsx:232` | later | B |
 | - [ ] | 05-10 | 33 | Mirror is the persisted TanStack cache and `pending_ops` is in AsyncStorage, not expo-sqlite `library_cache` with a "last synced" time. | `apps/mobile/features/05/library.ts:1` | later | B |
-| - [ ] | 05-11 | 29 | Background licence refresh only runs for books with under 2 days left and once per session, only while the Library screen is mounted. | `apps/mobile/features/05/library.ts:217` | later | B |
+| - [x] | 05-11 | 29 | Background licence refresh only runs for books with under 2 days left and once per session, only while the Library screen is mounted. **Fixed (batch 3):** `useBackgroundLicenceRefresh` in the signed-in tabs refreshes every download on the phone, at most every 6 hours, when the app starts or comes back online, and only with a live plan. The Library's own under-2-days refresh stays. | `apps/mobile/features/05/library.ts:217` | later | B |
 
 69 rules checked, 11 gaps.
 
