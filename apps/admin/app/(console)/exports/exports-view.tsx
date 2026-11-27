@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import type { StaffRole } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
+import { Otp } from '../pricing/otp';
 import { createExport, setSchedule, type ExportKind } from './actions';
 
 type Status = 'counting' | 'building' | 'ready' | 'failed' | 'expired';
@@ -116,6 +117,7 @@ export function ExportsView({
   const [to, setTo] = useState(daysAgo(0));
   const [picked, setPicked] = useState<boolean[]>(() => (COLUMNS.readers ?? []).map(c => c.on));
   const [reason, setReason] = useState('');
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
   const [toastNode, showToast] = useToast();
@@ -142,7 +144,8 @@ export function ExportsView({
   const create = (k: ExportKind, p: { from: string; to: string }, cols: string[], why: string) =>
     start(async () => {
       setError(undefined);
-      const r = await createExport(k, p, cols, why);
+      const r = await createExport(k, p, cols, why, pii, otp);
+      setOtp('');
       if (!r.ok) return setError(r.error);
       setReason('');
       showToast(`Export started: ${kindLabel(k)}, ${rangeLabel(p)}. You can download it here when it is ready.`);
@@ -422,6 +425,13 @@ export function ExportsView({
                           />
                         </div>
                       </div>
+                      {pii ? (
+                        <div className="f">
+                          <span className="lbl">2-step code</span>
+                          <Otp value={otp} onChange={setOtp} invalid={!!error} />
+                          <span className="hint">Enter a new code from your authenticator app.</span>
+                        </div>
+                      ) : null}
                     </div>
                   </details>
                 ) : (
@@ -437,7 +447,7 @@ export function ExportsView({
                 <button
                   type="button"
                   className="btn btn-p block"
-                  disabled={pending || (pii && reason.trim().length < 5) || (range === 'custom' && from > to)}
+                  disabled={pending || (pii && (reason.trim().length < 5 || otp.length !== 6)) || (range === 'custom' && from > to)}
                   aria-busy={pending}
                   onClick={() => create(kind, params, groups.length ? columns : [], pii ? reason : '')}
                 >

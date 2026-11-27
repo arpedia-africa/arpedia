@@ -5970,6 +5970,25 @@ isOneToOne: false
 "_cycle_start":
 { Args: { "p_month": string }; Returns: string
                            },
+"_decide_approval_base":
+{ Args: { "p_approve": boolean,"p_id": string,"p_reason"?: string }; Returns: {
+              "approver_id": string | null,
+"created_at": string,
+"decided_at": string | null,
+"expires_at": string,
+"id": string,
+"kind": string,
+"payload": NonNullable<Json>,
+"reason": string | null,
+"requested_by": string,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "approval_requests"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "_dm_block":
 { Args: { "p_author": string,"p_reader": string }; Returns: string
                            },
@@ -6470,6 +6489,9 @@ isOneToOne: false
 "_refresh_rating_stats":
 { Args: { "p_book": string }; Returns: undefined
                            },
+"_release_cycle_base":
+{ Args: { "p_cycle": string }; Returns: Json
+                           },
 "_remaining":
 { Args: { "p_book": string,"p_user": string }; Returns: number
                            },
@@ -6618,6 +6640,9 @@ isOneToOne: false
 "_staff_alert_on":
 { Args: { "p_kind": string,"p_uid": string }; Returns: boolean
                            },
+"_staff_create_export_base":
+{ Args: { "p_columns": (string)[],"p_kind": Database["public"]['Enums']["export_kind"],"p_params": Json,"p_reason"?: string }; Returns: string
+                           },
 "_staff_name":
 { Args: { "p_user": string }; Returns: string
                            },
@@ -6651,6 +6676,9 @@ isOneToOne: false
                            },
 "_step":
 { Args: { "p_rev": string,"p_step": string }; Returns: undefined
+                           },
+"_stepup_used_now":
+{ Args: { "p_scope": string }; Returns: boolean
                            },
 "_story_hits":
 { Args: { "p_q": string }; Returns: {
@@ -7238,7 +7266,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "decide_approval":
-{ Args: { "p_approve": boolean,"p_id": string,"p_reason"?: string }; Returns: {
+{ Args: { "p_approve": boolean,"p_id": string,"p_reason"?: string,"p_stepup"?: string }; Returns: {
               "approver_id": string | null,
 "created_at": string,
 "decided_at": string | null,
@@ -7371,6 +7399,9 @@ isOneToOne: false
                            },
 "follow_author":
 { Args: { "p_author": string }; Returns: Json
+                           },
+"force_update_impact":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "genre_pick_counts":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -8050,7 +8081,7 @@ isOneToOne: false
 { Args: { "p_actor"?: string,"p_reason": string,"p_rev": string }; Returns: undefined
                            },
 "release_cycle":
-{ Args: { "p_cycle": string }; Returns: Json
+{ Args: { "p_cycle": string,"p_stepup": string }; Returns: Json
                            },
 "release_to_review":
 { Args: { "p_actor"?: string,"p_rev": string }; Returns: Json
@@ -8592,7 +8623,7 @@ isOneToOne: false
 { Args: { "p_reason": string,"p_user": string }; Returns: undefined
                            },
 "staff_create_export":
-{ Args: { "p_columns": (string)[],"p_kind": Database["public"]['Enums']["export_kind"],"p_params": Json,"p_reason"?: string }; Returns: string
+{ Args: { "p_columns": (string)[],"p_kind": Database["public"]['Enums']["export_kind"],"p_params": Json,"p_reason"?: string,"p_stepup"?: string }; Returns: string
                            },
 "staff_decide_report":
 { Args: { "p_action"?: string,"p_decision": string,"p_duration_days"?: number,"p_internal_note"?: string,"p_message_to_user"?: string,"p_notify_reporters"?: boolean,"p_reason"?: string,"p_report": string }; Returns: Json

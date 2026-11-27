@@ -7,6 +7,7 @@ import { Icon } from '@/components/icon';
 import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
 import { rollbackOta, saveConfig, saveCopy, saveFlag, saveFlagSettings } from './actions';
+import { impactText, type ForceUpdateImpact } from './impact';
 
 interface Stamp {
   updated_at: string | null;
@@ -69,7 +70,7 @@ type Ask = { kind: 'maintenance' } | { kind: 'force_update' } | { kind: 'ota' };
  * s-config and s-config-confirm. Super admins change everything (force update, maintenance and OTA
  * rollback ask for a fresh 2-step code); Operations admins edit Remote copy and see the rest read-only.
  */
-export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string }) {
+export function ConfigView({ screen, impact, env }: { screen: ConfigScreen; impact: ForceUpdateImpact | null; env: string }) {
   const router = useRouter();
   const online = useOnline();
   const [toast, show] = useToast();
@@ -632,6 +633,12 @@ export function ConfigView({ screen, env }: { screen: ConfigScreen; env: string 
                 <div className="sy-inbox">
                   <b>Message to readers</b>
                   <span className="muted">{message}</span>
+                </div>
+              )}
+              {ask.kind === 'force_update' && (
+                <div className="sy-inbox">
+                  <b>Readers locked out</b>
+                  <span className="muted">{impactText(impact)}</span>
                 </div>
               )}
               {ask.kind === 'ota' && (
