@@ -2,8 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { useMemo } from 'react';
 import type { ReportContentType, ReportReason } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { useTrack } from './analytics';
 
 // Reports from any entry point (message, DM, profile, book, review, comment). Offline they are saved on
 // the device and sent on reconnect with the original time (States: Offline); `create_report` keeps
@@ -111,4 +113,28 @@ export async function createReport(r: ReportInput, offline: boolean): Promise<st
     return null;
   }
   return send(r, null);
+}
+
+/**
+ * createReport with flow 14's events: `report_started {content_type}` when the sheet opens and
+ * `report_sent {content_type, reason, also_block, queued}` once it is sent or saved for later.
+ */
+export function useReport() {
+  const track = useTrack();
+  return useMemo(
+    () => ({
+      started: (content_type: ReportContentType) => track('report_started', { content_type }),
+      send: async (r: ReportInput, offline: boolean) => {
+        const ref = await createReport(r, offline);
+        track('report_sent', {
+          content_type: r.content_type,
+          reason: r.reason,
+          also_block: !!r.also_block,
+          queued: ref === null,
+        });
+        return ref;
+      },
+    }),
+    [track],
+  );
 }

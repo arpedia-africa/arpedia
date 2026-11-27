@@ -11,6 +11,7 @@ import {
   submitRevision,
   submitStep,
   useRevisionBook,
+  useRevisionPreviewPages,
   useRevisionStatus,
   type RevisionStatus,
 } from '../../../../features/11/submit';
@@ -30,6 +31,8 @@ export default function SubmitPreview() {
   const { rev } = useLocalSearchParams<{ rev: string }>();
   const status = useRevisionStatus(rev);
   const book = useRevisionBook(rev);
+  // The cards come from the working copy once the chapters are confirmed (renames and merges show).
+  const previewPages = useRevisionPreviewPages(rev, !!status.data?.chapters_confirmed);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +88,8 @@ export default function SubmitPreview() {
     const m = model(d);
     body = (
       <SubmitPreviewView
-        // Page previews need the working copy's read link for authors (flow 12 has it for staff only).
-        pages={null}
+        pages={previewPages.data ?? null}
+        pagesLoading={previewPages.isPending && previewPages.fetchStatus !== 'idle'}
         readiness={m.readiness}
         readinessLabel={m.label}
         checklist={m.checklist}

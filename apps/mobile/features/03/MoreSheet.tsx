@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { REASON_LABELS, reasonsFor, type ReportReason } from '@arpedia/core';
 import { Btn, Callout, Cell, Group, Sheet, useTheme, useToast } from '@arpedia/ui';
-import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../14/report';
+import { REPORT_SAVED, REPORT_SENT, reportErrorCopy, useReport } from '../14/report';
 
 // s-book-more (rule 11) and its report sheet. Views stay pure for tools/parity.
 
@@ -127,8 +127,9 @@ export function ReportSheet({
   const { s } = useTheme();
   const toast = useToast();
   const [reason, setReason] = useState<ReportReason | null>(null);
+  const reportFlow = useReport();
   const send = useMutation({
-    mutationFn: () => createReport({ content_type: 'book', content_id: bookId, reason: reason! }, !online),
+    mutationFn: () => reportFlow.send({ content_type: 'book', content_id: bookId, reason: reason! }, !online),
     onSuccess: (ref) => {
       onClose();
       toast({ message: ref === null ? REPORT_SAVED : REPORT_SENT, duration: 6000 });
@@ -139,7 +140,8 @@ export function ReportSheet({
     if (!open) return;
     setReason(null);
     reset();
-  }, [open, reset]);
+    reportFlow.started('book');
+  }, [open, reset, reportFlow]);
   const refused = send.error ? reportErrorCopy(String(send.error.message)) : null;
   return (
     <Sheet open={open} onClose={onClose} locked={send.isPending} title="Report this book">

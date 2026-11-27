@@ -6,6 +6,7 @@ export type TrustEvent =
   | 'report_started'
   | 'report_sent'
   | 'appeal_created'
+  | 'ticket_created'
   | 'help_article_viewed'
   | 'help_vote'
   | 'contact_support_opened';

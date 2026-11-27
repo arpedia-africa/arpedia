@@ -1,4 +1,5 @@
 import { Icon } from '@/components/icon';
+import { soleSuperAdminTask, type HomeTask } from '@/lib/home-tasks';
 import { getStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
 
@@ -8,13 +9,7 @@ function greeting(now = new Date()) {
   return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 }
 
-interface Task {
-  id: string;
-  href: string;
-  title: string;
-  sub: string;
-  due: string;
-}
+type Task = HomeTask;
 
 const since = (iso: string) => {
   const days = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
@@ -23,12 +18,13 @@ const since = (iso: string) => {
 
 /**
  * Tasks for the signed-in role, most urgent first. Super admins: bans waiting for them (flow 14 rule
- * 17) and plan price changes someone else proposed (flow 16 rule 17).
+ * 17), plan price changes someone else proposed (flow 16 rule 17) and, while they are the only
+ * one, adding a second Super admin (flow 16 open question 4).
  */
 async function tasksFor(staff: { id: string; role: string } | null): Promise<Task[]> {
   if (staff?.role !== 'super_admin') return [];
   const supabase = await serverSupabase();
-  const [{ data }, { data: changes }] = await Promise.all([
+  const [{ data }, { data: changes }, { data: holders }] = await Promise.all([
     supabase.rpc('admin_pending_bans'),
     supabase
       .from('approval_requests')
@@ -38,6 +34,7 @@ async function tasksFor(staff: { id: string; role: string } | null): Promise<Tas
       .neq('requested_by', staff.id)
       .gt('expires_at', new Date().toISOString())
       .order('created_at'),
+    supabase.rpc('staff_by_role'),
   ]);
   const prices = (changes ?? []).map((c) => {
     const p = c.payload as { plan_code?: string; name?: string };
@@ -56,7 +53,8 @@ async function tasksFor(staff: { id: string; role: string } | null): Promise<Tas
     sub: `${b.decided_by_name ?? 'A moderator'} asked for it${b.reason ? ` · ${b.reason}` : ''}${b.is_minor ? ' · under 18' : ''}`,
     due: since(b.created_at),
   }));
-  return [...bans, ...prices];
+  const sole = soleSuperAdminTask((holders ?? []).find((h) => h.role === 'super_admin')?.names ?? []);
+  return [...bans, ...prices, ...(sole ? [sole] : [])];
 }
 
 /** Home = My tasks for the signed-in role (s-overview markup). Tasks arrive with the flows that create them. */

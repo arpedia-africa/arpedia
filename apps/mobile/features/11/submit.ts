@@ -3,6 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useQuery } from '@tanstack/react-query';
 import type { Href } from 'expo-router';
+import { samplePreviewPages, type PreviewPageSample, type SampleWork } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { isNetworkError } from '../01/session';
 import type { SourceType, SubmitValues } from './SubmitViews';
@@ -256,6 +257,26 @@ export const confirmChapters = (rev: string, edits: ChapterEdit[]) =>
   });
 
 export const submitRevision = (rev: string) => call<{ status: string }>('/submit', { revision_id: rev });
+
+/**
+ * Rule 21: the first page, a middle page and the preview-end page, from the working copy the Worker's
+ * `/v1/books/preview-url` signs for the book's author. Empty when nothing is readable; an error
+ * (offline, link refused, copy not ready) leaves the step without cards.
+ */
+export function useRevisionPreviewPages(rev: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['revision-preview-pages', rev],
+    enabled: !!rev && enabled,
+    retry,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<PreviewPageSample[]> => {
+      const link = await call<{ book_url: string }>('/preview-url', { revision_id: rev });
+      const res = await fetch(link.book_url);
+      if (!res.ok) throw new SubmitError('Couldn’t load your pages.');
+      return samplePreviewPages((await res.json()) as SampleWork);
+    },
+  });
+}
 
 /** The book a revision belongs to (title for the bands). */
 export function useRevisionBook(rev: string | undefined) {

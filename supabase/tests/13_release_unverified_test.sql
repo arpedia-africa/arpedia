@@ -64,6 +64,20 @@ begin
 end $$;
 grant execute on function pg_temp.as_user(text), pg_temp.as_service(), pg_temp.as_owner()
   to authenticated, service_role;
+-- A single-use step-up for `uid` (flow 16 rule 6), as verify_stepup records a backup code.
+create function pg_temp.stepup(uid text, scope text) returns uuid
+language plpgsql as $$
+declare
+  v_role text := current_setting('role');
+  v_id uuid;
+begin
+  perform set_config('role', 'postgres', true);
+  insert into public.staff_stepups (user_id, scope, method, proof_at)
+    values (uid::uuid, scope, 'backup', now()) returning id into v_id;
+  perform set_config('role', v_role, true);
+  return v_id;
+end $$;
+grant execute on function pg_temp.stepup(text, text) to authenticated, service_role;
 
 -- Both accounts auto-verify (score 95), pause over.
 select pg_temp.as_service();
@@ -93,7 +107,8 @@ where author_id = '13160000-0000-4000-a000-000000000001';
 select pg_temp.as_user('13160000-0000-4000-a000-000000000005');
 select results_eq($$select (r ->> 'authors')::int, (r ->> 'total_kobo')::bigint, (r ->> 'held_unverified')::int
                     from (select public.release_cycle((select id from public.earning_cycles
-                                                       where month = '2026-05-01')) r) x$$,
+                                                       where month = '2026-05-01'),
+                                                    pg_temp.stepup('13160000-0000-4000-a000-000000000005', 'release_payout')) r) x$$,
   $$values (1, 160000::bigint, 1)$$, 'release sends B and holds A for a bank account');
 select pg_temp.as_owner();
 select results_eq($$select e.status::text, e.held_reason from public.author_earnings e

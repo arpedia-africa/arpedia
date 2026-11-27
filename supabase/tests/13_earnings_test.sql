@@ -4,7 +4,7 @@
 -- (duplicate, out of order, reversed after success), blind retries blocked, bank review, RLS.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(61);
+select plan(65);
 
 -- The demo seed (seeds/13_earnings.sql) closes the same months: start from no earnings data.
 set local session_replication_role = replica;
@@ -91,6 +91,22 @@ begin
 end $$;
 grant execute on function pg_temp.as_user(text, interval), pg_temp.as_service(), pg_temp.as_owner()
   to authenticated, service_role;
+-- A single-use step-up for `uid` (flow 16 rule 6), made `age` ago, as verify_stepup records a backup code.
+create function pg_temp.stepup(uid text, scope text, age interval default '0') returns uuid
+language plpgsql as $$
+declare
+  v_role text := current_setting('role');
+  v_id uuid;
+begin
+  perform set_config('role', 'postgres', true);
+  insert into public.staff_stepups (user_id, scope, method, proof_at, verified_at)
+    values (uid::uuid, scope, 'backup', now() - age, now() - age) returning id into v_id;
+  perform set_config('role', v_role, true);
+  return v_id;
+end $$;
+grant execute on function pg_temp.stepup(text, text, interval) to authenticated, service_role;
+create table pg_temp.su (k text primary key, id uuid);
+grant all on pg_temp.su to authenticated, service_role;
 
 -- A's account, auto-verified (score 95), its 48-hour pause already over.
 select pg_temp.as_service();
@@ -163,23 +179,38 @@ update public.earning_cycles set closed_at = now() - interval '31 days' where mo
 select pg_temp.as_user('13130000-0000-4000-a000-000000000005');
 select ok((public.prepare_cycle((select id from public.earning_cycles where month = '2026-09-01'), 50000000)
            ->> 'ledger_match')::boolean, 'Finance prepares when the checks pass');
-select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'))$$,
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'),
+  pg_temp.stepup('13130000-0000-4000-a000-000000000005', 'release_payout'))$$,
   '42501', null, 'Finance cannot release');
 select pg_temp.as_user('13130000-0000-4000-a000-000000000006', '30 minutes');
-select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'))$$,
-  '42501', 'two_step_required', 'release needs a 2-step code in the last 10 minutes');
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'), null)$$,
+  'P0001', 'stepup_expired', 'release needs a fresh step-up code');
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'),
+  pg_temp.stepup('13130000-0000-4000-a000-000000000006', 'pricing_rules'))$$,
+  'P0001', 'stepup_expired', 'a step-up for another action does not release');
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'),
+  pg_temp.stepup('13130000-0000-4000-a000-000000000006', 'release_payout', '6 minutes'))$$,
+  'P0001', 'stepup_expired', 'a step-up older than 5 minutes does not release');
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'),
+  pg_temp.stepup('13130000-0000-4000-a000-000000000005', 'release_payout'))$$,
+  'P0001', 'stepup_expired', 'another person''s step-up does not release');
 select pg_temp.as_owner();
 update public.earning_cycles set prepared_by = '13130000-0000-4000-a000-000000000006' where month = '2026-09-01';
 select pg_temp.as_user('13130000-0000-4000-a000-000000000006');
-select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'))$$,
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'),
+  pg_temp.stepup('13130000-0000-4000-a000-000000000006', 'release_payout'))$$,
   'P0001', 'same_person', 'the preparer cannot approve');
 select pg_temp.as_owner();
 update public.earning_cycles set prepared_by = '13130000-0000-4000-a000-000000000005' where month = '2026-09-01';
-select pg_temp.as_user('13130000-0000-4000-a000-000000000006');
+-- A backup-code step-up counts as the fresh code even when the session's 2-step time is old.
+select pg_temp.as_user('13130000-0000-4000-a000-000000000006', '30 minutes');
+insert into pg_temp.su values ('r1', pg_temp.stepup('13130000-0000-4000-a000-000000000006', 'release_payout'));
 select results_eq($$select (r ->> 'authors')::int, (r ->> 'total_kobo')::bigint from
-                    (select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01')) r) x$$,
+                    (select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'), (select id from pg_temp.su where k = 'r1')) r) x$$,
   $$values (1, 168000::bigint)$$, 'a second Super admin releases the verified, payable author');
-select is((public.release_cycle((select id from public.earning_cycles where month = '2026-09-01')) ->> 'replayed')::boolean,
+select throws_ok($$select public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'), (select id from pg_temp.su where k = 'r1'))$$,
+  'P0001', 'stepup_expired', 'a step-up works only once');
+select is((public.release_cycle((select id from public.earning_cycles where month = '2026-09-01'), pg_temp.stepup('13130000-0000-4000-a000-000000000006', 'release_payout')) ->> 'replayed')::boolean,
   true, 'releasing twice replays');
 select pg_temp.as_owner();
 select is((select count(*)::int from public.payouts), 1, 'no duplicate transfers');
