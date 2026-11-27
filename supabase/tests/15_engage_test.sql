@@ -3,7 +3,7 @@
 -- forward only, banners (one modal a day, dismiss, end date), email variables, export rules.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(57);
+select plan(59);
 
 -- Start from no announcements and exports (the local demo seed adds some; rolled back at the end).
 delete from public.banners;
@@ -51,6 +51,20 @@ language sql as $$
            'timestamp', extract(epoch from now() - interval '1 minute')::bigint)))::text, true)
 $$;
 grant execute on function pg_temp.as_user(text) to authenticated;
+-- A single-use step-up for `uid` (flow 16 rule 6), as verify_stepup records a backup code.
+create function pg_temp.stepup(uid text, scope text) returns uuid
+language plpgsql as $$
+declare
+  v_role text := current_setting('role');
+  v_id uuid;
+begin
+  perform set_config('role', 'postgres', true);
+  insert into public.staff_stepups (user_id, scope, method, proof_at)
+    values (uid::uuid, scope, 'backup', now()) returning id into v_id;
+  perform set_config('role', v_role, true);
+  return v_id;
+end $$;
+grant execute on function pg_temp.stepup(text, text) to authenticated;
 
 -- ─── Quiet hours and the marketing cap (as the service role) ────────────────
 select ok(public.in_quiet_window('2026-11-19 22:30+01', 'Africa/Lagos', '22:00', '06:00'), '22:30 WAT is quiet');
@@ -202,15 +216,23 @@ select is(public.staff_save_email_template('welcome', 'Welcome, {{first_name}}',
 
 -- ─── Exports ────────────────────────────────────────────────────────────────
 select pg_temp.as_user('15000000-0000-4000-a000-000000000004');
-select throws_ok($$select public.staff_create_export('readers', '{}', '{email}', 'audit')$$, '42501', null,
+select throws_ok($$select public.staff_create_export('readers', '{}', '{email}', 'audit',
+  pg_temp.stepup('15000000-0000-4000-a000-000000000004', 'export_personal'))$$, '42501', null,
   'Finance cannot export readers with emails');
 select lives_ok($$select public.staff_create_export('transactions', '{}', '{date,amount}')$$,
   'Finance exports transactions without contact details');
 select pg_temp.as_user('15000000-0000-4000-a000-000000000005');
-select throws_ok($$select public.staff_create_export('readers', '{}', '{email}')$$, '22023', null,
+select throws_ok($$select public.staff_create_export('readers', '{}', '{email}', null,
+  pg_temp.stepup('15000000-0000-4000-a000-000000000005', 'export_personal'))$$, '22023', null,
   'personal details need a reason');
-select lives_ok($$select public.staff_create_export('readers', '{}', '{email,joined}', 'NDPA data request #12')$$,
-  'Super admin with a reason can export emails');
+select throws_ok($$select public.staff_create_export('readers', '{}', '{email,joined}', 'NDPA data request #12')$$,
+  'P0001', 'stepup_expired', 'personal details need a fresh step-up code');
+select throws_ok($$select public.staff_create_export('readers', '{}', '{email,joined}', 'NDPA data request #12',
+  pg_temp.stepup('15000000-0000-4000-a000-000000000005', 'release_payout'))$$, 'P0001', 'stepup_expired',
+  'a step-up for another action does not export personal details');
+select lives_ok($$select public.staff_create_export('readers', '{}', '{email,joined}', 'NDPA data request #12',
+  pg_temp.stepup('15000000-0000-4000-a000-000000000005', 'export_personal'))$$,
+  'Super admin with a reason and a step-up can export emails');
 select pg_temp.as_user('15000000-0000-4000-a000-000000000001');
 select is((select count(*)::int from public.exports), 0, 'exports are visible to their creator and Super admin only');
 
