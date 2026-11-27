@@ -6441,6 +6441,9 @@ isOneToOne: false
 "_rescore":
 { Args: { "p_rev": string }; Returns: number
                            },
+"_reversal_of":
+{ Args: { "p_key": string,"p_reason": string,"p_ref_ledger": number,"p_ref_type": string }; Returns: number
+                           },
 "_review_json":
 { Args: { "r": Omit<Database["public"]['Tables']["reviews"]['Row'], Database["public"]['Tables']["reviews"]['ComputedFields']> }; Returns: Json
                            },
