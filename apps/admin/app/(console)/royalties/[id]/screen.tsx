@@ -92,6 +92,7 @@ export async function CycleScreen({ c, staff }: { c: CycleDetail; staff: Staff }
             status={c.status}
             canPrepare={ledgerOk && past(c.hold_ends_at)}
             canRelease={isSuper && !iPrepared}
+            left={c.status === 'releasing' ? g.sendable.length : 0}
             lines={c.lines.map(l => ({ ...l }))}
           />
         </div>
@@ -353,6 +354,7 @@ function StatusLine({ c, isSuper, iPrepared }: { c: CycleDetail; isSuper: boolea
       </span>
     </div>
   );
+  const left = c.status === 'releasing' ? groups(c.lines).sendable : [];
   switch (c.status) {
     case 'closed':
       return line('warn', 'Closed · waiting for Finance to prepare.', 'Preparing runs the checks below and records who prepared it.');
@@ -369,6 +371,12 @@ function StatusLine({ c, isSuper, iPrepared }: { c: CycleDetail; isSuper: boolea
           'warn',
           'Paused, retrying.',
           `Flutterwave did not take ${c.retrying.count === 1 ? '1 transfer' : `${c.retrying.count} transfers`} (${naira(c.retrying.kobo)}). No money moved.${c.retrying.next_at ? ` The next try is ${RETRY_AT.format(new Date(c.retrying.next_at))}.` : ''} Finance was emailed.`,
+        );
+      if (left.length > 0)
+        return line(
+          'warn',
+          `Released in part · ${left.length} author${left.length === 1 ? '' : 's'} (${naira(sum(left, l => l.payable_kobo))}) approved, not sent.`,
+          `The Flutterwave balance was too low for everyone. Top it up, then a Super admin who didn't prepare the month sends the rest.`,
         );
       return line('warn', `Released by ${c.approved_name ?? 'a Super admin'} · transfers are going out.`, 'The month shows Paid once Flutterwave confirms every transfer.');
     case 'paid':
