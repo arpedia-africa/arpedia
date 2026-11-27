@@ -86,7 +86,7 @@ export default function Search() {
   const draftResult = useSearch(filterOpen ? submitted : null, draftQ);
   const res = result.data;
   const none = !!res && res.counts.all === 0;
-  const close = useCloseMatches(none);
+  const close = useCloseMatches(submitted, none);
   const request = useRequestBook();
   const join = useJoin();
   const askPush = useAskPush();
@@ -190,6 +190,7 @@ export default function Search() {
                   onPick={(i) => {
                     const t = d.trending[i]!;
                     if (t.book_id) openBook(t.book_id, t.query, t.query);
+                    else if (t.author_id) openAuthor(t.author_id, t.query, t.query);
                     else run(t.query);
                   }}
                 />

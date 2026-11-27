@@ -154,15 +154,18 @@ export function useSearch(q: string | null, filters: { genre: string | null; ban
   });
 }
 
-/** "You might like" on no results: the most read books overall (up to 3). */
-export function useCloseMatches(enabled: boolean) {
+/**
+ * "You might like" on no results (rule 27): up to 3 most read books in the genre closest to the
+ * query, else the most read overall (`get_close_matches`).
+ */
+export function useCloseMatches(q: string | null, enabled: boolean) {
   return useQuery({
-    queryKey: ['close-matches'],
-    enabled,
+    queryKey: ['close-matches', q],
+    enabled: enabled && q != null,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('list_books', { p_sort: 'most_read', p_limit: 3 });
+      const { data, error } = await supabase.rpc('get_close_matches', { p_q: q! });
       if (error) throw error;
-      return (data as unknown as { items: HomeBook[] }).items;
+      return (data as unknown as { genre: string | null; items: HomeBook[] }).items;
     },
     staleTime: 1000 * 60 * 10,
   });
