@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
-import { assignToMe, decideReport, escalate } from '../actions';
+import { assignToMe, confirmBan, decideReport, escalate, setSeverity } from '../actions';
 import {
   age,
   initials,
@@ -103,6 +103,7 @@ export function ReportView({
   total,
   nextId,
   canDecide,
+  pendingBan = null,
 }: {
   detail: ReportDetail | null;
   failed: boolean;
@@ -110,6 +111,8 @@ export function ReportView({
   total: number;
   nextId: string | null;
   canDecide: boolean;
+  /** A ban on this report waiting for this Super admin (rule 17: Moderator plus Super admin). */
+  pendingBan?: { actionId: string; decidedBy: string; isMinor: boolean } | null;
 }) {
   const router = useRouter();
   const [toastNode, showToast] = useToast();
@@ -233,7 +236,7 @@ export function ReportView({
               </button>
               {menu ? (
                 <div className="menu">
-                  {user ? <a href={`/readers/${user.id}`}>{`Open ${user.name}`}</a> : null}
+                  {user ? <a href={`/users/${user.id}`}>{`Open ${user.name}`}</a> : null}
                   {canDecide && !decided ? (
                     <a
                       href="#assign"
@@ -250,6 +253,27 @@ export function ReportView({
                       Assign to me
                     </a>
                   ) : null}
+                  {canDecide && !decided
+                    ? (['high', 'medium', 'low'] as const)
+                        .filter((v) => v !== r.severity)
+                        .map((v) => (
+                          <a
+                            key={v}
+                            href={`#severity-${v}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setMenu(false);
+                              start(async () => {
+                                const res = await setSeverity(r.id, v);
+                                showToast(res.error ?? `Severity is ${v} now`);
+                                router.refresh();
+                              });
+                            }}
+                          >
+                            {`Mark as ${v} severity`}
+                          </a>
+                        ))
+                    : null}
                   <hr />
                   <a
                     className="danger"
@@ -412,7 +436,7 @@ export function ReportView({
               <div className="panel__head">
                 <h2>Reported user</h2>
                 {user ? (
-                  <a className="link" href={`/readers/${user.id}`}>
+                  <a className="link" href={`/users/${user.id}`}>
                     {`Open ${first(user.name)}`}
                   </a>
                 ) : null}
@@ -518,6 +542,30 @@ export function ReportView({
                 Remove and act on user…
               </button>
             ) : null}
+          </>
+        ) : decided && pendingBan ? (
+          <>
+            <span className="muted">
+              {`${pendingBan.decidedBy} asked for a ban${pendingBan.isMinor ? ' · reader is under 18' : ''}`}
+            </span>
+            <button
+              type="button"
+              className="btn btn-g"
+              disabled={pending}
+              onClick={() =>
+                run(() => confirmBan(pendingBan.actionId, false, r.id), 'Ban turned down. The reader keeps their account.')
+              }
+            >
+              Turn down
+            </button>
+            <button
+              type="button"
+              className="btn btn-p"
+              disabled={pending}
+              onClick={() => run(() => confirmBan(pendingBan.actionId, true, r.id), 'Ban confirmed. The reader is signed out.')}
+            >
+              Confirm ban
+            </button>
           </>
         ) : decided ? (
           <span className="muted">{`Decided by ${detail.decided_by_name ?? 'staff'}`}</span>

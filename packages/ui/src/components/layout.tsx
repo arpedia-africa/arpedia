@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  ScrollView,
+  View,
+  type ScrollViewProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -48,21 +55,25 @@ export function Screen({
       <StatusBar style={lightIcons ? 'light' : 'dark'} />
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         {header}
-        <Body
-          style={{ flex: 1, backgroundColor: c.white }}
-          {...(scroll
-            ? {
-                contentContainerStyle: contentStyle,
-                showsVerticalScrollIndicator: false,
-                refreshControl,
-                onScroll,
-                scrollEventThrottle: onScroll ? 100 : undefined,
-              }
-            : { style: [{ flex: 1, backgroundColor: c.white }, contentStyle] })}
-        >
-          {children}
-        </Body>
-        {footer}
+        {/* Edge-to-edge (Android 15+) ignores adjustResize, so a footer would stay under the
+            keyboard (Delete account's button hid behind it, flow 17 journeys): lift it ourselves. */}
+        <KeyboardAvoidingView behavior="padding" enabled={!!footer} style={{ flex: 1 }}>
+          <Body
+            style={{ flex: 1, backgroundColor: c.white }}
+            {...(scroll
+              ? {
+                  contentContainerStyle: contentStyle,
+                  showsVerticalScrollIndicator: false,
+                  refreshControl,
+                  onScroll,
+                  scrollEventThrottle: onScroll ? 100 : undefined,
+                }
+              : { style: [{ flex: 1, backgroundColor: c.white }, contentStyle] })}
+          >
+            {children}
+          </Body>
+          {footer}
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );

@@ -79,10 +79,30 @@ export async function assignToMe(reportId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** Change a report's severity (rule 4): every open report on the same content moves, and its due time follows. */
+export async function setSeverity(reportId: string, severity: 'high' | 'medium' | 'low'): Promise<ActionResult> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('set_report_severity', { p_report: reportId, p_severity: severity });
+  if (error) return failed(error.message);
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath('/reports');
+  return { ok: true };
+}
+
 export async function escalate(reportId: string): Promise<ActionResult> {
   const supabase = await serverSupabase();
   const { error } = await supabase.rpc('escalate_report', { p_report: reportId });
   if (error) return failed(error.message);
   revalidatePath(`/reports/${reportId}`);
+  return { ok: true };
+}
+
+/** A Super admin confirms or turns down a ban another moderator decided (rule 17). */
+export async function confirmBan(actionId: string, confirm: boolean, reportId?: string): Promise<ActionResult> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('confirm_ban', { p_action: actionId, p_confirm: confirm });
+  if (error) return failed(error.message);
+  revalidatePath('/');
+  if (reportId) revalidatePath(`/reports/${reportId}`);
   return { ok: true };
 }

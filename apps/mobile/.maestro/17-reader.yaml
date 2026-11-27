@@ -1,0 +1,225 @@
+# Flow 17 rule 10 · Reader journey: sign up → onboarding → Home → book page → preview → subscribe and
+# buy credits (local test store) → unlock → read → highlight → Library → offline read → sign out and in.
+# Runs on a freshly reset stack (`node tools/journeys/run.mjs reader`), so the fixed email is new each time.
+# `.` stands for the middle dot in patterns: Maestro on Windows reads the file as cp1252.
+appId: com.arpedia.reader
+---
+# ─── Sign up and onboarding ──────────────────────────────────────────────────
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'Create an account'
+- assertVisible: 'Create your account'
+- tapOn: 'Ada Writer'
+- eraseText: 40
+- inputText: 'Kemi Journey'
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'journey.reader@example.com'
+- tapOn: 'At least 8 characters'
+- eraseText: 40
+- inputText: 'arpedia-e2e'
+- hideKeyboard
+- tapOn: 'Create account'
+- extendedWaitUntil:
+    visible: 'Choose the genres you love'
+    timeout: 30000
+- tapOn: 'Fiction'
+- tapOn: 'Continue'
+- assertVisible: 'Pick your colour'
+- tapOn: 'Continue'
+- assertVisible: 'How will you use Arpedia?'
+- tapOn: "I'm a reader"
+- tapOn: 'Continue'
+- assertVisible: 'Complete your profile'
+- tapOn: 'Skip for now'
+- extendedWaitUntil:
+    visible: 'Not now, browse first'
+    timeout: 30000
+- tapOn: 'Not now, browse first'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Kemi.*'
+    timeout: 30000
+- takeScreenshot: reader-${WIDTH}-home
+
+# ─── Book page and the free preview ──────────────────────────────────────────
+- openLink: arpedia://book/00000000-0000-4000-c000-000000000001
+- extendedWaitUntil:
+    visible: 'Harmattan Letters'
+    timeout: 30000
+- assertVisible: 'Unlock all, .*'
+- takeScreenshot: reader-${WIDTH}-book
+- tapOn: 'Start reading.*'
+- extendedWaitUntil:
+    visible: '\d+%'
+    timeout: 30000
+- tapOn:
+    text: 'OK'
+    optional: true
+- swipe:
+    direction: LEFT
+    duration: 200
+- swipe:
+    direction: LEFT
+    duration: 200
+- takeScreenshot: reader-${WIDTH}-preview
+- back
+
+# ─── Subscribe and top up (local test store; the price shows before each tap) ─
+- openLink: arpedia://checkout?plan=monthly
+- extendedWaitUntil:
+    visible: 'Subscribe with Google Play'
+    timeout: 30000
+- assertVisible: '.*₦.*'
+- takeScreenshot: reader-${WIDTH}-checkout
+- tapOn: 'Subscribe with Google Play'
+- extendedWaitUntil:
+    visible: 'This month . refills.*'
+    timeout: 60000
+- assertVisible: '300'
+- scrollUntilVisible:
+    element: 'Buy .* credits . ₦.*'
+    direction: DOWN
+    timeout: 60000
+- tapOn: 'Buy .* credits . ₦.*'
+# The toast lives a few seconds, shorter than one hierarchy read on a busy emulator: best effort.
+- assertVisible:
+    text: '.* credits added'
+    optional: true
+# The top-up bucket shows only once the ledger has the credits.
+- scrollUntilVisible:
+    element: 'Top-up . never expires'
+    direction: UP
+    timeout: 60000
+- takeScreenshot: reader-${WIDTH}-credits
+
+# ─── Unlock, read, highlight ─────────────────────────────────────────────────
+- openLink: arpedia://book/00000000-0000-4000-c000-000000000001
+- extendedWaitUntil:
+    visible: 'Unlock all, .*'
+    timeout: 30000
+- assertVisible: 'Your balance.*'
+- tapOn: 'Unlock all, .*'
+- extendedWaitUntil:
+    visible: 'Unlock for 125 credits'
+    timeout: 10000
+- assertVisible: 'After unlock'
+- takeScreenshot: reader-${WIDTH}-unlock-sheet
+- tapOn: 'Unlock for 125 credits'
+- extendedWaitUntil:
+    visible: 'Unlocked'
+    timeout: 30000
+- assertNotVisible: 'Unlock all.*'
+- tapOn: '(Start|Continue) reading.*'
+- extendedWaitUntil:
+    visible: 'Chapter .*'
+    timeout: 30000
+- repeat:
+    times: 6
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 200
+# A long press between words or on a paragraph gap selects nothing; try a few spots.
+- repeat:
+    times: 3
+    while:
+      notVisible: 'Discuss'
+    commands:
+      - longPressOn:
+          point: '35%,40%'
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - runFlow:
+          when:
+            notVisible: 'Discuss'
+          commands:
+            - longPressOn:
+                point: '55%,55%'
+            - waitForAnimationToEnd:
+                timeout: 3000
+- extendedWaitUntil:
+    visible: 'Discuss'
+    timeout: 10000
+- tapOn:
+    id: 'Yellow'
+    optional: true
+- tapOn:
+    text: 'Yellow'
+    optional: true
+- assertNotVisible: 'Discuss'
+- takeScreenshot: reader-${WIDTH}-highlight
+- back
+
+# ─── Library and the offline copy ────────────────────────────────────────────
+- openLink: arpedia://library
+- extendedWaitUntil:
+    visible: 'Reading \d+'
+    timeout: 30000
+- assertVisible: 'Harmattan Letters.*'
+- takeScreenshot: reader-${WIDTH}-library
+- tapOn: 'Offline.*'
+- extendedWaitUntil:
+    visible: 'Ready offline . .* left'
+    timeout: 120000
+- takeScreenshot: reader-${WIDTH}-offline-shelf
+- setAirplaneMode: enabled
+- tapOn: 'Harmattan Letters.*'
+- extendedWaitUntil:
+    visible: '.*min left in chapter'
+    timeout: 30000
+- takeScreenshot: reader-${WIDTH}-offline-read
+- back
+- setAirplaneMode: disabled
+
+# ─── Sign out and back in: the book and the highlight are still there ───────
+- tapOn: 'Profile'
+- tapOn: 'Settings'
+- extendedWaitUntil:
+    visible: 'Edit profile'
+    timeout: 30000
+- repeat:
+    times: 8
+    while:
+      notVisible: 'Log out'
+    commands:
+      - swipe:
+          direction: UP
+          duration: 600
+- tapOn: 'Log out'
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 60000
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'journey.reader@example.com'
+- tapOn: 'Your password'
+- eraseText: 40
+- inputText: 'arpedia-e2e'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Kemi.*'
+    timeout: 30000
+- tapOn: 'Library'
+- extendedWaitUntil:
+    visible: 'Offline downloads'
+    timeout: 30000
+# The offline copy keeps its title after signing in again (found by this journey: it read "Downloaded book").
+- extendedWaitUntil:
+    visible: 'Harmattan Letters.*'
+    timeout: 30000
+- takeScreenshot: reader-${WIDTH}-back-in-offline
+- tapOn: 'Reading \d+'
+- extendedWaitUntil:
+    visible: 'Harmattan Letters.*'
+    timeout: 30000
+- takeScreenshot: reader-${WIDTH}-back-in

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { router } from 'expo-router';
 import type { TextInput } from 'react-native';
 import { Keyboard, View } from 'react-native';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { useJoin } from '../../features/06/data';
+import { authorKey } from '../../features/08/data';
 import { Btn, EmptyState, Screen, Section, Sheet, Skeleton, Text, useTheme, useToast } from '@arpedia/ui';
 import { isSearchable, normalizeQuery, searchesLabel, type LengthBand } from '@arpedia/core';
 import { BookTile, Rail } from '../../features/02/HomeViews';
@@ -49,6 +53,7 @@ const NO_FILTER = { genre: null as string | null, bands: [] as LengthBand[] };
 export default function Search() {
   const { s } = useTheme();
   const toast = useToast();
+  const qc = useQueryClient();
   const go = discoveryLinks(toast);
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [text, setText] = useState('');
@@ -73,6 +78,14 @@ export default function Search() {
   const none = !!res && res.counts.all === 0;
   const close = useCloseMatches(none);
   const request = useRequestBook();
+  const join = useJoin();
+  const follow = useMutation({
+    mutationFn: async (author: string) => {
+      const { error } = await supabase.rpc('follow_author', { p_author: author });
+      if (error) throw error;
+    },
+    onSuccess: (_d, author) => void qc.invalidateQueries({ queryKey: authorKey(author) }),
+  });
 
   const run = (q: string) => {
     const norm = normalizeQuery(q);
@@ -298,7 +311,7 @@ export default function Search() {
         ? openBook(it.id, it.title, q)
         : it.kind === 'person'
           ? openAuthor(it.id, it.title, q)
-          : toast({ message: 'Book clubs are coming soon' });
+          : router.push(`/chat/${it.id}`);
     return (
       <>
         {top ? (
@@ -321,7 +334,12 @@ export default function Search() {
               items={authors}
               query={q}
               onOpen={openItem}
-              onAction={() => toast({ message: 'Following authors is coming soon' })}
+              onAction={(it) =>
+                follow.mutate(it.id, {
+                  onSuccess: () => toast({ message: `You follow ${it.title}` }),
+                  onError: () => toast({ message: 'Couldn’t update Follow. Try again.' }),
+                })
+              }
             />
           </>
         ) : null}
@@ -332,7 +350,12 @@ export default function Search() {
               items={clubs}
               query={q}
               onOpen={openItem}
-              onAction={() => toast({ message: 'Book clubs are coming soon' })}
+              onAction={(it) =>
+                join.mutate(it.id, {
+                  onSuccess: () => router.push(`/chat/${it.id}`),
+                  onError: () => toast({ message: 'Couldn’t join. Try again.' }),
+                })
+              }
             />
           </>
         ) : null}

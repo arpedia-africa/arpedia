@@ -1,8 +1,16 @@
 // The conversation Durable Object's moderation-critical logic: membership cache refresh,
 // enforcement push-down and write retry (flow 06 "Done when").
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ServerFrame } from '@arpedia/core';
-import { ACCESS_TTL_MS, Conversation, RETRY_MS, type Peer, type SenderState } from './conversation';
+import {
+  ACCESS_TTL_MS,
+  Conversation,
+  MODERATE_TIMEOUT_MS,
+  RETRY_MS,
+  type Deps,
+  type Peer,
+  type SenderState,
+} from './conversation';
 import { RpcError, type Access, type ChatDb, type PersistItem, type PersistResult } from './db';
 
 const G = '11111111-1111-4111-8111-111111111111';
@@ -28,13 +36,15 @@ function access(over: Partial<Access> = {}): Access {
   };
 }
 
-function setup() {
+function setup(moderate?: Deps['moderate']) {
   let now = 1_700_000_000_000;
   const table = new Map<string, Access>();
   const calls = { access: 0, persist: 0 };
   const stored: PersistItem[] = [];
   let failPersist = false;
   let poison: string | null = null;
+  let failPush = false;
+  const pushes: { ids: string[]; open: string[] }[] = [];
   const flushAt: number[] = [];
   const db: ChatDb = {
     getAccess: async (_g, u) => {
@@ -56,6 +66,10 @@ function setup() {
     setLiveCount: async () => undefined,
     touchLastSeen: async () => undefined,
     canQuote: async () => true,
+    pushMessages: async (ids, open) => {
+      if (failPush) throw new Error('push down');
+      pushes.push({ ids, open });
+    },
   };
   const q = new Map<string, PersistItem>();
   const parked = new Map<string, PersistItem>();
@@ -79,6 +93,7 @@ function setup() {
       peers: () => peers.filter((p) => p.closed === undefined),
       now: () => now,
       scheduleFlush: (ms) => void flushAt.push(ms),
+      moderate,
     });
   const conv = make();
   const peer = (userId: string) => {
@@ -112,6 +127,8 @@ function setup() {
     tick: (ms: number) => (now += ms),
     failPersist: (v: boolean) => (failPersist = v),
     poison: (body: string) => (poison = body),
+    pushes,
+    failPush: (v: boolean) => (failPush = v),
   };
 }
 
@@ -272,6 +289,101 @@ describe('send path', () => {
   });
 });
 
+describe('moderate-text (flow 14)', () => {
+  const acked = (p: { frames: ServerFrame[] }, n: number) =>
+    p.frames.some((f) => f.type === 'ack' && f.client_id === cid(n));
+
+  it('stores safety-rule hides auto-hidden, never delivered, and passes the surface', async () => {
+    const seen: unknown[] = [];
+    const t = setup(async (text, opts) => {
+      seen.push({ text, ...opts });
+      return text.includes('bad') ? { action: 'hide_and_report', reason: 'muted_word' } : { action: 'allow' };
+    });
+    t.table.set('ada', access({ kind: 'dm', new_account: true }));
+    t.table.set('bola', access());
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    await t.conv.connect('bola');
+    await t.send(ada, 1, 'a bad word');
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
+    await t.send(ada, 2, 'fine');
+    expect(acked(ada, 2)).toBe(true);
+    expect(bola.frames.filter((f) => f.type === 'message')).toHaveLength(1);
+    await t.conv.flush();
+    expect(t.stored.map((s) => s.state)).toEqual(['auto_hidden', 'visible']);
+    expect(seen[0]).toEqual({ text: 'a bad word', surface: 'dm', sender_new: true });
+  });
+
+  it('asks to edit phone numbers and refuses blocked links, storing neither', async () => {
+    const t = setup(async (text) =>
+      text.includes('0803') ? { action: 'hide', reason: 'phone_number' } : { action: 'hide', reason: 'link' },
+    );
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1, 'call 08031234567');
+    expect(ada.frames.at(-1)).toMatchObject({ error: 'phone_number' });
+    await t.send(ada, 2, 'see example.com');
+    expect(ada.frames.at(-1)).toMatchObject({ error: 'rejected_by_rules' });
+    expect(t.q.size).toBe(0);
+  });
+
+  it('follows the rules: phone numbers allowed there are not caught by the local check', async () => {
+    const t = setup(async () => ({ action: 'allow' }));
+    t.table.set('ada', access({ new_account: true }));
+    const ada = t.peer('ada');
+    await t.send(ada, 1, 'call me 0803 123 4567');
+    expect(acked(ada, 1)).toBe(true);
+  });
+
+  it('delivers Blur and Warn, and still applies the channel muted words', async () => {
+    const t = setup(async (text) => ({ action: text.includes('meh') ? 'warn' : 'blur' }));
+    t.table.set('ada', access({ muted_words: ['spoiler'] }));
+    const ada = t.peer('ada');
+    await t.send(ada, 1, 'meh');
+    expect(acked(ada, 1)).toBe(true);
+    await t.send(ada, 2, 'big SPOILER here');
+    expect(ada.frames.at(-1)).toMatchObject({ error: 'rejected_by_rules' });
+  });
+
+  it('counts slow mode from when the message is sent, after the check', async () => {
+    let tick: (ms: number) => void = () => undefined;
+    const t = setup(async () => {
+      tick(1_500);
+      return { action: 'allow' };
+    });
+    tick = t.tick;
+    t.table.set('ada', access({ slow_mode_seconds: 30 }));
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    t.tick(29_000);
+    await t.send(ada, 2);
+    expect(ada.frames.at(-1)).toMatchObject({ error: 'slow_mode', wait_seconds: 1 });
+  });
+
+  it('falls back to its own checks when the Worker is down or slow', async () => {
+    vi.useFakeTimers();
+    try {
+      const down = setup(async () => {
+        throw new Error('api down');
+      });
+      down.table.set('ada', access());
+      const ada = down.peer('ada');
+      await down.send(ada, 1, 'call me 0803 123 4567');
+      expect(ada.frames.at(-1)).toMatchObject({ error: 'phone_number' });
+
+      const slow = setup(() => new Promise(() => undefined));
+      slow.table.set('bola', access());
+      const bola = slow.peer('bola');
+      const sent = slow.send(bola, 1, 'hello');
+      await vi.advanceTimersByTimeAsync(MODERATE_TIMEOUT_MS);
+      await sent;
+      expect(acked(bola, 1)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('enforcement push-down', () => {
   it('closes sockets of removed users and tells the rest about a lock', async () => {
     const t = setup();
@@ -346,5 +458,49 @@ describe('write retry', () => {
     expect(t.q.size).toBe(0);
     expect([...t.parked.values()].map((p) => p.client_id)).toEqual([cid(2)]);
     expect(t.stored.map((s) => s.client_id)).toEqual([cid(1), cid(3)]);
+  });
+});
+
+describe('push (flow 15)', () => {
+  it('asks for pushes for stored messages only, naming who has the chat open', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('bola', access());
+    const ada = t.peer('ada');
+    t.peer('bola');
+    await t.send(ada, 1);
+    await t.send(ada, 2);
+    await t.conv.flush();
+    expect(t.pushes).toHaveLength(1);
+    expect(t.pushes[0]!.ids).toEqual(t.stored.map((s) => s.id));
+    expect(t.pushes[0]!.open.sort()).toEqual(['ada', 'bola']);
+
+    // Refused rows (sender muted meanwhile) are never pushed.
+    await t.send(ada, 3);
+    t.table.set('ada', access({ post_block: 'muted' }));
+    await t.conv.flush();
+    expect(t.pushes).toHaveLength(1);
+  });
+
+  it('pushes rows written one by one after a bad batch', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    await t.send(ada, 2, 'bad row');
+    t.poison('bad row');
+    await t.conv.flush();
+    expect(t.pushes.flatMap((p) => p.ids)).toEqual(t.stored.map((s) => s.id));
+  });
+
+  it('a failed push never keeps messages queued', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1);
+    t.failPush(true);
+    await t.conv.flush();
+    expect(t.q.size).toBe(0);
+    expect(t.stored).toHaveLength(1);
   });
 });

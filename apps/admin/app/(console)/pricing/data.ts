@@ -24,13 +24,27 @@ export interface PlanVersion {
   by: string | null;
 }
 
+/** A plan price change waiting for a Super admin (rule 17: Finance proposes, a Super admin confirms). */
+export interface PriceChange {
+  id: string;
+  plan_code: string;
+  name: string;
+  price_web_kobo: number;
+  credits: number;
+  bonus_credits: number;
+  effective_from: string;
+  requested_by: string;
+  by: string | null;
+  created_at: string;
+}
+
 /**
  * Plans, top-ups, the pricing rules in effect and the change history, read once per request
  * (get_plans plus the staff-readable version tables). Errors throw to the console error page.
  */
 export const loadPricing = cache(async () => {
   const supabase = await serverSupabase();
-  const [plansRes, rulesRes, plansHist] = await Promise.all([
+  const [plansRes, rulesRes, plansHist, changesRes] = await Promise.all([
     supabase.rpc('get_plans'),
     supabase
       .from('pricing_rule_versions')
@@ -47,8 +61,17 @@ export const loadPricing = cache(async () => {
       .order('effective_from', { ascending: false })
       .order('id', { ascending: false })
       .limit(12),
+    // RLS shows a request to the person who asked and to the staff who may decide it.
+    supabase
+      .from('approval_requests')
+      .select('id, payload, requested_by, created_at, requester:profiles!approval_requests_requested_by_fkey(full_name)')
+      .eq('kind', 'price_change')
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at'),
   ]);
   if (plansRes.error) throw plansRes.error;
+  if (changesRes.error) throw changesRes.error;
   if (rulesRes.error) throw rulesRes.error;
   if (plansHist.error) throw plansHist.error;
 
@@ -80,8 +103,24 @@ export const loadPricing = cache(async () => {
     note: v.note,
     by: v.changer?.full_name ?? null,
   }));
+  const priceChanges: PriceChange[] = changesRes.data.map(r => {
+    const p = r.payload as unknown as Omit<PriceChange, 'id' | 'requested_by' | 'by' | 'created_at'>;
+    return {
+      id: r.id,
+      plan_code: p.plan_code,
+      name: p.name,
+      price_web_kobo: p.price_web_kobo,
+      credits: p.credits,
+      bonus_credits: p.bonus_credits,
+      effective_from: p.effective_from,
+      requested_by: r.requested_by,
+      by: r.requester?.full_name ?? null,
+      created_at: r.created_at,
+    };
+  });
   return {
     plans: catalog.plans,
+    priceChanges,
     topups: catalog.topups,
     avgBook: catalog.avg_book_price_credits,
     rules: current?.rules ?? null,

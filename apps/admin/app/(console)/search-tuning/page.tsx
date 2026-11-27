@@ -45,6 +45,7 @@ export default async function SearchTuningPage() {
     } else zero.set(e.query_norm, (zero.get(e.query_norm) ?? 0) + 1);
   }
   const wish = new Set((requests.data ?? []).filter(r => r.status === 'wishlist').map(r => r.query_norm));
+  const asked = new Set((requests.data ?? []).map(r => r.query_norm));
   for (const r of requests.data ?? []) if (!zero.has(r.query_norm)) zero.set(r.query_norm, 0);
 
   const topRows: QueryRow[] = [...top.entries()]
@@ -52,7 +53,7 @@ export default async function SearchTuningPage() {
     .sort((a, b) => b.searches - a.searches)
     .slice(0, 10);
   const zeroRows: ZeroRow[] = [...zero.entries()]
-    .map(([query, searches]) => ({ query, searches, wishlisted: wish.has(query) }))
+    .map(([query, searches]) => ({ query, searches, wishlisted: wish.has(query), requested: asked.has(query) }))
     .sort((a, b) => b.searches - a.searches)
     .slice(0, 10);
 

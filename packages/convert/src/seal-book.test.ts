@@ -2,7 +2,7 @@ import { BookManifest, chapterAad, fingerprint, keyLabel, newKey, openFile, unwr
 import { describe, expect, it } from 'vitest';
 import { sealBook, type BaseChapter, type SealOutput } from './seal-book';
 import type { WorkBlock, WorkChapter } from './verify';
-import { verifyPackage } from './verify';
+import { recutPreview, verifyPackage } from './verify';
 
 const REV = '12000000-0000-4000-8000-0000000000a1';
 const BOOK = '12000000-0000-4000-9000-0000000000a1';
@@ -197,5 +197,57 @@ describe('sealBook', () => {
     expect(out.manifest.price_credits).toBe(v.price);
     expect(out.manifest.chapters).toHaveLength(1);
     expect(out.manifest.chapters[0]!.free_file).toBe('c0.free.xhtml');
+  });
+
+  it('rebuilds a live book at a new preview cut with the keys it already has', async () => {
+    const short = () => book((t) => void t[0]!.splice(3));
+    const first = await sealBook({
+      bookId: BOOK,
+      revisionId: REV,
+      title: 'T',
+      chapters: short(),
+      images: {},
+      preview,
+      price: 6,
+      pages: 12,
+      masterKey: master,
+      random,
+    });
+    const held = await keysOf(first);
+    const anchors = {
+      uids: first.manifest.chapters.map((c) => c.chapter_uid),
+      ids: first.manifest.chapters.map((c) => c.paragraphs.map((p) => p.id)),
+      fps: first.manifest.chapters.map(() => []),
+      migrations: [],
+    };
+    // 20% of 2 300 words: chapter 0 (300 words) is free, the cut is inside chapter 1.
+    const { preview: cut, chapters } = recutPreview(short(), 20, 6);
+    expect(cut).toMatchObject({ chapter: 1, freeThrough: 0 });
+    expect(chapters.map((c) => c.priceCredits)).toEqual([0, 3, 3]);
+
+    const [uid0, uid1, uid2] = anchors.uids as [string, string, string];
+    const again = await sealBook({
+      bookId: BOOK,
+      revisionId: REV,
+      title: 'T',
+      chapters,
+      images: {},
+      preview: cut,
+      price: 6,
+      pages: 12,
+      masterKey: master,
+      anchors,
+      keys: {
+        free: held.get(null)!,
+        chapters: { [uid0]: held.get(uid0)!, [uid1]: held.get(uid1)!, [uid2]: held.get(uid2)! },
+      },
+    });
+    expect(again.keys.map((k) => k.chapter_uid)).toEqual([null, uid1, uid2]);
+    expect(again.manifest.preview_cut).toMatchObject({ chapter_uid: uid1, percent: cut.percent });
+    expect(again.chapters.slice(0, 2).map((c) => c.free_file)).toEqual([null, 'c1.free.xhtml']);
+    // Chapter 0 now opens with K_free; chapter 2 still opens with the key phones already hold.
+    expect(await read(again, held.get(null)!, 'c0.full.xhtml')).toContain(sentence(2));
+    expect(await read(again, held.get(uid2)!, 'c2.full.xhtml')).toContain(sentence(209));
+    expect(await read(again, held.get(null)!, 'c1.free.xhtml')).toContain(sentence(100));
   });
 });

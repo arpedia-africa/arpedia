@@ -15,7 +15,8 @@ export type NormalizedType =
   | 'pause'
   | 'resume'
   | 'refund'
-  | 'chargeback';
+  | 'chargeback'
+  | 'unpaid';
 
 export interface NormalizedEvent {
   type: NormalizedType;
@@ -35,6 +36,9 @@ export interface NormalizedEvent {
   refund_kobo?: number;
   pause_until?: string;
   flutterwave_plan_id?: string;
+  /** `unpaid` only: the charge's state and what it was for. */
+  status?: 'pending' | 'failed';
+  kind?: 'plan' | 'topup';
 }
 
 export interface IngestInput {
@@ -223,6 +227,70 @@ export function normalizeFlutterwaveCharge(
       period_start: start.toISOString(),
       period_end: end.toISOString(),
       ...money,
+    },
+  };
+}
+
+/**
+ * A Flutterwave charge that came back pending or failed (spec check 09-14): stored as a
+ * transaction with that status so the admin Pending and Failed pills show; it grants nothing.
+ * Keyed by status, so a pending charge that later succeeds is still applied as `charge:{id}`.
+ */
+export function normalizeFlutterwaveUnpaid(tx: FlutterwaveTx): IngestInput | Ignored {
+  const status = tx.status === 'pending' || tx.status === 'failed' ? tx.status : null;
+  if (!status) return { ignore: `status ${tx.status}` };
+  if (tx.currency !== 'NGN') return { ignore: `currency ${tx.currency}` };
+  const ref = parseTxRef(tx.tx_ref);
+  if (!ref) return { ignore: 'unknown tx_ref' };
+  return {
+    provider: 'flutterwave',
+    eventId: `charge:${tx.id}:${status}`,
+    eventType: 'charge.completed',
+    occurredAt: new Date(tx.created_at).toISOString(),
+    normalized: {
+      type: 'unpaid',
+      user_id: ref.userId,
+      store: 'web',
+      txn_id: String(tx.id),
+      status,
+      kind: ref.kind,
+      ...(ref.kind === 'plan' ? { plan_code: ref.code } : { topup_code: ref.code }),
+      gross_kobo: Math.round(tx.amount * 100),
+    },
+  };
+}
+
+/** A Flutterwave refund, as `GET /refunds/{id}` returns it (amounts in naira). */
+export interface FlutterwaveRefund {
+  id: number;
+  tx_id: number;
+  amount_refunded: number;
+  status: string;
+  created_at?: string;
+}
+
+/**
+ * A refund started outside the app, in the Flutterwave dashboard (spec check 09-13). Applied like a
+ * store refund: the paid share comes back off the purchase and its unspent credits are clawed back.
+ * `user_id` is the reader on our own transaction row for `tx_id`, never anything from the webhook.
+ * Keyed by refund id, so a redelivered notice changes nothing.
+ */
+export function normalizeFlutterwaveRefund(refund: FlutterwaveRefund, userId: string): IngestInput | Ignored {
+  if (!/^completed/.test(refund.status)) return { ignore: `refund ${refund.status}` };
+  const kobo = Math.round(refund.amount_refunded * 100);
+  if (!(kobo > 0)) return { ignore: 'refund amount' };
+  const at = refund.created_at ? new Date(refund.created_at) : new Date();
+  return {
+    provider: 'flutterwave',
+    eventId: `refund:${refund.id}`,
+    eventType: 'refund.completed',
+    occurredAt: (Number.isNaN(at.getTime()) ? new Date() : at).toISOString(),
+    normalized: {
+      type: 'refund',
+      user_id: userId,
+      store: 'web',
+      txn_id: String(refund.tx_id),
+      refund_kobo: kobo,
     },
   };
 }

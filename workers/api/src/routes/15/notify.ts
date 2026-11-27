@@ -60,6 +60,19 @@ const firstLine = (v: unknown) => str(v).split('\n')[0]!.slice(0, 140);
 const STAFF_ROLE: Record<string, string> = {
   application_sla: 'publisher',
   staff_alert: 'moderator',
+  finance_alert: 'finance',
+};
+
+/** Finance alerts from flow 09's payments_out queue. */
+const FINANCE_ALERT: Record<string, [subject: string, message: string]> = {
+  chargeback: [
+    'A web payment was disputed (chargeback)',
+    'Unspent credits were taken back and the plan ended. The Flutterwave fee is lost. See Credits → Anomalies.',
+  ],
+  duplicate_charge: [
+    'A reader was charged twice within a minute',
+    'The second charge is waiting in Refunds as "Refund the duplicate".',
+  ],
 };
 
 /** Book notices that name the book's author by `author_id` or only by `book_id`. */
@@ -169,6 +182,16 @@ export function plan(n: Notice, l: Lookup): Plan {
         'Open to read it',
         id(n.group_id) ? { kind: 'group', id: n.group_id as string } : undefined,
       );
+      break;
+    case 'verify_email':
+      // The link is issued at send time (deliverNotices), so a retry never mails a dead token.
+      email('verify_email');
+      break;
+    case 'welcome':
+      email('welcome');
+      break;
+    case 'receipt':
+      email('receipt', { amount: money(n.amount_kobo), item: str(n.item), date: day(n.paid_at) });
       break;
     case 'billing_issue':
       typed('renewal_failed', {}, { kind: 'screen', screen: 'plans' });
@@ -325,6 +348,14 @@ export function plan(n: Notice, l: Lookup): Plan {
         [str(n.severity), str(n.reason)].filter(Boolean).join(' · ') || 'Open Reports in the console.',
       );
       break;
+    case 'finance_alert': {
+      const [subject, message] = FINANCE_ALERT[str(n.alert)] ?? [
+        `Payment alert: ${str(n.alert) || 'unknown'}`,
+        'See Credits → Anomalies.',
+      ];
+      staff('finance', subject, `${message} Transaction ${str(n.transaction_id)}.`);
+      break;
+    }
     case 'sanction_notice':
       typed('moderation_notice');
       email('sanction_notice', { message: str(n.message) });
@@ -360,6 +391,24 @@ export function plan(n: Notice, l: Lookup): Plan {
 }
 
 export type SendMail = typeof sendTemplateEmail;
+
+/**
+ * A one-time verify link, or null when the address is already proven (or the account is gone).
+ * Without PUBLIC_API_URL there is nowhere to point the link: local skips it, a deployed Worker
+ * fails the notice so it is retried once the variable is set (preflight requires it).
+ */
+async function verifyLink(env: Env, db: Db, userId: string): Promise<string | null> {
+  if (!env.PUBLIC_API_URL) {
+    if (env.APP_ENV === 'staging' || env.APP_ENV === 'production')
+      throw new Error('PUBLIC_API_URL is not set');
+    console.warn('[notify] verify_email skipped: PUBLIC_API_URL is not set');
+    return null;
+  }
+  const { data, error } = await db.rpc('issue_email_verification', { p_user: userId });
+  if (error) throw error;
+  if (typeof data !== 'string') return null;
+  return `${env.PUBLIC_API_URL.replace(/\/+$/, '')}/v1/email-verify?t=${data}`;
+}
 
 async function lookup(db: Db, n: ReturnType<typeof needs>): Promise<Lookup> {
   const call = async (users: string[], books: string[], roles: string[], authors: string[]) => {
@@ -412,6 +461,11 @@ export async function deliverNotices(
       for (const m of p.mail) {
         const u = l.users[m.user_id];
         if (!u?.email) continue;
+        if (m.key === 'verify_email') {
+          const link = await verifyLink(env, db, m.user_id);
+          if (!link) continue;
+          m.vars.link = link;
+        }
         await sendMail(env, db, m.key, u.email, { first_name: u.first_name, ...m.vars }, m.user_id);
       }
       out.push(true);

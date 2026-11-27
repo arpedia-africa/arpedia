@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FINISHED_PERCENT, TIP_PRESETS } from '@arpedia/core';
@@ -61,8 +61,17 @@ export default function BookPage() {
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  // Plans, top-up packs and author pages belong to flows 09 and 08.
-  const soon = () => toast({ message: 'Coming soon' });
+  const toPlans = () => router.push('/plan');
+  // Top-up packs are bought on the credits screen (flow 09).
+  const toCredits = () => router.push('/credits');
+  const save = () => {
+    if (!online) return toast({ message: 'Connect to continue' });
+    supabase.rpc('save_book', { p_book: id }).then(({ error }) => {
+      if (error) return toast({ message: 'Couldn’t save that. Try again.' });
+      void qc.invalidateQueries({ queryKey: ['library'] });
+      toast({ message: 'Saved to your library' });
+    });
+  };
   const go = (screen: 'about' | 'reviews' | 'discussion' | 'write-review') =>
     router.push({ pathname: `/book/[id]/${screen}`, params: { id } });
 
@@ -114,10 +123,14 @@ export default function BookPage() {
         }
         a={{
           onBack: back,
-          onSave: soon,
-          onShare: soon,
+          onSave: save,
+          onShare: () => {
+            const by = d.book.author.name ? ` by ${d.book.author.name}` : '';
+            void Share.share({ message: `${d.book.title}${by}, on Arpedia` });
+          },
           onMore: () => setOverlay('more'),
-          onAuthor: soon,
+          onAuthor: () =>
+            router.push({ pathname: '/author/[id]', params: { id: d.book.author.id, source: 'book' } }),
           onFollow: d.is_author ? undefined : () => follow.mutate(!d.following),
           onReviews: () => go('reviews'),
           onDiscussion: () => {
@@ -128,7 +141,7 @@ export default function BookPage() {
           onUnlockAll: () => openSheet('all'),
           onPayGo: () => openSheet('paygo'),
           onPayRest: () => openSheet('all'),
-          onTopUp: soon,
+          onTopUp: toCredits,
           onAbout: () => go('about'),
           onWriteReview: () => {
             if (!online) return toast({ message: 'Connect to continue' });
@@ -145,8 +158,8 @@ export default function BookPage() {
         need={need}
         onClose={() => setSheet(null)}
         onRead={() => router.push({ pathname: '/read/[id]', params: { id } })}
-        onPlans={soon}
-        onBuyPack={soon}
+        onPlans={toPlans}
+        onBuyPack={toCredits}
       />
       <Sheet open={overlay === 'more'} onClose={() => setOverlay(null)} bold title={d.book.title}>
         <MenuBody

@@ -291,14 +291,16 @@ export function LibraryUnlock({
   need,
   onClose,
   onRead,
-  onSoon,
+  onPlans,
+  onBuyPack,
 }: {
   bookId: string;
   open: UnlockMode | 'short' | null;
   need?: number;
   onClose: () => void;
   onRead: () => void;
-  onSoon: () => void;
+  onPlans: () => void;
+  onBuyPack: () => void;
 }) {
   const page = useBookPage(bookId);
   if (!page.data) return null;
@@ -309,8 +311,8 @@ export function LibraryUnlock({
       need={need}
       onClose={onClose}
       onRead={onRead}
-      onPlans={onSoon}
-      onBuyPack={onSoon}
+      onPlans={onPlans}
+      onBuyPack={onBuyPack}
     />
   );
 }

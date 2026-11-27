@@ -1,5 +1,8 @@
+import { Hono } from 'hono';
+import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
-import type { Env } from '../../env';
+import type { AppEnv, Env } from '../../env';
+import { userDb } from '../12/http';
 
 // Flow 16 rule 39: health checks every minute (the api Worker's cron). Only what can be measured
 // without calling a provider with a secret: the database, R2, and payment webhooks as received.
@@ -25,7 +28,7 @@ export function statusFor(total: number, failed: number): { status: Status; rate
 
 const label = (t: string | null) => (t ? t.replace(/[_.]/g, ' ').toLowerCase() : null);
 
-export async function checkIntegrations(env: Env): Promise<void> {
+export async function checkIntegrations(env: Env): Promise<number> {
   const db = serviceDb(env);
   const set = (
     service: string,
@@ -89,5 +92,30 @@ export async function checkIntegrations(env: Env): Promise<void> {
     }
   }
   const results = await Promise.all(jobs);
-  for (const r of results as { error: unknown }[]) if (r.error) console.error('integration health', r.error);
+  let failed = 0;
+  for (const r of results as { error: unknown }[])
+    if (r.error) {
+      failed++;
+      console.error('integration health', r.error);
+    }
+  // How many statuses could not be saved (the cron ignores it; "Check all now" reports it).
+  return failed;
 }
+
+// POST /v1/integrations/check: "Check all now" (rule 39) runs the checks at once. The staff
+// member's own token calls request_integration_check, which needs manage_settings and records who
+// asked; only then does the Worker run the same checks as the cron.
+const integrations = new Hono<AppEnv>();
+
+integrations.post('/check', requireUser, async (c) => {
+  const { error } = await userDb(c).rpc('request_integration_check');
+  if (error) {
+    if (error.code === '42501') return c.json({ error: 'not_allowed' }, 403);
+    console.error('request_integration_check', error.message);
+    return c.json({ error: 'check_failed' }, 500);
+  }
+  if ((await checkIntegrations(c.env)) > 0) return c.json({ error: 'check_failed' }, 500);
+  return c.json({ ok: true });
+});
+
+export default integrations;

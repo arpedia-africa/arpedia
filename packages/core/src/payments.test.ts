@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   normalizeFlutterwaveCharge,
+  normalizeFlutterwaveRefund,
+  normalizeFlutterwaveUnpaid,
   normalizeRevenueCat,
   parseTxRef,
   safeEqual,
@@ -160,6 +162,65 @@ describe('Flutterwave', () => {
     });
     expect(normalizeFlutterwaveCharge({ ...tx, currency: 'USD' }, { renewal: false })).toEqual({
       ignore: 'currency USD',
+    });
+  });
+
+  it('keeps pending and failed charges as unpaid, keyed apart from the success', () => {
+    const failed = normalizeFlutterwaveUnpaid({ ...tx, status: 'failed' }) as IngestInput;
+    expect(failed.eventId).toBe('charge:9001:failed');
+    expect(failed.normalized).toEqual({
+      type: 'unpaid',
+      user_id: USER,
+      store: 'web',
+      txn_id: '9001',
+      status: 'failed',
+      kind: 'plan',
+      plan_code: 'monthly',
+      gross_kobo: 80000,
+    });
+    const pending = normalizeFlutterwaveUnpaid({
+      ...tx,
+      status: 'pending',
+      tx_ref: `arp:topup:topup_200:${USER}:n2`,
+    }) as IngestInput;
+    expect(pending.normalized).toMatchObject({ status: 'pending', kind: 'topup', topup_code: 'topup_200' });
+    expect(pending.normalized.plan_code).toBeUndefined();
+    expect(normalizeFlutterwaveUnpaid(tx)).toEqual({ ignore: 'status successful' });
+    expect(normalizeFlutterwaveUnpaid({ ...tx, status: 'failed', tx_ref: 'other' })).toEqual({
+      ignore: 'unknown tx_ref',
+    });
+  });
+});
+
+describe('Flutterwave dashboard refund (spec check 09-13)', () => {
+  const refund = {
+    id: 551,
+    tx_id: 9001,
+    amount_refunded: 450,
+    status: 'completed',
+    created_at: '2026-11-25T09:00:00Z',
+  };
+
+  it('becomes a web refund of the paid share, for our own reader', () => {
+    const r = normalizeFlutterwaveRefund(refund, USER) as IngestInput;
+    expect(r).toEqual({
+      provider: 'flutterwave',
+      eventId: 'refund:551',
+      eventType: 'refund.completed',
+      occurredAt: '2026-11-25T09:00:00.000Z',
+      normalized: { type: 'refund', user_id: USER, store: 'web', txn_id: '9001', refund_kobo: 45000 },
+    });
+  });
+
+  it('waits for a refund that is not completed yet', () => {
+    expect(normalizeFlutterwaveRefund({ ...refund, status: 'pending' }, USER)).toEqual({
+      ignore: 'refund pending',
+    });
+  });
+
+  it('ignores a zero amount', () => {
+    expect(normalizeFlutterwaveRefund({ ...refund, amount_refunded: 0 }, USER)).toEqual({
+      ignore: 'refund amount',
     });
   });
 });

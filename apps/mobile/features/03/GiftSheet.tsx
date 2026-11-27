@@ -32,6 +32,10 @@ function spendMessage(code: string): string {
       return 'This is your own book, so you can’t spend credits on it. Nothing was charged.';
     case 'message_too_long':
       return 'Keep the message to 140 characters.';
+    case 'gifts_off':
+      return 'Gifts are paused for now. Nothing was charged.';
+    case 'bad_recipient':
+      return 'You can only gift people who follow you or share a group with you. Nothing was charged.';
     default:
       return 'Something went wrong. Nothing was charged. Try again.';
   }
