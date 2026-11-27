@@ -1,5 +1,6 @@
 // Flow 13 · the Flutterwave calls payouts need, behind one interface so tests (and a local stack
-// without Flutterwave keys) use a stand-in. Staging and production never fall back to the stand-in.
+// without Flutterwave keys) use a stand-in. Staging and production never fall back to the stand-in and
+// always call the live API base below (Flutterwave picks test or live mode from the key).
 import type { Env } from '../../env';
 
 const FLW = 'https://api.flutterwave.com/v3';
@@ -127,9 +128,23 @@ export function fakePayoutClient(): PayoutClient {
 
 let localFake: PayoutClient | null = null;
 
-/** The client for this environment, or null when Flutterwave isn't configured (staging, production). */
+/** Flutterwave's test-mode secret keys start `FLWSECK_TEST-`; live ones `FLWSECK-`. */
+export const isTestKey = (key: string) => /^FLWSECK_TEST/i.test(key.trim());
+
+/**
+ * The client for this environment, or null when Flutterwave isn't configured (staging, production).
+ * Production pays authors only with a live key (owner, 27 Nov): a test-mode key is refused, so a
+ * release can't "send" payouts that never reach a bank.
+ */
 export function payoutClient(env: Env): PayoutClient | null {
-  if (env.FLUTTERWAVE_SECRET_KEY) return live(env.FLUTTERWAVE_SECRET_KEY);
+  const key = env.FLUTTERWAVE_SECRET_KEY?.trim();
+  if (key) {
+    if (env.APP_ENV === 'production' && isTestKey(key)) {
+      console.error('FLUTTERWAVE_SECRET_KEY is a test-mode key; payouts are off on production');
+      return null;
+    }
+    return live(key);
+  }
   if (env.APP_ENV !== 'local') return null;
   return (localFake ??= fakePayoutClient());
 }
