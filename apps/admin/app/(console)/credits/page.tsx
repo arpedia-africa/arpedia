@@ -39,6 +39,7 @@ const ALERT_TITLE: Record<string, (who: string) => string> = {
   reconcile: who => `${who}'s balance does not match the ledger`,
   duplicate_charge: who => `${who} was charged twice`,
   clawback_short: who => `A refund could not take back all of ${who}'s credits`,
+  store_unmatched: who => `${who}'s payment does not match the store`,
 };
 const FARMING = new Set(['gift_loop', 'transfers']);
 
