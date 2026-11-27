@@ -44,6 +44,50 @@ describe('POST /check', () => {
     serviceRpc.mockImplementation(async () => ({ data: {}, error: null }));
   });
 
+  it('sets Play, App Store, transfers, push and email from their records; skips services with no event', async () => {
+    userRpc.mockResolvedValueOnce({ data: null, error: null });
+    serviceRpc.mockClear();
+    serviceRpc.mockImplementation(async (name: string) =>
+      name === 'worker_service_health'
+        ? {
+            data: {
+              google_play: { last_at: '2026-11-27T10:00:00Z', last_type: 'RENEWAL', total: 50, failed: 6 },
+              app_store: { last_at: null, last_type: null, total: 0, failed: 0 },
+              flutterwave_transfers: {
+                last_at: '2026-11-27T09:00:00Z',
+                last_type: 'transfer successful',
+                total: 20,
+                failed: 1,
+              },
+              fcm: { last_at: '2026-11-27T10:05:00Z', last_type: 'push sent', total: 1000, failed: 0 },
+              resend: { last_at: '2026-11-27T10:06:00Z', last_type: 'email sent', total: 0, failed: 0 },
+            },
+            error: null,
+          }
+        : { data: {}, error: null },
+    );
+    expect((await check()).status).toBe(200);
+    const saved = Object.fromEntries(
+      serviceRpc.mock.calls
+        .filter((c) => (c as unknown[])[0] === 'worker_set_integration_health')
+        .map((c) => {
+          const a = (c as unknown[])[1] as {
+            p_service: string;
+            p_status: string;
+            p_last_event_text?: string;
+          };
+          return [a.p_service, a];
+        }),
+    );
+    expect(saved.google_play).toMatchObject({ p_status: 'failing', p_last_event_text: 'renewal' });
+    expect(saved.flutterwave_transfers).toMatchObject({ p_status: 'degraded' });
+    expect(saved.fcm).toMatchObject({ p_status: 'working' });
+    expect(saved.resend).toMatchObject({ p_status: 'working', p_last_event_text: 'email sent' });
+    expect(saved.app_store).toBeUndefined();
+    expect(saved.expo_updates).toBeUndefined();
+    serviceRpc.mockImplementation(async () => ({ data: {}, error: null }));
+  });
+
   it('refuses staff without settings access and runs nothing', async () => {
     userRpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'Not allowed' } });
     serviceRpc.mockClear();
