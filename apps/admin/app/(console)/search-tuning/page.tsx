@@ -1,6 +1,7 @@
 import { NoAccess } from '@/components/no-access';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
+import { sortRows } from '@/lib/table';
 import { TuningView, type Promotion, type QueryRow, type Synonym, type ZeroRow } from './client';
 
 const short = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -48,14 +49,24 @@ export default async function SearchTuningPage() {
   const asked = new Set((requests.data ?? []).map(r => r.query_norm));
   for (const r of requests.data ?? []) if (!zero.has(r.query_norm)) zero.set(r.query_norm, 0);
 
-  const topRows: QueryRow[] = [...top.entries()]
-    .map(([query, t]) => ({ query, searches: t.n, tapRate: t.n ? Math.round((t.tapped / t.n) * 100) : 0 }))
-    .sort((a, b) => b.searches - a.searches)
-    .slice(0, 10);
-  const zeroRows: ZeroRow[] = [...zero.entries()]
-    .map(([query, searches]) => ({ query, searches, wishlisted: wish.has(query), requested: asked.has(query) }))
-    .sort((a, b) => b.searches - a.searches)
-    .slice(0, 10);
+  const bySearches = { id: 'searches', value: (r: { searches: number }) => r.searches, desc: true };
+  const topRows: QueryRow[] = sortRows(
+    [...top.entries()].map(([query, t]) => ({
+      query,
+      searches: t.n,
+      tapRate: t.n ? Math.round((t.tapped / t.n) * 100) : 0,
+    })),
+    [bySearches],
+  ).slice(0, 10);
+  const zeroRows: ZeroRow[] = sortRows(
+    [...zero.entries()].map(([query, searches]) => ({
+      query,
+      searches,
+      wishlisted: wish.has(query),
+      requested: asked.has(query),
+    })),
+    [bySearches],
+  ).slice(0, 10);
 
   return (
     <TuningView
