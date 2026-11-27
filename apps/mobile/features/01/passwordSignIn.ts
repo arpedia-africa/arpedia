@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { AccountDeleted } from './session';
 
 const api = process.env.EXPO_PUBLIC_API_URL ?? '';
 
@@ -27,6 +28,8 @@ export async function signInWithPassword(email: string, password: string): Promi
     return fail({ status: 0, name: 'AuthRetryableFetchError', message: 'Network request failed' });
   }
   if (res.status === 423 || res.status === 429) return fail({ status: 429, message: 'Too many tries' });
+  // Right password, deleted account (the Worker checks the password before it says so).
+  if (res.status === 403) throw new AccountDeleted();
   if (!res.ok) {
     // 401 is a wrong email or password; a Worker fault is not the reader's typing.
     if (res.status === 401) return fail({ status: 400, message: 'Invalid login credentials' });

@@ -8,6 +8,7 @@ import type { AppEnv } from '../../env';
 //     423 {error: 'locked'}   5 wrong passwords for this email in 15 minutes
 //     401 {error: 'refused'}  wrong email or password (counted)
 //     429 {error: 'rate_limited'}  Supabase Auth's own limit (not counted)
+//     403 {error: 'deleted'}  right password, account deleted (banned) and not yet erased (not counted)
 // One lockout per email for both doors, so trying passwords on one does not reset the other.
 // The caller sets the returned session and then clears its email's failures
 // (`clear_staff_signin_failures`). Failures are noted here, after a real password check, so the
@@ -38,6 +39,15 @@ signIn.post('/', async (c) => {
     if (error?.status === 429) return c.json({ error: 'rate_limited' }, 429);
     // Only a real wrong password counts: an Auth outage must not lock readers out.
     if (error && error.status !== 400) throw new Error(`sign-in failed: ${error.status} ${error.message}`);
+    // A deleted account is banned, and Auth says so for any password: tell only the owner.
+    if (error?.code === 'user_banned') {
+      const { data: reason, error: reasonError } = await db.rpc('banned_sign_in_reason', {
+        p_email: email,
+        p_password: password,
+      });
+      if (reasonError) throw new Error(`banned_sign_in_reason failed: ${reasonError.message}`);
+      if (reason === 'deleted') return c.json({ error: 'deleted' }, 403);
+    }
     const { error: noteError } = await db.rpc('note_staff_signin_failure', { p_email: email });
     if (noteError) throw new Error(`note_staff_signin_failure failed: ${noteError.message}`);
     return c.json({ error: 'refused' }, 401);
