@@ -235,7 +235,9 @@ export function verifyPackage(
   const toc = readToc(files, opf);
   const story = (titles: string[]) =>
     titles.filter((t) => !NOT_A_CHAPTER.some((re) => re.test(t.trim()))).length;
-  const tocChapters = toc ? [...new Set([story(toc.top), story(toc.leaves), story(toc.all)])] : null;
+  const counts = toc ? [story(toc.top), story(toc.leaves), story(toc.all)] : [];
+  // An untitled title page is listed under the book's own name (writeEpub), so it may be one more.
+  const tocChapters = toc ? [...new Set(titlePage ? counts.flatMap((n) => [n, n - 1]) : counts)] : null;
 
   // ─── Checks (rule 24). Plagiarism and policy run through provider adapters in the Worker. ───
   flags.push(...checkChapters(chapters, { untitledBook, tocChapters }));

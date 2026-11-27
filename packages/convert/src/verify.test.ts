@@ -2,6 +2,7 @@ import { countWords } from '@arpedia/core';
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { imageSize } from './epub';
+import { writeEpub } from './epub-write';
 import { safeUnzip } from './sanitize';
 import { verifyPackage } from './verify';
 
@@ -121,6 +122,14 @@ describe('verifyPackage', () => {
     expect(r.chapters[0]).toMatchObject({ front: 'title_page', words: 0 });
     expect(r.words).toBe(400);
     expect(r.flags.map((f) => f.check_key)).not.toContain('chapter_untitled');
+  });
+
+  it('does not flag the contents list for listing the title page under the book name', () => {
+    const html = `<p>Rain over Enugu</p><p>Ada Obi</p>${[1, 2, 3].map((n) => `<h1>Part ${n}</h1>${para(500)}`).join('')}`;
+    const epub = writeEpub({ title: 'Rain', language: 'en', identifier: 'urn:uuid:x', html, images: {} });
+    const r = verifyPackage(safeUnzip(epub));
+    expect(r.ok && r.chapters.map((c) => c.title)).toEqual(['Title page', 'Part 1', 'Part 2', 'Part 3']);
+    expect(r.ok && r.flags.map((f) => f.check_key)).not.toContain('toc_mismatch');
   });
 
   it('sends unreadable packages back', () => {
