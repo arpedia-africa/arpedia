@@ -339,7 +339,13 @@ export async function storeReconcile(
         error: String(e instanceof Error ? e.message : e).slice(0, 500),
       };
     }
-    fresh += await record(db, w, r);
+    try {
+      fresh += await record(db, w, r);
+    } catch (e) {
+      // Not recorded: the other provider still runs; Finance hears the run failed.
+      console.error('[store_reconcile]', e);
+      r = { ...r, status: 'failed', error: 'not_recorded' };
+    }
     results.push(r);
   }
   const failed = results.filter((r) => r.status === 'failed').map((r) => r.provider);
