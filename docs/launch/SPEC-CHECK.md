@@ -196,7 +196,7 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 | - [ ] | 04-19 | 59 | Undo only drops the key from memory (`forgetKey`); the sealed `keys.bin` on disk keeps the undone chapter's key until the next online refresh. | `apps/mobile/features/04/bookfiles.ts:159` | later | B |
 | - [ ] | 04-20 | 43 | Annotations are pulled once at open (no cursor, no deltas on focus, tombstones dropped), so a second device's changes only appear after reopening. | `apps/mobile/features/04/useReader.ts:183` | later | B |
 | - [ ] | 04-21 | 66 | Progress sync is fire-and-forget; errors are ignored and no "newest position per book" queue exists for offline. | `apps/mobile/features/04/useReader.ts:317` | later | B |
-| - [ ] | 04-22 | Server: `/keys` | Spec says rate limited per user and device; the Worker has no limiter. | `workers/api/src/routes/04/reading.ts:158` | later | A |
+| - [x] | 04-22 | Server: `/keys` | Spec says rate limited per user and device; the Worker has no limiter. **Fixed:** `/keys` and `/download` answer 429 `rate_limited` past 60 a minute per reader and device (Workers Rate Limiting binding `KEYS_LIMIT`, in every env); a limiter error lets the request through. | `workers/api/src/routes/04/reading.ts:158` | later | A |
 | - [ ] | 04-23 | Done when: Vitest | No tests for CFI validity across `free` and `full` prefix files, or for re-anchoring by paragraph id and quote (the feature itself is absent, see 04-10). | `packages/core/src/reading.test.ts` (absent cases) | later | A |
 | - [ ] | 04-24 | Done when 1, 4, 7 | Device checks (3G open time under 1.5 s, toolbar on three physical devices and WebView versions, 7-day clock-forward licence test) cannot be confirmed from code. | n/a | later | owner |
 

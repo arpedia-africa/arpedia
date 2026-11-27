@@ -1,4 +1,5 @@
 import type { SupabaseClaims } from '@arpedia/core/jwt';
+import type { RateLimiter } from './ratelimit';
 
 export interface Env {
   APP_ENV: 'local' | 'staging' | 'production';
@@ -41,6 +42,8 @@ export interface Env {
   CONVERSATION?: DurableObjectNamespace;
   /** Flow 13: base64 256-bit key that encrypts author bank account numbers (secret). Local falls back to a fixed key. */
   PAYOUT_ACCOUNT_KEY?: string;
+  /** Flow 04: rate limit on /keys and /download, per reader and device (wrangler `ratelimits`). */
+  KEYS_LIMIT?: RateLimiter;
 }
 
 export interface Vars {
