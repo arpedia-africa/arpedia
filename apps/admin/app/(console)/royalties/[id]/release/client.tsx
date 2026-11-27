@@ -7,7 +7,7 @@ import { naira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { Otp } from '../../../pricing/otp';
-import { releaseCycle } from '../../actions';
+import { releaseCycle, releaseCyclePart } from '../../actions';
 
 export interface Held {
   name: string;
@@ -18,6 +18,8 @@ export interface Held {
 /**
  * s-royalty-release (rule 14): payable, held for unverified accounts, sent now, balance left, the two
  * people, and a fresh 2-step code. Cannot be undone; releasing twice sends nothing twice.
+ * When the Flutterwave balance is short (13-12), it sends whole lines up to `budgetKobo` and says who
+ * stays approved, not sent; `rest` sends what an earlier partial release left.
  */
 export function ReleaseModal(props: {
   id: string;
@@ -32,6 +34,10 @@ export function ReleaseModal(props: {
   held: Held[];
   sendKobo: number;
   sendAuthors: number;
+  leftKobo: number;
+  leftAuthors: number;
+  budgetKobo: number | null;
+  rest: boolean;
   balanceKobo: number | null;
   carried: number;
   preparer: { name: string; initials: string; av: string; at: string };
@@ -48,7 +54,10 @@ export function ReleaseModal(props: {
 
   const release = () =>
     start(async () => {
-      const r = await releaseCycle(p.id, otp, p.title);
+      const r =
+        p.budgetKobo == null
+          ? await releaseCycle(p.id, otp, p.title)
+          : await releaseCyclePart(p.id, otp, p.title, p.budgetKobo);
       if (!r.ok) {
         setBad(!!r.needCode);
         return show(r.error);
@@ -63,7 +72,9 @@ export function ReleaseModal(props: {
         <div className="modal__h">
           <div className="grow">
             <h2>{`Release ${naira(p.sendKobo)} to ${p.sendAuthors} author${p.sendAuthors === 1 ? '' : 's'}`}</h2>
-            <p>{`${p.title} author earnings, sent by Flutterwave bank transfer. This cannot be undone.`}</p>
+            <p>
+              {`${p.title} author earnings${p.rest ? ' approved, not sent' : ''}, sent by Flutterwave bank transfer. This cannot be undone.`}
+            </p>
           </div>
           <Link className="ib" href={back} aria-label="Close">
             <Icon name="x" />
@@ -71,13 +82,19 @@ export function ReleaseModal(props: {
         </div>
         <div className="modal__b">
           <div className="kv-row">
-            <span>{`Payable to ${p.payableAuthors} author${p.payableAuthors === 1 ? '' : 's'} (${p.payableCredits.toLocaleString('en-NG')} credits × ${p.rate})`}</span>
+            <span>{`${p.rest ? 'Approved, not sent' : 'Payable'} to ${p.payableAuthors} author${p.payableAuthors === 1 ? '' : 's'} (${p.payableCredits.toLocaleString('en-NG')} credits × ${p.rate})`}</span>
             <b>{naira(p.payableKobo)}</b>
           </div>
           {p.heldKobo > 0 && (
             <div className="kv-row">
               <span>{`Held for ${p.held.length} unverified bank account${p.held.length === 1 ? '' : 's'}`}</span>
               <b>{`−${naira(p.heldKobo)}`}</b>
+            </div>
+          )}
+          {p.leftAuthors > 0 && (
+            <div className="kv-row">
+              <span>{`Not sent for ${p.leftAuthors} author${p.leftAuthors === 1 ? '' : 's'} until the balance is topped up`}</span>
+              <b>{`−${naira(p.leftKobo)}`}</b>
             </div>
           )}
           <div className="kv-row total">
@@ -109,6 +126,14 @@ export function ReleaseModal(props: {
                 {p.held.length > 0 && 'Paid when their bank accounts are verified. '}
                 {p.carried > 0 &&
                   `Amounts under ₦1,000 for ${p.carried} other author${p.carried === 1 ? '' : 's'} carry over to ${p.next}.`}
+              </div>
+            </div>
+          )}
+          {p.leftAuthors > 0 && !p.blocked && (
+            <div className="note warn">
+              <div className="grow">
+                <b>The Flutterwave balance is below the amount to send</b>
+                {`Smallest amounts go first, so ${p.sendAuthors} author${p.sendAuthors === 1 ? ' is' : 's are'} paid now. The other ${p.leftAuthors} stay approved, not sent: top up the balance, then send the rest from this month.`}
               </div>
             </div>
           )}

@@ -1,4 +1,5 @@
 import { avClass, initials } from '@/lib/money';
+import { partPlan } from '@/lib/partial-release';
 import { flutterwaveBalance } from '../../actions';
 import { dayTime, monthLabel, past } from '../../shared';
 import { credits, groups, nextMonth, sum } from '../data';
@@ -11,24 +12,31 @@ export default async function ReleasePage({ params }: { params: Promise<{ id: st
   if ('page' in r) return r.page;
   const { c, staff } = r;
   const g = groups(c.lines);
-  const unverified = g.held.filter(l => l.status === 'held_unverified');
+  // After a partial release, what is left payable is approved, not sent (13-12): only that is sent now.
+  const rest = c.status === 'releasing' && g.sendable.length > 0;
+  const unverified = rest ? [] : g.held.filter(l => l.status === 'held_unverified');
   const payable = [...g.sendable, ...unverified];
-  const sendKobo = sum(g.sendable, l => l.payable_kobo);
-  const balance = (await flutterwaveBalance()) ?? c.checks?.flutterwave_balance_kobo ?? null;
+  const allKobo = sum(g.sendable, l => l.payable_kobo);
+  const balance = (await flutterwaveBalance()) ?? (rest ? null : (c.checks?.flutterwave_balance_kobo ?? null));
+  // Balance short: send whole lines, smallest first, up to the balance; the rest waits for a top-up.
+  const short = balance != null && balance < allKobo;
+  const plan = partPlan(g.sendable, short ? balance : null);
   const blocked =
     staff.role !== 'super_admin'
       ? 'Only a Super admin can approve and release payouts.'
       : c.prepared_by === staff.id
         ? 'You prepared this release, so another Super admin must approve it.'
-        : c.status !== 'prepared' && c.status !== 'approved'
+        : c.status !== 'prepared' && c.status !== 'approved' && !rest
           ? c.status === 'closed'
             ? 'Prepare this month before releasing it.'
             : 'This month was already released.'
           : !past(c.hold_ends_at)
             ? "The hold hasn't ended yet."
-            : balance != null && balance < sendKobo
-              ? 'The Flutterwave balance is below the amount to send. Top it up first.'
-              : null;
+            : rest && balance == null
+              ? "The Flutterwave balance couldn't be read, so the rest can't be sent yet. Try again in a minute."
+              : short && plan.send.length === 0
+                ? "The Flutterwave balance doesn't cover any author's amount. Top it up first."
+                : null;
   const preparer = c.prepared_name ?? 'Finance';
 
   return (
@@ -49,10 +57,14 @@ export default async function ReleasePage({ params }: { params: Promise<{ id: st
           kobo: l.payable_kobo,
           href: l.bank_status === 'needs_review' && l.bank_account_id ? `/bank-accounts/${l.bank_account_id}` : '/bank-accounts',
         }))}
-        sendKobo={sendKobo}
-        sendAuthors={g.sendable.length}
+        sendKobo={plan.sendKobo}
+        sendAuthors={plan.send.length}
+        leftKobo={plan.leftKobo}
+        leftAuthors={plan.left.length}
+        budgetKobo={short || rest ? balance : null}
+        rest={rest}
         balanceKobo={balance}
-        carried={g.carried.length}
+        carried={rest ? 0 : g.carried.length}
         preparer={{
           name: preparer,
           initials: initials(preparer),

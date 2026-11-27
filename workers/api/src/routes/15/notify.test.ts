@@ -280,6 +280,24 @@ describe('plan', () => {
     expect([t.push.map((x) => x.type), t.mail]).toEqual([['ticket_reply'], []]);
   });
 
+  it('late tickets: one email to Support per run, with the oldest ref (14-25)', () => {
+    const l = { ...L, staff: { ...L.staff, support: [MOD] } };
+    expect(plan({ kind: 'ticket_late', count: 3, oldest_ref: 'TKT-1042' }, l).mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: '3 support tickets are past their first-reply time',
+          message: 'First replies are promised within 1 day. Oldest: TKT-1042. Open Support in the console.',
+        },
+      },
+    ]);
+    expect(plan({ kind: 'ticket_late', count: 1 }, l).mail[0]!.vars.subject).toBe(
+      'A support ticket is past its first-reply time',
+    );
+    expect(needs([{ kind: 'ticket_late', count: 1 }]).roles).toEqual(['support']);
+  });
+
   it('unknown, live and rules_changed send nothing', () => {
     for (const kind of ['live', 'rules_changed', 'something_new'])
       expect(plan({ kind, user_id: READER }, L)).toEqual({ push: [], mail: [] });
@@ -360,6 +378,31 @@ describe('staff alert preferences (16-14)', () => {
     expect(needs([{ kind: 'claim_new' }, { kind: 'system_alert' }]).roles).toEqual([
       'publisher',
       'operations_admin',
+    ]);
+  });
+});
+
+describe('screening_skipped (12-3)', () => {
+  it('tells Operations admins which book check could not run', () => {
+    const p = plan(
+      {
+        kind: 'screening_skipped',
+        role: 'operations_admin',
+        book_id: BOOK,
+        checks: ['plagiarism', 'policy'],
+      },
+      { ...L, staff: { operations_admin: [MOD] } },
+    );
+    expect(p.mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: 'A book check was skipped',
+          message:
+            'Harmattan Letters: the plagiarism and content policy check could not run (the provider did not answer). Look at the book before it goes live.',
+        },
+      },
     ]);
   });
 });

@@ -75,6 +75,7 @@ const NAMES = [
   'POSTHOG_KEY',
   'POSTHOG_HOST',
   'RESEND_API_KEY',
+  'MODERATION_API_KEY',
 ];
 
 const env = {};

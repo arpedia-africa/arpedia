@@ -93,7 +93,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       .from('book_revisions')
       .select(
         `id, status, source_type, words, pages, price_credits, readiness, routed_at, chapters_confirmed_at,
-         preview_percent, preview_cut_para_id, preview_cut_chapter_uid, base_revision_id, meta, assigned_to,
+         preview_percent, preview_cut_para_id, preview_cut_chapter_uid, base_revision_id, meta, assigned_to, screening,
          assignee:profiles!book_revisions_assigned_to_fkey(full_name),
          book:books!book_revisions_book_id_fkey(id, title, genres, author:profiles!books_author_id_fkey(full_name))`,
       )
@@ -122,6 +122,13 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const cutNo = cutCh ? chs.filter(c => c.kind === 'chapter').indexOf(cutCh) + 1 : 0;
   const pct = (rev.preview_percent ?? 0).toLocaleString('en-NG', { maximumFractionDigits: 1 });
   const links = anchors.count ?? 0;
+  // How the plagiarism and content-policy adapters went (rule 25): skipped checks never block.
+  const screening = (rev.screening ?? {}) as Partial<Record<'plagiarism' | 'policy', { status?: string; reason?: string }>>;
+  const skipped = (k: 'plagiarism' | 'policy') => {
+    const r = screening[k];
+    if (r?.status !== 'skipped') return null;
+    return r.reason === 'not_configured' ? 'skipped: no provider set up yet' : 'skipped: the provider did not answer';
+  };
   const meta = (rev.meta ?? {}) as { description?: string; content_notes?: string; age?: string; language?: string };
 
   const results = CHECKS.map(c => {
@@ -139,8 +146,9 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     else if (c.name === 'Paragraph links')
       detail = links ? `${n0(links)} set, so highlights and discussions survive updates` : 'not set yet';
     else if (c.name === 'File check') detail = 'opens correctly on every device';
-    // The plagiarism and policy adapters may skip without blocking (Q39/Q52), so say only what was flagged.
-    else if (c.name === 'Plagiarism') detail = 'no close match flagged';
+    // The plagiarism and policy adapters may skip without blocking (Q39/Q52): say so.
+    else if (c.name === 'Plagiarism') detail = skipped('plagiarism') ?? 'no close match flagged';
+    else if (c.name === 'Content policy') detail = skipped('policy') ?? 'nothing flagged';
     else detail = 'nothing flagged';
     const ok = !hit.length && !(c.name === 'Preview cut' && !rev.preview_cut_para_id) && !(c.name === 'Paragraph links' && !links);
     return { ...c, ok, detail };

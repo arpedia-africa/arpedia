@@ -71,6 +71,7 @@ const STAFF_ROLE: Record<string, string> = {
   claim_new: 'publisher',
   claim_deadline: 'publisher',
   system_alert: 'operations_admin',
+  ticket_late: 'support',
 };
 
 /** Finance alerts from flow 09's payments_out queue. */
@@ -359,6 +360,18 @@ export function plan(n: Notice, l: Lookup): Plan {
     case 'sent_back_reminder':
       notice(`${book} is waiting for your changes`, 'Open Studio to send it back to us', studio);
       break;
+    case 'screening_skipped':
+      // Rule 25: a plagiarism or content-policy check could not run; the book was not blocked.
+      staff(
+        'operations_admin',
+        'A book check was skipped',
+        `${book}: the ${(Array.isArray(n.checks) ? n.checks.map(str) : [])
+          .map((c) => (c === 'plagiarism' ? 'plagiarism' : 'content policy'))
+          .join(
+            ' and ',
+          )} check could not run (the provider did not answer). Look at the book before it goes live.`,
+      );
+      break;
     case 'desk_job':
     case 'pipeline_late':
     case 'fast_lane_problem': {
@@ -385,6 +398,18 @@ export function plan(n: Notice, l: Lookup): Plan {
         n.severity === 'high' ? undefined : 'high_severity_reports',
       );
       break;
+    case 'ticket_late': {
+      // Flow 14 rule 35: one alert per sla_watch run, however many tickets went late.
+      const count = Number(n.count) || 1;
+      staff(
+        'support',
+        count === 1
+          ? 'A support ticket is past its first-reply time'
+          : `${count} support tickets are past their first-reply time`,
+        `First replies are promised within 1 day.${n.oldest_ref ? ` Oldest: ${str(n.oldest_ref)}.` : ''} Open Support in the console.`,
+      );
+      break;
+    }
     case 'claim_new':
       staff(
         'publisher',
