@@ -7400,6 +7400,9 @@ isOneToOne: false
 "follow_author":
 { Args: { "p_author": string }; Returns: Json
                            },
+"force_update_impact":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "genre_pick_counts":
 { Args: Record<PropertyKey, never>; Returns: {
               "genre_id": string,"readers": number

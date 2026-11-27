@@ -4,6 +4,7 @@ import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
 import { ConfigView, type ConfigScreen } from './client';
+import type { ForceUpdateImpact } from './impact';
 
 export const metadata: Metadata = { title: 'App configuration · Arpedia Admin' };
 
@@ -14,7 +15,13 @@ export default async function ConfigPage() {
   const staff = await requireStaff();
   if (!canOpen('config', staff.permissions)) return <NoAccess page="config" label="App configuration" role={staff.role} />;
   const supabase = await serverSupabase();
-  const { data, error } = await supabase.rpc('get_config_screen');
+  const [{ data, error }, impact] = await Promise.all([supabase.rpc('get_config_screen'), supabase.rpc('force_update_impact')]);
   if (error) throw error;
-  return <ConfigView screen={data as unknown as ConfigScreen} env={ENV[process.env.NEXT_PUBLIC_APP_ENV ?? ''] ?? 'Local'} />;
+  return (
+    <ConfigView
+      screen={data as unknown as ConfigScreen}
+      impact={impact.error ? null : (impact.data as unknown as ForceUpdateImpact)}
+      env={ENV[process.env.NEXT_PUBLIC_APP_ENV ?? ''] ?? 'Local'}
+    />
+  );
 }
