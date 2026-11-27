@@ -39,6 +39,12 @@ language sql security definer as $$
   where message ->> 'kind' = 'credits_granted' and message ->> 'user_id' = uid
 $$;
 grant execute on function pg_temp.notices(text) to authenticated;
+create function pg_temp.notice_field(uid text, f text) returns text
+language sql security definer as $$
+  select message ->> f from pgmq.q_user_notify
+  where message ->> 'kind' = 'credits_granted' and message ->> 'user_id' = uid order by msg_id limit 1
+$$;
+grant execute on function pg_temp.notice_field(text, text) to authenticated;
 create function pg_temp.req(uid text, n int) returns uuid
 language sql security definer as $$
   select id from public.credit_grant_requests where user_id = uid::uuid and credits = n and status = 'pending'
@@ -55,11 +61,9 @@ select pg_temp.as_user('14110000-0000-4000-a000-000000000001');
 select is(public.staff_grant_credits('14110000-0000-4000-a000-000000000006', 200, 'Failed unlock', true,
   'Hi, we added 200 credits.') ->> 'status', 'applied', 'Support grants 200 at once');
 select is(pg_temp.notices('14110000-0000-4000-a000-000000000006'), 1, 'the reader is told about an applied grant');
-select is((select message ->> 'message' from pgmq.q_user_notify where message ->> 'kind' = 'credits_granted'
-           and message ->> 'user_id' = '14110000-0000-4000-a000-000000000006'),
+select is(pg_temp.notice_field('14110000-0000-4000-a000-000000000006', 'message'),
   'Hi, we added 200 credits.', 'the notice carries the staff message');
-select is((select message ->> 'credits' from pgmq.q_user_notify where message ->> 'kind' = 'credits_granted'
-           and message ->> 'user_id' = '14110000-0000-4000-a000-000000000006'), '200', 'and the credits');
+select is(pg_temp.notice_field('14110000-0000-4000-a000-000000000006', 'credits'), '200', 'and the credits');
 select is(public.staff_grant_credits('14110000-0000-4000-a000-000000000006', 201, 'Goodwill', true) ->> 'status',
   'pending', 'Support over 200 waits');
 select is(public.staff_grant_credits('14110000-0000-4000-a000-000000000006', 300, 'Goodwill', false) ->> 'approver',
