@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv } from '../../env';
+import { keysLimitKey, overLimit } from '../../ratelimit';
 import { rpcError, userDb } from '../12/http';
 import { signUpload } from '../12/tokens';
 
@@ -158,6 +159,8 @@ async function sign(c: Context<AppEnv>, licence: object) {
 reading.post('/keys', async (c) => {
   const body = KeysBody.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: 'bad_request' }, 400);
+  if (await overLimit(c.env.KEYS_LIMIT, keysLimitKey(c.get('user').sub, body.data.device_id)))
+    return c.json({ error: 'rate_limited' }, 429);
   const r = await keyBundle(c, body.data);
   if (r.error) return fail(c, r.error);
   return c.json({
@@ -176,6 +179,8 @@ const URL_TTL_MINUTES = 10;
 reading.post('/download', async (c) => {
   const body = DownloadBody.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: 'bad_request' }, 400);
+  if (await overLimit(c.env.KEYS_LIMIT, keysLimitKey(c.get('user').sub, body.data.device_id)))
+    return c.json({ error: 'rate_limited' }, 429);
   const r = await keyBundle(c, body.data);
   if (r.error) return fail(c, r.error);
   if (body.data.scope === 'whole' && !r.allowed.all) return c.json({ error: 'not_owned' }, 403);
