@@ -1888,14 +1888,14 @@ isOneToOne: false
                   ]
                 },"earning_cycles": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"checks": Json | null,"closed_at": string | null,"created_at": string,"credits_books": number,"credits_tips_messages": number,"earnings_kobo": number,"hold_days": number | null,"id": string,"ledger_check": Json | null,"legacy": boolean,"min_payout_kobo": number | null,"month": string,"net_revenue_kobo": number | null,"payout_date": string | null,"prepared_at": string | null,"prepared_by": string | null,"status": Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at": string | null,"approved_by": string | null,"checks": Json | null,"closed_at": string | null,"created_at": string,"credits_books": number,"credits_tips_messages": number,"earnings_kobo": number,"hold_days": number | null,"id": string,"ledger_check": Json | null,"legacy": boolean,"min_payout_kobo": number | null,"month": string,"net_revenue_kobo": number | null,"payout_date": string | null,"prepared_at": string | null,"prepared_by": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["earning_cycle_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month": string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month": string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month"?: string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month"?: string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
                   }
                   Relationships: [
                     {
@@ -5926,6 +5926,9 @@ isOneToOne: false
 "_erase_account_base":
 { Args: { "p_deletion": string }; Returns: boolean
                            },
+"_erase_account_v2":
+{ Args: { "p_deletion": string }; Returns: boolean
+                           },
 "_event_plan_code":
 { Args: { "n": Json }; Returns: string
                            },
@@ -6544,6 +6547,11 @@ isOneToOne: false
                            },
 "_transfer_status_applies":
 { Args: { "p_current": Database["public"]['Enums']["payout_status"],"p_next": Database["public"]['Enums']["payout_status"] }; Returns: boolean
+                           },
+"_trending_target":
+{ Args: { "p_q": string }; Returns: {
+              "author_id": string,"book_id": string
+            }[]
                            },
 "_trust_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
@@ -7189,6 +7197,9 @@ isOneToOne: false
 "exclude_gift_loop":
 { Args: { "p_ledger_ids": (number)[],"p_note"?: string }; Returns: number
                            },
+"exclude_gift_loop_alert":
+{ Args: { "p_alert": number,"p_note"?: string }; Returns: number
+                           },
 "expire_exports":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
                            },
@@ -7267,6 +7278,9 @@ isOneToOne: false
                            },
 "get_book_page":
 { Args: { "p_book": string }; Returns: Json
+                           },
+"get_close_matches":
+{ Args: { "p_q": string }; Returns: Json
                            },
 "get_config_screen":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -7515,6 +7529,9 @@ isOneToOne: false
 "job_expire_ended_subscriptions":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"job_gift_loop_detect":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "job_ledger_reconcile":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -7719,6 +7736,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"payout_reminder_due":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "payout_transfer_created":
 { Args: { "p_payout": string,"p_transfer_id": string }; Returns: undefined
                            },
@@ -8439,6 +8459,9 @@ isOneToOne: false
 "staff_list_readers":
 { Args: { "p_filters"?: Json,"p_page"?: number,"p_query"?: string,"p_tab"?: string }; Returns: Json
                            },
+"staff_message_author":
+{ Args: { "p_author": string,"p_body": string }; Returns: Json
+                           },
 "staff_mfa_ok":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
@@ -8530,6 +8553,9 @@ isOneToOne: false
       } },
 "staff_test_push":
 { Args: { "p_id": string }; Returns: boolean
+                           },
+"staff_update_author_profile":
+{ Args: { "p_author": string,"p_bio": string,"p_location": string,"p_pen_name": string }; Returns: Json
                            },
 "start_application":
 { Args: Record<PropertyKey, never>; Returns: {

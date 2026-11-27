@@ -1,6 +1,16 @@
 import { transferStatusApplies, type TransferStatus } from '@arpedia/core';
 import { describe, expect, it } from 'vitest';
-import { applyTransfer, decryptAccount, encryptAccount, isTransferEvent, sendPayout } from './earnings';
+import type { Env } from '../../env';
+import type { PayoutAlert } from './alerts';
+import {
+  applyTransfer,
+  decryptAccount,
+  encryptAccount,
+  isTransferEvent,
+  payoutReminder,
+  pollPendingPayouts,
+  sendPayout,
+} from './earnings';
 import { fakePayoutClient, type FlwTransfer, type PayoutClient } from './flutterwave';
 
 // Webhook replay (flow 13 Done when): the Worker re-queries each transfer and hands the status to
@@ -36,8 +46,11 @@ function fakeDb() {
         return { data: null, error: null };
       }
       case 'payout_transfer_error': {
-        payouts.get(sendable!.reference)!.errors++;
-        return { data: 3600, error: null };
+        const p = payouts.get(sendable!.reference)!;
+        p.errors++;
+        // Same as the RPC: the third error fails the payout and returns no delay.
+        if (p.errors >= 3) p.status = 'failed';
+        return { data: p.errors >= 3 ? null : 3600, error: null };
       }
       default:
         throw new Error(`unexpected rpc ${fn}`);
@@ -205,6 +218,36 @@ describe('payout transfer consumer', () => {
     expect(payouts.get(REF)).toMatchObject({ status: 'queued', errors: 1 });
   });
 
+  it('tells Finance only when the third API error fails the payout (13-11)', async () => {
+    const { db, payouts, setSendable } = fakeDb();
+    payouts.set(REF, { status: 'queued', errors: 0 });
+    const enc = hexToB64(await encryptAccount(key, author, '0123456789'));
+    setSendable({
+      send: true,
+      payout_id: 'p1',
+      author_id: author,
+      reference: REF,
+      amount_kobo: 250_000,
+      bank_code: '058',
+      account_number_enc: enc,
+    });
+    const down: PayoutClient = {
+      ...fakePayoutClient(),
+      createTransfer: () => Promise.reject(new Error('network')),
+    };
+    const alerts: PayoutAlert[] = [];
+    const alert = async (a: PayoutAlert) => alerts.push(a);
+    await sendPayout(db, down, key, 'p1', alert);
+    await sendPayout(db, down, key, 'p1', alert);
+    expect(alerts).toEqual([]);
+    await sendPayout(db, down, key, 'p1', alert);
+    expect(payouts.get(REF)!.status).toBe('failed');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({ kind: 'payout_alert', alert: 'payout_failed' });
+    expect(alerts[0]!.subject).toContain(REF);
+    expect(alerts[0]!.message).toContain('₦2,500');
+  });
+
   it('a payout that must wait is left on the queue; one that cannot go is finished', async () => {
     const { db, setSendable } = fakeDb();
     const flw = fakePayoutClient();
@@ -212,5 +255,96 @@ describe('payout transfer consumer', () => {
     expect(await sendPayout(db, flw, key, 'p1')).toBe(false);
     setSendable({ send: false, reason: 'successful', reference: REF });
     expect(await sendPayout(db, flw, key, 'p1')).toBe(true);
+  });
+});
+
+describe('Finance alerts from the hourly jobs', () => {
+  const env = { APP_ENV: 'local' } as Env;
+  const rpcDb = (answers: Record<string, unknown>) =>
+    ({
+      rpc: async (fn: string) =>
+        fn in answers
+          ? { data: answers[fn], error: null }
+          : fn === 'payout_apply_event'
+            ? { data: { applied: true }, error: null }
+            : { data: null, error: { message: `unexpected ${fn}` } },
+    }) as never;
+
+  it('raises transfers still pending after the 48-hour re-query, once (13-19)', async () => {
+    const db = rpcDb({
+      payouts_pending_over: [
+        { reference: 'ARP-PO-1', transfer_id: '1', amount_kobo: 100_000, newly_raised: true },
+        { reference: 'ARP-PO-2', transfer_id: '2', amount_kobo: 200_000, newly_raised: true },
+        { reference: 'ARP-PO-3', transfer_id: '3', amount_kobo: 300_000, newly_raised: false },
+        { reference: 'ARP-PO-4', transfer_id: null, amount_kobo: 400_000, newly_raised: true },
+      ],
+    });
+    const flw = flwWith({
+      1: { id: 1, reference: 'ARP-PO-1', status: 'PENDING', amount: 1000 },
+      2: { id: 2, reference: 'ARP-PO-2', status: 'SUCCESSFUL', amount: 2000 },
+      3: { id: 3, reference: 'ARP-PO-3', status: 'PENDING', amount: 3000 },
+    });
+    const alerts: PayoutAlert[] = [];
+    await pollPendingPayouts(env, flw, db, async (a) => alerts.push(a));
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]!.alert).toBe('transfer_stuck');
+    expect(alerts[0]!.subject).toBe('2 payouts pending at Flutterwave for over 48 hours');
+    expect(alerts[0]!.message).toContain('ARP-PO-1, ARP-PO-4');
+    expect(alerts[0]!.message).toContain('₦5,000');
+  });
+
+  it('sends nothing when nothing new is stuck', async () => {
+    const alerts: PayoutAlert[] = [];
+    await pollPendingPayouts(env, fakePayoutClient(), rpcDb({ payouts_pending_over: [] }), async (a) =>
+      alerts.push(a),
+    );
+    expect(alerts).toEqual([]);
+  });
+
+  const due = {
+    cycle_id: 'c1',
+    month: '2026-10-01',
+    payout_date: '2026-11-15',
+    payable_kobo: 5_000_000,
+    payable_authors: 12,
+    unverified_authors: 2,
+    unverified_kobo: 300_000,
+  };
+
+  it('payout reminder: unverified authors and a short balance (13-10)', async () => {
+    const alerts: PayoutAlert[] = [];
+    const flw = { ...fakePayoutClient(), balanceKobo: async () => 4_000_000 };
+    await payoutReminder(env, flw, rpcDb({ payout_reminder_due: due }), async (a) => alerts.push(a));
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]!.subject).toBe('Payout day in 3 days: top up Flutterwave');
+    expect(alerts[0]!.message).toBe(
+      [
+        'Payout day for October 2026 is 15 Nov 2026: ₦50,000 to 12 authors.',
+        '2 authors (₦3,000) have no verified bank account and will be held. Check Bank accounts for any waiting review.',
+        'The Flutterwave balance is ₦40,000, ₦10,000 short. Top it up before payout day.',
+      ].join('\n'),
+    );
+  });
+
+  it('payout reminder: balance unknown, everyone verified', async () => {
+    const alerts: PayoutAlert[] = [];
+    const flw = { ...fakePayoutClient(), balanceKobo: () => Promise.reject(new Error('down')) };
+    await payoutReminder(
+      env,
+      flw,
+      rpcDb({ payout_reminder_due: { ...due, unverified_authors: 0, unverified_kobo: 0 } }),
+      async (a) => alerts.push(a),
+    );
+    expect(alerts[0]!.subject).toBe('Payout day in 3 days');
+    expect(alerts[0]!.message).toContain('Every author due has a verified bank account.');
+    expect(alerts[0]!.message).toContain('could not be read');
+  });
+
+  it('payout reminder: nothing due, nothing sent', async () => {
+    const alerts: PayoutAlert[] = [];
+    await payoutReminder(env, fakePayoutClient(), rpcDb({ payout_reminder_due: null }), async (a) =>
+      alerts.push(a),
+    );
+    expect(alerts).toEqual([]);
   });
 });

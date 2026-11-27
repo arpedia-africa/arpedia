@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { Icon } from '@/components/icon';
+import { OfflineBanner } from '@/components/online';
 import { NoAccess } from '@/components/no-access';
 import { avClass, initials, n0 } from '@/lib/money';
 import { canOpen } from '@/lib/nav';
@@ -194,6 +195,7 @@ export default async function AuditLogPage({
           </div>
         </div>
         <div className="page">
+          <OfflineBanner />
           <AuditToolbar filters={f} actors={list.actors} />
           <div className="panel panel--flush">
             {list.rows.length ? (
