@@ -112,6 +112,7 @@ export const accountLabel = (bank: string, last4: string) => `${bank} ···· $
 export function lineStatus(
   l: PayoutLine,
   account: PayoutAccount | null,
+  minPayoutKobo: number = MIN_PAYOUT_KOBO,
 ): { sub: string; pill: { label: string; tone: PillTone } } {
   const last = [...l.payouts].sort((a, b) => b.attempt - a.attempt)[0];
   const to =
@@ -133,7 +134,7 @@ export function lineStatus(
       return { sub: toLine, pill: { label: date ? `Releases ${date}` : 'Payable', tone: 'warn' } };
     case 'carried':
       return {
-        sub: `Under ${formatKobo(MIN_PAYOUT_KOBO)} · adds to next month`,
+        sub: `Under ${formatKobo(minPayoutKobo)} · adds to next month`,
         pill: { label: 'Carried', tone: 'grey' },
       };
     case 'held_unverified':

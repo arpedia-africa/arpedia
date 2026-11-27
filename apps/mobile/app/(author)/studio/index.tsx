@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { router, type Href } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
-import { formatKobo } from '@arpedia/core';
+import { formatKobo, ordinalDay, payoutRules } from '@arpedia/core';
 import { isNetworkError, useMyProfile, useSession } from '../../../features/01/session';
 import { useTrack } from '../../../features/11/analytics';
 import { rpcCode } from '../../../features/11/application';
@@ -11,6 +11,7 @@ import {
   STUDIO_EARNINGS,
   bookCountsLine,
   compact,
+  dayLabel,
   num,
   useAuthorProfile,
   useBannerDismissed,
@@ -116,7 +117,14 @@ function toModel(
     1,
     h.books.reduce((n, b) => n + b.earned_kobo, 0),
   );
-  const next = history ? nextPayout(history) : null;
+  const rules = payoutRules(h);
+  // A closed month waiting to be sent wins; otherwise the next open month by the settings' date.
+  const pending = history ? nextPayout(history, rules) : null;
+  const next = h.next_payout
+    ? { label: dayLabel(h.next_payout.payout_date), kobo: h.next_payout.kobo }
+    : pending
+      ? { label: payoutOf(pending, rules).label, kobo: pending.earned_kobo }
+      : null;
   return {
     name,
     stats: {
@@ -145,8 +153,11 @@ function toModel(
       },
       posts: 'Post to your followers and club',
       earnings: next
-        ? { sub: `Next payout ${payoutOf(next).label}`, trail: formatKobo(next.earned_kobo) }
-        : { sub: 'Paid on the 15th after a 30-day hold', trail: null },
+        ? { sub: `Next payout ${next.label}`, trail: formatKobo(next.kobo) }
+        : {
+            sub: `Paid on the ${ordinalDay(rules.payoutDay)} after a ${rules.holdDays}-day hold`,
+            trail: null,
+          },
       visibility: visibility === 'private' ? 'Private' : 'Public',
       payout: h.payout_account_status === 'verified' ? 'Verified' : 'Not set up yet',
       community: 'Who can post, slow mode',

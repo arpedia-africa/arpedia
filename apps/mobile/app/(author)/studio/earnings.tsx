@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { Screen, type KeyValueRow } from '@arpedia/ui';
-import { formatKobo } from '@arpedia/core';
+import { formatKobo, payoutRules, type PayoutRules } from '@arpedia/core';
 import { isNetworkError, useSession } from '../../../features/01/session';
 import { useTrack } from '../../../features/11/analytics';
 import { monthName, num, payoutOf, useStudioEarnings, type AuthorMonth } from '../../../features/11/studio';
@@ -29,19 +29,21 @@ export default function StudioEarnings() {
     trackEarnings('earnings_viewed');
   }, [track, trackEarnings]);
   const d = q.data;
+  const rules = payoutRules(d);
   const toRow = (m: AuthorMonth) => {
     const line = lines.data?.get(m.month.slice(0, 7));
-    return line ? lineRow(m, line, account.data ?? null) : payoutRow(m, account.data ?? null);
+    return line ? lineRow(m, line, account.data ?? null, rules) : payoutRow(m, account.data ?? null, rules);
   };
+  const hold = `${rules.holdDays}-day hold`;
   const state = d ? 'ready' : q.isError ? (isNetworkError(q.error) ? 'offline' : 'failed') : 'loading';
   const back = () => (router.canGoBack() ? router.back() : router.replace('/studio'));
 
   return (
     <Screen top="org" contentStyle={{ flexGrow: 1 }}>
       <StudioEarningsView
-        sub={d ? `${monthName(d.month.month)} · paid after a 30-day hold` : 'Paid after a 30-day hold'}
+        sub={d ? `${monthName(d.month.month)} · paid after a ${hold}` : `Paid after a ${hold}`}
         total={d ? formatKobo(d.month.earned_kobo) : ''}
-        rows={d ? splitRows(d.month) : []}
+        rows={d ? splitRows(d.month, d.kobo_per_credit) : []}
         payouts={d ? d.history.filter((m) => m.earned_kobo > 0).map(toRow) : []}
         state={state}
         onBack={back}
@@ -51,7 +53,7 @@ export default function StudioEarnings() {
   );
 }
 
-function splitRows(m: AuthorMonth): KeyValueRow[] {
+function splitRows(m: AuthorMonth, rateKobo: number): KeyValueRow[] {
   const rows: KeyValueRow[] = [
     { k: `Unlock all · ${num(m.unlock_all_credits)} credits`, v: formatKobo(m.unlock_all_kobo) },
     { k: `Pay as you read · ${num(m.paygo_credits)} credits`, v: formatKobo(m.paygo_kobo) },
@@ -60,7 +62,11 @@ function splitRows(m: AuthorMonth): KeyValueRow[] {
     rows.push({ k: `Tips and messages · ${num(m.tips_credits)} credits`, v: formatKobo(m.tips_kobo) });
   }
   if (m.refund_kobo) rows.push({ k: 'Refunds', v: formatKobo(m.refund_kobo) });
-  rows.push({ k: `${num(m.credits)} credits × ₦1.60`, v: formatKobo(m.earned_kobo), total: true });
+  rows.push({
+    k: `${num(m.credits)} credits × ${formatKobo(rateKobo)}`,
+    v: formatKobo(m.earned_kobo),
+    total: true,
+  });
   return rows;
 }
 
@@ -68,14 +74,19 @@ function splitRows(m: AuthorMonth): KeyValueRow[] {
  * A closed month: its payout line decides the status (flow 13 rule 28). The amount stays what the
  * month earned, the same figure admin shows for this author and month (rule 29).
  */
-function lineRow(m: AuthorMonth, line: PayoutLine, account: PayoutAccount | null): PayoutRow {
-  const st = lineStatus(line, account);
+function lineRow(
+  m: AuthorMonth,
+  line: PayoutLine,
+  account: PayoutAccount | null,
+  rules: PayoutRules,
+): PayoutRow {
+  const st = lineStatus(line, account, rules.minPayoutKobo);
   return { month: monthName(m.month), sub: st.sub, amount: formatKobo(m.earned_kobo), pill: st.pill };
 }
 
 /** A month not closed yet: the date decides. */
-function payoutRow(m: AuthorMonth, account: PayoutAccount | null): PayoutRow {
-  const p = payoutOf(m);
+function payoutRow(m: AuthorMonth, account: PayoutAccount | null, rules: PayoutRules): PayoutRow {
+  const p = payoutOf(m, rules);
   const to = account
     ? `To ${accountLabel(account.bank_name, account.account_last4)}`
     : 'Payout account not set up yet';
@@ -86,7 +97,11 @@ function payoutRow(m: AuthorMonth, account: PayoutAccount | null): PayoutRow {
       : { label: `Releases ${p.label}`, tone: 'warn' as const };
   return {
     month: monthName(m.month),
-    sub: p.below ? 'Under the ₦1,000 minimum' : p.due ? `Payout day ${p.label}` : to,
+    sub: p.below
+      ? `Under the ${formatKobo(rules.minPayoutKobo)} minimum`
+      : p.due
+        ? `Payout day ${p.label}`
+        : to,
     amount: formatKobo(m.earned_kobo),
     pill,
   };

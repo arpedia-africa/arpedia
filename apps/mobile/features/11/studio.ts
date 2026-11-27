@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import type { Href } from 'expo-router';
-import { MIN_PAYOUT_KOBO, type StudioBookStatus } from '@arpedia/core';
+import { monthPayoutDate, payoutRules, type PayoutRules, type StudioBookStatus } from '@arpedia/core';
 import type { CoverTone } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { isNetworkError } from '../01/session';
@@ -194,25 +194,28 @@ const SHORT = MONTHS.map((m) => m.slice(0, 3));
 /** "2026-10" → "October". */
 export const monthName = (ym: string) => MONTHS[Number(ym.slice(5, 7)) - 1] ?? ym;
 
+/** "15 Dec" from `YYYY-MM-DD`. */
+export const dayLabel = (d: string) => `${Number(d.slice(8, 10))} ${SHORT[Number(d.slice(5, 7)) - 1] ?? ''}`;
+
 /**
- * Payout of a month (flow 13 rules): released on the 15th after a 30-day hold, so October is
- * paid on 15 December. Flow 13 adds the real payout rows; until then the status comes from dates.
+ * Payout of a month (flow 13 rules 9–10, 11-5): the cycle's own payout date once the month closed,
+ * otherwise the date the server's settings give it (the same date admin shows). Below the minimum,
+ * or carried by the close, it adds to the next month.
  */
-export function payoutOf(m: AuthorMonth, today = new Date()) {
-  const y = Number(m.month.slice(0, 4));
-  const mo = Number(m.month.slice(5, 7)) - 1;
-  const release = new Date(Date.UTC(y, mo + 2, 15));
-  const label = `15 ${SHORT[release.getUTCMonth()]}`;
+export function payoutOf(m: AuthorMonth, rules: PayoutRules = payoutRules(), today = new Date()) {
+  const date = monthPayoutDate(m.month, rules, m.payout?.payout_date);
+  const release = new Date(`${date}T00:00:00Z`);
+  const label = dayLabel(date);
   const due = release.getTime() <= today.getTime();
-  const below = m.earned_kobo < MIN_PAYOUT_KOBO;
+  const below = m.payout?.closed ? m.payout.status === 'carried' : m.earned_kobo < rules.minPayoutKobo;
   return { release, label, due, below };
 }
 
 /** The next month still waiting for its payout day, with something to pay. */
-export function nextPayout(history: AuthorMonth[], today = new Date()) {
+export function nextPayout(history: AuthorMonth[], rules: PayoutRules = payoutRules(), today = new Date()) {
   return (
     [...history]
-      .filter((m) => m.earned_kobo > 0 && !payoutOf(m, today).due)
+      .filter((m) => m.earned_kobo > 0 && !m.payout?.paid_at && !payoutOf(m, rules, today).due)
       .sort((a, b) => a.month.localeCompare(b.month))[0] ?? null
   );
 }
