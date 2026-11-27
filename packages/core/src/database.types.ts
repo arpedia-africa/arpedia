@@ -1488,14 +1488,14 @@ isOneToOne: false
                   ]
                 },"copyright_claims": {
                   Row: {
-                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
+                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Update: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Relationships: [
                     {
@@ -4830,6 +4830,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"staff_alert_reads": {
+                  Row: {
+                    "read_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "read_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "read_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "staff_alert_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "staff_alert_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"staff_auth_failures": {
                   Row: {
                     "at": string,"email": string | null,"id": number,"kind": string,"user_id": string | null
@@ -5868,6 +5894,9 @@ isOneToOne: false
 "_cycle_ledger":
 { Args: { "p_month": string }; Returns: Json
                            },
+"_cycle_net_revenue":
+{ Args: { "p_month": string }; Returns: number
+                           },
 "_cycle_start":
 { Args: { "p_month": string }; Returns: string
                            },
@@ -6167,6 +6196,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_naira":
+{ Args: { "p_kobo": number }; Returns: string
+                           },
 "_next_wat_midnight":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -6412,6 +6444,9 @@ isOneToOne: false
 "_rescore":
 { Args: { "p_rev": string }; Returns: number
                            },
+"_reversal_of":
+{ Args: { "p_key": string,"p_reason": string,"p_ref_ledger": number,"p_ref_type": string }; Returns: number
+                           },
 "_review_json":
 { Args: { "r": Omit<Database["public"]['Tables']["reviews"]['Row'], Database["public"]['Tables']["reviews"]['ComputedFields']> }; Returns: Json
                            },
@@ -6501,6 +6536,9 @@ isOneToOne: false
                            },
 "_staff_acts_on_readers":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"_staff_alert_on":
+{ Args: { "p_kind": string,"p_uid": string }; Returns: boolean
                            },
 "_staff_name":
 { Args: { "p_user": string }; Returns: string
@@ -6934,6 +6972,9 @@ isOneToOne: false
                            },
 "claim_ask_author":
 { Args: { "p_claim": string,"p_days"?: number,"p_note"?: string }; Returns: undefined
+                           },
+"claim_deadline_watch":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "claim_download_slot":
 { Args: { "p_device_key": string }; Returns: boolean
@@ -7434,6 +7475,9 @@ isOneToOne: false
 "get_search_home":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"get_staff_alerts":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "get_staff_context":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -7632,6 +7676,9 @@ isOneToOne: false
 "mark_read":
 { Args: { "p_group": string,"p_up_to"?: string }; Returns: undefined
                            },
+"mark_staff_alerts_read":
+{ Args: { "p_until"?: string }; Returns: string
+                           },
 "marketing_pushes_7d":
 { Args: { "p_at"?: string,"p_user": string }; Returns: number
                            },
@@ -7773,6 +7820,9 @@ isOneToOne: false
                            },
 "preview_pricing_rules":
 { Args: { "p_rules": Json }; Returns: Json
+                           },
+"public_cover_key":
+{ Args: { "p_rev": string }; Returns: string
                            },
 "publish_due":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -8829,6 +8879,9 @@ isOneToOne: false
                            },
 "worker_register_device":
 { Args: { "p_name": string,"p_public_key": string,"p_user": string }; Returns: string
+                           },
+"worker_service_health":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "worker_set_integration_health":
 { Args: { "p_error_note"?: string,"p_error_rate"?: number,"p_key_masked"?: string,"p_last_event_at"?: string,"p_last_event_text"?: string,"p_service": string,"p_status": string }; Returns: undefined

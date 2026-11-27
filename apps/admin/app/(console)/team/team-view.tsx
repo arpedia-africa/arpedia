@@ -7,6 +7,7 @@ import { Icon } from '@/components/icon';
 import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
 import { ROLE_ORDER, roleLabel } from '@/lib/staff-rules';
+import { sortRows } from '@/lib/table';
 import { changeRole, inviteStaff, resetTwoStep, setActive } from './actions';
 
 export interface TeamRow {
@@ -108,15 +109,15 @@ export function TeamView({ rows, failed, openInvite }: { rows: TeamRow[]; failed
     };
   }, [menu]);
 
+  // You first, then staff before open invites, by role, then by name.
   const sorted = useMemo(
     () =>
-      [...rows].sort(
-        (a, b) =>
-          Number(b.isSelf) - Number(a.isSelf) ||
-          Number(a.kind === 'invite') - Number(b.kind === 'invite') ||
-          ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) ||
-          a.name.localeCompare(b.name),
-      ),
+      sortRows(rows, [
+        { id: 'self', value: r => r.isSelf, desc: true },
+        { id: 'invite', value: r => r.kind === 'invite' },
+        { id: 'role', value: r => ROLE_ORDER.indexOf(r.role) },
+        { id: 'name', value: r => r.name },
+      ]),
     [rows],
   );
   const shown = sorted.filter(r => {

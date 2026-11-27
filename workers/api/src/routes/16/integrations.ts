@@ -5,8 +5,9 @@ import type { AppEnv, Env } from '../../env';
 import { userDb } from '../12/http';
 
 // Flow 16 rule 39: health checks every minute (the api Worker's cron). Only what can be measured
-// without calling a provider with a secret: the database, R2, and payment webhooks as received.
-// Services not measured here keep their last status until their own probe lands (Q6 default).
+// without calling a provider with a secret: the database, R2, payment webhooks as received, and
+// (16-6) Google Play and App Store webhooks, payout transfers, push receipts and email sends.
+// A service with no event yet, and expo_updates (nothing to measure), keeps its last status (Q6).
 
 type Status = 'working' | 'degraded' | 'failing';
 
@@ -25,6 +26,9 @@ export function statusFor(total: number, failed: number): { status: Status; rate
     rate: Math.round(rate * 1000) / 1000,
   };
 }
+
+/** Services measured from Arpedia's own records (worker_service_health). */
+const SERVICES = ['google_play', 'app_store', 'flutterwave_transfers', 'fcm', 'resend'] as const;
 
 const label = (t: string | null) => (t ? t.replace(/[_.]/g, ' ').toLowerCase() : null);
 
@@ -48,8 +52,9 @@ export async function checkIntegrations(env: Env): Promise<number> {
     });
 
   const started = Date.now();
-  const [pay, r2] = await Promise.all([
+  const [pay, svc, r2] = await Promise.all([
     db.rpc('worker_payment_health'),
+    db.rpc('worker_service_health'),
     env.BOOKS.head('health-probe').then(
       () => true,
       () => false,
@@ -87,6 +92,25 @@ export async function checkIntegrations(env: Env): Promise<number> {
           label(h.last_type),
           rate,
           h.failed ? `${h.failed} of ${h.total} events failed` : undefined,
+        ),
+      );
+    }
+  }
+  if (svc.error) console.error('worker_service_health', svc.error.message);
+  else if (svc.data) {
+    const services = svc.data as unknown as Record<string, WebhookHealth | null>;
+    for (const service of SERVICES) {
+      const h = services[service];
+      if (!h || (!h.last_at && !h.total)) continue;
+      const { status, rate } = statusFor(h.total, h.failed);
+      jobs.push(
+        set(
+          service,
+          status,
+          h.last_at,
+          label(h.last_type),
+          rate,
+          h.failed ? `${h.failed} of ${h.total} failed in 24 hours` : undefined,
         ),
       );
     }

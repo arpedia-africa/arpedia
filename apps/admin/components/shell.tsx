@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { locate, type NavSection } from '@/lib/nav';
 import { searchTerm, type SearchHit } from '@/lib/search';
 import { searchRecords, type SearchResult } from '@/lib/search-actions';
+import { ago, newLine, type StaffAlerts } from '@/lib/alerts';
+import { loadStaffAlerts, markStaffAlertsRead } from '@/lib/alerts-actions';
+import { useToast } from './toast';
 import { Icon } from './icon';
 
 const initials = (name: string) =>
@@ -44,6 +47,22 @@ export function Shell({ staff, nav, env, children }: ShellProps) {
   const pages = useMemo(() => pagesOf(nav), [nav]);
   const [sideOpen, setSideOpen] = useState(false);
   const [search, setSearch] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  // Staff alerts (s-staff-alerts): null until loaded, 'failed' when the last load failed.
+  const [alerts, setAlerts] = useState<StaffAlerts | 'failed' | null>(null);
+  const [toastNode, showToast] = useToast();
+  const refreshAlerts = useCallback(() => {
+    loadStaffAlerts()
+      .then(setAlerts)
+      .catch(() => setAlerts(a => (a && a !== 'failed' ? a : 'failed')));
+  }, []);
+  // On load, every 5 minutes, and whenever the drawer opens.
+  useEffect(() => {
+    refreshAlerts();
+    const t = setInterval(refreshAlerts, 5 * 60_000);
+    return () => clearInterval(t);
+  }, [refreshAlerts]);
+  const newCount = alerts && alerts !== 'failed' ? alerts.new_count : 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -54,6 +73,7 @@ export function Shell({ staff, nav, env, children }: ShellProps) {
       if (e.key === 'Escape') {
         setSideOpen(false);
         setSearch(false);
+        setAlertsOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -63,6 +83,7 @@ export function Shell({ staff, nav, env, children }: ShellProps) {
   useEffect(() => {
     setSideOpen(false);
     setSearch(false);
+    setAlertsOpen(false);
   }, [pathname]);
 
   const envLabel = env === 'production' ? 'Production' : env === 'staging' ? 'Staging' : 'Local';
@@ -141,10 +162,19 @@ export function Shell({ staff, nav, env, children }: ShellProps) {
             <Icon name="plus" size="xs" />
             New book
           </Link>
-          {/* Staff alerts arrive with the flows that raise them (flow 16 sets who gets which). */}
-          <Link className="ib" href="/account" aria-label="Staff alerts">
+          <a
+            className="ib"
+            href="#alerts"
+            aria-label={newCount ? `Staff alerts, ${newCount} new` : 'Staff alerts'}
+            onClick={e => {
+              e.preventDefault();
+              setAlertsOpen(true);
+              refreshAlerts();
+            }}
+          >
             <Icon name="bell" />
-          </Link>
+            {newCount ? <span className="badge">{newCount > 99 ? '99+' : newCount}</span> : null}
+          </a>
           <Link className="ib" href="/help" aria-label="Help">
             <Icon name="help" />
           </Link>
@@ -152,6 +182,23 @@ export function Shell({ staff, nav, env, children }: ShellProps) {
         <main className="view">
           {children}
           {search ? <Search pages={pages} onClose={() => setSearch(false)} /> : null}
+          {alertsOpen ? (
+            <Alerts
+              alerts={alerts}
+              onClose={() => setAlertsOpen(false)}
+              onRetry={refreshAlerts}
+              onMarkRead={async () => {
+                const r = await markStaffAlertsRead();
+                if (!r.ok) return showToast("That didn't save. Try again.");
+                setAlertsOpen(false);
+                refreshAlerts();
+                showToast('All alerts marked as read', () => {
+                  void markStaffAlertsRead(r.prev).then(refreshAlerts);
+                });
+              }}
+            />
+          ) : null}
+          {toastNode}
         </main>
       </div>
     </div>
@@ -303,6 +350,93 @@ function Search({ pages, onClose }: { pages: Page[]; onClose: () => void }) {
           <span>
             {rows.length} {rows.length === 1 ? 'result' : 'results'}
           </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** s-staff-alerts: alerts for this role and its My account switches; each one links to the item. */
+function Alerts({
+  alerts,
+  onClose,
+  onRetry,
+  onMarkRead,
+}: {
+  alerts: StaffAlerts | 'failed' | null;
+  onClose: () => void;
+  onRetry: () => void;
+  onMarkRead: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const loaded = alerts && alerts !== 'failed' ? alerts : null;
+  const close = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClose();
+  };
+  return (
+    <section className="screen overlay enter">
+      <a className="backdrop" href="#close" aria-label="Close alerts" onClick={close} />
+      <div className="drawer" role="dialog" aria-label="Staff alerts">
+        <div className="modal__h">
+          <div className="grow">
+            <h2>Alerts</h2>
+            <p>{loaded ? newLine(loaded.new_count) : alerts === 'failed' ? "Couldn't load alerts" : 'Loading…'}</p>
+          </div>
+          <a className="ib" href="#close" aria-label="Close" onClick={close}>
+            <Icon name="x" />
+          </a>
+        </div>
+        {/* As the prototype: the list runs edge to edge (padding 0). */}
+        <div className="modal__b" style={{ padding: 0 }}>
+          {loaded?.items.length ? (
+            <div className="list">
+              {loaded.items.map(a => (
+                <Link className="li" key={`${a.kind}:${a.href}`} href={a.href} onClick={onClose}>
+                  <span className="li__body">
+                    <b>{a.title}</b>
+                    <small>
+                      {a.detail} · {ago(a.at)}
+                    </small>
+                  </span>
+                  {a.new ? <span className={`st st-${a.tone}`}>New</span> : null}
+                </Link>
+              ))}
+            </div>
+          ) : loaded ? (
+            <div className="empty" style={{ padding: '48px 22px' }}>
+              <b>No alerts</b>
+              <span>Reports, payouts, claims and other alerts you get show here. Choose them in My account.</span>
+            </div>
+          ) : alerts === 'failed' ? (
+            <div className="empty" style={{ padding: '48px 22px' }}>
+              <b>Couldn&apos;t load alerts</b>
+              <span>Check your connection and try again.</span>
+              <a className="btn btn-g sm" href="#retry" onClick={e => (e.preventDefault(), onRetry())}>
+                Try again
+              </a>
+            </div>
+          ) : (
+            <div className="empty" style={{ padding: '48px 22px' }} aria-live="polite">
+              <span>Loading alerts…</span>
+            </div>
+          )}
+        </div>
+        <div className="modal__f">
+          <button
+            type="button"
+            className="btn btn-q sm"
+            disabled={!loaded?.new_count || busy}
+            onClick={() => {
+              setBusy(true);
+              void onMarkRead().finally(() => setBusy(false));
+            }}
+          >
+            Mark all read
+          </button>
+          <Link className="btn btn-g sm" href="/account" onClick={onClose}>
+            Alert settings
+          </Link>
         </div>
       </div>
     </section>

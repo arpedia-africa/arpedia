@@ -2,6 +2,7 @@ import { NoAccess } from '@/components/no-access';
 import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
+import { sortRows } from '@/lib/table';
 import { GenresView, type GenreRow, type MergeSuggestion, type TagRow } from './client';
 
 /** Groups tags that differ only by case, accents, a trailing "s" or "life"/"hood" endings. */
@@ -20,14 +21,13 @@ function mergeSuggestions(tags: TagRow[]): MergeSuggestion[] {
     if (!k) continue;
     groups.set(k, [...(groups.get(k) ?? []), t]);
   }
-  return [...groups.values()]
+  const suggestions = [...groups.values()]
     .filter(g => g.length > 1)
     .map(g => {
-      const sorted = [...g].sort((a, b) => b.books - a.books);
+      const sorted = sortRows(g, [{ id: 'books', value: t => t.books, desc: true }]);
       return { keep: sorted[0]!, merge: sorted.slice(1), books: g.reduce((n, t) => n + t.books, 0) };
-    })
-    .sort((a, b) => b.books - a.books)
-    .slice(0, 5);
+    });
+  return sortRows(suggestions, [{ id: 'books', value: s => s.books, desc: true }]).slice(0, 5);
 }
 
 /** Genres and tags (s-genres): order and show/hide genres, onboarding counts, merge and ban tags. */
@@ -53,9 +53,10 @@ export default async function GenresPage() {
     books: g.book_count ?? 0,
     readers: picked.get(g.id!) ?? 0,
   }));
-  const tagRows: TagRow[] = (tags.data ?? [])
-    .map(t => ({ id: t.id, name: t.name, books: perTag.get(t.id) ?? 0 }))
-    .sort((a, b) => b.books - a.books);
+  const tagRows: TagRow[] = sortRows(
+    (tags.data ?? []).map(t => ({ id: t.id, name: t.name, books: perTag.get(t.id) ?? 0 })),
+    [{ id: 'books', value: t => t.books, desc: true }],
+  );
 
   return (
     <GenresView
