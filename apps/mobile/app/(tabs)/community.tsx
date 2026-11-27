@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { Screen, useTheme } from '@arpedia/ui';
 import { groupTypeLabel, inboxTime, memberCount } from '@arpedia/core';
 import {
@@ -14,6 +14,7 @@ import {
   type InboxTab,
 } from '../../features/06/InboxViews';
 import { toneFor, useInbox, useInboxCounts, useMarkAllRead, type InboxRow } from '../../features/06/data';
+import { LIVE_MIN, useInboxLive } from '../../features/06/inboxLive';
 import { coverToneFor, useRoomsSummary } from '../../features/07/data';
 import { useTrack } from '../../features/06/analytics';
 import { useFlag } from '../../features/16/config';
@@ -33,14 +34,15 @@ function rowSub(r: InboxRow, tab: InboxTab): string {
   return `${r.last_sender}: ${text.replace(/\s+/g, ' ')}`;
 }
 
-function toRowView(r: InboxRow, tab: InboxTab, now = new Date()): InboxRowView {
+function toRowView(r: InboxRow, tab: InboxTab, readingNow?: number, now = new Date()): InboxRowView {
   return {
     id: r.group_id,
     name: r.name,
     tone: toneFor(r.group_id),
     avatarUrl: r.avatar_url,
     person: r.kind === 'dm',
-    live: r.live,
+    // Rule 25: the InboxDO's reading-now count wins over the last fetch once it has spoken.
+    live: readingNow === undefined ? r.live : readingNow >= LIVE_MIN,
     author: r.is_author,
     sub: rowSub(r, tab),
     time: inboxTime(r.last_at, now),
@@ -83,7 +85,13 @@ export default function Community() {
     readingNow: summary.readingNow,
     books: summary.books.map((b) => ({ title: b.title, tone: coverToneFor(b.id) })),
   };
-  const rows = (inbox.data ?? []).map((r) => toRowView(r, tab));
+  // 06-12: live activity and reading now for the rows on screen (the 20 s poll stays as fallback).
+  const focused = useIsFocused();
+  const readingNow = useInboxLive(
+    (inbox.data ?? []).map((r) => r.group_id),
+    focused,
+  );
+  const rows = (inbox.data ?? []).map((r) => toRowView(r, tab, readingNow.get(r.group_id)));
   // Rule 2: reading rooms open s-room (flow 07), author communities s-author-community and a DM
   // with an author s-dm (flow 08, paid messages); every other group opens its chat.
   const byId = new Map((inbox.data ?? []).map((r) => [r.group_id, r]));
