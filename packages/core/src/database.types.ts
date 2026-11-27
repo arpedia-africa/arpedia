@@ -7492,6 +7492,9 @@ isOneToOne: false
 "job_credit_daily_snapshot":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"job_expire_approvals":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "job_expire_ended_subscriptions":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
