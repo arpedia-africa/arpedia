@@ -1888,14 +1888,14 @@ isOneToOne: false
                   ]
                 },"earning_cycles": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"checks": Json | null,"closed_at": string | null,"created_at": string,"credits_books": number,"credits_tips_messages": number,"earnings_kobo": number,"hold_days": number | null,"id": string,"ledger_check": Json | null,"legacy": boolean,"min_payout_kobo": number | null,"month": string,"net_revenue_kobo": number | null,"payout_date": string | null,"prepared_at": string | null,"prepared_by": string | null,"status": Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at": string | null,"approved_by": string | null,"checks": Json | null,"closed_at": string | null,"created_at": string,"credits_books": number,"credits_tips_messages": number,"earnings_kobo": number,"hold_days": number | null,"id": string,"ledger_check": Json | null,"legacy": boolean,"min_payout_kobo": number | null,"month": string,"net_revenue_kobo": number | null,"payout_date": string | null,"prepared_at": string | null,"prepared_by": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["earning_cycle_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month": string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month": string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month"?: string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
+                    "approved_at"?: string | null,"approved_by"?: string | null,"checks"?: Json | null,"closed_at"?: string | null,"created_at"?: string,"credits_books"?: number,"credits_tips_messages"?: number,"earnings_kobo"?: number,"hold_days"?: number | null,"id"?: string,"ledger_check"?: Json | null,"legacy"?: boolean,"min_payout_kobo"?: number | null,"month"?: string,"net_revenue_kobo"?: number | null,"payout_date"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["earning_cycle_status"]
                   }
                   Relationships: [
                     {
@@ -7716,6 +7716,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"payout_reminder_due":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "payout_transfer_created":
 { Args: { "p_payout": string,"p_transfer_id": string }; Returns: undefined
                            },
