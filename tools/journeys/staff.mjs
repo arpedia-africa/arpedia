@@ -201,7 +201,9 @@ const commands = {
     const sessions = Number(sql(`select count(*) from auth.sessions where user_id = ${q(me)}`));
     if (sessions) fail(`${email} still has ${sessions} session(s) after deleting the account`);
     // Banned for good, as a finite time GoTrue can read ('infinity' made its sign-in answer a 500).
-    if (sql(`select banned_until > now() + interval '1000 years' from auth.users where id = ${q(me)}`) !== 't')
+    if (
+      sql(`select banned_until > now() + interval '1000 years' from auth.users where id = ${q(me)}`) !== 't'
+    )
       fail(`${email} can still sign in after deleting the account`);
     const sent = Number(
       sql(
