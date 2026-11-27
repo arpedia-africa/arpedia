@@ -76,7 +76,10 @@ export interface Deps {
    * The flow 14 `moderate-text` Worker (safety-rule muted words, links, phone numbers). Absent or
    * failing, the conversation falls back to its own link and phone checks.
    */
-  moderate?(text: string, opts: { surface: 'chat' | 'dm'; sender_new: boolean }): Promise<Moderation>;
+  moderate?(
+    text: string,
+    opts: { surface: 'chat' | 'dm'; sender_new: boolean; sender_id: string; group_id: string },
+  ): Promise<Moderation>;
   /** Absent: no inbox feed (inboxes poll). */
   inbox?: InboxLink;
 }
@@ -317,12 +320,12 @@ export class Conversation {
         return err('quote_not_allowed');
     }
     // Fails open (local checks only) so a slow or down api Worker never stalls the chat.
-    const m = body ? await this.moderate(body, a) : null;
+    const m = body ? await this.moderate(body, a, uid) : null;
     if (m) {
-      // Phone numbers: hide and ask the sender to edit (flow 14 rule 23); blocked links are
-      // refused outright. Neither is stored. Blur and Warn have no chat form, so they deliver.
+      // Phone numbers: hide and ask the sender to edit (flow 14 rule 23); blocked links and
+      // the same text in many channels are refused outright. None is stored. Blur and Warn have no chat form, so they deliver.
       if (m.reason === 'phone_number') return err('phone_number');
-      if (m.reason === 'link') return err('rejected_by_rules');
+      if (m.reason === 'link' || m.reason === 'spam') return err('rejected_by_rules');
     } else {
       if (a.new_account && LINK.test(body)) return err('rejected_by_rules');
       if (PHONE.test(body.replace(/[\s-]/g, ''))) return err('phone_number');
@@ -565,7 +568,7 @@ export class Conversation {
   }
 
   /** The safety-rule check, or null when the Worker is absent, slow or down. */
-  private async moderate(text: string, a: Access): Promise<Moderation | null> {
+  private async moderate(text: string, a: Access, senderId: string): Promise<Moderation | null> {
     if (!this.d.moderate) return null;
     const surface = a.kind === 'dm' ? 'dm' : 'chat';
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -574,7 +577,14 @@ export class Conversation {
     });
     try {
       return await Promise.race([
-        this.d.moderate(text, { surface, sender_new: a.new_account }).catch(() => null),
+        this.d
+          .moderate(text, {
+            surface,
+            sender_new: a.new_account,
+            sender_id: senderId,
+            group_id: this.d.groupId,
+          })
+          .catch(() => null),
         timeout,
       ]);
     } finally {
