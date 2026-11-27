@@ -44,6 +44,7 @@ import {
   useMergedMessages,
 } from '../../../features/06/chat';
 import { useTrack as useCommunityTrack } from '../../../features/06/analytics';
+import { canShareInvite, useShareInvite } from '../../../features/06/invite';
 import { toneFor } from '../../../features/06/data';
 import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 import { useTrackAuthorReply } from '../../../features/08/analytics';
@@ -87,6 +88,7 @@ export default function Chat() {
   });
   const action = useChatAction(gid);
   const membership = useGroupMembership(gid);
+  const shareInvite = useShareInvite(gid, group.data?.name);
   const { list, pending } = useMergedMessages(history.data, chat.pending);
   const g = group.data;
   const trackAuthorReply = useTrackAuthorReply(g, history.data, me);
@@ -569,6 +571,22 @@ export default function Chat() {
                     toast({ message: 'Notifications muted. Messages still arrive.' });
                   },
                 }))),
+            // Rule 9: a private club is joined by its invitation link, shared by owners and moderators.
+            ...(canShareInvite(g)
+              ? [
+                  {
+                    key: 'invite',
+                    title: 'Share invite link',
+                    ...(offline ? { sub: 'Connect to do this', disabled: true } : null),
+                    onPress: () => {
+                      setMenu(false);
+                      shareInvite.mutate(undefined, {
+                        onError: () => toast({ message: "Couldn't get the link. Try again." }),
+                      });
+                    },
+                  },
+                ]
+              : []),
             ...(g?.is_member && g.role !== 'owner'
               ? [
                   {

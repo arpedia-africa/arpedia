@@ -31,6 +31,15 @@ function wordsFrom(slug: string): string {
     .slice(0, 80);
 }
 
+/** Private club invitation tokens (flow 06 rule 9): 24 hex characters, lower case. */
+const INVITE_TOKEN = /^[0-9a-f]{16,64}$/;
+
+/** The share link for a private club's invitation (`get_group_invite`). Lives under /c so the
+ * existing app-link paths cover it. */
+export function clubInviteUrl(token: string): string {
+  return `https://arpedia.africa/c/invite/${encodeURIComponent(token)}`;
+}
+
 const search = (slug: string) => {
   const q = wordsFrom(slug);
   return q ? `/search?q=${encodeURIComponent(q)}` : '/';
@@ -79,7 +88,7 @@ function parse(input: string): Parsed | null {
 /**
  * The app route for an incoming link, or null to leave it as it is (other schemes, other hosts and
  * arpedia:// paths that are not share links, such as the password reset).
- * - `/c/ID` and `/chat/ID` open the club chat; `/r/CODE` and `/join-code?code=` the room code screen.
+ * - `/c/ID` and `/chat/ID` open the club chat; `/c/invite/TOKEN` a private club's invitation; `/r/CODE` and `/join-code?code=` the room code screen.
  * - `/book/ID`, `/author/ID` and `/community/ID` open the page when ID is an id; the website's name
  *   slugs ("the-alignment-8d2b0385", "ada-obi") open Search with those words instead.
  * - `/account` opens Account. Any other arpedia.africa path opens Home (through the start screen).
@@ -88,6 +97,14 @@ export function appLinkRoute(input: string): string | null {
   const p = parse(input);
   if (!p) return null;
   const [head, id] = p.segments.map(decode);
+  // /c/invite/TOKEN: a private club's invitation link (flow 06 rule 9).
+  if ((head === 'c' || head === 'club-invite') && (head === 'club-invite' || id === 'invite')) {
+    const raw = head === 'c' ? p.segments[2] : p.segments[1];
+    const token = raw ? decode(raw).trim().toLowerCase() : '';
+    if (INVITE_TOKEN.test(token) && p.segments.length === (head === 'c' ? 3 : 2))
+      return `/club-invite/${token}`;
+    return p.web || head === 'c' ? '/community' : null;
+  }
   const extra = p.segments.length > 2;
   // A deeper arpedia:// path ("book/ID/reviews") is already an app route.
   if (!p.web && extra) return null;
