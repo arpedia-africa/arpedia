@@ -462,14 +462,14 @@ isOneToOne: false
                   ]
                 },"author_posts": {
                   Row: {
-                    "author_id": string,"body": string,"comment_count": number,"created_at": string,"id": string,"like_count": number,"published_at": string | null,"state": Database["public"]['Enums']["post_state"],"title": string,"updated_at": string
+                    "author_id": string,"body": string,"book_id": string | null,"comment_count": number,"created_at": string,"id": string,"like_count": number,"published_at": string | null,"state": Database["public"]['Enums']["post_state"],"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_id": string,"body": string,"comment_count"?: number,"created_at"?: string,"id"?: string,"like_count"?: number,"published_at"?: string | null,"state"?: Database["public"]['Enums']["post_state"],"title": string,"updated_at"?: string
+                    "author_id": string,"body": string,"book_id"?: string | null,"comment_count"?: number,"created_at"?: string,"id"?: string,"like_count"?: number,"published_at"?: string | null,"state"?: Database["public"]['Enums']["post_state"],"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "author_id"?: string,"body"?: string,"comment_count"?: number,"created_at"?: string,"id"?: string,"like_count"?: number,"published_at"?: string | null,"state"?: Database["public"]['Enums']["post_state"],"title"?: string,"updated_at"?: string
+                    "author_id"?: string,"body"?: string,"book_id"?: string | null,"comment_count"?: number,"created_at"?: string,"id"?: string,"like_count"?: number,"published_at"?: string | null,"state"?: Database["public"]['Enums']["post_state"],"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -483,6 +483,24 @@ isOneToOne: false
       columns: ["author_id"]
 isOneToOne: false
       referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_posts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book_effective"
+      referencedColumns: ["book_id"]
+    },{
+      foreignKeyName: "author_posts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "books"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "author_posts_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "catalog_books"
       referencedColumns: ["id"]
     }
                   ]
@@ -3372,14 +3390,14 @@ isOneToOne: false
                   ]
                 },"payout_runs": {
                   Row: {
-                    "approved_by": string | null,"authors": number,"created_at": string,"cycle_id": string,"id": string,"started_by": string | null,"status": Database["public"]['Enums']["payout_run_status"],"total_kobo": number
+                    "approved_by": string | null,"authors": number,"created_at": string,"cycle_id": string,"id": string,"retry_alerted_at": string | null,"started_by": string | null,"status": Database["public"]['Enums']["payout_run_status"],"total_kobo": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id": string,"id"?: string,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
+                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id": string,"id"?: string,"retry_alerted_at"?: string | null,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
                   }
                   Update: {
-                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id"?: string,"id"?: string,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
+                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id"?: string,"id"?: string,"retry_alerted_at"?: string | null,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
                   }
                   Relationships: [
                     {
@@ -5862,6 +5880,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_campaign_conversions":
+{ Args: { "p_campaign": string }; Returns: number
+                           },
 "_can_claims":
 { Args: { "p_decide": boolean }; Returns: boolean
                            },
@@ -6598,6 +6619,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_statement_rows":
+{ Args: { "p_author": string,"p_from": string,"p_to": string }; Returns: {
+              "book_id": string,"credits": number,"is_tip": boolean,"kobo": number,"title": string
+            }[]
+                           },
 "_step":
 { Args: { "p_rev": string,"p_step": string }; Returns: undefined
                            },
@@ -6605,6 +6631,15 @@ isOneToOne: false
 { Args: { "p_q": string }; Returns: {
               "book_id": string,"snippet": string
             }[]
+                           },
+"_studio_account_status":
+{ Args: { "p_author": string }; Returns: string
+                           },
+"_studio_next_payout":
+{ Args: { "p_author": string }; Returns: Json
+                           },
+"_studio_payout":
+{ Args: { "p_author": string,"p_month": string }; Returns: Json
                            },
 "_sync_auth_ban":
 { Args: { "p_user": string }; Returns: undefined
@@ -6705,6 +6740,9 @@ isOneToOne: false
                            },
 "admin_credits_overview":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"admin_cycle_retrying":
+{ Args: { "p_cycle": string }; Returns: Json
                            },
 "admin_earning_cycle":
 { Args: { "p_cycle": string }; Returns: Json
@@ -6989,6 +7027,9 @@ isOneToOne: false
                            },
 "can_read_room_annotation":
 { Args: { "p_room": string }; Returns: boolean
+                           },
+"can_request_statement":
+{ Args: { "p_author": string }; Returns: boolean
                            },
 "can_support":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -7743,6 +7784,11 @@ isOneToOne: false
               "id": string,"month": string,"payout_date": string,"status": Database["public"]['Enums']["earning_cycle_status"]
             }[]
                            },
+"my_statements":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"id": string,"kind": Database["public"]['Enums']["statement_kind"],"month": string
+            }[]
+                           },
 "norm_query":
 { Args: { "p": string }; Returns: string
                            },
@@ -7827,6 +7873,9 @@ isOneToOne: false
 "payout_reminder_due":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"payout_retry_alert":
+{ Args: { "p_payout": string }; Returns: boolean
+                           },
 "payout_transfer_created":
 { Args: { "p_payout": string,"p_transfer_id": string }; Returns: undefined
                            },
@@ -7864,6 +7913,9 @@ isOneToOne: false
                            },
 "public_cover_key":
 { Args: { "p_rev": string }; Returns: string
+                           },
+"publish_author_post":
+{ Args: { "p_body": string,"p_book"?: string,"p_title": string }; Returns: Json
                            },
 "publish_due":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -7944,6 +7996,9 @@ isOneToOne: false
                            },
 "redeem_promo":
 { Args: { "p_code": string }; Returns: Json
+                           },
+"refresh_campaign_conversions":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "refresh_member_counts":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -8696,6 +8751,20 @@ isOneToOne: false
       } },
 "start_author_dm":
 { Args: { "p_author": string }; Returns: Json
+                           },
+"statement_download_key":
+{ Args: { "p_id": string }; Returns: string
+                           },
+"statement_source":
+{ Args: { "p_author": string,"p_cycle": string }; Returns: Json
+                           },
+"statement_ytd_source":
+{ Args: { "p_author": string,"p_year"?: number }; Returns: Json
+                           },
+"statements_due":
+{ Args: { "p_limit"?: number }; Returns: {
+              "author_id": string,"cycle_id": string
+            }[]
                            },
 "studio_books":
 { Args: Record<PropertyKey, never>; Returns: Json

@@ -2,6 +2,8 @@
 // Top level = local (`wrangler dev`); env.staging and env.production deploy.
 // Secrets (wrangler secret put): SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY. Locally they come
 // from .dev.vars (`pnpm dev:vars`).
+// INBOX: one InboxDO per reader (flow 06: live inbox counts and "reading now", fed by the
+// conversation DOs for the conversations on the reader's screen).
 // API: service binding to the api Worker for the flow 14 moderate-text check (falls back to the
 // conversation's own link and phone checks when it is not running).
 {
@@ -15,36 +17,48 @@
     "SUPABASE_URL": "http://127.0.0.1:55321",
   },
   "durable_objects": {
-    "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
+    "bindings": [
+      { "name": "CONVERSATION", "class_name": "ConversationDO" },
+      { "name": "INBOX", "class_name": "InboxDO" },
+    ],
   },
   "services": [{ "binding": "API", "service": "arpedia-api" }],
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
     { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },
+    { "tag": "v3", "new_sqlite_classes": ["InboxDO"] },
   ],
   "env": {
     "staging": {
       "name": "arpedia-chat-staging",
       "vars": { "APP_ENV": "staging", "SUPABASE_URL": "https://wsblzfpiflefqpbsqkuy.supabase.co" },
       "durable_objects": {
-        "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
+        "bindings": [
+          { "name": "CONVERSATION", "class_name": "ConversationDO" },
+          { "name": "INBOX", "class_name": "InboxDO" },
+        ],
       },
       "services": [{ "binding": "API", "service": "arpedia-api-staging" }],
       "migrations": [
         { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
         { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },
+        { "tag": "v3", "new_sqlite_classes": ["InboxDO"] },
       ],
     },
     "production": {
       "name": "arpedia-chat",
       "vars": { "APP_ENV": "production", "SUPABASE_URL": "https://lzrctrkuvkeftujqiqbn.supabase.co" },
       "durable_objects": {
-        "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }],
+        "bindings": [
+          { "name": "CONVERSATION", "class_name": "ConversationDO" },
+          { "name": "INBOX", "class_name": "InboxDO" },
+        ],
       },
       "services": [{ "binding": "API", "service": "arpedia-api" }],
       "migrations": [
         { "tag": "v1", "new_sqlite_classes": ["ChatRoom"] },
         { "tag": "v2", "renamed_classes": [{ "from": "ChatRoom", "to": "ConversationDO" }] },
+        { "tag": "v3", "new_sqlite_classes": ["InboxDO"] },
       ],
     },
   },

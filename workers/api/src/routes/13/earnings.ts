@@ -5,6 +5,7 @@
 //        Flutterwave, encrypt the number, score the name against the legal name, submit_bank_account
 //   GET  /v1/earnings/flutterwave/balance      Finance / Super admin: NGN balance, feeds prepare_cycle
 //   POST /v1/earnings/flutterwave/webhook      transfer events (verif-hash), re-queried by transfer id
+//   /v1/earnings/statements/…                  statement PDFs (./statements.ts)
 // Cron: drainPayouts (every minute) sends queued transfers with the payout reference as idempotency
 // key; pollPendingPayouts (hourly) re-queries transfers pending over 48 hours and raises the ones
 // still unsettled to Finance; payoutReminder (daily) tells Finance 3 days before payout day about
@@ -30,8 +31,16 @@ import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { rpcError, userDb } from '../12/http';
 import { deliverNotices } from '../15/notify';
-import { failedAlert, reminderAlert, stuckAlert, type PayoutAlert, type ReminderDue } from './alerts';
+import {
+  failedAlert,
+  reminderAlert,
+  retryAlert,
+  stuckAlert,
+  type PayoutAlert,
+  type ReminderDue,
+} from './alerts';
 import { FlwError, payoutClient, type PayoutClient } from './flutterwave';
+import statements from './statements';
 
 type Db = SupabaseClient<Database>;
 
@@ -262,6 +271,12 @@ export async function sendPayout(
     if (eErr) throw new Error(`payout_transfer_error: ${eErr.message}`, { cause: e });
     // No delay back: that was the third error and the payout is now failed (rule 20).
     if (delay == null) await alert(failedAlert(p.reference, p.amount_kobo, reason));
+    else {
+      // The run is paused, retrying: Finance hears once per outage (13-11).
+      const { data: tell, error: aErr } = await db.rpc('payout_retry_alert', { p_payout: p.payout_id });
+      if (aErr) console.error('payout_retry_alert', p.reference, aErr.message);
+      else if (tell) await alert(retryAlert(p.reference, reason, delay));
+    }
     return false;
   }
 
@@ -359,5 +374,7 @@ export async function payoutReminder(
   const balance = client ? await client.balanceKobo().catch(() => null) : null;
   await alert(reminderAlert(data as unknown as ReminderDue, balance));
 }
+
+earnings.route('/statements', statements);
 
 export default earnings;

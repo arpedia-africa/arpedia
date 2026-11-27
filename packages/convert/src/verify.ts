@@ -15,7 +15,7 @@ import {
 } from '@arpedia/core';
 import { Element, Text } from 'domhandler';
 import { parseDocument } from 'htmlparser2';
-import { imageSize, readOpf, resolvePath, textOf } from './epub';
+import { imageSize, readOpf, readToc, resolvePath, textOf } from './epub';
 import { imageType, sanitizeHtml } from './sanitize';
 
 export interface WorkBlock {
@@ -65,6 +65,8 @@ export interface VerifyOk {
   flags: VerifyFlag[];
   /** One untitled body: no chapter-title flags (pass to `checkChapters` when rechecking). */
   untitledBook: boolean;
+  /** Chapter counts the package's own contents list allows (pass to `checkChapters`). */
+  tocChapters: number[] | null;
 }
 export interface VerifyFailed {
   ok: false;
@@ -86,6 +88,8 @@ const FRONT_TITLES: [RegExp, FrontMatter][] = [
   [/^epigraph$/i, 'epigraph'],
   [/^title( page)?$/i, 'title_page'],
 ];
+// Contents entries that are not chapters we count: front matter and the cover.
+const NOT_A_CHAPTER = [/^cover$/i, ...FRONT_TITLES.map(([re]) => re)];
 const CHAPTER_LINE = /^(chapter\s+[\w-]+|prologue|epilogue|\d{1,3}\.)$/i;
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const IMAGE_MAX_PX = 1600;
@@ -226,8 +230,15 @@ export function verifyPackage(
 
   const { words, pages, price, preview } = priceChapters(chapters, opts.previewPercent);
 
+  // The contents list's chapter count: top-level entries, or (when it nests chapters under parts)
+  // the innermost ones or every one. Front matter entries are left out, as from the chapter count.
+  const toc = readToc(files, opf);
+  const story = (titles: string[]) =>
+    titles.filter((t) => !NOT_A_CHAPTER.some((re) => re.test(t.trim()))).length;
+  const tocChapters = toc ? [...new Set([story(toc.top), story(toc.leaves), story(toc.all)])] : null;
+
   // ─── Checks (rule 24). Plagiarism and policy run through provider adapters in the Worker. ───
-  flags.push(...checkChapters(chapters, { untitledBook }));
+  flags.push(...checkChapters(chapters, { untitledBook, tocChapters }));
   const coverBytes = opts.cover ?? (opf.coverHref ? files[opf.coverHref] : undefined) ?? null;
   const cover = coverBytes && imageType(coverBytes) ? imageSize(coverBytes) : null;
   if (cover && cover.width < 800)
@@ -241,7 +252,7 @@ export function verifyPackage(
       message: 'The cover is not the usual book shape (about 2 : 3).',
     });
 
-  return { ok: true, chapters, images, words, pages, price, preview, flags, untitledBook };
+  return { ok: true, chapters, images, words, pages, price, preview, flags, untitledBook, tocChapters };
 }
 
 /** The flag keys checkChapters can raise; a rescore replaces only these. */
@@ -251,14 +262,49 @@ export const TEXT_CHECKS = [
   'image_too_large',
   'repeated_text',
   'copyright_missing',
+  'chapter_detection_failed',
+  'toc_mismatch',
 ];
+
+/** Story chapters as the author wrote them: front matter left out, a chapter split into parts counted once. */
+export function storyChapterCount(chapters: WorkChapter[]): number {
+  return chapters.filter(
+    (c, i) =>
+      !c.front &&
+      (c.kind === 'chapter' ||
+        chapters[i - 1]?.kind !== 'part' ||
+        chapters[i - 1]?.parentOrd !== c.parentOrd),
+  ).length;
+}
 
 /**
  * The text checks on a chapter list: on verify, and again after a staff fix (the rescore stage,
  * rule 31). Cover checks need the cover file and stay in verifyPackage.
  */
-export function checkChapters(chapters: WorkChapter[], opts: { untitledBook?: boolean } = {}): VerifyFlag[] {
+export function checkChapters(
+  chapters: WorkChapter[],
+  opts: { untitledBook?: boolean; tocChapters?: number[] | null } = {},
+): VerifyFlag[] {
   const flags: VerifyFlag[] = [];
+  // The package's contents list names chapters: none found in the text blocks publishing (the
+  // chapters would be guessed parts); a different count is flagged for a person to look at.
+  const listed = opts.tocChapters ?? [];
+  const named = Math.max(0, ...listed);
+  if (named >= 2) {
+    const found = storyChapterCount(chapters);
+    if (opts.untitledBook)
+      flags.push({
+        check_key: 'chapter_detection_failed',
+        message: `The contents list names ${named} chapters, but we could not find where they start in the text.`,
+        suggestion: 'Give each chapter title a heading style in Word, then upload the file again.',
+      });
+    else if (!listed.includes(found))
+      flags.push({
+        check_key: 'toc_mismatch',
+        message: `The contents list has ${listed[0]} chapters, but we found ${found} in the text.`,
+        suggestion: 'Check where each chapter starts. The contents list is rebuilt from the chapters found.',
+      });
+  }
   const words = chapters.reduce((a, c) => a + c.words, 0);
   if (words < MIN_WORDS)
     flags.push({

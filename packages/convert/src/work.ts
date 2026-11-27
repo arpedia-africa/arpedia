@@ -17,6 +17,8 @@ export interface WorkCopy {
   imagesFrom?: number;
   /** One untitled body at verify: rechecks raise no chapter-title flags (see `checkChapters`). */
   untitledBook?: boolean;
+  /** Chapter counts the uploaded contents list allows, for the contents checks on a recheck. */
+  tocChapters?: number[] | null;
 }
 
 export type ChapterEdit = { op: 'rename'; ord: number; title: string } | { op: 'merge_up'; ord: number };

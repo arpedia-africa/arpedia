@@ -15,11 +15,8 @@ export interface MenuItem {
 }
 
 const MSG = {
-  message: 'Messages to authors arrive with reader messages (flow 08).',
   noMessage: 'Your role can look at authors but not message them.',
   noEdit: 'Your role can look at authors but not edit them.',
-  statement: 'Statements arrive with payouts (flow 13).',
-  pause: 'Pausing payouts arrives with payouts (flow 13).',
 };
 
 /** The prototype's ⋯ menu (`.mwrap` with `.ib` and `.menu`). */
@@ -69,7 +66,7 @@ function More({ items, show }: { items: MenuItem[]; show: (msg: string) => void 
 /**
  * The author page actions: Message (primary) and the ⋯ menu. Message and Edit profile open a dialog
  * (Support, Operations admin, Super admin); Pause payouts opens the payout page's Hold, which needs a
- * reason; Download statement still says it comes with payouts; Suspend and Reinstate are real.
+ * reason; Download statement opens the payout page's statements; Suspend and Reinstate are real.
  */
 export function AuthorActions({
   id,
@@ -104,7 +101,7 @@ export function AuthorActions({
 
   const items: MenuItem[] = [
     { label: 'Edit profile', onSelect: () => openDialog('edit') },
-    { label: 'Download statement', msg: MSG.statement },
+    { label: 'Download statement', onSelect: () => router.push(`/authors/${id}/payout`) },
     { label: 'Pause payouts', onSelect: () => router.push(`/authors/${id}/payout`) },
   ];
   if (canSuspend) {
@@ -304,47 +301,6 @@ export function AuthorActions({
           </div>
         </section>
       )}
-      {toast}
-    </>
-  );
-}
-
-/** Payout page actions: Download statement (primary) and the ⋯ menu with Message and Pause payouts. */
-export function PayoutActions({ name }: { name: string }) {
-  const [toast, show] = useToast();
-  const first = name.split(' ')[0] || name;
-  return (
-    <>
-      <div className="ph__acts">
-        <a role="button" tabIndex={0} className="btn btn-p" style={{ cursor: 'pointer' }} onClick={() => show(MSG.statement)}>
-          Download statement
-        </a>
-        <More
-          show={show}
-          items={[
-            { label: `Message ${first}`, msg: MSG.message },
-            { label: 'Pause payouts', msg: MSG.pause },
-          ]}
-        />
-      </div>
-      {toast}
-    </>
-  );
-}
-
-/** The Hold switch: shows the real state; changing it arrives with payouts. */
-export function HoldSwitch({ on }: { on: boolean }) {
-  const [toast, show] = useToast();
-  return (
-    <>
-      <button
-        className={`switch${on ? ' on' : ''}`}
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-label="Pause payouts"
-        onClick={() => show(MSG.pause)}
-      ></button>
       {toast}
     </>
   );

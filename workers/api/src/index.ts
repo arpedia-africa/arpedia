@@ -9,6 +9,7 @@ import { consumeApplicationChecks } from './routes/11/applications';
 import { consumeQueue } from './routes/12/pipeline';
 import { checkIntegrations } from './routes/16/integrations';
 import { drainPayouts, payoutReminder, pollPendingPayouts } from './routes/13/earnings';
+import { statementsAfterRelease } from './routes/13/statements';
 import { engageCron } from './routes/15/engage';
 import { drainNotify } from './routes/15/notify';
 import { drainTrustOutbox } from './routes/14/trust';
@@ -41,7 +42,8 @@ export default {
   // search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09),
   // author payouts (flow 13), integration health checks (flow 16) and pushes, campaigns and exports
   // (flow 15), notices from every flow and the trust outbox (flow 15 dispatcher, flow 14); on the
-  // hour, payouts pending over 48 hours; daily, the payout-day reminder to Finance (flow 13).
+  // hour, payouts pending over 48 hours; every 10 minutes, statements for released months; daily,
+  // the payout-day reminder to Finance (flow 13).
   scheduled: (event, env, ctx) =>
     ctx.waitUntil(
       Promise.allSettled([
@@ -56,6 +58,7 @@ export default {
         drainNotify(env),
         drainTrustOutbox(env),
         ...(new Date(event.scheduledTime).getUTCMinutes() === 0 ? [pollPendingPayouts(env)] : []),
+        ...(new Date(event.scheduledTime).getUTCMinutes() % 10 === 5 ? [statementsAfterRelease(env)] : []),
         // 09:00 in Lagos (UTC+1); a missed day still falls inside the 3-day window.
         ...(new Date(event.scheduledTime).getUTCMinutes() === 0 &&
         new Date(event.scheduledTime).getUTCHours() === 8
