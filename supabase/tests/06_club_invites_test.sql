@@ -74,9 +74,12 @@ select is(public.get_invite_preview((select v from t where k = 'first')) - 'grou
 select is(public.get_invite_preview('ffffffffffffffffffffffff'), null, 'an unknown link shows nothing');
 select is(public.join_group_invite(upper(' ' || (select v from t where k = 'first') || ' ')),
   '06d00000-0000-4000-b000-000000000001'::uuid, 'an outsider joins with the link (case and spaces ignored)');
-select ok(public.is_group_member('06d00000-0000-4000-b000-000000000001'), 'they are now a member');
+reset role;
+select ok(public.is_group_member('06d00000-0000-4000-b000-000000000001', '06d00000-0000-4000-a000-000000000004'),
+  'they are now a member');
 select is((select role::text from public.group_members where group_id = '06d00000-0000-4000-b000-000000000001'
-  and user_id = auth.uid()), 'member', 'as a plain member');
+  and user_id = '06d00000-0000-4000-a000-000000000004'), 'member', 'as a plain member');
+set local role authenticated;
 select lives_ok($$select public.join_group_invite((select v from t where k = 'first'))$$, 'joining twice is a no-op');
 select is((public.get_invite_preview((select v from t where k = 'first')) ->> 'joined')::boolean, true,
   'the preview says they are in');
@@ -88,8 +91,10 @@ select throws_ok($$select public.join_group_invite((select v from t where k = 'f
 select pg_temp.as_user('06d00000-0000-4000-a000-000000000006');
 select lives_ok($$select public.join_group_invite((select v from t where k = 'first'))$$,
   'someone who left while muted rejoins');
+reset role;
 select ok((select muted_until > now() from public.group_members where group_id = '06d00000-0000-4000-b000-000000000001'
-  and user_id = auth.uid()), 'and stays muted (leaving does not clear a mute)');
+  and user_id = '06d00000-0000-4000-a000-000000000006'), 'and stays muted (leaving does not clear a mute)');
+set local role authenticated;
 
 select throws_ok($$select public.join_group('06d00000-0000-4000-b000-000000000001')$$,
   '42501', 'not_joinable', 'plain Join still refuses private groups');
