@@ -7161,6 +7161,9 @@ isOneToOne: false
 "claim_revision":
 { Args: { "p_actor"?: string,"p_rev": string,"p_screen": string,"p_take_over"?: boolean }; Returns: Json
                            },
+"claim_scheduled_report":
+{ Args: { "p_fire_at": string,"p_id": string }; Returns: boolean
+                           },
 "clawback_purchase":
 { Args: { "p_credits"?: number,"p_end_sub"?: boolean,"p_reason": string,"p_transaction": string }; Returns: Json
                            },
@@ -8417,6 +8420,12 @@ isOneToOne: false
                            },
 "save_support_macro":
 { Args: { "p_body": string,"p_category"?: Database["public"]['Enums']["ticket_category"],"p_id"?: string,"p_title": string }; Returns: string
+                           },
+"scheduled_report_summary":
+{ Args: { "p_from": string,"p_kind": string,"p_to": string }; Returns: Json
+                           },
+"scheduled_reports_list":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "seal_failed":
 { Args: { "p_generation": number,"p_rev": string }; Returns: boolean
