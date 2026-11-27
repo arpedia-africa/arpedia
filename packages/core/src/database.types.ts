@@ -2410,6 +2410,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"group_invites": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"group_id": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"group_id": string,"token": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"group_id"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "group_invites_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "group_invites_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "group_invites_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: true
+      referencedRelation: "groups"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"group_members": {
                   Row: {
                     "banned_at": string | null,"cost_ack_at": string | null,"group_id": string,"joined_at": string,"last_read_at": string,"last_seen_at": string | null,"muted_by": string | null,"muted_until": string | null,"notify_muted_until": string | null,"role": Database["public"]['Enums']["group_role"],"user_id": string
@@ -7338,6 +7370,9 @@ isOneToOne: false
 "get_group_access":
 { Args: { "p_group": string,"p_user": string }; Returns: Json
                            },
+"get_group_invite":
+{ Args: { "p_group": string }; Returns: string
+                           },
 "get_help_article":
 { Args: { "p_slug": string }; Returns: Json
                            },
@@ -7356,6 +7391,9 @@ isOneToOne: false
                            },
 "get_inbox_counts":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"get_invite_preview":
+{ Args: { "p_token": string }; Returns: Json
                            },
 "get_library":
 { Args: { "p_after"?: Json,"p_limit"?: number,"p_shelf": string,"p_sort"?: string }; Returns: Json
@@ -7584,6 +7622,9 @@ isOneToOne: false
                            },
 "join_group":
 { Args: { "p_group": string }; Returns: undefined
+                           },
+"join_group_invite":
+{ Args: { "p_token": string }; Returns: string
                            },
 "join_open_room":
 { Args: { "p_confirm"?: boolean,"p_room": string }; Returns: Json
@@ -8023,6 +8064,9 @@ isOneToOne: false
                            },
 "require_permission":
 { Args: { "p_permission": string }; Returns: undefined
+                           },
+"reset_group_invite":
+{ Args: { "p_group": string }; Returns: string
                            },
 "reset_staff_mfa":
 { Args: { "p_user": string }; Returns: undefined
