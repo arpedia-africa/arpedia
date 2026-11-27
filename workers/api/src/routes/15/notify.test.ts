@@ -293,6 +293,7 @@ describe('staff alert preferences (16-14)', () => {
   it('failed and stuck payouts follow the switch; the payout-day reminder always arrives', () => {
     expect(to({ kind: 'payout_alert', alert: 'payout_failed', subject: 's', message: 'm' })).toEqual([MOD]);
     expect(to({ kind: 'payout_alert', alert: 'transfer_stuck', subject: 's', message: 'm' })).toEqual([MOD]);
+    expect(to({ kind: 'payout_alert', alert: 'payout_retrying', subject: 's', message: 'm' })).toEqual([MOD]);
     expect(to({ kind: 'payout_alert', alert: 'payout_reminder', subject: 's', message: 'm' })).toEqual([
       MOD,
       OTHER,

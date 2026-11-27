@@ -2,7 +2,7 @@
 // the revision and does nothing unless it is still the current generation, so a message delivered
 // twice (waitUntil and the cron safety net) is harmless. Sealed files go under a fresh prefix per
 // attempt; only complete_seal makes one live.
-import { type Json, keyLabel, unwrapKey } from '@arpedia/core';
+import { type Json, keyLabel, previewTarget, unwrapKey } from '@arpedia/core';
 import {
   type BaseChapter,
   type BookAnchors,
@@ -43,7 +43,7 @@ export type Revision = Awaited<ReturnType<typeof revision>>;
 export async function revision(db: Db, id: string) {
   const { data, error } = await db
     .from('book_revisions')
-    .select('*, books!book_revisions_book_id_fkey(title)')
+    .select('*, books!book_revisions_book_id_fkey(title, preview_override_percent)')
     .eq('id', id)
     .single();
   if (error) throw error;
@@ -172,7 +172,9 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
       return fail('unreadable', 'We could not open this file safely. Please upload it again from Word.');
     return fail('unreadable');
   }
-  const v = verifyPackage(files, { cover: await bytesOf(env, rev.cover_key), previewPercent: 10 });
+  // The book's own preview target (flow 03 admin rule 2, 5–25%), else the 10% default.
+  const previewPercent = previewTarget(rev.books?.preview_override_percent);
+  const v = verifyPackage(files, { cover: await bytesOf(env, rev.cover_key), previewPercent });
   if (!v.ok) return fail(v.reason, v.message);
 
   const base = await baseWork(env, db, rev.base_revision_id);
@@ -185,6 +187,8 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
     pages: v.pages,
     price: v.price,
     untitledBook: v.untitledBook,
+    tocChapters: v.tocChapters,
+    previewPercent,
   };
   // An update keeps the live revision's copyright page when the new file has none; the text checks
   // run again on the chapter list it was added to.
@@ -192,7 +196,7 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   if (carried) {
     work = carried;
     v.flags = [
-      ...checkChapters(work.chapters, { untitledBook: v.untitledBook }),
+      ...checkChapters(work.chapters, { untitledBook: v.untitledBook, tocChapters: v.tocChapters }),
       ...v.flags.filter((f) => !TEXT_CHECKS.includes(f.check_key)),
     ];
   }

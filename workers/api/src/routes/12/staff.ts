@@ -30,7 +30,7 @@ const staff = new Hono<AppEnv>();
 type Db = ReturnType<typeof serviceDb>;
 
 /** Publisher (or Super admin): the RPCs check again; this only saves work for everyone else. */
-async function isPublisher(db: Db, uid: string) {
+export async function isPublisher(db: Db, uid: string) {
   const { data } = await db
     .from('staff_roles')
     .select('role')
@@ -48,7 +48,10 @@ const notStaff = (c: Context<AppEnv>) => c.json({ error: 'Only Publishers can do
  * dismissed, are left as they are.
  */
 async function rescore(db: Db, revId: string, version: number, work: WorkCopy, touched: string[]) {
-  const all = locateFlags(checkChapters(work.chapters, { untitledBook: work.untitledBook }), work.anchors);
+  const all = locateFlags(
+    checkChapters(work.chapters, { untitledBook: work.untitledBook, tocChapters: work.tocChapters }),
+    work.anchors,
+  );
   const flags = all.filter((f) => !f.location.chapter_uid || touched.includes(f.location.chapter_uid));
   const { data, error } = await db.rpc('complete_rescore', {
     p_rev: revId,

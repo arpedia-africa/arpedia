@@ -412,12 +412,14 @@ export function plan(n: Notice, l: Lookup): Plan {
       break;
     }
     case 'payout_alert':
-      // Flow 13 writes its own copy (payout reminder, stuck transfers, failed payouts).
+      // Flow 13 writes its own copy (payout reminder, stuck, retrying and failed transfers).
       staff(
         'finance',
         str(n.subject) || 'Payout alert',
         str(n.message) || 'Open Royalties in the console.',
-        n.alert === 'payout_failed' || n.alert === 'transfer_stuck' ? 'failed_payouts' : undefined,
+        ['payout_failed', 'transfer_stuck', 'payout_retrying'].includes(str(n.alert))
+          ? 'failed_payouts'
+          : undefined,
       );
       break;
     case 'sanction_notice':
