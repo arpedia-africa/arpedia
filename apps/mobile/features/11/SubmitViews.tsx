@@ -538,6 +538,8 @@ export interface ChapterRow {
   title: string | null;
   words: number;
   canMerge: boolean;
+  /** Front matter (title page, copyright…): listed, not counted (flow 12 rule 7). */
+  front?: boolean;
 }
 
 /** `.st-lnk`: 13/700 org-ink text button, padding 6 4. */
@@ -612,7 +614,7 @@ export function SubmitChaptersView({
                   {ch.title ?? 'No title'}
                 </Text>
                 <Text size={12} color="ink3" tabular oneLine>
-                  {`${ch.words.toLocaleString('en-NG')} words`}
+                  {ch.front ? 'Not counted' : `${ch.words.toLocaleString('en-NG')} words`}
                 </Text>
               </View>
               <StLink

@@ -227,6 +227,7 @@ export interface RevisionChapter {
   kind: string;
   title: string;
   words: number;
+  front: string | null;
 }
 
 export function useRevisionChapters(rev: string | undefined, enabled: boolean) {
@@ -237,7 +238,7 @@ export function useRevisionChapters(rev: string | undefined, enabled: boolean) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('chapters')
-        .select('ord, kind, title, words')
+        .select('ord, kind, title, words, front')
         .eq('revision_id', rev!)
         .order('ord');
       if (error) throw error;
