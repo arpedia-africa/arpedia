@@ -63,6 +63,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"analytics_outbox": {
+                  Row: {
+                    "created_at": string,"distinct_id": string,"event": string,"id": number,"props": NonNullable<Json>,"sent_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"distinct_id": string,"event": string,"id"?: never,"props"?: NonNullable<Json>,"sent_at"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"distinct_id"?: string,"event"?: string,"id"?: never,"props"?: NonNullable<Json>,"sent_at"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"anchor_migrations": {
                   Row: {
                     "base_revision_id": string,"method": Database["public"]['Enums']["anchor_method"],"nearest_para_id": string | null,"new_para_id": string | null,"new_revision_id": string,"old_para_id": string
@@ -6652,6 +6666,9 @@ isOneToOne: false
 "_threshold":
 { Args: { "p_key": string }; Returns: number
                            },
+"_track":
+{ Args: { "p_distinct": string,"p_event": string,"p_props"?: Json }; Returns: undefined
+                           },
 "_transfer_status_applies":
 { Args: { "p_current": Database["public"]['Enums']["payout_status"],"p_next": Database["public"]['Enums']["payout_status"] }; Returns: boolean
                            },
@@ -6865,6 +6882,12 @@ isOneToOne: false
                            },
 "am_group_member":
 { Args: { "p_group": string }; Returns: boolean
+                           },
+"analytics_outbox_done":
+{ Args: { "p_ids": (number)[] }; Returns: number
+                           },
+"analytics_outbox_take":
+{ Args: { "p_limit"?: number }; Returns: Json
                            },
 "analytics_rollup":
 { Args: { "p_from": string,"p_to": string }; Returns: number
