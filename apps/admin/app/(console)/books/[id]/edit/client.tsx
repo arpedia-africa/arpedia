@@ -6,7 +6,7 @@ import { useRef, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
 import { AGES, Drop, LANGUAGES, put } from '../../new/client';
-import { finishEdit, startEdit } from './actions';
+import { saveEdit, startCover } from './actions';
 import { changes, type Current } from './changes';
 
 /**
@@ -36,8 +36,8 @@ export function EditBookModal({
   const [cover, setCover] = useState<File | null>(null);
   const [note, setNote] = useState('');
   const [genreOpen, setGenreOpen] = useState(false);
-  // A started cover edit whose upload link is still valid, so a retry doesn't start another.
-  const started = useRef<{ revision_id: string; upload: string } | null>(null);
+  // The cover link from step 1 while it is valid, so a retry after a failed save reuses the upload.
+  const started = useRef<{ cover_token: string; upload: string; expires_at: string; file: File } | null>(null);
   const closeHref = `/books/${bookId}`;
   const COVER_MAX = 10 * 1024 * 1024;
   const next = liveNo + 1;
@@ -53,23 +53,28 @@ export function EditBookModal({
     if (openNo !== null) return show(`Revision ${openNo} is still in the pipeline. Publish or send it back first.`);
     const meta = mode === 'details' ? changes(current, form) : {};
     if (mode === 'details' && !form.title.trim()) return show('Add the book title.');
+    if (mode === 'details' && form.genres.length === 0) return show('Pick at least one genre.');
     if (mode === 'details' && Object.keys(meta).length === 0) return show('Nothing changed yet.');
     if (mode === 'cover' && !cover) return show('Choose the new cover first.');
     start(async () => {
-      let s = started.current;
-      if (!s) {
-        const r = await startEdit(bookId, meta, mode === 'cover', note);
+      if (mode === 'details') {
+        const r = await saveEdit(bookId, meta, note);
         if (!r.ok) return show(r.error);
-        if (!r.data.upload) return router.push(`/books/${bookId}/revisions`);
-        s = started.current = { revision_id: r.data.revision_id, upload: r.data.upload };
+        return router.push(`/books/${bookId}/revisions`);
       }
-      if (!(await put(s.upload, cover!))) {
-        started.current = null;
-        return show("The cover didn't upload. Check your connection and press Save again.");
+      let s = started.current;
+      if (!s || s.file !== cover || new Date(s.expires_at).getTime() < Date.now() + 60_000) {
+        const r = await startCover(bookId);
+        if (!r.ok) return show(r.error);
+        if (!(await put(r.data.upload, cover!)))
+          return show("The cover didn't upload. Check your connection and press Save again.");
+        s = started.current = { ...r.data, file: cover! };
       }
-      const f = await finishEdit(bookId, s.revision_id);
-      started.current = null;
-      if (!f.ok) return show(f.error);
+      const r = await saveEdit(bookId, {}, note, s.cover_token);
+      if (!r.ok) {
+        if (r.error.includes('already saved')) started.current = null;
+        return show(r.error);
+      }
       router.push(`/books/${bookId}/revisions`);
     });
   };

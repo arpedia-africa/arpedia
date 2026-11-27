@@ -30,7 +30,7 @@ const staff = new Hono<AppEnv>();
 type Db = ReturnType<typeof serviceDb>;
 
 /** Publisher (or Super admin): the RPCs check again; this only saves work for everyone else. */
-async function isPublisher(db: Db, uid: string) {
+export async function isPublisher(db: Db, uid: string) {
   const { data } = await db
     .from('staff_roles')
     .select('role')

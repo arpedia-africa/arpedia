@@ -36,15 +36,14 @@ export default async function EditBookPage({
       .maybeSingle(),
     supabase
       .from('book_revisions')
-      .select('revision_no, status, staff_edit')
+      .select('revision_no')
       .eq('book_id', id)
       .in('status', [...OPEN])
       .order('revision_no', { ascending: false })
       .limit(1),
     supabase.from('books').select('genres').in('status', ['live', 'scheduled']).limit(500),
   ]);
-  // An unfinished staff edit (its cover never arrived) is replaced by the next one, so it doesn't block.
-  const blocking = (open ?? []).find(r => !(r.status === 'draft' && r.staff_edit));
+  const blocking = open?.[0];
   const genres = [...new Set([...(genreRows ?? []).flatMap(b => b.genres ?? []), ...book.genres])].sort();
 
   return (

@@ -17,9 +17,9 @@ const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, 
  */
 export function changes(now: Current, next: Current): EditMeta {
   const m: EditMeta = {};
-  if (next.title.trim() !== now.title) m.title = next.title.trim();
-  if (next.subtitle.trim() !== now.subtitle) m.subtitle = next.subtitle.trim();
-  if (next.description.trim() !== now.description) m.description = next.description.trim();
+  if (next.title.trim() !== now.title.trim()) m.title = next.title.trim();
+  if (next.subtitle.trim() !== now.subtitle.trim()) m.subtitle = next.subtitle.trim();
+  if (next.description.trim() !== now.description.trim()) m.description = next.description.trim();
   if (!same(next.genres, now.genres)) m.genres = next.genres;
   if (next.language !== now.language) m.language = next.language;
   if (next.age !== now.age) m.age = next.age;

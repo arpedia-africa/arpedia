@@ -30,6 +30,10 @@ describe('changes', () => {
     expect(changes(now, { ...now, genres: ['Christian & Faith'] })).toEqual({ genres: ['Christian & Faith'] });
   });
 
+  it('ignores stray spaces or a newline already stored', () => {
+    expect(changes({ ...now, description: 'Twelve letters.\n' }, { ...now, description: 'Twelve letters.\n' })).toEqual({});
+  });
+
   it('adds a subtitle that was empty', () => {
     expect(changes(now, { ...now, subtitle: 'From Kano' })).toEqual({ subtitle: 'From Kano' });
   });

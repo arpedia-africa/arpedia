@@ -7117,9 +7117,6 @@ isOneToOne: false
 "complete_seal":
 { Args: { "p_generation": number,"p_rev": string,"p_seal": Json }; Returns: Json
                            },
-"complete_staff_revision":
-{ Args: { "p_actor": string,"p_cover"?: Json,"p_rev": string }; Returns: Json
-                           },
 "complete_verify":
 { Args: { "p_generation": number,"p_result": Json,"p_rev": string }; Returns: Json
                            },
@@ -8647,7 +8644,7 @@ isOneToOne: false
 { Args: { "p_id": string }; Returns: undefined
                            },
 "staff_revise_book":
-{ Args: { "p_actor"?: string,"p_book": string,"p_cover"?: boolean,"p_meta": Json,"p_note"?: string }; Returns: Json
+{ Args: { "p_actor"?: string,"p_book": string,"p_cover"?: Json,"p_meta": Json,"p_note"?: string,"p_rev": string }; Returns: Json
                            },
 "staff_save_banner":
 { Args: { "p_fields": Json,"p_id": string }; Returns: string

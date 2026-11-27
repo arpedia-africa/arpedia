@@ -2,7 +2,7 @@
 -- create a new revision that reuses the live files and goes to review; readers keep the live one.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(25);
 
 create function pg_temp.as_user(p uuid) returns void language plpgsql as $$
 begin
@@ -64,106 +64,104 @@ insert into public.paragraph_anchors (revision_id, para_id, chapter_uid, ord, fi
 select '03f00000-0000-4000-d000-000000000001', 'p' || n, '03f00000-0000-4000-e000-000000000000', n, 'f' || n
 from generate_series(0, 4) n;
 
--- Who may start one.
-select pg_temp.as_user('03f00000-0000-4000-a000-000000000004');
-select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-c000-000000000001', '{"title":"X"}') $$,
-  '42501', null, 'a moderator cannot edit book details');
-select pg_temp.as_user('03f00000-0000-4000-a000-000000000001');
-select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-c000-000000000001', '{"title":"X"}') $$,
-  '42501', null, 'an author cannot use the staff edit');
-
+-- Who may make one: the Worker for a Publisher only.
 select pg_temp.as_user('03f00000-0000-4000-a000-000000000002');
-select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-c000-000000000002', '{"title":"X"}') $$,
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{"title":"X"}') $$,
+  '42501', null, 'staff cannot call it directly (the Worker copies files first)');
+select pg_temp.as_service();
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{"title":"X"}', null, null,
+                    '03f00000-0000-4000-a000-000000000004') $$,
+  '42501', null, 'not for a moderator');
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{"title":"X"}', null, null,
+                    '03f00000-0000-4000-a000-000000000001') $$,
+  '42501', null, 'not for the author');
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000002', '{"title":"X"}', null, null,
+                    '03f00000-0000-4000-a000-000000000002') $$,
   '23514', null, 'a book that is not live is refused');
-select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-c000-000000000001',
-                    '{"title":"Old Title","genres":["Fiction"]}') $$,
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{"title":"Old Title","genres":["Fiction"]}',
+                    null, null, '03f00000-0000-4000-a000-000000000002') $$,
   '22023', null, 'no real change and no cover is refused');
-select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-c000-000000000001', '{"title":"  "}') $$,
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{"title":"  "}', null, null,
+                    '03f00000-0000-4000-a000-000000000002') $$,
   '22023', null, 'an empty title is refused');
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{"genres":[]}', null, null,
+                    '03f00000-0000-4000-a000-000000000002') $$,
+  '22023', null, 'an empty genre list is refused');
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1',
+                    '03f00000-0000-4000-c000-000000000001', '{}', '{}', null,
+                    '03f00000-0000-4000-a000-000000000002') $$,
+  '22023', null, 'a cover edit needs the cover hash');
 
--- Edit details: a draft copy of the live revision.
-create temp table r on commit drop as
-select public.staff_revise_book('03f00000-0000-4000-c000-000000000001',
+-- Edit details: a copy of the live revision, routed to review.
+select is(public.staff_revise_book('03f00000-0000-4000-d000-0000000000a1', '03f00000-0000-4000-c000-000000000001',
   '{"title":" New Title ","description":"New description","genres":["Fiction"],"source_key":"evil"}',
-  false, 'Typo in the title') as v;
-grant select on r to authenticated, service_role;
-select is((select v ->> 'revision_no' from r), '2', 'revision 2 is created');
+  null, 'Typo in the title', '03f00000-0000-4000-a000-000000000002') ->> 'status', 'ready_for_review',
+  'revision 2 goes straight to Ready for review');
 select pg_temp.as_owner();
-select is((select row(status, created_via, uploaded_by, base_revision_id, artifact_prefix, manifest_key,
-                      sealed_generation, generation, work_version, source_key, cover_key)::text
-           from public.book_revisions where id = (select (v ->> 'revision_id')::uuid from r)),
-  row('draft', 'staff', '03f00000-0000-4000-a000-000000000002', '03f00000-0000-4000-d000-000000000001',
-      'books/r1/g2/', 'books/r1/g2/manifest.json', 2, 2, 3, 'src/r1/source.docx', 'src/r1/cover')::text,
+select is((select row(revision_no, created_via, uploaded_by, base_revision_id, artifact_prefix, manifest_key,
+                      sealed_generation, generation, work_version, source_key, cover_key, submitted_at is not null)::text
+           from public.book_revisions where id = '03f00000-0000-4000-d000-0000000000a1'),
+  row(2, 'staff', '03f00000-0000-4000-a000-000000000002', '03f00000-0000-4000-d000-000000000001',
+      'books/r1/g2/', 'books/r1/g2/manifest.json', 2, 2, 3, 'src/r1/source.docx', 'src/r1/cover', true)::text,
   'the copy keeps the sealed files, generation, working version and cover');
-select is((select meta ->> 'title' from public.book_revisions where id = (select (v ->> 'revision_id')::uuid from r)),
+select is((select meta ->> 'title' from public.book_revisions where id = '03f00000-0000-4000-d000-0000000000a1'),
   'New Title', 'the new title is trimmed into the revision details');
-select is((select staff_edit -> 'fields' from public.book_revisions
-           where id = (select (v ->> 'revision_id')::uuid from r)), '["description", "title"]'::jsonb,
-  'only the fields that really change are recorded (not unchanged genres, not unknown keys)');
-select is((select count(*)::int from public.chapters where revision_id = (select (v ->> 'revision_id')::uuid from r)
+select is((select staff_edit from public.book_revisions where id = '03f00000-0000-4000-d000-0000000000a1'),
+  '{"cover": false, "fields": ["description", "title"]}'::jsonb,
+  'only the fields that really change are recorded (not unchanged genres, not unknown keys, not the note)');
+select is((select count(*)::int from public.chapters where revision_id = '03f00000-0000-4000-d000-0000000000a1'
            and full_file is not null), 3, 'chapters copied with their files');
 select is((select count(*)::int from public.chapter_keys
-           where revision_id = (select (v ->> 'revision_id')::uuid from r)), 4, 'only active keys are copied');
+           where revision_id = '03f00000-0000-4000-d000-0000000000a1'), 4, 'only active keys are copied');
 select is((select count(*)::int from public.paragraph_anchors
-           where revision_id = (select (v ->> 'revision_id')::uuid from r)), 5, 'anchors copied');
+           where revision_id = '03f00000-0000-4000-d000-0000000000a1'), 5, 'anchors copied');
+select is((select row(metadata_changed, cover_changed, fast_lane_eligible, 'metadata_changed' = any (reasons))::text
+           from public.revision_diffs where revision_id = '03f00000-0000-4000-d000-0000000000a1'),
+  '(t,f,f,t)', 'the diff says details changed, so a person reviews it');
 select is((select title from public.books where id = '03f00000-0000-4000-c000-000000000001'), 'Old Title',
   'readers keep the live details');
 select is((select count(*)::int from public.audit_log where action = 'book.staff_edit'
-           and object_id = (select v ->> 'revision_id' from r) and reason = 'Typo in the title'), 1, 'audited');
-
--- The Worker finishes it: routed to review, never the fast lane.
-select pg_temp.as_user('03f00000-0000-4000-a000-000000000002');
-select throws_ok($$ select public.complete_staff_revision((select (v ->> 'revision_id')::uuid from r),
-                    '03f00000-0000-4000-a000-000000000002') $$, '42501', null, 'staff cannot finish it directly');
+           and object_id = '03f00000-0000-4000-d000-0000000000a1' and reason = 'Typo in the title'), 1,
+  'audited with the note');
 select pg_temp.as_service();
-select throws_ok($$ select public.complete_staff_revision((select (v ->> 'revision_id')::uuid from r),
-                    '03f00000-0000-4000-a000-000000000003') $$, '42501', null, 'only the staff member who started it');
-select is(public.complete_staff_revision((select (v ->> 'revision_id')::uuid from r),
-            '03f00000-0000-4000-a000-000000000002') ->> 'status', 'ready_for_review', 'ready for review');
-select is(public.complete_staff_revision((select (v ->> 'revision_id')::uuid from r),
-            '03f00000-0000-4000-a000-000000000002') ->> 'duplicate', 'true', 'a retry is a no-op');
-select pg_temp.as_owner();
-select is((select row(metadata_changed, cover_changed, fast_lane_eligible, 'metadata_changed' = any (reasons))::text
-           from public.revision_diffs where revision_id = (select (v ->> 'revision_id')::uuid from r)),
-  '(t,f,f,t)', 'the diff says details changed, so a person reviews it');
+select throws_ok($$ select public.staff_revise_book('03f00000-0000-4000-d000-0000000000a2',
+                    '03f00000-0000-4000-c000-000000000001', '{"title":"Again"}', null, null,
+                    '03f00000-0000-4000-a000-000000000003') $$,
+  '23505', null, 'one open revision at a time');
 
 -- The staff member who made the edit cannot publish it; another publisher can.
 select pg_temp.as_user('03f00000-0000-4000-a000-000000000002');
-select throws_ok($$ select public.publish_revision((select (v ->> 'revision_id')::uuid from r)) $$, '42501', null,
+select throws_ok($$ select public.publish_revision('03f00000-0000-4000-d000-0000000000a1') $$, '42501', null,
   'the editor cannot publish their own edit');
 select pg_temp.as_user('03f00000-0000-4000-a000-000000000003');
-select is(public.publish_revision((select (v ->> 'revision_id')::uuid from r)) ->> 'status', 'live',
+select is(public.publish_revision('03f00000-0000-4000-d000-0000000000a1') ->> 'status', 'live',
   'a second publisher publishes it');
 select pg_temp.as_owner();
-select is((select row(title, description, current_revision_id = (select (v ->> 'revision_id')::uuid from r))::text
+select is((select row(title, description, current_revision_id = '03f00000-0000-4000-d000-0000000000a1')::text
            from public.books where id = '03f00000-0000-4000-c000-000000000001'),
   '("New Title","New description",t)', 'readers now get the new details');
+select is((select count(*)::int from public.chapter_keys where revision_id = '03f00000-0000-4000-d000-000000000001'
+           and revoked_at is null), 4, 'the old revision keeps its keys for offline copies');
 
--- Replace cover: the draft waits for the cover; an unfinished one is replaced by the next edit.
-select pg_temp.as_user('03f00000-0000-4000-a000-000000000002');
-create temp table c1 on commit drop as
-select public.staff_revise_book('03f00000-0000-4000-c000-000000000001', '{}', true) as v;
-grant select on c1 to authenticated, service_role;
-select is((select v ->> 'cover_key' from c1), format('src/%s/cover', (select v ->> 'revision_id' from c1)),
-  'a new cover key for the browser upload');
-create temp table c2 on commit drop as
-select public.staff_revise_book('03f00000-0000-4000-c000-000000000001', '{}', true) as v;
-grant select on c2 to authenticated, service_role;
+-- Replace cover: the new cover and its checks.
 select pg_temp.as_service();
-select throws_ok($$ select public.complete_staff_revision((select (v ->> 'revision_id')::uuid from c2),
-                    '03f00000-0000-4000-a000-000000000002') $$, '22023', null, 'a cover edit needs the cover');
-select is(public.complete_staff_revision((select (v ->> 'revision_id')::uuid from c2),
-            '03f00000-0000-4000-a000-000000000002',
-            '{"sha256":"bb","flags":[{"check_key":"cover_too_small","message":"small"}]}') ->> 'status',
-  'ready_for_review', 'cover edit routed with its cover flags');
+select is(public.staff_revise_book('03f00000-0000-4000-d000-0000000000a3', '03f00000-0000-4000-c000-000000000001',
+  '{}', '{"sha256":"bb","flags":[{"check_key":"cover_too_small","message":"small"}]}', null,
+  '03f00000-0000-4000-a000-000000000002') ->> 'status', 'ready_for_review', 'cover edit routed to review');
 select pg_temp.as_owner();
-select is((select row((select count(*) from public.book_revisions where id = (select (v ->> 'revision_id')::uuid from c1)),
-                      (select cover_changed from public.revision_diffs
-                        where revision_id = (select (v ->> 'revision_id')::uuid from c2)),
-                      (select count(*) from public.book_flags
-                        where revision_id = (select (v ->> 'revision_id')::uuid from c2)
-                          and check_key = 'cover_too_small'))::text),
-  '(0,t,1)', 'the unfinished draft is gone; the cover change and its flag are recorded');
+select is((select row(r.cover_key = 'src/03f00000-0000-4000-d000-0000000000a3/cover', r.cover_sha256, d.cover_changed,
+                      d.metadata_changed, (select count(*) from public.book_flags f
+                                            where f.revision_id = r.id and f.check_key = 'cover_too_small'))::text
+           from public.book_revisions r join public.revision_diffs d on d.revision_id = r.id
+           where r.id = '03f00000-0000-4000-d000-0000000000a3'),
+  '(t,bb,t,f,1)', 'the new cover, its hash and its flag are recorded');
 
 select * from finish();
 rollback;
