@@ -377,7 +377,8 @@ describe('moderate-text (flow 14)', () => {
     expect(bola.frames.filter((f) => f.type === 'message')).toHaveLength(1);
     await t.conv.flush();
     expect(t.stored.map((s) => s.state)).toEqual(['auto_hidden', 'visible']);
-    expect(seen[0]).toEqual({ text: 'a bad word', surface: 'dm', sender_new: true });
+    expect(seen[0]).toMatchObject({ text: 'a bad word', surface: 'dm', sender_new: true, sender_id: 'ada' });
+    expect((seen[0] as { group_id?: string }).group_id).toBeTruthy();
   });
 
   it('asks to edit phone numbers and refuses blocked links, storing neither', async () => {
@@ -390,6 +391,15 @@ describe('moderate-text (flow 14)', () => {
     expect(ada.frames.at(-1)).toMatchObject({ error: 'phone_number' });
     await t.send(ada, 2, 'see example.com');
     expect(ada.frames.at(-1)).toMatchObject({ error: 'rejected_by_rules' });
+    expect(t.q.size).toBe(0);
+  });
+
+  it('refuses the same text in many channels (spam), storing nothing', async () => {
+    const t = setup(async () => ({ action: 'hide', reason: 'spam' }));
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1, 'buy cheap credits');
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
     expect(t.q.size).toBe(0);
   });
 
