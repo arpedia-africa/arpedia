@@ -46,6 +46,10 @@ export interface Env {
   POSTHOG_KEY?: string;
   /** Flow 15: PostHog host (default https://eu.i.posthog.com). */
   POSTHOG_HOST?: string;
+  /** Flow 12: moderation-model key for the content-policy check (secret); unset → the check is skipped. */
+  MODERATION_API_KEY?: string;
+  /** Flow 12: moderation endpoint (default https://api.openai.com/v1/moderations). */
+  MODERATION_API_URL?: string;
   /** Flow 04: rate limit on /keys and /download, per reader and device (wrangler `ratelimits`). */
   KEYS_LIMIT?: RateLimiter;
 }

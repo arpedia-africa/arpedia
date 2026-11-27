@@ -360,6 +360,18 @@ export function plan(n: Notice, l: Lookup): Plan {
     case 'sent_back_reminder':
       notice(`${book} is waiting for your changes`, 'Open Studio to send it back to us', studio);
       break;
+    case 'screening_skipped':
+      // Rule 25: a plagiarism or content-policy check could not run; the book was not blocked.
+      staff(
+        'operations_admin',
+        'A book check was skipped',
+        `${book}: the ${(Array.isArray(n.checks) ? n.checks.map(str) : [])
+          .map((c) => (c === 'plagiarism' ? 'plagiarism' : 'content policy'))
+          .join(
+            ' and ',
+          )} check could not run (the provider did not answer). Look at the book before it goes live.`,
+      );
+      break;
     case 'desk_job':
     case 'pipeline_late':
     case 'fast_lane_problem': {
