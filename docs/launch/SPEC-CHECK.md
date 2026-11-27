@@ -167,7 +167,7 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 | - [ ] | 03-20 | Analytics: download_requested | The event is fired without the `scope` property (`{book_id}` only). | `apps/mobile/app/book/[id]/index.tsx:161` | later | B |
 | - [ ] | 03-21 | 4 | "Read again" is keyed on `max_percent >= 100`, not on finished (`finished_at` / 95%). A reader who finished at 95 to 99% sees "Continue reading". | `packages/core/src/unlock.ts:128` | later | B |
 | - [ ] | 03-22 | Done when 9 | The Maestro flow stops at "Start reading" and never opens the reader past the 10% preview as the spec asks. | `apps/mobile/.maestro/03-unlock.yaml:59` | later | B |
-| - [ ] | 03-23 | Done when 7 | pgTAP has no test that concurrent `spend_credits` calls serialise (advisory lock). The other listed cases (replay, price_changed, already_unlocked, tip presets and own book, reviews RLS, ledger and entitlements grants, admin role check) are covered. | `supabase/tests/03_unlock_test.sql` | later | A |
+| - [x] | 03-23 | Done when 7 | pgTAP has no test that concurrent `spend_credits` calls serialise (advisory lock). The other listed cases (replay, price_changed, already_unlocked, tip presets and own book, reviews RLS, ledger and entitlements grants, admin role check) are covered. | `supabase/tests/03_unlock_test.sql` | later | A |
 
 95 rules checked, 23 gaps.
 
