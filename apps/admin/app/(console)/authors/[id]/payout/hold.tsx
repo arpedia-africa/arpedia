@@ -1,10 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
-import { setPayoutHold, type PauseReason } from './actions';
+import { requestYtdStatement, setPayoutHold, type PauseReason } from './actions';
 
 export const PAUSE_REASONS: Record<PauseReason, string> = {
   account_dispute: 'Account dispute',
@@ -14,14 +14,28 @@ export const PAUSE_REASONS: Record<PauseReason, string> = {
 };
 
 /**
- * Header actions: Download statement, and the ⋯ menu with Message and Pause payouts. Statement PDFs
- * are rendered after release (statements_after_release, not built yet), so until one exists it says so.
+ * Header actions: Download statement (the latest cycle statement PDF, made after each released month),
+ * and the ⋯ menu with Message, Year-to-date statement (made now, rule 27) and Pause payouts.
  */
-export function PayoutHeadActions({ name, statement }: { name: string; statement: string | null }) {
+export function PayoutHeadActions({
+  author,
+  name,
+  statement,
+}: {
+  author: string;
+  name: string;
+  statement: { id: string; label: string } | null;
+}) {
   const [toast, show] = useToast();
+  const [making, start] = useTransition();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const first = name.split(' ')[0] || name;
+  const failed = useSearchParams().get('statement') === 'failed';
+  useEffect(() => {
+    if (failed) show("The statement didn't download. Try again.");
+  }, [failed, show]);
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent | KeyboardEvent) => {
@@ -34,29 +48,40 @@ export function PayoutHeadActions({ name, statement }: { name: string; statement
       document.removeEventListener('keydown', close);
     };
   }, [open]);
-  const pick = (msg: string) => () => {
-    setOpen(false);
-    show(msg);
-  };
   return (
     <div className="ph__acts">
-      <button
-        className="btn btn-p"
-        type="button"
-        onClick={() =>
-          show(statement ? `The ${statement} statement PDF is being prepared. It downloads from here once ready.` : `No statement yet. One is made for ${first} after each released month.`)
-        }
-      >
-        Download statement
-      </button>
+      {statement ? (
+        <a className="btn btn-p" href={`/authors/${author}/payout/statements/${statement.id}`} title={`${statement.label} statement PDF`}>
+          Download statement
+        </a>
+      ) : (
+        <button className="btn btn-p" type="button" onClick={() => show(`No statement yet. One is made for ${first} after each released month.`)}>
+          Download statement
+        </button>
+      )}
       <div className="mwrap" ref={ref}>
         <button className="ib" type="button" aria-expanded={open} aria-label="More actions" onClick={() => setOpen(o => !o)}>
           <Icon name="more" />
         </button>
         {open && (
           <div className="menu">
-            <a role="button" tabIndex={0} onClick={pick('Messages to authors arrive with reader messages (flow 08).')}>
+            <a role="button" tabIndex={0} onClick={() => router.push(`/authors/${author}`)}>
               {`Message ${first}`}
+            </a>
+            <a
+              role="button"
+              tabIndex={0}
+              aria-disabled={making}
+              onClick={() => {
+                setOpen(false);
+                start(async () => {
+                  const r = await requestYtdStatement(author);
+                  if (!r.ok) return show(r.error);
+                  window.location.assign(`/authors/${author}/payout/statements/${r.id}`);
+                });
+              }}
+            >
+              Year-to-date statement
             </a>
             <a
               role="button"

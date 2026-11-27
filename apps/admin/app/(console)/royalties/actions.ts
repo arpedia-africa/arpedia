@@ -77,7 +77,8 @@ export async function releaseCycle(cycle: string, otp: string, label: string): P
       ),
     };
   }
-  const r = data as { authors: number; total_kobo: number; replayed: boolean };
+  const r = data as { authors: number; total_kobo: number; held_unverified?: number; replayed: boolean };
+  const held = r.held_unverified ?? 0;
   revalidatePath('/royalties');
   revalidatePath(`/royalties/${cycle}`);
   revalidatePath('/payouts');
@@ -85,7 +86,10 @@ export async function releaseCycle(cycle: string, otp: string, label: string): P
     ok: true,
     message: r.replayed
       ? `${label} was already released. Nothing was sent twice.`
-      : `Release sent to Flutterwave. ${r.authors} author${r.authors === 1 ? '' : 's'} will be paid ${naira(r.total_kobo)}.`,
+      : `Release sent to Flutterwave. ${r.authors} author${r.authors === 1 ? '' : 's'} will be paid ${naira(r.total_kobo)}.` +
+        (held > 0
+          ? ` ${held} author${held === 1 ? ' has' : 's have'} no verified bank account; their money carries to next month.`
+          : ''),
   };
 }
 

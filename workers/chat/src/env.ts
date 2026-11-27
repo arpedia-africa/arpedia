@@ -1,4 +1,5 @@
 import type { ConversationDO } from './do';
+import type { InboxDO } from './inbox-do';
 
 export interface Env {
   APP_ENV: 'local' | 'staging' | 'production';
@@ -10,6 +11,8 @@ export interface Env {
   /** Local CLI stack only (HS256). */
   SUPABASE_JWT_SECRET?: string;
   CONVERSATION: DurableObjectNamespace<ConversationDO>;
+  /** One per reader: live inbox counts and "reading now" (absent: the inbox polls). */
+  INBOX?: DurableObjectNamespace<InboxDO>;
   /** The api Worker (service binding), for the flow 14 `moderate-text` check. */
   API?: Fetcher;
 }

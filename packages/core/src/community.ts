@@ -97,6 +97,21 @@ export type ServerFrame =
       slow_mode_seconds: number;
     };
 
+// ─── Inbox socket (per-user InboxDO, `GET /inbox`) ──────────────────────────
+/** Most conversations one inbox socket can watch (the inbox loads at most 100 rows). */
+export const INBOX_WATCH_MAX = 100;
+
+export type InboxClientFrame =
+  /** The conversations on screen; replaces the previous list. Resend every few minutes. */
+  { type: 'watch'; groups: string[] } | { type: 'ping' };
+
+export type InboxServerFrame =
+  | { type: 'pong' }
+  /** Someone else posted in a watched conversation: refetch the inbox rows and counts. */
+  | { type: 'activity'; group_id: string; at: string }
+  /** "Reading now" changed in a watched conversation (0 for very large groups). */
+  | { type: 'reading_now'; group_id: string; reading_now: number };
+
 /** Socket close code when the user may no longer be in the conversation. */
 export const CLOSE_FORBIDDEN = 4403;
 

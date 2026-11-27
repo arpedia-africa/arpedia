@@ -11,7 +11,8 @@ const n0 = (n: number) => n.toLocaleString('en-NG');
 
 /**
  * Book detail (s-book, flow 03 admin rule 1): details, description, cover, Discover placement and the
- * community/moderation fold. Editing details or the cover makes a new revision (flow 12).
+ * community/moderation fold. Edit details and Replace cover open /books/[id]/edit, which saves a new
+ * revision from the live one (flow 12 rule 41).
  */
 export default async function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -70,11 +71,17 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
         meta={meta}
         live={book.status === 'live'}
         action={
-          <ToastButton
-            className="btn btn-p"
-            label="Edit details"
-            message={`Changes to ${title} are saved as a new revision; readers keep the current one until it is published.`}
-          />
+          book.status === 'live' ? (
+            <Link className="btn btn-p" href={`/books/${id}/edit`}>
+              Edit details
+            </Link>
+          ) : (
+            <ToastButton
+              className="btn btn-p"
+              label="Edit details"
+              message="Details change through a new revision once the book is live."
+            />
+          )
         }
       />
       <div className="page">
@@ -161,11 +168,17 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                   <div className="stack s8">
                     <span>{rev?.cover_key ? <b>Uploaded cover</b> : <b>No cover uploaded</b>}</span>
                     {rev?.created_at && <span className="muted">{`Uploaded ${date(rev.created_at)}`}</span>}
-                    <ToastButton
-                      className="btn btn-g sm"
-                      label="Replace cover"
-                      message="A new cover comes with a new revision: upload it under Books → Upload a book."
-                    />
+                    {book.status === 'live' ? (
+                      <Link className="btn btn-g sm" href={`/books/${id}/edit?cover=1`}>
+                        Replace cover
+                      </Link>
+                    ) : (
+                      <ToastButton
+                        className="btn btn-g sm"
+                        label="Replace cover"
+                        message="A new cover comes with a new revision once the book is live."
+                      />
+                    )}
                   </div>
                 </div>
               </div>

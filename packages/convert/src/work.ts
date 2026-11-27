@@ -17,6 +17,10 @@ export interface WorkCopy {
   imagesFrom?: number;
   /** One untitled body at verify: rechecks raise no chapter-title flags (see `checkChapters`). */
   untitledBook?: boolean;
+  /** Chapter counts the uploaded contents list allows, for the contents checks on a recheck. */
+  tocChapters?: number[] | null;
+  /** Preview target the cut aims for: the book's override (flow 03, 5–25), else the 10% default. */
+  previewPercent?: number;
 }
 
 export type ChapterEdit = { op: 'rename'; ord: number; title: string } | { op: 'merge_up'; ord: number };
@@ -84,8 +88,8 @@ export function applyEdits(work: WorkCopy, edits: ChapterEdit[]): WorkCopy {
       out.anchors.fps.push(a.fps[i]!.slice(p.start, p.end));
     }
   });
-  // the 10% default target; per-book overrides are flow 03's
-  Object.assign(out, priceChapters(out.chapters));
+  // the book's preview target (its override, else 10%)
+  Object.assign(out, priceChapters(out.chapters, work.previewPercent));
   return out;
 }
 
@@ -146,7 +150,7 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
       }
       if (chapters[ord]!.blocks.length === 0) throw new FixError('A chapter cannot be left empty.');
       const next: WorkCopy = { ...work, chapters, anchors };
-      Object.assign(next, priceChapters(next.chapters));
+      Object.assign(next, priceChapters(next.chapters, work.previewPercent));
       return { work: next, touched: [op.chapter_uid], restructured: true };
     }
     case 'insert_copyright_page': {
@@ -176,7 +180,7 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
       anchors.ids.unshift([op.para_id ?? newParaId()]);
       anchors.fps.unshift([await fingerprint(text)]);
       const next: WorkCopy = { ...work, chapters, anchors };
-      Object.assign(next, priceChapters(next.chapters));
+      Object.assign(next, priceChapters(next.chapters, work.previewPercent));
       return { work: next, touched: [uid], restructured: true };
     }
   }
@@ -201,8 +205,8 @@ export function carryCopyright(work: WorkCopy, base: WorkCopy): WorkCopy | null 
   anchors.ids.unshift([...base.anchors.ids[at]!]);
   anchors.fps.unshift([...base.anchors.fps[at]!]);
   const next: WorkCopy = { ...work, chapters, anchors };
-  // the default target, as verify and the fixes use (preview.percent is what the cut achieved)
-  Object.assign(next, priceChapters(next.chapters));
+  // the same target verify and the fixes use (preview.percent is what the cut achieved)
+  Object.assign(next, priceChapters(next.chapters, work.previewPercent));
   return next;
 }
 

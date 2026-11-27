@@ -7,6 +7,7 @@ import {
   uuid7,
   type ChatMessage,
   type ClientFrame,
+  type InboxServerFrame,
   type SendError,
   type ServerFrame,
 } from '@arpedia/core';
@@ -32,6 +33,8 @@ export interface SenderState {
   last: number;
   sends: number[];
   recent: { client_id: string; id: string; created_at: string; hidden: boolean }[];
+  /** Hashes of recent message texts, for the identical-messages spam rule (flow 14 rule 23). */
+  texts?: { h: number; t: number }[];
 }
 
 export interface SenderStore {
@@ -41,6 +44,24 @@ export interface SenderStore {
 
 /** How far back /enforce looks for moderated messages (a decision pushes right after it saves). */
 export const ENFORCE_WINDOW_MS = 10 * 60_000;
+
+/**
+ * Inbox sockets watching this conversation (flow 06: unread counts and "reading now" reach the
+ * inbox through the per-user InboxDO, fed by the group DOs). Watchers live in DO storage with an
+ * expiry, so hibernation keeps them and a lost InboxDO drops out on its own.
+ */
+export interface InboxLink {
+  list(): Promise<Map<string, number>>;
+  put(userId: string, until: number): Promise<void>;
+  delete(userIds: string[]): Promise<void>;
+  /** Deliver frames to the user's InboxDO; false when it has no open socket any more. */
+  notify(userId: string, frames: InboxServerFrame[]): Promise<boolean>;
+}
+
+/** A watch lasts this long unless the InboxDO renews it (it renews at half time). */
+export const WATCH_TTL_MS = 10 * 60_000;
+/** Most inbox sockets one conversation feeds; past that, those inboxes keep polling. */
+export const WATCHERS_MAX = 500;
 
 export interface Deps {
   groupId: string;
@@ -56,6 +77,8 @@ export interface Deps {
    * failing, the conversation falls back to its own link and phone checks.
    */
   moderate?(text: string, opts: { surface: 'chat' | 'dm'; sender_new: boolean }): Promise<Moderation>;
+  /** Absent: no inbox feed (inboxes poll). */
+  inbox?: InboxLink;
 }
 
 export interface Moderation {
@@ -70,6 +93,22 @@ export const FLUSH_MS = 1_000;
 export const FLUSH_BATCH = 50;
 export const RETRY_MS = 5_000;
 export const RATE_LIMIT = { count: 20, windowMs: 60_000 };
+/** Flow 14 defaults: 3 identical messages in 5 minutes. */
+export const IDENTICAL = { count: 3, windowMinutes: 5 };
+const TEXTS_PER_SENDER = 50;
+
+/** FNV-1a of the text as a person would see it repeated (case and spacing ignored). */
+export function textHash(body: string): number {
+  let h = 0x811c9dc5;
+  for (const ch of body.toLowerCase().replace(/\s+/g, ' ').trim()) {
+    h ^= ch.codePointAt(0)!;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+const positive = (n: unknown, fallback: number) =>
+  typeof n === 'number' && Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 const RECENT_PER_SENDER = 20;
 const LINK = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|ng|net|org|africa|io|co|me|ly|link)\b/i;
 const PHONE = /(?<!\d)(?:\+?234|0)[789][01]\d{8}(?!\d)/;
@@ -117,8 +156,83 @@ export class Conversation {
     if (n === this.readingNow) return;
     this.readingNow = n;
     const hidden = this.anyAccess()?.member_count ?? 0;
-    this.broadcast({ type: 'presence', reading_now: hidden > 10_000 ? 0 : n });
+    const shown = hidden > 10_000 ? 0 : n;
+    this.broadcast({ type: 'presence', reading_now: shown });
     await this.d.db.setLiveCount(this.d.groupId, n).catch(() => undefined);
+    await this.tellInboxes(() => [{ type: 'reading_now', group_id: this.d.groupId, reading_now: shown }]);
+  }
+
+  /**
+   * An InboxDO asks to hear about this conversation for `userId`. Only people who may read it
+   * (members, staff, public previews) are taken; false tells the inbox to keep polling instead.
+   */
+  async watch(userId: string): Promise<boolean> {
+    const link = this.d.inbox;
+    if (!link) return false;
+    const a = await this.accessFor(userId, true).catch(() => null);
+    const all = await link.list();
+    if (!a || !canRead(a)) {
+      if (all.has(userId)) await link.delete([userId]);
+      return false;
+    }
+    const now = this.d.now();
+    const renewing = (all.get(userId) ?? 0) > now;
+    const live = [...all].filter(([, until]) => until > now).length;
+    if (!renewing && live >= WATCHERS_MAX) return false;
+    await link.put(userId, now + WATCH_TTL_MS);
+    return true;
+  }
+
+  async unwatch(userId: string): Promise<void> {
+    await this.d.inbox?.delete([userId]);
+  }
+
+  /**
+   * Send frames to every watching inbox. Access is checked again (cached 60 s), so someone who
+   * left or was banned stops hearing at once; expired, refused and closed watchers are dropped.
+   * Never throws: the inbox feed must not hold up the chat.
+   */
+  private async tellInboxes(frames: (userId: string, a: Access) => InboxServerFrame[]): Promise<void> {
+    const link = this.d.inbox;
+    if (!link) return;
+    try {
+      const all = await link.list();
+      if (!all.size) return;
+      const now = this.d.now();
+      const drop: string[] = [];
+      await Promise.all(
+        [...all].map(async ([uid, until]) => {
+          if (until <= now) return void drop.push(uid);
+          const a = await this.accessFor(uid).catch(() => null);
+          if (!a) return;
+          if (!canRead(a)) return void drop.push(uid);
+          const f = frames(uid, a);
+          if (!f.length) return;
+          const open = await link.notify(uid, f).catch(() => true);
+          if (!open) drop.push(uid);
+        }),
+      );
+      if (drop.length) await link.delete(drop);
+    } catch (e) {
+      console.error('inbox feed failed', e);
+    }
+  }
+
+  /**
+   * Newly stored, visible messages: tell each watching inbox, except about its own messages and
+   * those from people it blocked (they never count as unread for it either).
+   */
+  private async bump(batch: PersistItem[], results: PersistResult[]): Promise<void> {
+    const stored = results
+      .filter((r) => r.status === 'stored' && r.id)
+      .map((r) => batch.find((b) => b.id === r.id))
+      .filter((b): b is PersistItem => !!b && b.state === 'visible');
+    if (!stored.length) return;
+    await this.tellInboxes((uid, a) => {
+      const theirs = stored.filter((b) => b.sender_id !== uid && !a.blocked.includes(b.sender_id));
+      const last = theirs.reduce<string | null>((m, b) => (m && m > b.created_at ? m : b.created_at), null);
+      return last ? [{ type: 'activity', group_id: this.d.groupId, at: last }] : [];
+    });
   }
 
   async onFrame(peer: Peer, raw: string): Promise<void> {
@@ -180,7 +294,18 @@ export class Conversation {
       if (wait > 0) return err('slow_mode', { wait_seconds: Math.ceil(wait / 1000) });
     }
     const window = s.sends.filter((t) => now - t < RATE_LIMIT.windowMs);
-    if (window.length >= RATE_LIMIT.count) return err('rate_limited');
+    const perMinute = positive(a.limits?.messages_per_minute, RATE_LIMIT.count) || RATE_LIMIT.count;
+    if (window.length >= perMinute) return err('rate_limited');
+
+    // The same text again and again (spam): refused once it reaches the limit inside the window.
+    const sameMax = positive(a.limits?.identical_messages, IDENTICAL.count);
+    const sameMs =
+      (positive(a.limits?.identical_window_minutes, IDENTICAL.windowMinutes) || IDENTICAL.windowMinutes) *
+      60_000;
+    const texts = (s.texts ?? []).filter((x) => now - x.t < sameMs);
+    const h = body ? textHash(body) : null;
+    if (!mod && h !== null && sameMax > 0 && texts.filter((x) => x.h === h).length >= sameMax - 1)
+      return err('rejected_by_rules');
 
     if (quote) {
       if (
@@ -233,6 +358,7 @@ export class Conversation {
       last: sentAt,
       sends: window,
       recent: [...s.recent, { client_id: f.client_id, id, created_at, hidden }].slice(-RECENT_PER_SENDER),
+      texts: (h === null ? texts : [...texts, { h, t: sentAt }]).slice(-TEXTS_PER_SENDER),
     };
     this.senders.set(uid, next);
     await this.d.senders.put(uid, next);
@@ -301,6 +427,7 @@ export class Conversation {
           await this.d.queue.delete(keys);
           this.takeBack(batch, results);
           await this.push(results);
+          await this.bump(batch, results);
         }
       } finally {
         this.flushing = null;
@@ -317,6 +444,7 @@ export class Conversation {
         const results = await this.d.db.persist([item]);
         this.takeBack([item], results);
         await this.push(results);
+        await this.bump([item], results);
       } catch (e) {
         if (!permanent(e)) {
           this.d.scheduleFlush(RETRY_MS);
