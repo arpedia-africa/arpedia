@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
+import { payoutRules } from '@arpedia/core';
 import { useSession } from '../../../features/01/session';
 import { useOnline } from '../../../features/03/book';
 import { STUDIO } from '../../../features/11/application';
+import { useStudioHome } from '../../../features/11/studio';
 import { StudioPayoutView } from '../../../features/11/StudioSettingsViews';
 import { useEarningsTrack } from '../../../features/13/analytics';
 import { BankSheet } from '../../../features/13/BankSheet';
@@ -19,6 +21,8 @@ export default function StudioPayout() {
   const online = useOnline();
   const uid = useSession()?.user.id;
   const q = usePayoutAccount(uid);
+  // Payout day and minimum follow the server's settings (cached from Studio home).
+  const home = useStudioHome(uid);
   const [open, setOpen] = useState(false);
   const a = q.data ?? null;
   useEffect(() => track('payout_account_viewed'), [track]);
@@ -31,6 +35,7 @@ export default function StudioPayout() {
           name: a ? a.bank_account_name : null,
           status: accountStatus(a),
         }}
+        rules={payoutRules(home.data)}
         onBack={() => (router.canGoBack() ? router.back() : router.replace(STUDIO))}
         onChange={() => {
           if (!online) return toast({ message: 'You’re offline. Connect to change your bank account.' });

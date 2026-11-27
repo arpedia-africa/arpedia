@@ -225,3 +225,40 @@ export function nameMatchScore(bankName: string, legalName: string): number {
   const missing = Math.max(0, legal.length - bank.length);
   return Math.max(0, Math.round((total / short.length) * 100 - missing * 15));
 }
+
+/** Payout settings as Studio reads them from `studio_home` / `studio_earnings` (11-5, 13-13). */
+export interface PayoutRules {
+  minPayoutKobo: number;
+  holdDays: number;
+  payoutDay: number;
+}
+
+/** The server's settings, or the launch defaults while they load. */
+export function payoutRules(
+  d?: { min_payout_kobo?: number | null; hold_days?: number | null; payout_day?: number | null } | null,
+): PayoutRules {
+  return {
+    minPayoutKobo: d?.min_payout_kobo ?? EARNING_DEFAULTS.minPayoutKobo,
+    holdDays: d?.hold_days ?? EARNING_DEFAULTS.holdDays,
+    payoutDay: d?.payout_day ?? EARNING_DEFAULTS.payoutDay,
+  };
+}
+
+/**
+ * When a month (`YYYY-MM`) is paid: its cycle's own date once it closed, otherwise the date the
+ * rules give a month that closes at its end (the same date admin shows for an open month).
+ */
+export function monthPayoutDate(month: string, rules: PayoutRules, cycleDate?: string | null): string {
+  if (cycleDate) return cycleDate.slice(0, 10);
+  const y = Number(month.slice(0, 4));
+  const m = Number(month.slice(5, 7)) - 1;
+  const end = new Date(Date.UTC(y, m + 1, 1) - WAT_OFFSET_MS);
+  return payoutDate(end, rules.holdDays, rules.payoutDay);
+}
+
+/** 1st, 2nd, 3rd, 15th, 22nd (payout day copy). */
+export function ordinalDay(n: number): string {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+}

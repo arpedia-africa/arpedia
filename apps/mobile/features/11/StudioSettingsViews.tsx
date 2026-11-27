@@ -18,7 +18,7 @@ import {
   useTheme,
   type PillTone,
 } from '@arpedia/ui';
-import { formatKobo, MIN_PAYOUT_KOBO } from '@arpedia/core';
+import { formatKobo, ordinalDay, payoutRules, type PayoutRules } from '@arpedia/core';
 import { OnbSheet } from '../01/parts';
 import { Foot } from '../01/StepViews';
 import { SubHero } from './parts';
@@ -218,10 +218,13 @@ export interface PayoutAccountModel {
 
 export function StudioPayoutView({
   account,
+  rules = payoutRules(),
   onBack,
   onChange,
 }: {
   account: PayoutAccountModel;
+  /** Payout day and minimum from the server's earning settings (13-13). */
+  rules?: PayoutRules;
   onBack: () => void;
   onChange: () => void;
 }) {
@@ -234,15 +237,15 @@ export function StudioPayoutView({
         <Group>
           <Cell
             title={account.bank ?? 'No bank account yet'}
-            sub={account.name ?? 'Add one to get paid on the 15th'}
+            sub={account.name ?? `Add one to get paid on the ${ordinalDay(rules.payoutDay)}`}
             trail={<Pill label={account.status.label} tone={account.status.tone} />}
           />
         </Group>
         <KeyValue
           rows={[
-            { k: 'Payout day', v: '15th of each month' },
+            { k: 'Payout day', v: `${ordinalDay(rules.payoutDay)} of each month` },
             { k: 'Method', v: 'Bank transfer' },
-            { k: 'Minimum', v: formatKobo(MIN_PAYOUT_KOBO) },
+            { k: 'Minimum', v: formatKobo(rules.minPayoutKobo) },
           ]}
         />
         <Callout tone="info">Changing account pauses payouts for 48 hours for safety.</Callout>
