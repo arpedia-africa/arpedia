@@ -68,14 +68,18 @@ export class BookFiles {
     return new File(this.dir, 'keys.bin');
   }
 
-  /** Short-lived read links for the sealed files, plus a fresh key bundle (online only). */
-  async refreshLinks(): Promise<void> {
+  /**
+   * Short-lived read links for the sealed files, plus a fresh key bundle (online only). `online`:
+   * reading now, which a device past the download limit may still do (flow 10 rule 31).
+   */
+  async refreshLinks(online = true): Promise<void> {
     const device_id = await deviceId();
     const r = await fetchDownload({
       book_id: this.bookId,
       revision_id: this.revisionId,
       device_id,
       scope: this.owns ? 'whole' : 'owned',
+      online,
     });
     this.urls = new Map(r.files.map((f) => [f.path, f.url]));
     this.urlsUntil = Date.parse(r.expires_at) - 30_000;
@@ -90,6 +94,7 @@ export class BookFiles {
       revision_id: this.revisionId,
       device_id,
       chapter_uids: chapterUids,
+      online: true,
     });
     await this.storeKeys(r, !!chapterUids);
   }
@@ -281,7 +286,7 @@ export class BookFiles {
    * are skipped, so an interrupted download resumes where it stopped.
    */
   async downloadAll(onProgress?: (done: number, total: number) => void): Promise<void> {
-    await this.refreshLinks();
+    await this.refreshLinks(false);
     const paths = [...this.urls.keys()];
     let done = 0;
     for (const p of paths) {
