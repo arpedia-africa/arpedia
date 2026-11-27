@@ -15,8 +15,14 @@ import { SettingsSheet } from '../../features/04/ReaderSheets';
 import { settingValue, toSettings } from '../../features/04/state';
 import { useLibrarySession } from '../../features/05/library';
 import { usePlanScreen, type SubscriptionJson } from '../../features/09/data';
+import { useTrack, type Track } from '../../features/10/analytics';
 import { requestDataExport, setReaderTheme } from '../../features/10/data';
-import { SettingsView, ThemeSheet, type ReaderTheme } from '../../features/10/SettingsViews';
+import {
+  SettingsView,
+  ThemeSheet,
+  type ReaderTheme,
+  type SettingsActions,
+} from '../../features/10/SettingsViews';
 
 /** The Subscription row's pill; none ("No plan") when there is no plan or it has expired or been refunded. */
 function planPill(
@@ -37,6 +43,17 @@ function planPill(
   }
 }
 
+/** settings_row_tapped {row} for every Settings action (row = the handler name without "on"). */
+function rowTaps(track: Track, a: SettingsActions): SettingsActions {
+  const out: Record<string, unknown> = {};
+  for (const [k, fn] of Object.entries(a) as [string, (...args: unknown[]) => unknown][])
+    out[k] = (...args: unknown[]) => {
+      if (k !== 'onBack') track('settings_row_tapped', { row: k.replace(/^on/, '') });
+      return fn(...args);
+    };
+  return out as unknown as SettingsActions;
+}
+
 // Flow 10 · Settings (s-account) with the App colour sheet (s-theme-settings) over it.
 export default function Account() {
   const toast = useToast();
@@ -51,6 +68,7 @@ export default function Account() {
   const [logOutAsk, setLogOutAsk] = useState(false);
   const [nav, setNav] = useState<ReaderSettings | null>(null);
   const { s } = useTheme();
+  const track = useTrack();
 
   // Small facts for row trails; each row works without them (rule 14 "render at once from cache").
   const extra = useQuery({
@@ -100,6 +118,7 @@ export default function Account() {
   const pickTheme = (t: ThemeName) => {
     // Recolours at once, kept on the phone first; saved to profiles.theme when online (rule 18).
     setTheme(t);
+    track('theme_changed', { theme: t, source: 'app' });
     void saveStep('theme', { theme: t }).catch(() => {});
   };
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
@@ -120,7 +139,7 @@ export default function Account() {
           version: Application.nativeApplicationVersion ?? '1.0.0',
           navigation: readerSettings.layout === 'scroll' ? 'Scroll' : 'Swipe pages',
         }}
-        a={{
+        a={rowTaps(track, {
           onBack: back,
           onEditProfile: () => router.push('/edit-profile'),
           onNotifications: () => router.push('/notification-settings'),
@@ -132,6 +151,7 @@ export default function Account() {
             if (!uid) return;
             const before = readerTheme ?? extra.data?.readerTheme ?? 'light';
             setLocalReader(t);
+            track('theme_changed', { theme: t, source: 'reader' });
             setReaderTheme(t, uid)
               .then(() => queryClient.invalidateQueries({ queryKey: ['account-extra', uid] }))
               .catch(() => {
@@ -148,7 +168,12 @@ export default function Account() {
           onSubscription: () => router.push('/plan'),
           onAppColour: () => setThemeOpen(true),
           onInvite: () =>
-            void Share.share({ message: 'Read African stories with me on Arpedia: https://arpedia.africa' }),
+            void Share.share({
+              message: 'Read African stories with me on Arpedia: https://arpedia.africa',
+            }).then(
+              (res) => res.action === Share.sharedAction && track('invite_shared'),
+              () => undefined,
+            ),
           onAbout: () => router.push('/about'),
           onLogOut: () => void askLogOut(),
           onExport: () => {
@@ -168,7 +193,7 @@ export default function Account() {
               .finally(() => setExporting(false));
           },
           onDelete: () => router.push('/delete-account'),
-        }}
+        })}
       />
       <ThemeSheet open={themeOpen} value={theme} onPick={pickTheme} onClose={() => setThemeOpen(false)} />
       <SettingsSheet

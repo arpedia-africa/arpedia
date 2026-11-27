@@ -9,6 +9,7 @@ import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import { pickAndUploadAvatar } from '../../features/01/photo';
 import { profileKey, useSession } from '../../features/01/session';
+import { useTrack } from '../../features/10/analytics';
 import { rpcReason, updateProfile } from '../../features/10/data';
 import {
   EditProfileFoot,
@@ -37,6 +38,7 @@ const phoneText = (e164: string | null, dial: string) =>
 export default function EditProfile() {
   const { s } = useTheme();
   const toast = useToast();
+  const track = useTrack();
   const nav = useNavigation();
   const { isConnected } = useNetInfo();
   const offline = isConnected === false;
@@ -135,6 +137,7 @@ export default function EditProfile() {
         queryClient.invalidateQueries({ queryKey: profileKey(uid) }),
         queryClient.invalidateQueries({ queryKey: ['edit-profile', uid] }),
       ]);
+      track('profile_saved', { fields: Object.keys(patch).sort().join(',') });
       toast({ message: 'Profile saved' });
       setDone(true);
     } catch (e) {
