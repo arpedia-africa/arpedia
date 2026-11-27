@@ -42,6 +42,10 @@ export interface Env {
   CONVERSATION?: DurableObjectNamespace;
   /** Flow 13: base64 256-bit key that encrypts author bank account numbers (secret). Local falls back to a fixed key. */
   PAYOUT_ACCOUNT_KEY?: string;
+  /** Flow 15: PostHog project key (phc_…) for server events; unset → events are not sent. */
+  POSTHOG_KEY?: string;
+  /** Flow 15: PostHog host (default https://eu.i.posthog.com). */
+  POSTHOG_HOST?: string;
   /** Flow 04: rate limit on /keys and /download, per reader and device (wrangler `ratelimits`). */
   KEYS_LIMIT?: RateLimiter;
 }
