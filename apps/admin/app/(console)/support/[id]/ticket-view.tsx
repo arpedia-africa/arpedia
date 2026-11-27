@@ -256,12 +256,15 @@ export function TicketView({
             </div>
           </div>
           <div className="ph__acts">
-            <a
-              className="btn btn-p"
-              onClick={() => showToast('Grant credits opens with Credits and plans (flow 09).')}
-            >
-              Grant credits
-            </a>
+            {reader ? (
+              <a className="btn btn-p" href={`/credits/${reader.id}/grant`}>
+                Grant credits
+              </a>
+            ) : (
+              <button className="btn btn-p" type="button" disabled title="This sender has no Arpedia account">
+                Grant credits
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -372,7 +375,7 @@ export function TicketView({
               <div className="panel__head">
                 <h2>Ticket and reader</h2>
                 {reader ? (
-                  <a className="link" onClick={() => showToast('Reader pages open with People (flow 16).')}>
+                  <a className="link" href={`/users/${reader.id}`}>
                     Open reader
                   </a>
                 ) : null}
