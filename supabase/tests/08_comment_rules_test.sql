@@ -3,7 +3,7 @@
 -- also refused for Sexual content words, whatever their action).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(20);
 
 -- 1 adult reader (20 credits), 2 author, 3 reader aged 17 (20 credits), 4 another reader.
 insert into auth.users (id, email, created_at)
@@ -43,6 +43,7 @@ select is((select count(*)::int from public._automod_hits('kiss me', 'comment'))
 select pg_temp.as_user('80860000-0000-4000-a000-000000000001');
 create temporary table held as select (public.add_comment('80860000-0000-4000-e000-000000000001', null,
   'What a rubbishword post', '80860000-0000-4000-f100-000000000001') ->> 'id')::uuid as id;
+update public.post_comments set created_at = now() - interval '1 minute' where id = (select id from held);
 select is((select state::text from public.post_comments where id = (select id from held)), 'auto_hidden',
   'a Hide word holds the comment');
 select is((select count(*)::int from public.reports where content_type = 'post_comment'
@@ -59,6 +60,13 @@ select is(jsonb_array_length(public.get_post_comments('80860000-0000-4000-e000-0
   'other readers do not');
 select is(public.add_comment('80860000-0000-4000-e000-000000000001', null, 'Bit of a mildword',
   '80860000-0000-4000-f100-000000000002') ->> 'state', 'visible', 'a Warn word has no comment form: it shows');
+-- Paging (the cursor is the raw page's last row, so a held comment never stalls it).
+create temporary table p1 as select public.get_post_comments('80860000-0000-4000-e000-000000000001', null, null, 1) as j;
+select is((select jsonb_array_length(j -> 'comments') from p1), 0, 'page 1 holds only the held comment, hidden here');
+select is((select j ->> 'has_more' from p1), 'true', 'and says there is more');
+select is(public.get_post_comments('80860000-0000-4000-e000-000000000001',
+  (select (j -> 'next' ->> 'at')::timestamptz from p1), (select (j -> 'next' ->> 'id')::uuid from p1), 1)
+  -> 'comments' -> 0 ->> 'body', 'Bit of a mildword', 'the next page carries on after it');
 
 -- ─── Paid messages ──────────────────────────────────────────────────────────
 select pg_temp.as_user('80860000-0000-4000-a000-000000000001');

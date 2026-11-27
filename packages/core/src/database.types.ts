@@ -5736,6 +5736,17 @@ isOneToOne: false
 "_author_state":
 { Args: { "p_author": string }; Returns: string
                            },
+"_automod_hits":
+{ Args: { "p_surface": string,"p_text": string }; Returns: {
+              "action": string,"category": string,"id": string
+            }[]
+                           },
+"_automod_norm":
+{ Args: { "p": string }; Returns: string
+                           },
+"_automod_pattern":
+{ Args: { "p_needle": string }; Returns: string
+                           },
 "_balance":
 { Args: { "p_user": string }; Returns: number
                            },

@@ -182,6 +182,59 @@ begin
   return public._send_author_message_base(p_author, p_client_id, p_body);
 end $$;
 
+-- ─── get_post_comments: the page cursor ─────────────────────────────────────
+-- The flow 08 body read its `top` CTE again in later statements ("relation top does not exist"),
+-- so every call failed and no post's comments loaded. Same result, one row set per step.
+create or replace function public.get_post_comments(p_post uuid, p_after timestamptz default null,
+                                                    p_after_id uuid default null, p_limit int default 20)
+returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_user uuid := public._uid();
+  a public.author_posts;
+  v_lim int := least(greatest(coalesce(p_limit, 20), 1), 50);
+  v_ids uuid[];
+  v_rows jsonb;
+  v_next jsonb;
+begin
+  select * into a from public.author_posts where id = p_post;
+  if a.id is null or (a.state <> 'published' and a.author_id <> v_user)
+     or public.has_blocked(v_user, a.author_id) then
+    perform public._raise('not_found');
+  end if;
+  -- One more than a page, to know whether there is more.
+  select array_agg(t.id order by t.created_at, t.id) into v_ids
+  from (select c.id, c.created_at from public.post_comments c
+        where c.post_id = p_post and c.parent_id is null
+          and (p_after is null or (c.created_at, c.id) > (p_after, coalesce(p_after_id, '00000000-0000-0000-0000-000000000000'::uuid)))
+        order by c.created_at, c.id
+        limit v_lim + 1) t;
+  v_ids := coalesce(v_ids, '{}');
+
+  with page as (
+    select c.* from public.post_comments c where c.id = any (v_ids[1:v_lim])
+  ), shaped as (
+    select t.created_at, t.id,
+           public._comment_row(t, v_user, a.author_id) as row,
+           coalesce((select jsonb_agg(r.j order by r.created_at, r.id) from (
+             select x.created_at, x.id, public._comment_row(x, v_user, a.author_id) as j
+             from public.post_comments x where x.parent_id = t.id and x.state <> 'deleted') r
+             where r.j is not null), '[]'::jsonb) as replies
+    from page t
+  )
+  select coalesce(jsonb_agg(s.row || jsonb_build_object('replies', s.replies) order by s.created_at, s.id), '[]'::jsonb)
+    into v_rows
+  from shaped s
+  where s.row is not null and (s.row ->> 'state' <> 'deleted' or jsonb_array_length(s.replies) > 0);
+
+  -- The cursor is the last row of the raw page, so rows hidden from this viewer never stall paging.
+  select jsonb_build_object('at', c.created_at, 'id', c.id) into v_next
+  from public.post_comments c
+  where c.id = v_ids[least(cardinality(v_ids), v_lim)];
+  return jsonb_build_object('comments', v_rows, 'has_more', cardinality(v_ids) > v_lim, 'total', a.comment_count,
+    'next', v_next);
+end $$;
+
 revoke execute on function public._automod_norm(text), public._automod_pattern(text),
   public._automod_hits(text, text), public._add_comment_base(uuid, uuid, text, uuid)
   from public, anon, authenticated;
