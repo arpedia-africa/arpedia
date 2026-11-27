@@ -6196,6 +6196,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_naira":
+{ Args: { "p_kobo": number }; Returns: string
+                           },
 "_next_wat_midnight":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
