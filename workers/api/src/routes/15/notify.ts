@@ -61,6 +61,7 @@ const STAFF_ROLE: Record<string, string> = {
   application_sla: 'publisher',
   staff_alert: 'moderator',
   finance_alert: 'finance',
+  payout_alert: 'finance',
 };
 
 /** Finance alerts from flow 09's payments_out queue. */
@@ -368,6 +369,10 @@ export function plan(n: Notice, l: Lookup): Plan {
       });
       break;
     }
+    case 'payout_alert':
+      // Flow 13 writes its own copy (payout reminder, stuck transfers, failed payouts).
+      staff('finance', str(n.subject) || 'Payout alert', str(n.message) || 'Open Royalties in the console.');
+      break;
     case 'sanction_notice':
       typed('moderation_notice');
       email('sanction_notice', { message: str(n.message) });

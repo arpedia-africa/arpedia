@@ -157,6 +157,20 @@ describe('plan', () => {
     expect(plan({ ...n, row_count: 1 }, L).mail[0]!.vars.message).toMatch(/^1 row\. /);
   });
 
+  it('payout alerts email Finance with flow 13 copy', () => {
+    const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
+    const n = {
+      kind: 'payout_alert',
+      alert: 'payout_reminder',
+      subject: 'Payout day in 3 days',
+      message: 'm',
+    };
+    expect(needs([n]).roles).toEqual(['finance']);
+    expect(plan(n, l).mail).toEqual([
+      { key: 'staff_alert', user_id: MOD, vars: { subject: 'Payout day in 3 days', message: 'm' } },
+    ]);
+  });
+
   it('finance alerts email Finance (spec check 09-8)', () => {
     const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
     expect(needs([{ kind: 'finance_alert', alert: 'chargeback', transaction_id: 't1' }]).roles).toEqual([
