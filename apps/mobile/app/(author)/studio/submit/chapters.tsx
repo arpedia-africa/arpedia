@@ -49,6 +49,7 @@ export default function SubmitChapters() {
           title: c.title.trim() || null,
           words: c.words,
           canMerge: k > 0,
+          front: !!c.front,
         })),
         edits: [],
       });
@@ -126,9 +127,10 @@ export default function SubmitChapters() {
       </View>
     );
   } else {
+    const found = rows.filter((c) => !c.front).length;
     body = (
       <SubmitChaptersView
-        sub={`We found ${num(rows.length)} chapter${rows.length === 1 ? '' : 's'} in ${title}.`}
+        sub={`We found ${num(found)} chapter${found === 1 ? '' : 's'} in ${title}.`}
         flags={[
           ...(error ? [{ tone: 'err' as const, text: error }] : []),
           ...d.flags.map((f) => ({
