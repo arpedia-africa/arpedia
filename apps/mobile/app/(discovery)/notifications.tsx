@@ -80,6 +80,8 @@ export default function Notifications() {
 
   const body = () => {
     if (pages) {
+      // Decision cards already fill the page: an empty state under them reads as a contradiction.
+      if (!items.length && decisions.data?.length) return null;
       if (!items.length)
         return (
           <EmptyState
