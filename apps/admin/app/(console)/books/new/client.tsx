@@ -17,14 +17,14 @@ export interface Author {
 
 const MB = 1024 * 1024;
 const LIMITS = { docx: 50 * MB, epub: 50 * MB, pdf: 100 * MB, cover: 10 * MB };
-const LANGUAGES = [
+export const LANGUAGES = [
   ['en', 'English'],
   ['pcm', 'Nigerian Pidgin'],
   ['yo', 'Yoruba'],
   ['ig', 'Igbo'],
   ['ha', 'Hausa'],
 ] as const;
-const AGES = ['Everyone', '13+', '16+', '18+'];
+export const AGES = ['Everyone', '13+', '16+', '18+'];
 
 const initials = (name: string) =>
   name
@@ -39,13 +39,13 @@ const typeOf = (f: File) => {
   return ext === 'docx' || ext === 'epub' || ext === 'pdf' ? ext : null;
 };
 
-async function sha256(f: File) {
+export async function sha256(f: File) {
   const d = await crypto.subtle.digest('SHA-256', await f.arrayBuffer());
   return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** PUT a file to a signed object URL (the Worker checks size and hash). */
-async function put(url: string, f: File) {
+export async function put(url: string, f: File) {
   const res = await fetch(url, { method: 'PUT', body: f, headers: { 'X-Content-SHA256': await sha256(f) } }).catch(
     () => null,
   );
@@ -53,7 +53,7 @@ async function put(url: string, f: File) {
 }
 
 /** A drop zone (`.drop`): drag a file in or choose one. */
-function Drop({
+export function Drop({
   title,
   hint,
   accept,
