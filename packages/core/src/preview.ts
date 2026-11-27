@@ -31,6 +31,18 @@ export interface PreviewCut {
  * The cut is the paragraph end nearest `percent` of the counted words, never beyond 25% and never
  * before the first paragraph. A cut within the last 150 words or 5% of a chapter moves to its end.
  */
+/** A book's preview override (flow 03 admin rule 2) when it is a valid target, else the default. */
+export function previewTarget(override: number | string | null | undefined): number {
+  const n = Number(override);
+  return override != null &&
+    override !== '' &&
+    Number.isFinite(n) &&
+    n >= PREVIEW_MIN_PERCENT &&
+    n <= PREVIEW_MAX_PERCENT
+    ? n
+    : PREVIEW_PERCENT;
+}
+
 export function previewCut(chapters: number[][], percent = PREVIEW_PERCENT): PreviewCut {
   if (percent < PREVIEW_MIN_PERCENT || percent > PREVIEW_MAX_PERCENT)
     throw new RangeError(`preview percent must be ${PREVIEW_MIN_PERCENT}–${PREVIEW_MAX_PERCENT}`);
