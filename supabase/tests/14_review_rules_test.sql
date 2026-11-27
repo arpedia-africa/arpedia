@@ -22,10 +22,10 @@ create function pg_temp.auto_report(p_user uuid) returns text language sql as $$
   where r.content_type = 'review' and r.reporter_id is null and r.reported_user_id = p_user
 $$;
 
--- 1–4 old readers, 5 new reader (2 days old), 6 author.
+-- 1–4 old readers, 5 new reader (4 days old: past the 3-day review wait, under the 7-day link rule), 6 author.
 insert into auth.users (id, email, created_at)
 select ('14e00000-0000-4000-a000-00000000000' || n)::uuid, 'u' || n || '@t14e.local',
-       case when n = 5 then now() - interval '2 days' else now() - interval '60 days' end
+       case when n = 5 then now() - interval '4 days' else now() - interval '60 days' end
 from generate_series(1, 6) n;
 insert into public.profiles (id, full_name, is_author)
 select ('14e00000-0000-4000-a000-00000000000' || n)::uuid, 'Reviewer ' || n, n = 6 from generate_series(1, 6) n
