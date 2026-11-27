@@ -8628,6 +8628,9 @@ isOneToOne: false
 "staff_analytics_funnel":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
+"staff_analytics_growth":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "staff_analytics_reading":
 { Args: { "p_from": string,"p_limit"?: number,"p_to": string }; Returns: Json
                            },

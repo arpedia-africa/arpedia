@@ -6,6 +6,7 @@ import { serverSupabase } from '@/lib/supabase/server';
 import { count, dash, num } from '../data';
 import { period } from '../period';
 import { AnalyticsFrame, Hbars, NoData } from '../shared';
+import { EMPTY_GROWTH, churnDelta, cohortRows, day30, promoLabel, type Growth } from './growth';
 
 export const metadata: Metadata = { title: 'Analytics: Growth · Arpedia Admin' };
 
@@ -31,8 +32,16 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
   if (!staff.permissions.includes('view_analytics'))
     return <NoAccess page="analytics" label="Analytics" role={staff.role} />;
   const supabase = await serverSupabase();
-  const funnelRes = await supabase.rpc('staff_analytics_funnel', { p_from: p.from, p_to: p.to });
+  const [funnelRes, growthRes] = await Promise.all([
+    supabase.rpc('staff_analytics_funnel', { p_from: p.from, p_to: p.to }),
+    supabase.rpc('staff_analytics_growth', { p_from: p.from, p_to: p.to }),
+  ]);
   const f = (funnelRes.data as unknown as Funnel | null) ?? {};
+  const g = (growthRes.data as unknown as Growth | null) ?? EMPTY_GROWTH;
+  const cohorts = cohortRows(g);
+  const d30 = day30(cohorts);
+  const churn = g.churn;
+  const rate = (n: number | null) => (n == null ? dash : `${n.toLocaleString('en-NG', { maximumFractionDigits: 1 })}%`);
   const signups = f.signed_up ?? null;
 
   // Steps with a count; the first one is 100% and each next shows its share of the step before.
@@ -66,15 +75,19 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
         },
         {
           label: 'Day 30 retention',
-          value: dash,
-          sub: 'Starts with reading sessions',
-          explain: 'Share of a sign-up week that came back on day 30, from reading sessions.',
+          value: d30 ? `${d30.pct}%` : dash,
+          delta: d30?.delta,
+          sub: d30 ? d30.label : 'No sign-up week is 30 days old yet',
+          explain:
+            'Share of the newest sign-up week 30 days old that read again (30 seconds or more) on day 30, against the week before.',
         },
         {
           label: 'Monthly churn',
-          value: dash,
-          sub: 'Subscribers who left',
-          explain: 'Subscribers who did not renew in the last 30 days, once subscriptions go live.',
+          value: rate(churn.rate),
+          delta: churnDelta(churn.rate, churn.previous),
+          sub: churn.rate == null ? 'Shown from 5 subscribers' : 'subscribers who left',
+          explain:
+            'Subscriptions live when the 30 days to the period end began that ended (expired or refunded) in them, against the 30 days before.',
         },
       ]}
     >
@@ -129,7 +142,36 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
         <div className="panel__head">
           <h2>Retention by sign-up week</h2>
         </div>
-        <NoData why="Day 1, 7 and 30 come from reading sessions, which start with the Reading flow." />
+        {cohorts.length === 0 ? (
+          <NoData why="Readers who signed up each week, and the share who read again on day 1, 7 and 30." />
+        ) : (
+          <div className="tw">
+            <table className="tbl sy-heat">
+              <thead>
+                <tr>
+                  <th>Sign-up week</th>
+                  <th className="r">Readers</th>
+                  <th className="c">Day 1</th>
+                  <th className="c">Day 7</th>
+                  <th className="c">Day 30</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cohorts.map(r => (
+                  <tr key={r.week}>
+                    <td className="nw">{r.label}</td>
+                    <td className="n">{r.partial ? `${count(r.size, true)} so far` : count(r.size, true)}</td>
+                    {r.cells.map((c, i) => (
+                      <td key={i} className={c.state === 'ready' ? 'h' : 'h blank'}>
+                        {c.state === 'ready' ? `${c.pct}%` : c.state === 'young' ? c.label : dash}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       <details className="fold">
         <summary>
@@ -137,9 +179,65 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
         </summary>
         <div className="fold__b">
           <b>Churn by plan, did not renew in the last 30 days</b>
-          <NoData why="Starts when subscriptions go live." />
-          <b>Trial and promo conversions</b>
-          <NoData why="Starts when trials and promo codes go live." />
+          {churn.plans.length === 0 ? (
+            <NoData why="Subscriptions live 30 days ago, and how many ended since." />
+          ) : (
+            <div className="tw">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th className="r">Subscribers</th>
+                    <th className="r">Left</th>
+                    <th className="r">Churn</th>
+                    <th>Main reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {churn.plans.map(c => (
+                    <tr key={c.plan}>
+                      <td>
+                        <b>{c.plan}</b>
+                      </td>
+                      <td className="n">{count(c.subscribers, true)}</td>
+                      <td className="n">{c.subscribers == null ? dash : num(c.left)}</td>
+                      <td className="n">{rate(c.rate)}</td>
+                      <td className="muted">{c.reason ?? dash}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <b>Trials and promo conversions</b>
+          {g.promos.length === 0 ? (
+            <NoData why="Promo codes redeemed in the period, and how many of those readers paid after." />
+          ) : (
+            <div className="tw">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Offer</th>
+                    <th className="r">Started</th>
+                    <th className="r">Paid after</th>
+                    <th className="r">Converted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.promos.map(o => (
+                    <tr key={o.code}>
+                      <td>
+                        <b>{o.code}</b> <small className="faint">{promoLabel(o)}</small>
+                      </td>
+                      <td className="n">{count(o.started, true)}</td>
+                      <td className="n">{o.paid == null ? dash : num(o.paid)}</td>
+                      <td className="n">{rate(o.rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </details>
     </AnalyticsFrame>
