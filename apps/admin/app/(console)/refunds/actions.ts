@@ -54,3 +54,37 @@ export async function decideRefund(
       : `Refund declined. ${first} was emailed.`,
   };
 }
+
+/**
+ * A chapter-charge return waiting for Finance (flow 14 rule 39: over 50 credits, or a 4th return for
+ * one reader in 30 days). Approve gives the credits back and locks the chapter again; Turn down
+ * leaves the charge. Someone other than the staff member who asked decides.
+ */
+export async function decideReturn(returnId: string, approve: boolean): Promise<Result> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('approve_credit_return', { p_return: returnId, p_approve: approve });
+  if (error) {
+    if (error.message.includes('second_person')) {
+      return { ok: false, error: 'You asked for this return, so someone else has to decide it.' };
+    }
+    return {
+      ok: false,
+      error: rpcError(
+        error.code,
+        error.message,
+        {
+          '42501': 'Only Finance and Super admins can decide a return.',
+          not_found: 'This return was already decided.',
+        },
+        "Couldn't save the decision. Nothing changed. Try again.",
+      ),
+    };
+  }
+  revalidatePath('/refunds');
+  return {
+    ok: true,
+    message: approve
+      ? 'Return approved. The credits are back with the reader and the chapter is locked again.'
+      : 'Return turned down. The charge stays.',
+  };
+}

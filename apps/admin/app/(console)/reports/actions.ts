@@ -79,6 +79,16 @@ export async function assignToMe(reportId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** Change a report's severity (rule 4): every open report on the same content moves, and its due time follows. */
+export async function setSeverity(reportId: string, severity: 'high' | 'medium' | 'low'): Promise<ActionResult> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('set_report_severity', { p_report: reportId, p_severity: severity });
+  if (error) return failed(error.message);
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath('/reports');
+  return { ok: true };
+}
+
 export async function escalate(reportId: string): Promise<ActionResult> {
   const supabase = await serverSupabase();
   const { error } = await supabase.rpc('escalate_report', { p_report: reportId });
