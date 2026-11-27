@@ -562,9 +562,14 @@ ol {
   gap: 10px;
 }
 .plan--pop {
-  background: var(--org-tint-2);
+  /* Fixed light card on the dark band: its own background and ink, in both themes. */
+  background: #fff6ea;
   color: #111827;
   border-color: var(--org);
+}
+.plan--pop dt {
+  opacity: 1;
+  color: #4b5563;
 }
 .plan h3 {
   font-size: 20px;
