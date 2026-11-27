@@ -71,6 +71,7 @@ const STAFF_ROLE: Record<string, string> = {
   claim_new: 'publisher',
   claim_deadline: 'publisher',
   system_alert: 'operations_admin',
+  ticket_late: 'support',
 };
 
 /** Finance alerts from flow 09's payments_out queue. */
@@ -385,6 +386,18 @@ export function plan(n: Notice, l: Lookup): Plan {
         n.severity === 'high' ? undefined : 'high_severity_reports',
       );
       break;
+    case 'ticket_late': {
+      // Flow 14 rule 35: one alert per sla_watch run, however many tickets went late.
+      const count = Number(n.count) || 1;
+      staff(
+        'support',
+        count === 1
+          ? 'A support ticket is past its first-reply time'
+          : `${count} support tickets are past their first-reply time`,
+        `First replies are promised within 1 day.${n.oldest_ref ? ` Oldest: ${str(n.oldest_ref)}.` : ''} Open Support in the console.`,
+      );
+      break;
+    }
     case 'claim_new':
       staff(
         'publisher',
