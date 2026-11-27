@@ -120,7 +120,14 @@ function accessMap(
 
 export function useReader(
   bookId: string,
-  opts: { gateRoom: GateRoom; startCfi?: string; payGo?: boolean; source?: string },
+  opts: {
+    gateRoom: GateRoom;
+    startCfi?: string;
+    payGo?: boolean;
+    source?: string;
+    /** `paragraph_discussions` flag (flow 16 rule 27): off hides the passage markers. */
+    discussions?: boolean;
+  },
 ) {
   const qc = useQueryClient();
   const track = useTrack();
@@ -850,6 +857,11 @@ export function useReader(
   }, [bookId, revisionId]);
   useEffect(() => {
     // Fetched again on each chapter visit: further reading reveals more markers.
+    if (phase === 'ready' && opts.discussions === false) {
+      markerCounts.current.clear();
+      send({ type: 'markers.set', payload: { list: [] } });
+      return;
+    }
     if (!markerChapter || phase !== 'ready' || !online) return;
     let live = true;
     void supabase
@@ -862,7 +874,7 @@ export function useReader(
     return () => {
       live = false;
     };
-  }, [markerChapter, phase, online, bookId, send]);
+  }, [markerChapter, phase, online, bookId, send, opts.discussions]);
 
   // ─── Highlights (rules 35, 41) ─────────────────────────────────────────────
   const highlight = useCallback(

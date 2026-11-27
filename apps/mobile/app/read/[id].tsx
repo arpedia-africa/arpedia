@@ -46,6 +46,7 @@ import {
 } from '../../features/04/ReaderSheets';
 import { chapterNumber, useReader } from '../../features/04/useReader';
 import { useBuyPack } from '../../features/09/buyPack';
+import { useFlag } from '../../features/16/config';
 
 const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
@@ -71,7 +72,9 @@ export default function ReaderScreen() {
     const chapter = autoUnlock ? 0 : cardH.chapter + s(16);
     return { preview: payGo ? chapter : cardH.preview + s(16), chapter };
   }, [cardH, autoUnlock, payGo, s]);
-  const r = useReader(id, { gateRoom, startCfi: cfi, payGo, source: from });
+  // Flow 16 rule 27: with Paragraph discussions off there are no markers and no Discuss button.
+  const discussions = useFlag('paragraph_discussions', true);
+  const r = useReader(id, { gateRoom, startCfi: cfi, payGo, source: from, discussions });
   useEffect(() => setAutoUnlockLocal(r.settings.auto_unlock), [r.settings.auto_unlock]);
   useEffect(() => {
     if ((r.state?.paid_credits ?? 0) > 0) setPayGo(true);
@@ -498,7 +501,7 @@ export default function ReaderScreen() {
                   if (r.selection) return r.clearSelection();
                   setChrome((v) => !v);
                 },
-                onMarker: (para) => startDiscuss(para, null),
+                onMarker: (para) => discussions && startDiscuss(para, null),
                 onAnnotation: (aid, rect) => {
                   // Tap on a highlight: colour, note, discuss, delete (rule 36).
                   const a = r.annotations.find((x) => x.id === aid);
@@ -596,11 +599,15 @@ export default function ReaderScreen() {
             current={r.settings.highlight_color}
             onColor={(c) => void r.highlight(c)}
             onNote={startNote}
-            onDiscuss={() => {
-              const quote = sel.text.slice(0, 500);
-              r.clearSelection();
-              startDiscuss(sel.para_id_start, quote);
-            }}
+            onDiscuss={
+              discussions
+                ? () => {
+                    const quote = sel.text.slice(0, 500);
+                    r.clearSelection();
+                    startDiscuss(sel.para_id_start, quote);
+                  }
+                : undefined
+            }
             onClub={() => (share.start(sel), r.clearSelection())}
             onShare={() => {
               const quote = sel.text.slice(0, 500);
@@ -636,10 +643,14 @@ export default function ReaderScreen() {
               setNoteFor({ clientId: menuAnnotation.client_id });
               setPanel('note');
             }}
-            onDiscuss={() => {
-              setMenuFor(null);
-              startDiscuss(menuAnnotation.start_para_id, menuAnnotation.quote);
-            }}
+            onDiscuss={
+              discussions
+                ? () => {
+                    setMenuFor(null);
+                    startDiscuss(menuAnnotation.start_para_id, menuAnnotation.quote);
+                  }
+                : undefined
+            }
             onDelete={() => void deleteAnnotation(menuAnnotation.client_id)}
           />
         ) : null}
