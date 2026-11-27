@@ -5,8 +5,9 @@ import { PostHogProvider } from 'posthog-react-native';
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_KEY;
 
-// Errors go to Sentry and feature flags come from PostHog. Both stay off when no key is set
-// (local builds), so nothing is sent from developer machines.
+// Errors go to Sentry and product events to PostHog. Both stay off when no key is set (local
+// builds), so nothing is sent from developer machines. Feature flags come from `useFlag`
+// (features/16/config.ts); PostHog flags are only for dark-launching a flow (OPEN-QUESTIONS 96).
 export function initSentry() {
   if (!dsn) return;
   Sentry.init({ dsn, tracesSampleRate: 0.1, sendDefaultPii: false });
