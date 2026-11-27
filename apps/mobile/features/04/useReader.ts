@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
-import { useQueryClient } from '@tanstack/react-query';
+import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import {
   chargeKey,
   confirmCharge,
@@ -216,6 +216,7 @@ export function useReader(
       const uid = userId.current;
       if (uid) await flushAnnotations(uid).catch(() => 0);
       const { data } = await supabase.rpc('pull_annotations', { p_book: bookId });
+      annCursor.current = (data as { cursor?: string | null } | null)?.cursor ?? null;
       const pulled = ((data as { items?: Annotation[] } | null)?.items ?? []).filter((a) => !a.deleted);
       const waiting = uid ? (await queuedAnnotations(uid)).filter((r) => r.book_id === bookId) : [];
       if (live) setAnnotations(withQueued(pulled, waiting));
@@ -258,6 +259,49 @@ export function useReader(
       else apply();
     });
   }, [state, phase, send]);
+
+  // ─── Another device's changes (rule 43): deltas since the cursor when the app comes back ──
+  const annCursor = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    const pull = async () => {
+      if (!onlineManager.isOnline()) return;
+      const { data, error: e } = await supabase.rpc('pull_annotations', {
+        p_book: bookId,
+        p_since: annCursor.current ?? undefined,
+      });
+      if (e || !data) return;
+      const d = data as { items?: Annotation[]; cursor?: string | null };
+      const items = d.items ?? [];
+      if (!items.length) return;
+      if (d.cursor) annCursor.current = d.cursor;
+      setAnnotations((cur) => {
+        const byId = new Map(cur.map((a) => [a.client_id, a]));
+        // Tombstones remove; newer rows replace (last write wins, as on the server).
+        for (const a of items) {
+          if (a.deleted) byId.delete(a.client_id);
+          else byId.set(a.client_id, a);
+        }
+        const next = [...byId.values()];
+        send({
+          type: 'annotations.set',
+          payload: {
+            list: next.map((a) => ({
+              id: a.id,
+              kind: a.kind,
+              color: a.color,
+              cfi_range: a.cfi_range,
+              para_id: a.start_para_id,
+            })),
+            replace: true,
+          },
+        });
+        return next;
+      });
+    };
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && void pull());
+    return () => sub.remove();
+  }, [phase, bookId, send]);
 
   // ─── Open the book once the bundle is ready and the files are prepared ─────
   const drawList = useMemo<DrawAnnotation[]>(
