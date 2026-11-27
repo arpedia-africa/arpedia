@@ -22,6 +22,8 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
 
 beforeEach(() => {
   rpc.mockReset();
+  // The re-check after a counted failure: not locked yet unless a test says so.
+  rpc.mockResolvedValue({ data: false, error: null });
   signInWithPassword.mockReset();
   serviceDb.mockClear();
 });
@@ -43,7 +45,20 @@ describe('password sign-in with the per-email lockout (spec check 01-3)', () => 
     signInWithPassword.mockResolvedValue({ data: { session: null }, error: { status: 400 } });
     const res = await post({ email: 'ngozi@example.com', password: 'nope' });
     expect(res.status).toBe(401);
-    expect(rpc).toHaveBeenLastCalledWith('note_staff_signin_failure', { p_email: 'ngozi@example.com' });
+    expect(rpc).toHaveBeenCalledWith('note_staff_signin_failure', { p_email: 'ngozi@example.com' });
+  });
+
+  it('the 5th wrong password is answered with the lockout, not a plain refusal (#72 row 25)', async () => {
+    rpc
+      .mockResolvedValueOnce({ data: false, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: true, error: null });
+    signInWithPassword.mockResolvedValue({ data: { session: null }, error: { status: 400 } });
+    const res = await post({ email: 'ngozi@example.com', password: 'nope' });
+    expect(res.status).toBe(423);
+    expect(await res.json()).toEqual({ error: 'locked' });
+    expect(rpc).toHaveBeenNthCalledWith(2, 'note_staff_signin_failure', { p_email: 'ngozi@example.com' });
+    expect(rpc).toHaveBeenLastCalledWith('staff_signin_locked', { p_email: 'ngozi@example.com' });
   });
 
   it('a deleted account with the right password is told so and not counted (#72 row 13)', async () => {
@@ -76,7 +91,7 @@ describe('password sign-in with the per-email lockout (spec check 01-3)', () => 
     const res = await post({ email: 'ngozi@example.com', password: 'nope' });
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: 'refused' });
-    expect(rpc).toHaveBeenLastCalledWith('note_staff_signin_failure', { p_email: 'ngozi@example.com' });
+    expect(rpc).toHaveBeenCalledWith('note_staff_signin_failure', { p_email: 'ngozi@example.com' });
   });
 
   it("Supabase's own limit is passed on and not counted", async () => {

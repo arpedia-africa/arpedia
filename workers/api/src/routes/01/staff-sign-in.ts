@@ -5,7 +5,7 @@ import type { AppEnv } from '../../env';
 // Flow 01 · flow 16 pass 1: password sign-in with the lockout (staff rule 8, reader rule 9).
 //   POST /v1/staff-sign-in {email, password} → {access_token, refresh_token}   (admin console)
 //   POST /v1/sign-in       {email, password} → same                            (app, spec check 01-3)
-//     423 {error: 'locked'}   5 wrong passwords for this email in 15 minutes
+//     423 {error: 'locked'}   5 wrong passwords for this email in 15 minutes (the 5th included)
 //     401 {error: 'refused'}  wrong email or password (counted)
 //     429 {error: 'rate_limited'}  Supabase Auth's own limit (not counted)
 //     403 {error: 'deleted'}  right password, account deleted (banned) and not yet erased (not counted)
@@ -50,7 +50,10 @@ signIn.post('/', async (c) => {
     }
     const { error: noteError } = await db.rpc('note_staff_signin_failure', { p_email: email });
     if (noteError) throw new Error(`note_staff_signin_failure failed: ${noteError.message}`);
-    return c.json({ error: 'refused' }, 401);
+    // The 5th failure itself says "Too many tries" (reader rule 9), not only the 6th try.
+    const { data: nowLocked, error: nowError } = await db.rpc('staff_signin_locked', { p_email: email });
+    if (nowError) throw new Error(`staff_signin_locked failed: ${nowError.message}`);
+    return nowLocked ? c.json({ error: 'locked' }, 423) : c.json({ error: 'refused' }, 401);
   }
   return c.json({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
 });
