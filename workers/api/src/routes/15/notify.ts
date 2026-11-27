@@ -23,6 +23,8 @@ export interface Lookup {
   users: Record<string, { email: string | null; first_name: string; name: string }>;
   books: Record<string, { title: string; author_id: string | null }>;
   staff: Record<string, string[]>;
+  /** Alert kinds each staff member turned off on My account (flow 16 rule 40). */
+  staff_off?: Record<string, string[]>;
   followers: Record<string, string[]>;
 }
 
@@ -56,12 +58,19 @@ const day = (v: unknown) => (typeof v === 'string' && v ? ledgerDay(v) : '');
 const money = (v: unknown) => (typeof v === 'number' ? naira(v) : '');
 const firstLine = (v: unknown) => str(v).split('\n')[0]!.slice(0, 140);
 
-/** Staff notices go to everyone holding the role (Super admins always). */
+/** The switches on My account (flow 16 rule 40). */
+export type StaffAlertKind =
+  'high_severity_reports' | 'failed_payouts' | 'copyright_claims' | 'applications_waiting' | 'system_health';
+
+/** Staff notices go to everyone holding the role (Super admins always), minus their switched-off alerts. */
 const STAFF_ROLE: Record<string, string> = {
   application_sla: 'publisher',
   staff_alert: 'moderator',
   finance_alert: 'finance',
   payout_alert: 'finance',
+  claim_new: 'publisher',
+  claim_deadline: 'publisher',
+  system_alert: 'operations_admin',
 };
 
 /** Finance alerts from flow 09's payments_out queue. */
@@ -148,9 +157,12 @@ export function plan(n: Notice, l: Lookup): Plan {
   const email = (key: string, vars: Record<string, string> = {}, who = to) => {
     if (who) mail.push({ key, user_id: who, vars });
   };
-  const staff = (role: string, subject: string, message: string) => {
-    for (const u of l.staff[role] ?? [])
+  // `pref` is the My account switch the alert falls under; High-severity reports always arrive.
+  const staff = (role: string, subject: string, message: string, pref?: StaffAlertKind) => {
+    for (const u of l.staff[role] ?? []) {
+      if (pref && l.staff_off?.[u]?.includes(pref)) continue;
       mail.push({ key: 'staff_alert', user_id: u, vars: { subject, message } });
+    }
   };
   const studio = { kind: 'screen', screen: 'studio' };
   const earnings = { kind: 'screen', screen: 'earnings' };
@@ -274,7 +286,12 @@ export function plan(n: Notice, l: Lookup): Plan {
       notice('Your author account is paused', 'Open Studio to see why', studio);
       break;
     case 'application_sla':
-      staff('publisher', `${str(n.count)} author applications are waiting`, 'Some are past the reply time.');
+      staff(
+        'publisher',
+        `${str(n.count)} author applications are waiting`,
+        'Some are past the reply time.',
+        'applications_waiting',
+      );
       break;
 
     // ─── book_notify ───
@@ -347,6 +364,31 @@ export function plan(n: Notice, l: Lookup): Plan {
             ? 'A report was escalated to you'
             : 'A report needs a look',
         [str(n.severity), str(n.reason)].filter(Boolean).join(' · ') || 'Open Reports in the console.',
+        n.severity === 'high' ? undefined : 'high_severity_reports',
+      );
+      break;
+    case 'claim_new':
+      staff(
+        'publisher',
+        `New copyright claim on ${book}`,
+        `${str(n.ref)}${n.claimant_name ? ` from ${str(n.claimant_name)}` : ''}. Open Claims in the console.`,
+        'copyright_claims',
+      );
+      break;
+    case 'claim_deadline':
+      staff(
+        'publisher',
+        `Copyright claim ${str(n.ref)} is due ${day(n.due_at)}`,
+        `The claim on ${book} needs a decision within 2 days. Open Claims in the console.`,
+        'copyright_claims',
+      );
+      break;
+    case 'system_alert':
+      staff(
+        'operations_admin',
+        `${str(n.label) || str(n.service)} is ${n.status === 'failing' ? 'failing' : 'having problems'}`,
+        `${str(n.note) || 'See Settings → Integrations.'}`,
+        'system_health',
       );
       break;
     case 'finance_alert': {
@@ -371,7 +413,12 @@ export function plan(n: Notice, l: Lookup): Plan {
     }
     case 'payout_alert':
       // Flow 13 writes its own copy (payout reminder, stuck transfers, failed payouts).
-      staff('finance', str(n.subject) || 'Payout alert', str(n.message) || 'Open Royalties in the console.');
+      staff(
+        'finance',
+        str(n.subject) || 'Payout alert',
+        str(n.message) || 'Open Royalties in the console.',
+        n.alert === 'payout_failed' || n.alert === 'transfer_stuck' ? 'failed_payouts' : undefined,
+      );
       break;
     case 'sanction_notice':
       typed('moderation_notice');
