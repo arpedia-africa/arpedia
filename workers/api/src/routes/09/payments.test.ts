@@ -85,16 +85,27 @@ describe('Flutterwave webhook', () => {
 
   describe('a refund made in the Flutterwave dashboard (spec check 09-13)', () => {
     const user = '11111111-2222-4333-8444-555555555555';
-    const refund = { id: 551, tx_id: 9001, amount_refunded: 450, status: 'completed', created_at: '2026-11-25T09:00:00Z' };
+    const refund = {
+      id: 551,
+      tx_id: 9001,
+      amount_refunded: 450,
+      status: 'completed',
+      created_at: '2026-11-25T09:00:00Z',
+    };
     const flwAnswer = (data: unknown) =>
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ status: 'success', data })));
+      vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response(JSON.stringify({ status: 'success', data })));
 
     it('is re-queried and applied as a web refund for the transaction’s reader', async () => {
       const fetchMock = flwAnswer(refund);
       tables.transactions = [{ id: 'tx-1', user_id: user }];
       tables.refund_requests = [];
       rpc.mockReset().mockResolvedValue({ data: { id: 6, outcome: '{"removed":150}' }, error: null });
-      const res = await post({ event: 'refund.completed', data: { id: 551, tx_id: 1, amount_refunded: 99999 } });
+      const res = await post({
+        event: 'refund.completed',
+        data: { id: 551, tx_id: 1, amount_refunded: 99999 },
+      });
       expect(res.status).toBe(200);
       expect(fetchMock.mock.calls[0]![0]).toBe('https://api.flutterwave.com/v3/refunds/551');
       expect(rpc.mock.calls[0]![1]).toMatchObject({

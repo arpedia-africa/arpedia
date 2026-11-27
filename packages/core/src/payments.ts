@@ -275,7 +275,13 @@ export function normalizeFlutterwaveRefund(refund: FlutterwaveRefund, userId: st
     eventId: `refund:${refund.id}`,
     eventType: 'refund.completed',
     occurredAt: (Number.isNaN(at.getTime()) ? new Date() : at).toISOString(),
-    normalized: { type: 'refund', user_id: userId, store: 'web', txn_id: String(refund.tx_id), refund_kobo: kobo },
+    normalized: {
+      type: 'refund',
+      user_id: userId,
+      store: 'web',
+      txn_id: String(refund.tx_id),
+      refund_kobo: kobo,
+    },
   };
 }
 

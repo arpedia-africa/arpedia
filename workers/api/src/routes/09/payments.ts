@@ -272,7 +272,8 @@ async function applyDashboardRefund(
     refund = await flw<FlutterwaveRefund>(env, `/refunds/${refundId}`);
   } catch (e) {
     // Flutterwave doesn't know it (4xx): nothing to apply. Otherwise let Flutterwave retry.
-    if (e instanceof FlwError && e.status < 500) return { status: 200, body: { ok: true, ignored: 'unknown refund' } };
+    if (e instanceof FlwError && e.status < 500)
+      return { status: 200, body: { ok: true, ignored: 'unknown refund' } };
     throw e;
   }
   const { data: tx, error } = await db

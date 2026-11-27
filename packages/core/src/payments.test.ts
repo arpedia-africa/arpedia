@@ -176,7 +176,13 @@ describe('Flutterwave', () => {
 });
 
 describe('Flutterwave dashboard refund (spec check 09-13)', () => {
-  const refund = { id: 551, tx_id: 9001, amount_refunded: 450, status: 'completed', created_at: '2026-11-25T09:00:00Z' };
+  const refund = {
+    id: 551,
+    tx_id: 9001,
+    amount_refunded: 450,
+    status: 'completed',
+    created_at: '2026-11-25T09:00:00Z',
+  };
 
   it('becomes a web refund of the paid share, for our own reader', () => {
     const r = normalizeFlutterwaveRefund(refund, USER) as IngestInput;
@@ -190,11 +196,15 @@ describe('Flutterwave dashboard refund (spec check 09-13)', () => {
   });
 
   it('waits for a refund that is not completed yet', () => {
-    expect(normalizeFlutterwaveRefund({ ...refund, status: 'pending' }, USER)).toEqual({ ignore: 'refund pending' });
+    expect(normalizeFlutterwaveRefund({ ...refund, status: 'pending' }, USER)).toEqual({
+      ignore: 'refund pending',
+    });
   });
 
   it('ignores a zero amount', () => {
-    expect(normalizeFlutterwaveRefund({ ...refund, amount_refunded: 0 }, USER)).toEqual({ ignore: 'refund amount' });
+    expect(normalizeFlutterwaveRefund({ ...refund, amount_refunded: 0 }, USER)).toEqual({
+      ignore: 'refund amount',
+    });
   });
 });
 
