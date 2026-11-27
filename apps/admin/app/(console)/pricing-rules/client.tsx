@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { naira, planCheck, type PlanInfo } from '@arpedia/core';
 import { Icon } from '@/components/icon';
+import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
 import { describeChange, nairaDec, num, RULE_LABEL, ruleValue, type Plan, type Rules, type Topup } from '../pricing/format';
 import { Otp } from '../pricing/otp';
@@ -94,6 +95,7 @@ export function RulesForm({
   const router = useRouter();
   const [toast, show] = useToast();
   const [pending, start] = useTransition();
+  const online = useOnline();
   const [f, setF] = useState<Form>(() => toForm(rules));
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState<RulesPreview | null>(null);
@@ -232,7 +234,7 @@ export function RulesForm({
               </div>
             </div>
             <div className="ph__acts">
-              <button className="btn btn-p" type="button" disabled={pending || !planOk} onClick={review}>
+              <button className="btn btn-p" type="button" disabled={pending || !online || !planOk} onClick={review}>
                 {pending && !confirm ? 'Checking…' : 'Review and save'}
               </button>
               <div className="mwrap" ref={menuRef}>
@@ -252,6 +254,7 @@ export function RulesForm({
           </div>
         </div>
         <div className="page">
+          <OfflineNote online={online} />
           <div className="split split--wide">
             <div className="stack s20">
               <div className="panel">
@@ -464,7 +467,7 @@ export function RulesForm({
                           {l.pending && canSave && scheduledId && (
                             <>
                               {' · '}
-                              <a className="link" role="button" onClick={() => !pending && undo(scheduledId)}>
+                              <a className="link" role="button" aria-disabled={!online} onClick={() => !pending && online && undo(scheduledId)}>
                                 Undo
                               </a>
                             </>
@@ -541,7 +544,7 @@ export function RulesForm({
               <button className="btn btn-g" type="button" disabled={pending} onClick={() => setConfirm(null)}>
                 Cancel
               </button>
-              <button className="btn btn-p" type="button" disabled={pending || otp.length !== 6 || !confirm.plan_check_ok} onClick={save}>
+              <button className="btn btn-p" type="button" disabled={pending || !online || otp.length !== 6 || !confirm.plan_check_ok} onClick={save}>
                 {pending ? 'Saving…' : 'Save rules'}
               </button>
             </div>
