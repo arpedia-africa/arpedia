@@ -147,7 +147,7 @@ export function RoomsView({
                   <br />
                   <small className="faint">{`${r.book} · host ${r.host ?? 'left the room'}`}</small>
                 </td>
-                <td className="n">{num(r.members)}</td>
+                <td className="n">{num(t === 'live' ? r.live : r.members)}</td>
                 <td className="nw">{roomWhen(t === 'ended' ? (r.endedAt ?? r.startsAt) : r.startsAt, t === 'live')}</td>
                 <td className="mono">{formatRoomCode(r.code)}</td>
                 <td className="n">{r.reports > 0 ? <span className="st st-err">{num(r.reports)}</span> : 0}</td>
