@@ -3,6 +3,7 @@ import { NoAccess } from '@/components/no-access';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
 import { buckets, change, count, dash, metrics, num } from './data';
+import { finishedShare, latest, share, stickiness } from './overview';
 import { period } from './period';
 import { AnalyticsFrame, Columns, Hbars, NoData } from './shared';
 
@@ -15,10 +16,16 @@ interface BookRow {
   genre: string | null;
   hours: number;
   unlocks: number;
+  /** Null for fewer than 5 readers. */
+  readers: number | null;
+  finished_pct: number | null;
+  rating: number | null;
 }
 interface Books {
   top: BookRow[];
   genres: { genre: string; share: number }[];
+  /** Readers who reached the end of a priced book's free preview, and the share who unlocked it. */
+  preview_unlock?: { readers: number; share: number | null; bands: { label: string; share: number | null }[] };
 }
 
 const COVERS = ['c1', 'c3', 'c2', 'c6', 'c4', 'c5', 'c7', 'c8'];
@@ -32,7 +39,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     return <NoAccess page="analytics" label="Analytics" role={staff.role} />;
   const supabase = await serverSupabase();
   const [{ data: m, error }, books, today] = await Promise.all([
-    metrics(['dau', 'reading_hours', 'sessions', 'unlocks'], p),
+    metrics(['dau', 'mau', 'reading_hours', 'sessions', 'unlocks', 'books_finished', 'books_started'], p),
     supabase.rpc('staff_analytics_books', { p_from: p.from, p_to: p.to }),
     supabase.rpc('staff_analytics_books', { p_from: p.to, p_to: p.to, p_limit: 5 }),
   ]);
@@ -44,6 +51,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const hours = m.reading_hours?.total ?? null;
   const sessions = m.sessions?.total ?? null;
   const perSession = hours && sessions ? `${Math.round((hours * 60) / sessions)} min per session` : 'Minutes per session';
+
+  const mau = latest(m.mau);
+  const finished = m.books_finished?.total ?? null;
+  const preview = b.preview_unlock;
 
   const cols = buckets(p, m, ['dau', 'reading_hours', 'sessions']);
   const peak = cols.reduce<(typeof cols)[number] | null>((a, c) => ((c.values.dau ?? 0) > (a?.values.dau ?? 0) ? c : a), null);
@@ -64,9 +75,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         },
         {
           label: 'Monthly readers (MAU)',
-          value: dash,
-          sub: 'DAU/MAU when it starts',
-          explain: `Readers with a session in the 30 days to today. ${READING}`,
+          value: count(mau),
+          sub: stickiness(avgDau, mau) ?? 'No reading yet',
+          explain: `Readers with a session in the 30 days to the period's last day. ${READING}`,
         },
         {
           label: 'Reading hours',
@@ -77,9 +88,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         },
         {
           label: 'Books finished',
-          value: dash,
-          sub: 'Share of books started',
-          explain: 'Readers who reached the last page, counted with the Reading flow.',
+          value: finished == null ? dash : num(finished),
+          delta: change(finished, m.books_finished?.previous),
+          sub: finishedShare(finished, m.books_started?.total ?? null) ?? 'Share of books started',
+          explain: `Books readers reached 95% of over ${p.label}, against books first opened for 30 seconds or more.`,
         },
       ]}
     >
@@ -160,11 +172,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                             </span>
                           </div>
                         </td>
-                        <td className="n">{dash}</td>
+                        <td className="n">{count(r.readers, true)}</td>
                         <td className="n">{r.hours > 0 ? `${num(r.hours)} h` : dash}</td>
                         <td className="n">{count(r.unlocks)}</td>
-                        <td className="n">{dash}</td>
-                        <td className="n">{dash}</td>
+                        <td className="n">{share(r.finished_pct) ?? dash}</td>
+                        <td className="n">{r.rating == null ? dash : r.rating.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -206,8 +218,24 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                   }))}
                 />
               )}
-              <b>Preview to unlock</b>
-              <NoData why="Unlocks after the free preview, by book length, start with the Reading flow." />
+              {preview?.share == null ? (
+                <>
+                  <b>Preview to unlock</b>
+                  <NoData why="Readers who reach the end of a free preview, and how many unlock the book. Shown from 5 readers." />
+                </>
+              ) : (
+                <>
+                  <b>{`Preview to unlock: ${share(preview.share)} unlocked a book after the free preview`}</b>
+                  <Hbars
+                    rows={preview.bands.map(g => ({
+                      label: g.label,
+                      share: g.share ? (100 * g.share) / Math.max(...preview.bands.map(x => x.share ?? 0)) : 0,
+                      value: share(g.share) ?? 'Fewer than 5',
+                      muted: g.share == null,
+                    }))}
+                  />
+                </>
+              )}
             </div>
           </details>
         </div>
