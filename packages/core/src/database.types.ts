@@ -6545,6 +6545,11 @@ isOneToOne: false
 "_transfer_status_applies":
 { Args: { "p_current": Database["public"]['Enums']["payout_status"],"p_next": Database["public"]['Enums']["payout_status"] }; Returns: boolean
                            },
+"_trending_target":
+{ Args: { "p_q": string }; Returns: {
+              "author_id": string,"book_id": string
+            }[]
+                           },
 "_trust_notify":
 { Args: { "p_kind": string,"p_payload": Json }; Returns: undefined
                            },
@@ -7264,6 +7269,9 @@ isOneToOne: false
                            },
 "get_book_page":
 { Args: { "p_book": string }; Returns: Json
+                           },
+"get_close_matches":
+{ Args: { "p_q": string }; Returns: Json
                            },
 "get_config_screen":
 { Args: Record<PropertyKey, never>; Returns: Json
