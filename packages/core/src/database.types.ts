@@ -6606,6 +6606,15 @@ isOneToOne: false
               "book_id": string,"snippet": string
             }[]
                            },
+"_studio_account_status":
+{ Args: { "p_author": string }; Returns: string
+                           },
+"_studio_next_payout":
+{ Args: { "p_author": string }; Returns: Json
+                           },
+"_studio_payout":
+{ Args: { "p_author": string,"p_month": string }; Returns: Json
+                           },
 "_sync_auth_ban":
 { Args: { "p_user": string }; Returns: undefined
                            },

@@ -26,6 +26,18 @@ export interface AuthorMonth {
   tips_credits: number;
   tips_kobo: number;
   refund_kobo: number;
+  /** Flow 13 payout for the month (studio_earnings history only). */
+  payout?: MonthPayout;
+}
+
+/** A month's payout: the cycle's date (or the date settings give an open month) and its line. */
+export interface MonthPayout {
+  payout_date: string;
+  closed: boolean;
+  status: string | null;
+  payable_kobo: number | null;
+  carried: boolean;
+  paid_at: string | null;
 }
 
 export interface StudioHome {
@@ -43,6 +55,10 @@ export interface StudioHome {
   payouts_paused: boolean;
   payout_account_status: 'not_set' | 'pending' | 'verified' | 'failed';
   min_payout_kobo: number;
+  hold_days: number;
+  payout_day: number;
+  /** The earliest closed month waiting to be sent, or null. */
+  next_payout: { month: string; payout_date: string; kobo: number; status: string } | null;
 }
 
 export interface StudioBook {
@@ -68,6 +84,8 @@ export interface StudioEarnings {
   history: AuthorMonth[];
   min_payout_kobo: number;
   kobo_per_credit: number;
+  hold_days: number;
+  payout_day: number;
 }
 
 const retry = (n: number, e: unknown) => n < 2 && isNetworkError(e);
