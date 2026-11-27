@@ -3,6 +3,7 @@
 //   POST /c/{group_id}/actions   react | delete | pin | unpin | report | block | unblock, as the user,
 //                                then pushed to live clients
 //   POST /c/{group_id}/refresh   re-read access after a change in Postgres (join, leave, staff actions)
+//   POST /c/{group_id}/enforce   refresh, then take messages moderated in Postgres out of live clients
 import { AuthError, bearer, verifySupabaseJwt } from '@arpedia/core/jwt';
 import type { ServerFrame } from '@arpedia/core';
 import { RpcError, rpc } from './db';
@@ -12,7 +13,7 @@ export { ConversationDO } from './do';
 export type { Env } from './env';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-const ROUTE = new RegExp(`^/c/(${UUID})(?:/(actions|refresh))?$`, 'i');
+const ROUTE = new RegExp(`^/c/(${UUID})(?:/(actions|refresh|enforce))?$`, 'i');
 
 type Action =
   | { type: 'react'; message_id: string; emoji: string | null }
@@ -64,11 +65,12 @@ export default {
     }
     if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
-    if (sub === 'refresh') {
+    if (sub === 'refresh' || sub === 'enforce') {
       // The DO re-reads Postgres. Only staff and the group's owner or moderators may refresh
-      // everyone; anyone else refreshes just themselves (checked in the DO).
+      // everyone; anyone else refreshes just themselves (checked in the DO). `enforce` also takes
+      // messages moderated in Postgres out of live clients (moderation push-down).
       const body = (await request.json().catch(() => ({}))) as { self?: boolean };
-      await toDo('refresh', { method: 'POST', body: JSON.stringify(body.self ? { user_id: userId } : {}) });
+      await toDo(sub, { method: 'POST', body: JSON.stringify(body.self ? { user_id: userId } : {}) });
       return json({ ok: true });
     }
 

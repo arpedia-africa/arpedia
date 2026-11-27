@@ -46,6 +46,9 @@ function setup(moderate?: Deps['moderate']) {
   let failPush = false;
   const pushes: { ids: string[]; open: string[] }[] = [];
   const flushAt: number[] = [];
+  const changed: { id: string; state: 'visible' | 'auto_hidden' | 'removed' | 'deleted'; at: number }[] = [];
+  const sinceAsked: string[] = [];
+  let failStates = false;
   const db: ChatDb = {
     getAccess: async (_g, u) => {
       calls.access++;
@@ -69,6 +72,11 @@ function setup(moderate?: Deps['moderate']) {
     pushMessages: async (ids, open) => {
       if (failPush) throw new Error('push down');
       pushes.push({ ids, open });
+    },
+    changedStates: async (_g, since) => {
+      if (failStates) throw new Error('postgres down');
+      sinceAsked.push(since);
+      return changed.filter((c) => c.at >= Date.parse(since)).map(({ id, state }) => ({ id, state }));
     },
   };
   const q = new Map<string, PersistItem>();
@@ -129,6 +137,10 @@ function setup(moderate?: Deps['moderate']) {
     poison: (body: string) => (poison = body),
     pushes,
     failPush: (v: boolean) => (failPush = v),
+    changed,
+    sinceAsked,
+    failStates: (v: boolean) => (failStates = v),
+    now: () => now,
   };
 }
 
@@ -413,6 +425,50 @@ describe('enforcement push-down', () => {
     t.table.set('mod', access({ role: 'moderator' }));
     await t.conv.refresh(undefined, 'mod');
     expect(dee.closed).toBe(4403);
+  });
+
+  it('enforce takes messages moderated in Postgres out of live clients', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('staff', access({ access: 'staff', is_staff: true }));
+    const ada = t.peer('ada');
+    await t.conv.connect('ada');
+    t.changed.push(
+      { id: 'm-removed', state: 'removed', at: t.now() - 60_000 },
+      { id: 'm-hidden', state: 'auto_hidden', at: t.now() - 5_000 },
+      { id: 'm-restored', state: 'visible', at: t.now() - 5_000 },
+      { id: 'm-old', state: 'removed', at: t.now() - 11 * 60_000 },
+    );
+    await t.conv.enforce(undefined, 'staff');
+    expect(t.sinceAsked).toEqual([new Date(t.now() - 10 * 60_000).toISOString()]);
+    expect(ada.frames.filter((f) => f.type === 'state')).toEqual([
+      { type: 'state', message_id: 'm-removed', state: 'removed' },
+      { type: 'state', message_id: 'm-hidden', state: 'auto_hidden' },
+    ]);
+    expect(ada.frames.find((f) => f.type === 'group')).toBeTruthy();
+  });
+
+  it('enforce by a plain member refreshes only them and pushes no message states', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('dee', access());
+    t.peer('ada');
+    const dee = t.peer('dee');
+    t.changed.push({ id: 'm1', state: 'removed', at: t.now() });
+    await t.conv.enforce(undefined, 'ada');
+    expect(t.sinceAsked).toEqual([]);
+    expect(dee.frames.some((f) => f.type === 'state')).toBe(false);
+  });
+
+  it('enforce still refreshes access when reading message states fails', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('mod', access({ role: 'moderator' }));
+    const ada = t.peer('ada');
+    t.table.set('ada', access({ access: 'banned' }));
+    t.failStates(true);
+    await expect(t.conv.enforce(undefined, 'mod')).resolves.toBeUndefined();
+    expect(ada.closed).toBe(4403);
   });
 });
 

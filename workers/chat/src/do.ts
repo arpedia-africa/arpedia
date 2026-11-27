@@ -106,9 +106,11 @@ export class ConversationDO extends DurableObject<Env> {
     }
 
     if (request.method !== 'POST') return new Response('not found', { status: 404 });
-    if (url.pathname.endsWith('/refresh')) {
+    if (url.pathname.endsWith('/refresh') || url.pathname.endsWith('/enforce')) {
       const body = (await request.json().catch(() => ({}))) as { user_id?: string };
-      await conv.refresh(body.user_id, request.headers.get('X-User-Id') ?? undefined);
+      const requester = request.headers.get('X-User-Id') ?? undefined;
+      if (url.pathname.endsWith('/enforce')) await conv.enforce(body.user_id, requester);
+      else await conv.refresh(body.user_id, requester);
       return Response.json({ ok: true });
     }
     if (url.pathname.endsWith('/flush')) {
