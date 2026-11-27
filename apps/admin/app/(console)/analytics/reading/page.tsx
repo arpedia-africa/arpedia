@@ -133,24 +133,26 @@ export default async function ReadingPage({ searchParams }: { searchParams: Prom
             {far.bands == null ? (
               <NoData why="Furthest point of readers who unlocked a book and opened it in the period. Shown from 5 readers." />
             ) : (
-              <div className="sy-dist">
-                {far.bands.map(b => (
-                  <div key={b.label}>
-                    <span className="tr">
-                      <i style={{ '--v': `${b.share}%` } as CSSProperties} />
-                    </span>
-                    <b>{share(b.share)}</b>
-                    <span>{b.label}</span>
+              <>
+                <div className="sy-dist">
+                  {far.bands.map(b => (
+                    <div key={b.label}>
+                      <span className="tr">
+                        <i style={{ '--v': `${b.share}%` } as CSSProperties} />
+                      </span>
+                      <b>{share(b.share)}</b>
+                      <span>{b.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {far.by_length.map(l => (
+                  <div className="kv-row" key={l.label}>
+                    <span>{`Average completion, ${l.label}`}</span>
+                    <b title={l.avg == null ? 'Fewer than 5 readers' : undefined}>{share(l.avg) ?? dash}</b>
                   </div>
                 ))}
-              </div>
+              </>
             )}
-            {far.by_length.map(l => (
-              <div className="kv-row" key={l.label}>
-                <span>{`Average completion, ${l.label}`}</span>
-                <b>{l.avg == null ? 'Fewer than 5' : share(l.avg)}</b>
-              </div>
-            ))}
           </div>
         </div>
       </div>
