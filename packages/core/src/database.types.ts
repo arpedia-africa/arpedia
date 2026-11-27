@@ -5862,6 +5862,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_campaign_conversions":
+{ Args: { "p_campaign": string }; Returns: number
+                           },
 "_can_claims":
 { Args: { "p_decide": boolean }; Returns: boolean
                            },
@@ -7969,6 +7972,9 @@ isOneToOne: false
                            },
 "redeem_promo":
 { Args: { "p_code": string }; Returns: Json
+                           },
+"refresh_campaign_conversions":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "refresh_member_counts":
 { Args: Record<PropertyKey, never>; Returns: undefined
