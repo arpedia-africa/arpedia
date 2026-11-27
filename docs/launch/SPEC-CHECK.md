@@ -245,7 +245,7 @@ Ids 02-1, 02-2, 02-5, 02-6 (author and credits taps, search Follow/Join, notific
 | - [ ] | 06-19 | States: offline | Queued messages (up to 5) live only in component state (`pending`). If the app is killed while offline they are lost instead of sending on reconnect. | `apps/mobile/features/06/chat.ts:111` | later | B |
 | - [ ] | 06-20 | 9 | Private clubs are meant to be joined by invitation link, but there is no invite link, token or RPC. `join_group` accepts public groups only. | `supabase/migrations/20261119000600_06_community.sql:640` | later | A |
 | - [ ] | 06-21 | States: deleted accounts | `erase_account` scrubs the profile but leaves `group_members` and `messages` rows, so erased users still count toward `member_count` and their message text stays. | `supabase/migrations/20261119300000_10_profile.sql:647` | later | A |
-| - [ ] | 06-22 | 30 | Block and Unblock on the Blocked people screen call the RPC directly instead of the chat Worker, so a live conversation's cached block list is stale for up to 60 s (Undo can show a blocked person's new messages). | `apps/mobile/app/(community)/blocked.tsx:34` | later | B |
+| - [x] | 06-22 | 30 | Block and Unblock on the Blocked people screen call the RPC directly instead of the chat Worker, so a live conversation's cached block list is stale for up to 60 s (Undo can show a blocked person's new messages). **Fixed (efd9c20, batch 2):** Blocked people blocks and unblocks through the chat Worker of the group the block started in (its DO re-reads access at once); the RPC only when that group no longer answers. | `apps/mobile/app/(community)/blocked.tsx:34` | later | B |
 
 97 rules checked, 22 gaps.
 
