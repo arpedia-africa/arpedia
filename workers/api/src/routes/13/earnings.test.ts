@@ -45,6 +45,11 @@ function fakeDb() {
           Object.assign(p, { status: 'pending', transferId: args.p_transfer_id });
         return { data: null, error: null };
       }
+      case 'payout_retry_alert':
+        // Same as the RPC: once per run (until 6 hours pass).
+        if (retryAlerted) return { data: false, error: null };
+        retryAlerted = true;
+        return { data: true, error: null };
       case 'payout_transfer_error': {
         const p = payouts.get(sendable!.reference)!;
         p.errors++;
@@ -57,6 +62,7 @@ function fakeDb() {
     }
   };
   let sendable: { reference: string; [k: string]: unknown } | null = null;
+  let retryAlerted = false;
   return {
     db: { rpc } as never,
     payouts,
@@ -218,7 +224,7 @@ describe('payout transfer consumer', () => {
     expect(payouts.get(REF)).toMatchObject({ status: 'queued', errors: 1 });
   });
 
-  it('tells Finance only when the third API error fails the payout (13-11)', async () => {
+  it('tells Finance once when Flutterwave first refuses, and again when the third error fails it (13-11)', async () => {
     const { db, payouts, setSendable } = fakeDb();
     payouts.set(REF, { status: 'queued', errors: 0 });
     const enc = hexToB64(await encryptAccount(key, author, '0123456789'));
@@ -238,14 +244,18 @@ describe('payout transfer consumer', () => {
     const alerts: PayoutAlert[] = [];
     const alert = async (a: PayoutAlert) => alerts.push(a);
     await sendPayout(db, down, key, 'p1', alert);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({ kind: 'payout_alert', alert: 'payout_retrying' });
+    expect(alerts[0]!.message).toContain(REF);
+    expect(alerts[0]!.message).toContain('in 1 hour');
     await sendPayout(db, down, key, 'p1', alert);
-    expect(alerts).toEqual([]);
+    expect(alerts).toHaveLength(1);
     await sendPayout(db, down, key, 'p1', alert);
     expect(payouts.get(REF)!.status).toBe('failed');
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0]).toMatchObject({ kind: 'payout_alert', alert: 'payout_failed' });
-    expect(alerts[0]!.subject).toContain(REF);
-    expect(alerts[0]!.message).toContain('₦2,500');
+    expect(alerts).toHaveLength(2);
+    expect(alerts[1]).toMatchObject({ kind: 'payout_alert', alert: 'payout_failed' });
+    expect(alerts[1]!.subject).toContain(REF);
+    expect(alerts[1]!.message).toContain('₦2,500');
   });
 
   it('a payout that must wait is left on the queue; one that cannot go is finished', async () => {

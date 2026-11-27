@@ -30,7 +30,14 @@ import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { rpcError, userDb } from '../12/http';
 import { deliverNotices } from '../15/notify';
-import { failedAlert, reminderAlert, stuckAlert, type PayoutAlert, type ReminderDue } from './alerts';
+import {
+  failedAlert,
+  reminderAlert,
+  retryAlert,
+  stuckAlert,
+  type PayoutAlert,
+  type ReminderDue,
+} from './alerts';
 import { FlwError, payoutClient, type PayoutClient } from './flutterwave';
 
 type Db = SupabaseClient<Database>;
@@ -262,6 +269,12 @@ export async function sendPayout(
     if (eErr) throw new Error(`payout_transfer_error: ${eErr.message}`, { cause: e });
     // No delay back: that was the third error and the payout is now failed (rule 20).
     if (delay == null) await alert(failedAlert(p.reference, p.amount_kobo, reason));
+    else {
+      // The run is paused, retrying: Finance hears once per outage (13-11).
+      const { data: tell, error: aErr } = await db.rpc('payout_retry_alert', { p_payout: p.payout_id });
+      if (aErr) console.error('payout_retry_alert', p.reference, aErr.message);
+      else if (tell) await alert(retryAlert(p.reference, reason, delay));
+    }
     return false;
   }
 

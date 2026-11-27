@@ -3372,14 +3372,14 @@ isOneToOne: false
                   ]
                 },"payout_runs": {
                   Row: {
-                    "approved_by": string | null,"authors": number,"created_at": string,"cycle_id": string,"id": string,"started_by": string | null,"status": Database["public"]['Enums']["payout_run_status"],"total_kobo": number
+                    "approved_by": string | null,"authors": number,"created_at": string,"cycle_id": string,"id": string,"retry_alerted_at": string | null,"started_by": string | null,"status": Database["public"]['Enums']["payout_run_status"],"total_kobo": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id": string,"id"?: string,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
+                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id": string,"id"?: string,"retry_alerted_at"?: string | null,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
                   }
                   Update: {
-                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id"?: string,"id"?: string,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
+                    "approved_by"?: string | null,"authors"?: number,"created_at"?: string,"cycle_id"?: string,"id"?: string,"retry_alerted_at"?: string | null,"started_by"?: string | null,"status"?: Database["public"]['Enums']["payout_run_status"],"total_kobo"?: number
                   }
                   Relationships: [
                     {
@@ -6706,6 +6706,9 @@ isOneToOne: false
 "admin_credits_overview":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
+"admin_cycle_retrying":
+{ Args: { "p_cycle": string }; Returns: Json
+                           },
 "admin_earning_cycle":
 { Args: { "p_cycle": string }; Returns: Json
                            },
@@ -7823,6 +7826,9 @@ isOneToOne: false
       } },
 "payout_reminder_due":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"payout_retry_alert":
+{ Args: { "p_payout": string }; Returns: boolean
                            },
 "payout_transfer_created":
 { Args: { "p_payout": string,"p_transfer_id": string }; Returns: undefined
