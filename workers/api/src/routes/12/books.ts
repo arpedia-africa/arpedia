@@ -12,6 +12,7 @@ import { countsPayload, loadWork, locateFlags, runStage, type WorkCopy } from '.
 import desk from './desk';
 import { rpcError, signedUrl, userDb } from './http';
 import staff from './staff';
+import staffEdit from './staff-edit';
 import { verifyUpload } from './tokens';
 
 const MB = 1024 * 1024;
@@ -58,6 +59,7 @@ books.get('/objects/:token/:path{.+}', async (c) => {
 books.use('*', requireUser);
 books.route('/', staff);
 books.route('/desk', desk);
+books.route('/staff-edit', staffEdit);
 
 const UploadBody = z.object({
   book_id: z.uuid().optional(),
