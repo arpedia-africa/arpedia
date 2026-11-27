@@ -123,7 +123,8 @@ select is((select count(*)::int from public.shelf_items where section_id = (sele
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-a000-000000000001');
 select is(jsonb_path_query_array(public.get_home(), '$.sections[*].key'),
-  '["trending","authors","new_arrivals","top10","coming_soon","recommended","genres"]', 'Home sections in order');
+  '["trending","authors","new_arrivals","top10","coming_soon","recommended","following","genres"]',
+  'Home sections in order');
 select is((select jsonb_agg(x -> 'prev_rank') from jsonb_array_elements(public.get_top10()) x
   where x ->> 'title' in ('Harmattan Letters', 'Still Waters, Lagos')),
   '[5, null]', 'Top 10 movement compares with last week (New when absent)');
