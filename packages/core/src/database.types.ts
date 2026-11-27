@@ -5218,14 +5218,14 @@ isOneToOne: false
                   ]
                 },"support_tickets": {
                   Row: {
-                    "assignee_id": string | null,"book_id": string | null,"category": Database["public"]['Enums']["ticket_category"],"channel": Database["public"]['Enums']["ticket_channel"],"context": Json | null,"created_at": string,"email": string | null,"first_replied_at": string | null,"first_reply_due_at": string,"id": string,"last_message_at": string,"linked_ticket_id": string | null,"ref": string,"reopen_until": string | null,"solved_at": string | null,"status": Database["public"]['Enums']["ticket_status"],"subject": string,"user_id": string | null
+                    "assignee_id": string | null,"book_id": string | null,"category": Database["public"]['Enums']["ticket_category"],"channel": Database["public"]['Enums']["ticket_channel"],"context": Json | null,"created_at": string,"email": string | null,"first_replied_at": string | null,"first_reply_due_at": string,"id": string,"last_message_at": string,"late_alerted_at": string | null,"linked_ticket_id": string | null,"ref": string,"reopen_until": string | null,"solved_at": string | null,"status": Database["public"]['Enums']["ticket_status"],"subject": string,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "assignee_id"?: string | null,"book_id"?: string | null,"category"?: Database["public"]['Enums']["ticket_category"],"channel": Database["public"]['Enums']["ticket_channel"],"context"?: Json | null,"created_at"?: string,"email"?: string | null,"first_replied_at"?: string | null,"first_reply_due_at"?: string,"id"?: string,"last_message_at"?: string,"linked_ticket_id"?: string | null,"ref"?: string,"reopen_until"?: string | null,"solved_at"?: string | null,"status"?: Database["public"]['Enums']["ticket_status"],"subject": string,"user_id"?: string | null
+                    "assignee_id"?: string | null,"book_id"?: string | null,"category"?: Database["public"]['Enums']["ticket_category"],"channel": Database["public"]['Enums']["ticket_channel"],"context"?: Json | null,"created_at"?: string,"email"?: string | null,"first_replied_at"?: string | null,"first_reply_due_at"?: string,"id"?: string,"last_message_at"?: string,"late_alerted_at"?: string | null,"linked_ticket_id"?: string | null,"ref"?: string,"reopen_until"?: string | null,"solved_at"?: string | null,"status"?: Database["public"]['Enums']["ticket_status"],"subject": string,"user_id"?: string | null
                   }
                   Update: {
-                    "assignee_id"?: string | null,"book_id"?: string | null,"category"?: Database["public"]['Enums']["ticket_category"],"channel"?: Database["public"]['Enums']["ticket_channel"],"context"?: Json | null,"created_at"?: string,"email"?: string | null,"first_replied_at"?: string | null,"first_reply_due_at"?: string,"id"?: string,"last_message_at"?: string,"linked_ticket_id"?: string | null,"ref"?: string,"reopen_until"?: string | null,"solved_at"?: string | null,"status"?: Database["public"]['Enums']["ticket_status"],"subject"?: string,"user_id"?: string | null
+                    "assignee_id"?: string | null,"book_id"?: string | null,"category"?: Database["public"]['Enums']["ticket_category"],"channel"?: Database["public"]['Enums']["ticket_channel"],"context"?: Json | null,"created_at"?: string,"email"?: string | null,"first_replied_at"?: string | null,"first_reply_due_at"?: string,"id"?: string,"last_message_at"?: string,"late_alerted_at"?: string | null,"linked_ticket_id"?: string | null,"ref"?: string,"reopen_until"?: string | null,"solved_at"?: string | null,"status"?: Database["public"]['Enums']["ticket_status"],"subject"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -8062,7 +8062,7 @@ isOneToOne: false
 { Args: { "p_comment": string,"p_kind": string,"p_on": boolean }; Returns: boolean
                            },
 "reader_reply_ticket":
-{ Args: { "p_body": string,"p_ticket": string }; Returns: undefined
+{ Args: { "p_body": string,"p_ticket": string }; Returns: Json
                            },
 "rebuild_book_related":
 { Args: Record<PropertyKey, never>; Returns: undefined
