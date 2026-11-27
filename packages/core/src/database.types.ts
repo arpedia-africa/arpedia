@@ -5868,6 +5868,9 @@ isOneToOne: false
 "_cycle_ledger":
 { Args: { "p_month": string }; Returns: Json
                            },
+"_cycle_net_revenue":
+{ Args: { "p_month": string }; Returns: number
+                           },
 "_cycle_start":
 { Args: { "p_month": string }; Returns: string
                            },
