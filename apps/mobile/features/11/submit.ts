@@ -109,35 +109,58 @@ export function coverLine(c: PickedFile & { width?: number; height?: number }, s
   return `${c.width} × ${c.height} · ${size}${note}`;
 }
 
-async function put(url: string, file: PickedFile) {
-  const bytes = await (await fetch(file.uri)).arrayBuffer();
+const UPLOAD_FAILED = 'Upload didn’t finish. Check your connection and try again.';
+
+export async function putBytes(url: string, bytes: ArrayBuffer, type: string) {
   const sha = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);
   const hex = [...new Uint8Array(sha)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { ...(await authHeader()), 'Content-Type': file.type, 'X-Content-SHA256': hex },
-    body: bytes,
-  });
-  if (!res.ok) throw new SubmitError('Upload didn’t finish. Check your connection and try again.');
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'PUT',
+      headers: { ...(await authHeader()), 'Content-Type': type, 'X-Content-SHA256': hex },
+      body: bytes,
+    });
+  } catch {
+    throw new SubmitError(UPLOAD_FAILED);
+  }
+  if (!res.ok) throw new SubmitError(UPLOAD_FAILED);
 }
 
+const put = async (url: string, file: PickedFile) =>
+  putBytes(url, await (await fetch(file.uri)).arrayBuffer(), file.type);
+
+export interface UploadTicket {
+  book_id: string;
+  revision_id: string;
+  expires_at: string;
+  uploads: { source: string; cover: string; converted?: string };
+}
+
+export type ConvertSkipReason = 'conversion_failed' | 'out_of_memory' | 'too_large' | 'conversion_skipped';
+
+export const finalizeRevision = (rev: string, converted: boolean, reason?: ConvertSkipReason) =>
+  call<{ status: string }>('/finalize', {
+    revision_id: rev,
+    converted,
+    ...(converted ? {} : { reason: reason ?? 'conversion_skipped' }),
+  });
+
 /**
- * Step 1 → 2: create the revision, upload manuscript and cover, finalize. EPUB goes straight to
- * the Worker's checks (it is already an ebook; the Worker rebuilds it from sanitised content).
- * Word and PDF go to the Arpedia team's desk until on-device Word conversion lands (rule 18a).
+ * Step 1 → 2: create the revision and upload the original and the cover. Word and EPUB are then
+ * converted on the phone by step 2 (rule 18, `convert.ts`), which uploads the clean EPUB and
+ * finalizes; `onConvert` saves that job first so it survives the app closing. PDF is never
+ * converted on the phone: it is finalized here for the Arpedia team's desk (rule 18a).
  */
 export async function uploadBook(
   v: SubmitValues,
   file: PickedFile,
   cover: PickedFile,
-  bookId?: string,
-  replace?: boolean,
+  bookId: string | undefined,
+  replace: boolean | undefined,
+  onConvert: (ticket: UploadTicket) => Promise<void>,
 ) {
-  const ticket = await call<{
-    book_id: string;
-    revision_id: string;
-    uploads: { source: string; cover: string; converted?: string };
-  }>('/upload', {
+  const ticket = await call<UploadTicket>('/upload', {
     ...(bookId ? { book_id: bookId } : {}),
     meta: {
       source_type: v.source,
@@ -151,13 +174,8 @@ export async function uploadBook(
   });
   await put(ticket.uploads.source, file);
   await put(ticket.uploads.cover, cover);
-  const converted = v.source === 'epub' && !!ticket.uploads.converted;
-  if (converted) await put(ticket.uploads.converted!, { ...file, type: TYPES.epub });
-  await call('/finalize', {
-    revision_id: ticket.revision_id,
-    converted,
-    ...(converted ? {} : { reason: 'conversion_skipped' }),
-  });
+  if (v.source !== 'pdf' && ticket.uploads.converted) await onConvert(ticket);
+  else await finalizeRevision(ticket.revision_id, false, 'conversion_skipped');
   return ticket.revision_id;
 }
 
@@ -247,7 +265,7 @@ export function useRevisionBook(rev: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('book_revisions')
-        .select('id, source_type, submitted_at, books ( id, title )')
+        .select('id, source_type, submitted_at, revision_no, books ( id, title )')
         .eq('id', rev!)
         .single();
       if (error) throw error;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BackHandler } from 'react-native';
+import type { Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { LAUNCH_PLANS, renewalDate, shortDate } from '@arpedia/core';
 import { Screen } from '@arpedia/ui';
@@ -21,6 +22,10 @@ interface AllSetData {
   credits: number | null;
   plan: string | null;
   granted_at: string | null;
+  /** The live subscription's period end; null until the store webhook has made one. */
+  renews_at: string | null;
+  /** False for a plan cancelled or paused inside its period (no renewal to show). */
+  renewing: boolean | null;
   book: { id: string; title: string; price: number | null } | null;
   author: { id: string; name: string; genre: string | null; books: number } | null;
 }
@@ -58,13 +63,16 @@ export default function AllSet() {
 
   const d = q.data;
   const plan = LAUNCH_PLANS.find((p) => p.id === d?.plan);
-  const planLine =
-    plan && d?.granted_at
-      ? `${plan.name} · renews ${shortDate(renewalDate(d.granted_at.slice(0, 10), plan.months))}`
+  const renews = d?.renews_at
+    ? d.renews_at.slice(0, 10)
+    : plan && d?.granted_at && d.renewing == null
+      ? renewalDate(d.granted_at.slice(0, 10), plan.months)
       : null;
+  const planLine = plan ? (renews ? `${plan.name} · renews ${shortDate(renews)}` : plan.name) : null;
 
-  // Step cards lead to pages built in later flows (book 03, club 06, author 08); until then Home.
+  // Step cards finish onboarding and open their page over Home: book (03), author (08), apply (11).
   const toHome = () => void finishOnboarding(track);
+  const open = (then: Href) => () => void finishOnboarding(track, then);
   const steps: AllSetStep[] = [];
   if (d?.book)
     steps.push({
@@ -72,7 +80,7 @@ export default function AllSet() {
       title: 'Read the #1 book this week',
       sub: d.book.price ? `${d.book.title} · ${d.book.price} credits` : d.book.title,
       lead: <BookLead title={d.book.title} />,
-      onPress: toHome,
+      onPress: open({ pathname: '/book/[id]', params: { id: d.book.id, source: 'all_set' } }),
     });
   // "Join <club>" needs flow 06's clubs; hidden until they exist.
   const author: AllSetStep | null =
@@ -81,7 +89,7 @@ export default function AllSet() {
           key: 'become',
           title: 'Become an author',
           sub: 'Publish your books and reach readers',
-          onPress: toHome,
+          onPress: open('/become-author'),
         }
       : d?.author
         ? {
@@ -91,7 +99,7 @@ export default function AllSet() {
               .filter(Boolean)
               .join(' · '),
             lead: <PersonLead name={d.author.name} />,
-            onPress: toHome,
+            onPress: open({ pathname: '/author/[id]', params: { id: d.author.id, source: 'all_set' } }),
           }
         : null;
   if (author) {

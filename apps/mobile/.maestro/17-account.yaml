@@ -84,5 +84,6 @@ appId: com.arpedia.reader
 - waitForAnimationToEnd:
     timeout: 10000
 - assertVisible: 'Welcome back'
+- assertVisible: 'This account was deleted.'
 - assertNotVisible: 'Good .*, Ngozi.*'
 - takeScreenshot: account-${WIDTH}-sign-in-refused

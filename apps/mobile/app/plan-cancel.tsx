@@ -52,10 +52,20 @@ export default function PlanCancel() {
   const openStore = () => {
     if (sub) void Linking.openURL(manageUrl(sub));
   };
+  // Cancelling happens in the store: cancel_confirmed fires when the plan comes back without renewal.
+  const cancelling = useRef(false);
   const cancel = () => {
     track('cancel_started');
+    cancelling.current = true;
     openStore();
   };
+  useEffect(() => {
+    if (!cancelling.current || !sub) return;
+    if (sub.status === 'cancelled' || !sub.auto_renew) {
+      cancelling.current = false;
+      track('cancel_confirmed', { plan: sub.plan.code, store: sub.store });
+    }
+  }, [sub, track]);
   const cancelLabel = web ? 'Cancel on the web' : 'Cancel in Google Play';
 
   if (!d) {

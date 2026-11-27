@@ -94,6 +94,10 @@ export interface Plan {
   id: PlanId;
   name: string;
   priceNaira: number;
+  /** Google Play's own price text, when the store gave one. */
+  priceText?: string;
+  /** Google Play's own per-month text, when the store gave one. */
+  monthText?: string | null;
   credits: number;
   months: number;
 }
@@ -115,8 +119,17 @@ export const approxBooks = (credits: number) => Math.max(1, Math.round(credits /
 
 export const formatNaira = (n: number) => `₦${n.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
 
-export const TERMS_URL = 'https://arpedia.africa/terms';
-export const PRIVACY_URL = 'https://arpedia.africa/privacy';
+/** What the store charges: its own text when it gave one. */
+export const planPriceText = (plan: Pick<Plan, 'priceNaira' | 'priceText'>) =>
+  plan.priceText ?? formatNaira(plan.priceNaira);
+/** The large "per month" figure: the store's own when it gave one. */
+export const planMonthText = (plan: Pick<Plan, 'priceNaira' | 'months' | 'monthText'>) =>
+  plan.monthText ?? formatNaira(perMonthNaira(plan));
+
+/** Flow 16 rule 38: the api Worker serves the latest published version of each policy here. */
+export const policyUrl = (slug: string) => `https://arpedia.africa/legal/${slug}`;
+export const TERMS_URL = policyUrl('terms');
+export const PRIVACY_URL = policyUrl('privacy');
 
 /** "A", "A and B", "A, B and C". */
 const listWords = (words: string[]) =>

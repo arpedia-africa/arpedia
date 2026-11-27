@@ -13,6 +13,7 @@ import {
   postBlockCopy,
   sendErrorCopy,
   type ChatMessage,
+  type QuotePayload,
   type Reaction,
 } from '@arpedia/core';
 import { useSession } from '../../../features/01/session';
@@ -42,6 +43,7 @@ import {
   useMarkRead,
   useMergedMessages,
 } from '../../../features/06/chat';
+import { useTrack as useCommunityTrack } from '../../../features/06/analytics';
 import { toneFor } from '../../../features/06/data';
 import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 import { useTrackAuthorReply } from '../../../features/08/analytics';
@@ -62,9 +64,15 @@ function reactionLine(r: ChatMessage['reactions'], large: boolean): string | und
 }
 
 export default function Chat() {
-  const { id: gid } = useLocalSearchParams<{ id: string }>();
+  // `quote` + `msg`: a highlight shared from the reader (s-share-club), posted once on arrival.
+  const {
+    id: gid,
+    quote: quoteParam,
+    msg,
+  } = useLocalSearchParams<{ id: string; quote?: string; msg?: string }>();
   const { c, s } = useTheme();
   const toast = useToast();
+  const track06 = useCommunityTrack();
   const session = useSession();
   const me = session?.user.id;
   const net = useNetInfo();
@@ -148,7 +156,9 @@ export default function Chat() {
             m.state === 'visible' && m.quote
               ? {
                   text: `“${m.quote.text}”`,
-                  source: [m.quote.book_title, `Ch. ${m.quote.chapter}`].filter(Boolean).join(' · '),
+                  source: [m.quote.book_title, m.quote.chapter_title ?? `Ch. ${m.quote.chapter}`]
+                    .filter(Boolean)
+                    .join(' · '),
                 }
               : null,
           reply: m.reply_to
@@ -172,7 +182,13 @@ export default function Chat() {
           senderName: 'You',
           senderTone: 'n',
           author: false,
-          body: p.body,
+          body: p.quote && !p.body ? '' : p.body,
+          quote: p.quote
+            ? {
+                text: `“${p.quote.text}”`,
+                source: [p.quote.book_title, p.quote.chapter_title].filter(Boolean).join(' · '),
+              }
+            : null,
           time: chatTime(p.at),
           sending: p.status === 'sending',
           failed: p.status === 'failed' ? 'Not sent. Tap to retry' : undefined,
@@ -195,6 +211,25 @@ export default function Chat() {
         : wait > 0
           ? postBlockCopy('slow_mode', { waitSeconds: wait })
           : null;
+
+  const shared = useRef<string | null>(null);
+  useEffect(() => {
+    if (!quoteParam || !g || shared.current === quoteParam) return;
+    shared.current = quoteParam;
+    router.setParams({ quote: undefined, msg: undefined });
+    let quote: QuotePayload;
+    try {
+      quote = JSON.parse(quoteParam) as QuotePayload;
+    } catch {
+      return;
+    }
+    if (composerNote) return void toast({ message: composerNote });
+    if (!chat.send(msg ?? '', { quote })) toast({ message: 'You can queue up to 5 messages while offline.' });
+    setAtBottom(true);
+  }, [quoteParam, msg, g, composerNote, chat, toast]);
+
+  const openBook = (bookId: string, cfi?: string) =>
+    router.push({ pathname: '/read/[id]', params: cfi ? { id: bookId, cfi } : { id: bookId } });
 
   const send = () => {
     const body = text.trim();
@@ -241,6 +276,7 @@ export default function Chat() {
               {
                 key: 'pin',
                 title: selected.pinned ? 'Unpin' : 'Pin',
+                ...(offline ? { sub: 'Connect to do this', disabled: true } : null),
                 onPress: () => {
                   run({ type: selected.pinned ? 'unpin' : 'pin', message_id: selected.id });
                   setSelected(null);
@@ -263,6 +299,7 @@ export default function Chat() {
                 key: 'delete',
                 title: 'Delete',
                 danger: true,
+                ...(offline ? { sub: 'Connect to do this', disabled: true } : null),
                 onPress: () => {
                   run({ type: 'delete', message_id: selected.id });
                   setSelected(null);
@@ -277,6 +314,7 @@ export default function Chat() {
                 danger: true,
                 onPress: () => {
                   setReporting(selected);
+                  track06('report_started', { content_type: 'message' });
                   setReason(null);
                   setDetails('');
                   setAlsoBlock(false);
@@ -323,7 +361,7 @@ export default function Chat() {
             <ComPin
               title={`This week: ${g.weekly.title} ch. ${g.weekly.from}–${g.weekly.to}`}
               note={g.weekly.note}
-              onPress={() => toast({ message: 'The reader comes in a later part of the build.' })}
+              onPress={() => openBook(g.weekly!.book_id)}
             />
           ) : null}
           {g && g.blocked_here > 0 ? (
@@ -368,6 +406,11 @@ export default function Chat() {
                       item.msg && item.msg.state === 'visible' ? () => setSelected(item.msg!) : undefined
                     }
                     onRetry={() => chat.retrySend(item.key)}
+                    onOpenQuote={
+                      item.msg?.quote && item.msg.state === 'visible'
+                        ? () => openBook(item.msg!.quote!.book_id, item.msg!.quote!.cfi)
+                        : undefined
+                    }
                   />
                 )
               }
@@ -417,7 +460,7 @@ export default function Chat() {
               value={text}
               onChange={setText}
               onSend={send}
-              onPlus={() => toast({ message: 'Share a highlight from the reader.' })}
+              onPlus={() => toast({ message: 'Select text in a book, then tap Club to share it here.' })}
               placeholder={`Message ${g.name}`}
               bottom={bottom}
             />

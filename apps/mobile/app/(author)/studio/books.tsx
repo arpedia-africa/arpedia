@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { router, type Href } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
-import { studioBookLine } from '@arpedia/core';
+import { APPEAL_SENT, studioBookLine } from '@arpedia/core';
 import { isNetworkError, useSession } from '../../../features/01/session';
+import { useOnline } from '../../../features/09/data';
+import { useCreateAppeal } from '../../../features/14/appeal';
+import { AppealSheet } from '../../../features/14/AppealViews';
 import { shortDate } from '../../../features/11/application';
+import { loadJob } from '../../../features/11/convert';
 import {
   bookCountsLine,
   num,
@@ -33,8 +38,39 @@ export default function StudioBooks() {
   const act = (m: StudioBookModel) => {
     const b = books.data?.find((x) => x.book_id === m.id);
     if (!b) return;
-    if (m.action === 'Continue') return router.push(continueStep(b));
+    if (m.action === 'Continue') {
+      // A conversion this phone started resumes from its saved file (rule 23).
+      if (b.draft_step === 'upload')
+        return void loadJob(b.revision_id).then((job) =>
+          router.push(job ? submitStep('processing', b.revision_id) : continueStep(b)),
+        );
+      return router.push(continueStep(b));
+    }
     return router.push(`/studio/submit?book=${b.book_id}` as Href);
+  };
+  // Flow 14 rule 26: a rejected book is appealed in the app (within 14 days); a take-down by email.
+  const online = useOnline();
+  const appeal = useCreateAppeal(uid);
+  const [appealing, setAppealing] = useState<StudioBook | null>(null);
+  const howToAppeal = (m: StudioBookModel) => {
+    const b = books.data?.find((x) => x.book_id === m.id);
+    if (b && b.revision_status === 'rejected') {
+      appeal.reset();
+      return setAppealing(b);
+    }
+    toast({ message: 'Write to authors@arpedia.africa with the book title to appeal' });
+  };
+  const sendAppeal = (text: string) => {
+    if (!appealing) return;
+    appeal.mutate(
+      { type: 'book_rejection', id: appealing.revision_id, text },
+      {
+        onSuccess: () => {
+          setAppealing(null);
+          toast({ message: APPEAL_SENT });
+        },
+      },
+    );
   };
 
   return (
@@ -47,11 +83,16 @@ export default function StudioBooks() {
         onSubmit={submit}
         canSubmit={!suspended}
         onRetry={() => void books.refetch()}
-        onAction={(b) =>
-          b.status === 'taken_down' || b.status === 'rejected'
-            ? toast({ message: 'Write to authors@arpedia.africa with the book title to appeal' })
-            : act(b)
-        }
+        onAction={(b) => (b.status === 'taken_down' || b.status === 'rejected' ? howToAppeal(b) : act(b))}
+      />
+      <AppealSheet
+        open={!!appealing}
+        title={appealing ? `We didn't publish ${appealing.title}` : ''}
+        offline={!online}
+        sending={appeal.isPending}
+        error={appeal.error ? appeal.error.message : null}
+        onClose={() => setAppealing(null)}
+        onSend={sendAppeal}
       />
     </Screen>
   );

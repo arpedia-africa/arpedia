@@ -6,6 +6,7 @@ import { Screen, Sheet, useToast } from '@arpedia/ui';
 import { ROOM_CODE_LENGTH, joinErrorMessage, normaliseRoomCode } from '@arpedia/core';
 import { ConsentBody, JoinCodeBody, JoinCodeFoot, JoinCodeHero } from '../../features/07/FormViews';
 import { useJoinRoom, type JoinResult } from '../../features/07/data';
+import { useTrack } from '../../features/07/analytics';
 
 const NETWORK_ERROR = "Couldn't join. Check your connection and try again.";
 
@@ -21,6 +22,7 @@ export default function JoinCode() {
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState<JoinResult | null>(null);
   const join = useJoinRoom();
+  const track = useTrack();
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/rooms'));
   const change = (c: string) => {
@@ -36,7 +38,10 @@ export default function JoinCode() {
 
   const handle = (r: JoinResult) => {
     if (r.status === 'confirm') return setConsent(r);
-    if (r.status === 'joined' || r.status === 'member') {
+    const ok = r.status === 'joined' || r.status === 'member';
+    track('room_join_attempted', ok ? { success: true } : { success: false, error: r.status });
+    if (ok) {
+      if (r.status === 'joined') track('room_joined', { via: params.code ? 'link' : 'code' });
       setConsent(null);
       return router.replace(`/room/${r.room_id}`);
     }
@@ -49,6 +54,7 @@ export default function JoinCode() {
       {
         onSuccess: handle,
         onError: () => {
+          track('room_join_attempted', { success: false, error: 'network' });
           setConsent(null);
           setError(NETWORK_ERROR);
         },

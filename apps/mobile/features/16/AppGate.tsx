@@ -4,6 +4,7 @@ import * as Application from 'expo-application';
 import { usePathname } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { useSession } from '../01/session';
+import { hasBookFiles } from '../04/bookfiles';
 import {
   useAcceptPolicies,
   useAppConfig,
@@ -27,8 +28,13 @@ const useTrack: () => Track = process.env.EXPO_PUBLIC_POSTHOG_KEY ? usePostHogTr
 // Kit / parity galleries used for screen checks never show a notice.
 const KIT_ROUTE = /^\/(kit|parity|gate-preview)(\/|$)/;
 // Routes that stay open in maintenance mode so books on the phone keep opening (rule 26): the
-// Library tab (flow 05) and the reader `/read/<id>` (flow 04).
-const OPEN_IN_MAINTENANCE = /^\/(library|read\/[^/]+|read\/end\/[^/]+)$/;
+// Library tab (flow 05) and the reader `/read/<id>` (flow 04) for a book with files here.
+const READ_ROUTE = /^\/read\/(?:end\/)?([^/]+)$/;
+const openInMaintenance = (path: string) => {
+  if (path === '/library') return true;
+  const book = READ_ROUTE.exec(path)?.[1];
+  return !!book && hasBookFiles(book);
+};
 
 const storeUrl = () => `market://details?id=${Application.applicationId ?? 'com.arpedia.reader'}`;
 
@@ -50,7 +56,7 @@ export function AppGate({ children }: { children: ReactNode }) {
   const kit = KIT_ROUTE.test(pathname);
   const forceUpdate = !kit && cfg.data?.force_update === true;
   const maintenanceOn = !kit && !forceUpdate && cfg.data?.maintenance.on === true;
-  const maintenance = maintenanceOn && !OPEN_IN_MAINTENANCE.test(pathname);
+  const maintenance = maintenanceOn && !openInMaintenance(pathname);
   // Accept-again blocks the whole app (rule 38); held back only while maintenance is on.
   const policies = !kit && !forceUpdate && !maintenanceOn ? (pending.data ?? []) : [];
   const askPolicies = policies.length > 0;

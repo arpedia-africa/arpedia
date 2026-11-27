@@ -10,6 +10,7 @@ import {
   SubmitError,
   submitRevision,
   submitStep,
+  useRevisionBook,
   useRevisionStatus,
   type RevisionStatus,
 } from '../../../../features/11/submit';
@@ -28,6 +29,7 @@ export default function SubmitPreview() {
   const uid = useSession()?.user.id;
   const { rev } = useLocalSearchParams<{ rev: string }>();
   const status = useRevisionStatus(rev);
+  const book = useRevisionBook(rev);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,10 @@ export default function SubmitPreview() {
     setError(null);
     try {
       await submitRevision(rev);
-      track('book_submitted', { price_credits: d.price_credits ?? 0, readiness: d.readiness ?? 0 });
+      // An update's event (book_update_submitted) waits on the done screen for the fast-lane result.
+      if ((book.data?.revision_no ?? 1) <= 1)
+        track('book_submitted', { price_credits: d.price_credits ?? 0, readiness: d.readiness ?? 0 });
+      void qc.invalidateQueries({ queryKey: ['revision-status', rev] });
       void qc.invalidateQueries({ queryKey: ['studio-books', uid] });
       void qc.invalidateQueries({ queryKey: ['studio-home', uid] });
       router.replace(submitStep('done', rev));

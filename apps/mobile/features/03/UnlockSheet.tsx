@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  LAUNCH_PLANS,
-  TOPUP_PACKS,
   booksCovered,
   chaptersCovered,
   perMonthNaira,
@@ -15,9 +13,12 @@ import {
 import { Sheet, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { downloadBook } from '../04/download';
+import { useTrack as useReaderTrack } from '../04/analytics';
+import { useSheetPrices } from '../09/data';
 import { useTrack } from './analytics';
 import { bookKey, type BookPageData } from './book';
 import { LowBody, NoSubBody, PayGoBody, UnlockAllBody, type UnlockMode } from './UnlockViews';
+import { useAskPush } from '../15/push';
 
 // s-unlock, s-unlock-paygo, s-unlock-low, s-unlock-nosub: one sheet whose body follows the credit
 // checks (rules 13–31). Money moves only in unlock_book; this sheet never computes a charge.
@@ -79,6 +80,8 @@ export function UnlockSheet({
   const qc = useQueryClient();
   const toast = useToast();
   const track = useTrack();
+  const trackReader = useReaderTrack();
+  const askPush = useAskPush();
   const [variant, setVariant] = useState<Variant>('all');
   // One idempotency key per opening, reused for every retry of the same tap (rule 19).
   const [key, setKey] = useState('');
@@ -101,6 +104,14 @@ export function UnlockSheet({
     // Only when the sheet opens; later price or balance changes are handled by the error paths.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // A top-up bought from the low body lands here: once the balance covers it, the reader is back on
+  // the unlock body with the new balance and taps Unlock themselves (rule 29).
+  useEffect(() => {
+    if (!open || open === 'short' || variant !== 'low') return;
+    if (variantFor(d, mode) === mode) setVariant(mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d.balance]);
 
   const settings = useQuery({
     queryKey: ['reader-settings'],
@@ -147,6 +158,7 @@ export function UnlockSheet({
         toast({ message: 'You already have this book. Nothing was charged.' });
         return;
       }
+      askPush('unlock');
       track('book_unlocked', {
         book_id: d.book.id,
         price: d.price,
@@ -155,7 +167,7 @@ export function UnlockSheet({
       });
       toast({ message: `Unlocked · ${n(r.balance)} credits left` });
       // Rule 20: the whole book downloads for offline in the background; a failure retries later.
-      void downloadBook(d.book.id).catch(() => undefined);
+      void downloadBook(d.book.id, undefined, trackReader).catch(() => undefined);
     },
     onError: async (e) => {
       const { code, detail } = rpcError(e);
@@ -211,15 +223,16 @@ export function UnlockSheet({
     (short ? shortNeed : mode === 'all' ? (paid > 0 ? d.remaining : d.price) : (d.first_unpaid?.price ?? 0)) -
       d.balance,
   );
-  const { pack: preset, enough } = pickTopupPack(missing);
+  const prices = useSheetPrices();
+  const { pack: preset, enough } = pickTopupPack(missing, prices.packs);
   const [pack, setPack] = useState<TopupPack>(preset);
   useEffect(() => setPack(preset), [preset]);
 
   const preview = Number(d.preview_percent);
-  const quarterly = LAUNCH_PLANS.find((p) => p.id === 'quarterly')!;
-  const fromNaira = Math.min(...LAUNCH_PLANS.map(perMonthNaira));
+  const quarterly = prices.plans.find((p) => p.id === 'quarterly') ?? prices.plans[0]!;
+  const fromNaira = Math.min(...prices.plans.map(perMonthNaira));
   const periodEnd = d.plan.period_end ? DATE.format(new Date(d.plan.period_end)) : null;
-  const planCredits = LAUNCH_PLANS.find((p) => p.id === d.plan.plan_code)?.credits;
+  const planCredits = prices.plans.find((p) => p.id === d.plan.plan_code)?.credits;
 
   const head: Record<Variant, { title: string; sub?: string }> = {
     all: {
@@ -290,7 +303,8 @@ export function UnlockSheet({
           price={short ? shortNeed : d.price}
           balance={d.balance}
           copy={lowCopy}
-          packs={TOPUP_PACKS}
+          packs={prices.packs}
+          avgBookPrice={prices.avgBookPrice}
           selected={pack}
           enough={enough ? preset : null}
           onSelect={setPack}

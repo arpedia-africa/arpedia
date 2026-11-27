@@ -1,6 +1,7 @@
 // Notifications feed (docs/prd/02-discovery.md rules 30–33): latest 50, older on scroll, mark read.
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useTrack } from './analytics';
 import { avatarTone, coverTone, homeKey } from './home';
 import type { NotifCategory, NotifRow } from './NotificationViews';
 
@@ -51,6 +52,7 @@ export function useNotifications(category: NotifCategory) {
 /** Marks one row or every row read and refreshes the feed and Home's bell. */
 export function useMarkRead() {
   const qc = useQueryClient();
+  const track = useTrack();
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['notifications'] });
     void qc.invalidateQueries({ queryKey: homeKey });
@@ -68,6 +70,7 @@ export function useMarkRead() {
         const { error } = await supabase.rpc('mark_all_notifications_read');
         if (error) throw error;
       },
+      onSuccess: () => track('notifications_marked_all'),
       onSettled: refresh,
     }),
   };

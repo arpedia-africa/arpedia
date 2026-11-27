@@ -4,11 +4,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmptyState, Hero, IconButton, Screen, Skeleton, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { BlockedRow } from '../../features/06/BlockedViews';
+import { useTrack } from '../../features/06/analytics';
+import { chatAction, type ChatAction } from '../../features/06/chat';
 import { toneFor } from '../../features/06/data';
 
 // s-blocked: who the user blocked, where, and one-tap Unblock with a 5 s Undo (rule 32).
 
 const blockedKey = ['community', 'blocked'] as const;
+
+/**
+ * Rule 30: block and unblock go through the chat Worker of the group they started in, so that
+ * conversation's live block list changes at once. A group the user has left answers no: the RPC then.
+ */
+const viaWorker = (group: string, a: ChatAction) =>
+  chatAction(group, a).then(
+    () => true,
+    () => false,
+  );
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** "2 Nov" */
 const dayMonth = (at: string) => {
@@ -20,6 +32,7 @@ export default function Blocked() {
   const { c, s } = useTheme();
   const toast = useToast();
   const qc = useQueryClient();
+  const track = useTrack();
   const list = useQuery({
     queryKey: blockedKey,
     queryFn: async () => {
@@ -31,6 +44,7 @@ export default function Blocked() {
   const refresh = () => qc.invalidateQueries({ queryKey: ['community'] });
   const block = useMutation({
     mutationFn: async (v: { user: string; group: string | null; at: string }) => {
+      if (v.group && (await viaWorker(v.group, { type: 'block', user_id: v.user, at: v.at }))) return;
       const { error } = await supabase.rpc('block_user', {
         p_user: v.user,
         p_source_group: v.group as string,
@@ -38,13 +52,16 @@ export default function Blocked() {
       });
       if (error) throw error;
     },
+    onSuccess: () => track('user_blocked'),
     onSettled: refresh,
   });
   const unblock = useMutation({
-    mutationFn: async (user: string) => {
+    mutationFn: async ({ user, group }: { user: string; group: string | null }) => {
+      if (group && (await viaWorker(group, { type: 'unblock', user_id: user }))) return;
       const { error } = await supabase.rpc('unblock_user', { p_user: user });
       if (error) throw error;
     },
+    onSuccess: () => track('user_unblocked', { undo: false }),
     onSettled: refresh,
   });
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
@@ -84,17 +101,20 @@ export default function Blocked() {
               }`}
               divider={i > 0}
               onUnblock={() =>
-                unblock.mutate(b.user_id, {
-                  onSuccess: () =>
-                    toast({
-                      message: `${b.full_name} unblocked`,
-                      duration: 5000,
-                      // Undo re-blocks with the original date and source.
-                      onUndo: () =>
-                        block.mutate({ user: b.user_id, group: b.source_group_id, at: b.created_at }),
-                    }),
-                  onError: () => toast({ message: "Couldn't unblock. Try again." }),
-                })
+                unblock.mutate(
+                  { user: b.user_id, group: b.source_group_id },
+                  {
+                    onSuccess: () =>
+                      toast({
+                        message: `${b.full_name} unblocked`,
+                        duration: 5000,
+                        // Undo re-blocks with the original date and source.
+                        onUndo: () =>
+                          block.mutate({ user: b.user_id, group: b.source_group_id, at: b.created_at }),
+                      }),
+                    onError: () => toast({ message: "Couldn't unblock. Try again." }),
+                  },
+                )
               }
             />
           ))}

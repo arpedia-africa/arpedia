@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { Screen, useTheme, useToast } from '@arpedia/ui';
+import { Screen, useTheme } from '@arpedia/ui';
 import { groupTypeLabel, inboxTime, memberCount } from '@arpedia/core';
 import {
   CommunityHero,
@@ -14,6 +14,9 @@ import {
   type InboxTab,
 } from '../../features/06/InboxViews';
 import { toneFor, useInbox, useInboxCounts, useMarkAllRead, type InboxRow } from '../../features/06/data';
+import { coverToneFor, useRoomsSummary } from '../../features/07/data';
+import { useTrack } from '../../features/06/analytics';
+import { useFlag } from '../../features/16/config';
 
 /** Last message as "Sender: text"; groups filter shows "Type · N members" instead (rule 3). */
 function rowSub(r: InboxRow, tab: InboxTab): string {
@@ -48,8 +51,12 @@ function toRowView(r: InboxRow, tab: InboxTab, now = new Date()): InboxRowView {
 
 export default function Community() {
   const { s } = useTheme();
-  const toast = useToast();
   const [tab, setTab] = useState<InboxTab>('all');
+  const track = useTrack();
+  const pickTab = (t: InboxTab) => {
+    setTab(t);
+    track('inbox_filter_changed', { filter: t });
+  };
   const inbox = useInbox(tab);
   const counts = useInboxCounts();
   const markAll = useMarkAllRead();
@@ -61,20 +68,40 @@ export default function Community() {
     useCallback(() => {
       void refetchInbox();
       void refetchCounts();
-    }, [refetchInbox, refetchCounts]),
+      track('community_opened', { source: 'tab' });
+    }, [refetchInbox, refetchCounts, track]),
   );
 
-  // Reading rooms (s-rooms) are flow 07.
-  const openRooms = () => toast({ message: 'Reading rooms come in a later part of the build.' });
+  // The Reading rooms entries hide while the reading_rooms flag is off (flow 16 rule 27).
+  const roomsOn = useFlag('reading_rooms', true);
+  const openRooms = roomsOn ? () => router.push('/rooms') : undefined;
   const openDiscover = () => router.push('/discover');
+  // Rule 6: the Read together card shows my rooms' friends and books.
+  const summary = useRoomsSummary(roomsOn && tab === 'all').data;
+  const rooms = summary && {
+    people: summary.people.map((p) => ({ name: p.name, tone: toneFor(p.user_id) })),
+    readingNow: summary.readingNow,
+    books: summary.books.map((b) => ({ title: b.title, tone: coverToneFor(b.id) })),
+  };
   const rows = (inbox.data ?? []).map((r) => toRowView(r, tab));
+  // Rule 2: reading rooms open s-room (flow 07), author communities s-author-community and a DM
+  // with an author s-dm (flow 08, paid messages); every other group opens its chat.
+  const byId = new Map((inbox.data ?? []).map((r) => [r.group_id, r]));
+  const open = (id: string) => {
+    const r = byId.get(id);
+    if (r?.kind === 'room') router.push({ pathname: '/room/[id]', params: { id } });
+    else if (r?.kind === 'author') router.push({ pathname: '/community/[id]', params: { id } });
+    else if (r?.kind === 'dm' && r.is_author && r.other_user_id)
+      router.push({ pathname: '/dm/[id]', params: { id: r.other_user_id } });
+    else router.push(`/chat/${id}`);
+  };
 
   return (
     <Screen top="org" contentStyle={{ paddingBottom: s(28) }}>
       <CommunityHero
         tab={tab}
-        counts={{ all: counts.data?.all, unread: counts.data?.unread }}
-        onTab={setTab}
+        counts={{ all: counts.data?.all, unread: counts.data?.unread, groups: counts.data?.groups }}
+        onTab={pickTab}
         onRooms={openRooms}
         onDiscover={openDiscover}
       />
@@ -88,9 +115,9 @@ export default function Community() {
       ) : rows.length === 0 ? (
         <InboxEmpty tab={tab} onDiscover={openDiscover} onRooms={openRooms} />
       ) : (
-        <InboxList rows={rows} onOpen={(r) => router.push(`/chat/${r.id}`)} />
+        <InboxList rows={rows} onOpen={(r) => open(r.id)} />
       )}
-      {tab === 'all' ? <ReadTogether onRooms={openRooms} onDiscover={openDiscover} /> : null}
+      {tab === 'all' ? <ReadTogether rooms={rooms} onRooms={openRooms} onDiscover={openDiscover} /> : null}
     </Screen>
   );
 }

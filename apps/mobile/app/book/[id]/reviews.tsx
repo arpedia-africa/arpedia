@@ -3,17 +3,24 @@ import { View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FINISHED_PERCENT, ratingBars, ratingLabel } from '@arpedia/core';
+import { FINISHED_PERCENT, ratingBars, ratingLabel, reasonsFor } from '@arpedia/core';
 import { Btn, EmptyState, Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { AboutSkeleton, BackHero } from '../../../features/03/AboutViews';
 import { useTrack } from '../../../features/03/analytics';
-import { bookKey, type BookPageData } from '../../../features/03/book';
+import { bookKey, useOnline, type BookPageData } from '../../../features/03/book';
 import { avatarTone } from '../../../features/03/BookViews';
 import { MenuBody } from '../../../features/03/MoreSheet';
 import { ReviewsView, type ReviewItem } from '../../../features/03/ReviewViews';
+import { ReportBody, type ReportReason } from '../../../features/06/SheetViews';
+import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
 
-// s-reviews and s-review-actions (rules 42–46).
+// s-reviews and s-review-actions (rules 42–46). Report review opens `s-report` with the review
+// reasons (flow 14 rules 1 and 3, Spoilers included) through `create_report`; offline it queues.
+// Like, Hide and Delete need a connection ("Connect to continue").
+
+const OFFLINE = 'Connect to continue';
+const REVIEW_REASONS = reasonsFor('review');
 
 interface ReviewJson {
   id: string;
@@ -70,6 +77,11 @@ export default function Reviews() {
   const [filter, setFilter] = useState<number | null>(null);
   const [limit, setLimit] = useState(PAGE);
   const [actions, setActions] = useState<ReviewItem | null>(null);
+  const [reporting, setReporting] = useState<ReviewItem | null>(null);
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [details, setDetails] = useState('');
+  const [alsoBlock, setAlsoBlock] = useState(false);
+  const online = useOnline();
   const key = ['reviews', id, filter, limit] as const;
 
   const q = useQuery({
@@ -115,22 +127,17 @@ export default function Reviews() {
   });
 
   const act = useMutation({
-    mutationFn: async ({ kind, r }: { kind: 'report' | 'hide' | 'delete'; r: ReviewItem }) => {
+    mutationFn: async ({ kind, r }: { kind: 'hide' | 'delete'; r: ReviewItem }) => {
       const { error } =
-        kind === 'report'
-          ? await supabase.rpc('report_review', { p_review: r.id, p_reason: 'spoilers_abuse_or_spam' })
-          : kind === 'hide'
-            ? await supabase.rpc('hide_reviewer', { p_user: r.userId })
-            : await supabase.rpc('delete_review', { p_review: r.id });
+        kind === 'hide'
+          ? await supabase.rpc('hide_reviewer', { p_user: r.userId })
+          : await supabase.rpc('delete_review', { p_review: r.id });
       if (error) throw error;
       return kind;
     },
     onSuccess: (kind, { r }) => {
       setActions(null);
-      if (kind === 'report') {
-        track('review_reported');
-        toast({ message: 'Thanks. Our team will look at it.' });
-      } else if (kind === 'hide') {
+      if (kind === 'hide') {
         track('reviewer_hidden');
         toast({ message: `You won’t see reviews from ${r.name.split(' ')[0]}` });
       } else toast({ message: 'Review deleted' });
@@ -138,6 +145,37 @@ export default function Reviews() {
     },
     onError: () => toast({ message: 'That didn’t work. Check your connection and try again.' }),
   });
+  const needsNet = (run: () => void) => () => (online ? run() : toast({ message: OFFLINE }));
+
+  const report = useMutation({
+    mutationFn: (r: ReviewItem) =>
+      createReport(
+        {
+          content_type: 'review',
+          content_id: r.id,
+          reason: reason!,
+          details: details.trim() || null,
+          also_block: alsoBlock,
+        },
+        !online,
+      ),
+    onSuccess: (ref) => {
+      setReporting(null);
+      track('review_reported');
+      toast({ message: ref === null ? REPORT_SAVED : REPORT_SENT, duration: 6000 });
+      // get_reviews filters hidden reviewers, not blocks: Also block hides their reviews here too.
+      if (alsoBlock && ref !== null && reporting)
+        void supabase.rpc('hide_reviewer', { p_user: reporting.userId }).then(refresh);
+    },
+    onError: (e) => toast({ message: reportErrorCopy(String((e as Error).message)) }),
+  });
+  const openReport = (r: ReviewItem) => {
+    setActions(null);
+    setReason(null);
+    setDetails('');
+    setAlsoBlock(false);
+    setReporting(r);
+  };
 
   const back = () =>
     router.canGoBack() ? router.back() : router.replace({ pathname: '/book/[id]', params: { id } });
@@ -172,7 +210,7 @@ export default function Reviews() {
           writeLabel={mine ? 'Edit your review' : 'Write a review'}
           onWrite={write}
           onMore={setActions}
-          onLike={(r) => like.mutate(r)}
+          onLike={(r) => needsNet(() => like.mutate(r))()}
           footer={
             d.reviews.length >= limit ? (
               <View style={{ padding: s(16) }}>
@@ -222,8 +260,8 @@ export default function Reviews() {
                     {
                       key: 'delete',
                       title: 'Delete review',
-                      sub: 'Removes it for everyone',
-                      onPress: () => act.mutate({ kind: 'delete', r: actions }),
+                      sub: online ? 'Removes it for everyone' : OFFLINE,
+                      onPress: needsNet(() => act.mutate({ kind: 'delete', r: actions })),
                     },
                   ]
                 : [
@@ -231,13 +269,13 @@ export default function Reviews() {
                       key: 'report',
                       title: 'Report review',
                       sub: 'Spoilers, abuse or spam',
-                      onPress: () => act.mutate({ kind: 'report', r: actions }),
+                      onPress: () => openReport(actions),
                     },
                     {
                       key: 'hide',
                       title: `Hide reviews from ${first}`,
-                      sub: 'Only you stop seeing them',
-                      onPress: () => act.mutate({ kind: 'hide', r: actions }),
+                      sub: online ? 'Only you stop seeing them' : OFFLINE,
+                      onPress: needsNet(() => act.mutate({ kind: 'hide', r: actions })),
                     },
                   ]),
               ...(actions.body
@@ -255,6 +293,29 @@ export default function Reviews() {
                   ]
                 : []),
             ]}
+          />
+        ) : null}
+      </Sheet>
+      <Sheet
+        open={reporting !== null}
+        onClose={() => setReporting(null)}
+        locked={report.isPending}
+        title="Why are you reporting this?"
+      >
+        {reporting ? (
+          <ReportBody
+            name={reporting.name}
+            reasons={REVIEW_REASONS}
+            reason={reason}
+            details={details}
+            alsoBlock={alsoBlock}
+            canBlock
+            sending={report.isPending}
+            onReason={setReason}
+            onDetails={setDetails}
+            onAlsoBlock={setAlsoBlock}
+            onCancel={() => setReporting(null)}
+            onSend={() => reason && report.mutate(reporting)}
           />
         ) : null}
       </Sheet>

@@ -514,6 +514,7 @@ function ToggleCell({
 export function NotifPrefsView({
   prefs,
   phoneOff,
+  noPush,
   onBack,
   onFeed,
   onToggle,
@@ -521,6 +522,8 @@ export function NotifPrefsView({
 }: {
   prefs?: NotifPrefs;
   phoneOff?: boolean;
+  /** This build has no push (staging test build without Firebase): say so instead. */
+  noPush?: boolean;
   onBack: () => void;
   onFeed: () => void;
   onToggle: (k: NotifKey, v: boolean) => void;
@@ -543,11 +546,17 @@ export function NotifPrefsView({
         onBack={onBack}
         action={<IconButton icon="bell" label="Open notification feed" onPress={onFeed} color={c.onOrg} />}
       />
-      {phoneOff ? (
+      {noPush ? (
+        <View style={{ paddingHorizontal: s(16), paddingTop: s(16) }}>
+          <Callout tone="info">
+            This test build doesn’t get push notifications. Your choices are saved and the feed still fills.
+          </Callout>
+        </View>
+      ) : phoneOff ? (
         <View style={{ paddingHorizontal: s(16), paddingTop: s(16), gap: s(8) }}>
-          <Callout tone="warn">Notifications are off on this phone.</Callout>
+          <Callout tone="warn">Notifications are off in your phone settings.</Callout>
           <Btn
-            label="Open phone settings"
+            label="Open settings"
             variant="g"
             size="sm"
             onPress={onOpenSettings}
@@ -774,6 +783,7 @@ export function AboutView({
   build,
   onBack,
   onHelp,
+  onContact,
   onCopy,
   onTerms,
   onPrivacy,
@@ -783,6 +793,8 @@ export function AboutView({
   build: string;
   onBack: () => void;
   onHelp: () => void;
+  /** Tap on the row: an email with app version, device and user id (flow 14 rule 34). */
+  onContact?: () => void;
   onCopy: () => void;
   onTerms: () => void;
   onPrivacy: () => void;
@@ -798,6 +810,7 @@ export function AboutView({
           <Cell
             title="Contact support"
             sub="support@arpedia.africa"
+            onPress={onContact}
             trail={<Btn label="Copy" variant="g" size="sm" onPress={onCopy} />}
           />
           <Cell title="Terms of Service" chevron onPress={onTerms} />

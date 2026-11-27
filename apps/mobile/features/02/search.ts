@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { isSearchable, normalizeQuery, type LengthBand } from '@arpedia/core';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isSearchable, normalizeQuery, type LengthBand, type LibraryItem } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { mirrorBooks } from '../05/library';
 import type { HomeBook } from './home';
 import type { Scope } from './SearchViews';
 
@@ -51,6 +52,21 @@ export function useOnline() {
   return online;
 }
 
+/* ─── Offline matches (rule 22) ──────────────────────────────────────────── */
+/** Books in the reader's library (the persisted Library mirror) whose title or author matches. */
+export function useLibraryMatches(q: string, enabled: boolean): LibraryItem[] {
+  const qc = useQueryClient();
+  const norm = normalizeQuery(q);
+  if (!enabled || !norm) return [];
+  return [...mirrorBooks(qc).values()]
+    .filter(
+      (b) =>
+        normalizeQuery(b.title).includes(norm) ||
+        (b.author_name != null && normalizeQuery(b.author_name).includes(norm)),
+    )
+    .slice(0, 8);
+}
+
 /** Debounced value (suggestions wait 200 ms after the last letter). */
 export function useDebounced<T>(value: T, ms: number) {
   const [v, setV] = useState(value);
@@ -81,7 +97,15 @@ export function useSearchHome() {
 }
 
 export type ServerSuggestion =
-  | { type: 'book'; id: string; title: string; sub: string; cover_key: string | null; topic: string | null }
+  | {
+      type: 'book';
+      id: string;
+      title: string;
+      sub: string;
+      cover_key: string | null;
+      topic: string | null;
+      coming_soon?: boolean;
+    }
   | { type: 'author'; id: string; title: string; books: number; avatar_url: string | null }
   | { type: 'club'; id: string; title: string; members: number }
   | { type: 'genre'; id: string; slug: string; title: string; books: number };
@@ -104,7 +128,8 @@ export function useSuggest(q: string, enabled: boolean) {
 export interface SearchResult {
   query: string;
   top: (HomeBook & { snippet: string | null; promoted: boolean }) | null;
-  books: (HomeBook & { snippet: string | null; promoted: boolean })[];
+  /** Scheduled books (when Search tuning shows unreleased books) carry `coming_soon` and come last. */
+  books: (HomeBook & { snippet: string | null; promoted: boolean; coming_soon?: boolean })[];
   authors: { id: string; name: string; avatar_url: string | null; books: number }[];
   clubs: { id: string; name: string; members: number }[];
   counts: Record<Scope, number>;

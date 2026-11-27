@@ -55,6 +55,8 @@ export interface StartPosition {
   para_id?: string;
   /** Words into the paragraph. */
   offset?: number;
+  /** The saved chapter: where the book opens when neither the CFI nor the paragraph resolves (rule 11). */
+  chapter_uid?: string;
 }
 
 export interface DrawAnnotation {
@@ -98,6 +100,9 @@ export interface SelectionDetail {
   text: string;
   para_id_start: string | null;
   para_id_end: string | null;
+  /** Characters into the start / end paragraph (flow 04 rule 41: the durable anchor). */
+  start_char?: number;
+  end_char?: number;
   chapter_uid: string | null;
   rects: Rect[];
   page_rect: Rect;
@@ -158,6 +163,8 @@ export type WebToNative =
       };
     }
   | { type: 'log'; payload: { level: 'info' | 'warn'; message: string } }
+  /** The saved place no longer exists (an update moved it); the book opened nearby (rule 11). */
+  | { type: 'start.moved'; payload?: undefined }
   | {
       type: 'error';
       payload: {
@@ -196,6 +203,7 @@ const WEB_TYPES = new Set<string>([
   'marker.tap',
   'search.result',
   'log',
+  'start.moved',
   'error',
 ]);
 

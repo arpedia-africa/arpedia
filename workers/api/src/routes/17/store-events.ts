@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono';
-import { safeEqual, type RevenueCatEvent } from '@arpedia/core';
+import { safeEqual, storeProductId, type RevenueCatEvent } from '@arpedia/core';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 
@@ -18,10 +18,10 @@ export function unmatchedProduct(
   known: ReadonlySet<string>,
 ): string | null {
   if (!event?.id || !event.type || event.type === 'TEST') return null;
-  const product = event.product_id?.trim();
+  const product = storeProductId(event.product_id);
   if (!product || known.has(product)) return null;
   // A change onto one of our products is flow 09's to apply (the reader now pays for it).
-  const next = event.new_product_id?.trim();
+  const next = storeProductId(event.new_product_id);
   if (event.type === 'PRODUCT_CHANGE' && next && known.has(next)) return null;
   return product;
 }

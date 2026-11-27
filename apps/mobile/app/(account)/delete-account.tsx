@@ -6,6 +6,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { Screen } from '@arpedia/ui';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
+import { wipeReaderData } from '../../features/04/bookfiles';
 import { usePlanScreen } from '../../features/09/data';
 import { requestDeletion, rpcReason, useProfileSummary } from '../../features/10/data';
 import { DeleteAccountFoot, DeleteAccountView } from '../../features/10/SettingsViews';
@@ -45,6 +46,7 @@ export default function DeleteAccount() {
       // Every session is already ended on the server; clear this phone and go to Log in.
       await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       queryClient.clear();
+      await wipeReaderData();
       router.replace({ pathname: '/(auth)/login', params: { deleted: '1' } });
     } catch (e) {
       setError(

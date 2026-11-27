@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { useMutation } from '@tanstack/react-query';
-import { LAUNCH_PLANS, TOPUP_PACKS, pickTopupPack, type TopupPack } from '@arpedia/core';
+import { pickTopupPack, type TopupPack } from '@arpedia/core';
 import { Sheet } from '@arpedia/ui';
 import { supabase } from '@/lib/supabase';
 import { rpcError } from '../03/UnlockSheet';
+import { useSheetPrices } from '../09/data';
 import { ChapterLowBody, PayRestBody } from './PayViews';
 import type { ReaderState } from './state';
 import { chapterNumber } from './useReader';
+import { useAskPush } from '../15/push';
 
 const n = (v: number) => v.toLocaleString('en-NG');
 const DATE = new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'long' });
@@ -56,6 +58,7 @@ export function PayRestSheet({
   const paidRange = range(paidNums);
   const leftRange = range(leftNums);
 
+  const askPush = useAskPush();
   const pay = useMutation({
     mutationFn: async () => {
       const { data, error: e } = await supabase.rpc('unlock_book', {
@@ -66,7 +69,10 @@ export function PayRestSheet({
       if (e) throw e;
       return data as { balance: number; spent: number; status: string };
     },
-    onSuccess: (r) => onPaid(r),
+    onSuccess: (r) => {
+      askPush('unlock');
+      onPaid(r);
+    },
     onError: (e) => {
       const { code, detail } = rpcError(e);
       if (code === 'network') return setError('No connection. Nothing was charged. Try again.');
@@ -120,11 +126,12 @@ export function ChapterLowSheet({
   const ch = chapterUid ? st.chapters.find((c) => c.chapter_uid === chapterUid) : null;
   const no = ch ? chapterNumber(st, ch.chapter_uid) : 0;
   const price = ch?.price_credits ?? 0;
-  const { pack: preset } = pickTopupPack(Math.max(0, price - st.balance));
+  const prices = useSheetPrices();
+  const { pack: preset } = pickTopupPack(Math.max(0, price - st.balance), prices.packs);
   const [pack, setPack] = useState<TopupPack>(preset);
   useEffect(() => setPack(preset), [preset]);
 
-  const planCredits = LAUNCH_PLANS.find((p) => p.id === st.plan.plan_code)?.credits;
+  const planCredits = prices.plans.find((p) => p.id === st.plan.plan_code)?.credits;
   const renews = st.plan.period_end ? DATE.format(new Date(st.plan.period_end)) : null;
   const copy = [
     `Your place is saved. Top up and you'll be back on page 1 of Chapter ${no}.`,
@@ -149,7 +156,8 @@ export function ChapterLowSheet({
     >
       <ChapterLowBody
         copy={copy}
-        packs={TOPUP_PACKS}
+        packs={prices.packs}
+        avgBookPrice={prices.avgBookPrice}
         selected={pack}
         presetSub={{ credits: preset.credits, sub: presetSub }}
         onSelect={setPack}

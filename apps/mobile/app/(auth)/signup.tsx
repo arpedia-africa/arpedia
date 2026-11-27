@@ -6,8 +6,14 @@ import { PASSWORD_MIN, PRIVACY_URL, TERMS_URL, validEmail, validName, validPassw
 import { supabase } from '@/lib/supabase';
 import { SignupView, type FieldErrors, type SignupValues } from '../../features/01/AuthViews';
 import { useTrack } from '../../features/01/analytics';
-import { signInWithGoogle } from '../../features/01/google';
-import { COPY, afterSignIn, isNetworkError, registerDevice } from '../../features/01/session';
+import { googleConfigured, signInWithGoogle } from '../../features/01/google';
+import {
+  COPY,
+  afterSignIn,
+  isAccountDeleted,
+  isNetworkError,
+  registerDevice,
+} from '../../features/01/session';
 import { onboardingClock } from '../../features/01/steps';
 
 // Policy versions the reader accepts by creating an account (stored with the time, rule 1).
@@ -71,7 +77,7 @@ export default function Signup() {
       track('signup_completed', { method: 'email' });
       if (!data.session) {
         // Email confirmation is not required (rule 5); a project that requires it lands on Log in.
-        router.replace('/(auth)/login');
+        router.replace({ pathname: '/(auth)/login', params: { confirm: '1' } });
         return;
       }
       void registerDevice();
@@ -92,10 +98,14 @@ export default function Signup() {
     try {
       if (!(await signInWithGoogle())) return;
       const { data } = await supabase.auth.getUser();
-      track('signup_completed', { method: 'google' });
+      // An account Google already had signs in here too: that is a login, not a sign-up.
+      const fresh = !!data.user && Date.now() - Date.parse(data.user.created_at) < 5 * 60_000;
+      track(fresh ? 'signup_completed' : 'login_succeeded', { method: 'google' });
       if (data.user) await afterSignIn(data.user.id);
     } catch (e) {
-      setErrors({ google: isNetworkError(e) ? COPY.offline : COPY.googleFailed });
+      setErrors({
+        google: isAccountDeleted(e) ? COPY.deleted : isNetworkError(e) ? COPY.offline : COPY.googleFailed,
+      });
     } finally {
       running.current = false;
       setBusy(null);
@@ -117,7 +127,7 @@ export default function Signup() {
         }}
         onBlur={(f) => values[f] && setErrors((cur) => ({ ...cur, [f]: check[f](values) }))}
         onSubmit={submit}
-        onGoogle={google}
+        onGoogle={googleConfigured ? google : undefined}
         onLogin={() => router.replace('/(auth)/login')}
         onTerms={() => void Linking.openURL(TERMS_URL)}
         onPrivacy={() => void Linking.openURL(PRIVACY_URL)}
