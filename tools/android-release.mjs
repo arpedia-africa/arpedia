@@ -7,16 +7,22 @@
 //
 // --staging: the staging test build (owner decision, 24 Nov). "Arpedia Test", com.arpedia.reader.staging,
 // arm64-v8a, beside v25 and the release app. Kit gallery off, test store on (the staging api Worker
-// answers it only with TEST_STORE=1), push off unless google-services.json has that app id. Server
+// answers it only with TEST_STORE=1), push off unless google-services.json (GOOGLE_SERVICES_JSON, else
+// apps/mobile/google-services.json) has that app id; the same rule holds for the release build. Server
 // addresses come from EXPO_PUBLIC_SUPABASE_URL, _SUPABASE_ANON_KEY, _API_URL and _CHAT_URL in the shell;
 // it stops if one is missing or points at this PC or production. Signed from ANDROID_KEYSTORE_PATH,
 // ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD (as fastlane does).
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { SERVER_VARS, STAGING_APP_ID, stagingBuildEnv, stagingEnvProblems } from './launch/staging-build.mjs';
 
+// google-services.json from GOOGLE_SERVICES_JSON or apps/mobile (the same check the config plugin makes).
+const { firebaseHas } = createRequire(import.meta.url)('../apps/mobile/plugins/google-services.js');
+
+const PRODUCTION_APP_ID = 'com.arpedia.reader';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const mobile = join(root, 'apps/mobile');
 const argv = process.argv.slice(2);
@@ -25,7 +31,13 @@ const args = new Set(argv);
 const staging = args.has('--staging');
 const arch = flag('--arch', staging ? 'arm64-v8a' : 'x86_64');
 const serial = flag('--serial', process.env.ANDROID_SERIAL);
-let env = { ...process.env, EXPO_PUBLIC_KIT: '1', NODE_ENV: 'production' };
+// Push only when Firebase has a client for the release id (else the app never asks for a token).
+let env = {
+  ...process.env,
+  EXPO_PUBLIC_KIT: '1',
+  NODE_ENV: 'production',
+  EXPO_PUBLIC_PUSH: firebaseHas(PRODUCTION_APP_ID) ? '1' : '0',
+};
 const jbr = 'C:/Program Files/Android/Android Studio/jbr';
 if (existsSync(jbr)) env.JAVA_HOME = jbr;
 if (!env.ANDROID_HOME && env.LOCALAPPDATA) env.ANDROID_HOME = join(env.LOCALAPPDATA, 'Android', 'Sdk');
@@ -46,17 +58,8 @@ function dotenvKeys() {
   return keys;
 }
 
-/** google-services.json has a client for the staging app id (else push stays off). */
-function firebaseHas(appId) {
-  const p = join(mobile, 'google-services.json');
-  if (!existsSync(p)) return false;
-  try {
-    const j = JSON.parse(readFileSync(p, 'utf8'));
-    return (j.client ?? []).some((c) => c.client_info?.android_client_info?.package_name === appId);
-  } catch {
-    return false;
-  }
-}
+if (!staging && env.EXPO_PUBLIC_PUSH === '0')
+  console.log(`ℹ No Firebase entry for ${PRODUCTION_APP_ID}: push is off in this build.`);
 
 const signing = [];
 if (staging) {

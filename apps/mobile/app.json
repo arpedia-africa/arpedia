@@ -115,7 +115,8 @@
           "backgroundColor": "#F5931F"
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "./plugins/google-services"
     ],
     "experiments": {
       "typedRoutes": true
