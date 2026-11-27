@@ -26,7 +26,7 @@ import {
   useGroupMembership,
   useHistory,
 } from '../../../features/06/chat';
-import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
+import { REPORT_SAVED, REPORT_SENT, reportErrorCopy, useReport } from '../../../features/14/report';
 import { useTrack } from '../../../features/08/analytics';
 import { DmConfirmSheet } from '../../../features/08/DmConfirm';
 import { DmComposer, DmHead, DmIntro } from '../../../features/08/DmViews';
@@ -138,6 +138,7 @@ function Thread({
   const qc = useQueryClient();
   const toast = useToast();
   const track = useTrack();
+  const reportFlow = useReport();
   const online = useOnline();
   const session = useSession();
   const me = session?.user.id;
@@ -473,16 +474,17 @@ function Thread({
             onSend={() => {
               if (!reason) return;
               setSendingReport(true);
-              createReport(
-                {
-                  content_type: 'dm',
-                  content_id: reporting,
-                  reason,
-                  details: details.trim() || null,
-                  also_block: alsoBlock,
-                },
-                !online,
-              )
+              reportFlow
+                .send(
+                  {
+                    content_type: 'dm',
+                    content_id: reporting,
+                    reason,
+                    details: details.trim() || null,
+                    also_block: alsoBlock,
+                  },
+                  !online,
+                )
                 .then(
                   (ref) => {
                     setReporting(null);
@@ -538,6 +540,7 @@ function Thread({
                 setReason(null);
                 setDetails('');
                 setAlsoBlock(false);
+                reportFlow.started('dm');
                 setReporting(last.id);
               },
             },

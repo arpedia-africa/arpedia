@@ -13,7 +13,7 @@ import { avatarTone } from '../../../features/03/BookViews';
 import { MenuBody } from '../../../features/03/MoreSheet';
 import { ReviewsView, type ReviewItem } from '../../../features/03/ReviewViews';
 import { ReportBody, type ReportReason } from '../../../features/06/SheetViews';
-import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
+import { REPORT_SAVED, REPORT_SENT, reportErrorCopy, useReport } from '../../../features/14/report';
 
 // s-reviews and s-review-actions (rules 42–46). Report review opens `s-report` with the review
 // reasons (flow 14 rules 1 and 3, Spoilers included) through `create_report`; offline it queues.
@@ -73,6 +73,7 @@ export default function Reviews() {
   const { s } = useTheme();
   const toast = useToast();
   const track = useTrack();
+  const reportFlow = useReport();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<number | null>(null);
   const [limit, setLimit] = useState(PAGE);
@@ -149,7 +150,7 @@ export default function Reviews() {
 
   const report = useMutation({
     mutationFn: (r: ReviewItem) =>
-      createReport(
+      reportFlow.send(
         {
           content_type: 'review',
           content_id: r.id,
@@ -174,6 +175,7 @@ export default function Reviews() {
     setReason(null);
     setDetails('');
     setAlsoBlock(false);
+    reportFlow.started('review');
     setReporting(r);
   };
 

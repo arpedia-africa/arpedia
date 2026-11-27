@@ -44,6 +44,7 @@ import {
   type ReaderState,
 } from './state';
 import { useTrack } from './analytics';
+import { useTrack as useTrustTrack } from '../14/analytics';
 import { deviceId, WorkerError } from './worker';
 import { flushAnnotations, queuedAnnotations, saveAnnotations, type AnnotationRow } from './annotationQueue';
 import { useAskPush } from '../15/push';
@@ -131,6 +132,7 @@ export function useReader(
 ) {
   const qc = useQueryClient();
   const track = useTrack();
+  const trustTrack = useTrustTrack();
   const askPush = useAskPush();
   const openedAt = useRef(Date.now());
   const readyTracked = useRef(false);
@@ -1133,8 +1135,10 @@ export function useReader(
         p_note: note.trim() || undefined,
       } as never);
       if (e) throw e;
+      // Flow 14: Report a problem opens a Book access ticket (report_book_problem → create_support_ticket).
+      trustTrack('ticket_created', { channel: 'app', category: 'book_access' });
     },
-    [state, bookId, loc],
+    [state, bookId, loc, trustTrack],
   );
 
   return {
