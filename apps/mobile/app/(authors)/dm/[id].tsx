@@ -255,7 +255,6 @@ function Thread({
   };
 
   const submit = () => {
-    if (!online) return toast({ message: 'Connect to do this' });
     if (!validMessage(text, t.max_chars)) return;
     const p: Pending = {
       client_id: Crypto.randomUUID(),
@@ -264,6 +263,8 @@ function Thread({
       status: 'sending',
     };
     setText('');
+    // States: offline. Nothing is charged; the message waits as "Not sent. Tap to retry".
+    if (!online) return setPending((l) => [...l, { ...p, status: 'failed' }]);
     void send(p);
   };
 

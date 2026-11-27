@@ -151,7 +151,6 @@ export default function PostPage() {
   };
 
   const submit = () => {
-    if (!online) return toast({ message: 'Connect to do this' });
     if (!validMessage(text)) return;
     const p: Pending = {
       client_id: Crypto.randomUUID(),
@@ -163,6 +162,8 @@ export default function PostPage() {
     setText('');
     setReplyTo(null);
     input.current?.blur();
+    // States: offline. The comment waits as "Not sent. Tap to retry" with its client_id.
+    if (!online) return setPending((l) => [...l, { ...p, state: 'failed' }]);
     void send(p);
   };
 
