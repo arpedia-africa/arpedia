@@ -122,8 +122,9 @@ export interface MyRoomsSummary {
 }
 
 /**
- * Read together card (flow 06 rule 6): my live rooms' books, and the other members still reading
- * them. Names come from the first two rooms' headers (large rooms send none, so they count only).
+ * Read together card (flow 06 rule 6, flow 07 "Read together card"): `get_read_together` counts the
+ * other members of my live and scheduled rooms who read in the last 24 hours (blocked and banned
+ * people left out), with the latest 3 of them and my rooms' books.
  */
 export function useRoomsSummary(enabled: boolean) {
   return useQuery({
@@ -131,27 +132,18 @@ export function useRoomsSummary(enabled: boolean) {
     enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<MyRoomsSummary> => {
-      const { data, error } = await supabase.rpc('get_my_rooms');
+      const { data, error } = await supabase.rpc('get_read_together');
       if (error) throw error;
-      const live = (data as unknown as RoomRow[]).filter((r) => r.state !== 'ended');
-      const me = (await supabase.auth.getSession()).data.session?.user.id;
-      const heads = await Promise.all(
-        live.slice(0, 2).map(async (r) => {
-          const { data: room } = await supabase.rpc('get_room', { p_room: r.room_id });
-          return { row: r, header: ((room as unknown as Room | null)?.header ?? []) as HeaderMember[] };
-        }),
-      );
-      const people = new Map<string, RoomsFriend>();
-      let unnamed = 0;
-      for (const { row, header } of heads) {
-        if (header.length === 0) unnamed += Math.max(0, row.member_count - row.finished_count - 1);
-        for (const h of header)
-          if (h.user_id !== me && !h.finished) people.set(h.user_id, { user_id: h.user_id, name: h.name });
-      }
-      for (const row of live.slice(2)) unnamed += Math.max(0, row.member_count - row.finished_count - 1);
-      const books = new Map<string, { id: string; title: string }>();
-      for (const r of live) books.set(r.book.id, { id: r.book.id, title: r.book.title });
-      return { people: [...people.values()], readingNow: people.size + unnamed, books: [...books.values()] };
+      const d = data as unknown as {
+        reading_now: number;
+        people: { id: string; name: string }[];
+        books: { id: string; title: string }[];
+      };
+      return {
+        people: d.people.map((p) => ({ user_id: p.id, name: p.name })),
+        readingNow: d.reading_now,
+        books: d.books.map((b) => ({ id: b.id, title: b.title })),
+      };
     },
   });
 }
