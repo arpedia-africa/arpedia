@@ -8428,6 +8428,9 @@ isOneToOne: false
 "staff_request_campaign_review":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"staff_resend_receipt":
+{ Args: { "p_transaction": string }; Returns: Json
+                           },
 "staff_reset_link_fresh":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },

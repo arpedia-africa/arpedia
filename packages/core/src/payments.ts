@@ -250,6 +250,41 @@ export function normalizeFlutterwaveUnpaid(tx: FlutterwaveTx): IngestInput | Ign
   };
 }
 
+/** A Flutterwave refund, as `GET /refunds/{id}` returns it (amounts in naira). */
+export interface FlutterwaveRefund {
+  id: number;
+  tx_id: number;
+  amount_refunded: number;
+  status: string;
+  created_at?: string;
+}
+
+/**
+ * A refund started outside the app, in the Flutterwave dashboard (spec check 09-13). Applied like a
+ * store refund: the paid share comes back off the purchase and its unspent credits are clawed back.
+ * `user_id` is the reader on our own transaction row for `tx_id`, never anything from the webhook.
+ * Keyed by refund id, so a redelivered notice changes nothing.
+ */
+export function normalizeFlutterwaveRefund(refund: FlutterwaveRefund, userId: string): IngestInput | Ignored {
+  if (!/^completed/.test(refund.status)) return { ignore: `refund ${refund.status}` };
+  const kobo = Math.round(refund.amount_refunded * 100);
+  if (!(kobo > 0)) return { ignore: 'refund amount' };
+  const at = refund.created_at ? new Date(refund.created_at) : new Date();
+  return {
+    provider: 'flutterwave',
+    eventId: `refund:${refund.id}`,
+    eventType: 'refund.completed',
+    occurredAt: (Number.isNaN(at.getTime()) ? new Date() : at).toISOString(),
+    normalized: {
+      type: 'refund',
+      user_id: userId,
+      store: 'web',
+      txn_id: String(refund.tx_id),
+      refund_kobo: kobo,
+    },
+  };
+}
+
 /** Constant-time string compare for shared secrets (webhook auth headers). */
 export function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
