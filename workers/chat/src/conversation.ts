@@ -33,6 +33,8 @@ export interface SenderState {
   last: number;
   sends: number[];
   recent: { client_id: string; id: string; created_at: string; hidden: boolean }[];
+  /** Hashes of recent message texts, for the identical-messages spam rule (flow 14 rule 23). */
+  texts?: { h: number; t: number }[];
 }
 
 export interface SenderStore {
@@ -91,6 +93,22 @@ export const FLUSH_MS = 1_000;
 export const FLUSH_BATCH = 50;
 export const RETRY_MS = 5_000;
 export const RATE_LIMIT = { count: 20, windowMs: 60_000 };
+/** Flow 14 defaults: 3 identical messages in 5 minutes. */
+export const IDENTICAL = { count: 3, windowMinutes: 5 };
+const TEXTS_PER_SENDER = 50;
+
+/** FNV-1a of the text as a person would see it repeated (case and spacing ignored). */
+export function textHash(body: string): number {
+  let h = 0x811c9dc5;
+  for (const ch of body.toLowerCase().replace(/\s+/g, ' ').trim()) {
+    h ^= ch.codePointAt(0)!;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+const positive = (n: unknown, fallback: number) =>
+  typeof n === 'number' && Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 const RECENT_PER_SENDER = 20;
 const LINK = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|ng|net|org|africa|io|co|me|ly|link)\b/i;
 const PHONE = /(?<!\d)(?:\+?234|0)[789][01]\d{8}(?!\d)/;
@@ -276,7 +294,18 @@ export class Conversation {
       if (wait > 0) return err('slow_mode', { wait_seconds: Math.ceil(wait / 1000) });
     }
     const window = s.sends.filter((t) => now - t < RATE_LIMIT.windowMs);
-    if (window.length >= RATE_LIMIT.count) return err('rate_limited');
+    const perMinute = positive(a.limits?.messages_per_minute, RATE_LIMIT.count) || RATE_LIMIT.count;
+    if (window.length >= perMinute) return err('rate_limited');
+
+    // The same text again and again (spam): refused once it reaches the limit inside the window.
+    const sameMax = positive(a.limits?.identical_messages, IDENTICAL.count);
+    const sameMs =
+      (positive(a.limits?.identical_window_minutes, IDENTICAL.windowMinutes) || IDENTICAL.windowMinutes) *
+      60_000;
+    const texts = (s.texts ?? []).filter((x) => now - x.t < sameMs);
+    const h = body ? textHash(body) : null;
+    if (!mod && h !== null && sameMax > 0 && texts.filter((x) => x.h === h).length >= sameMax - 1)
+      return err('rejected_by_rules');
 
     if (quote) {
       if (
@@ -329,6 +358,7 @@ export class Conversation {
       last: sentAt,
       sends: window,
       recent: [...s.recent, { client_id: f.client_id, id, created_at, hidden }].slice(-RECENT_PER_SENDER),
+      texts: (h === null ? texts : [...texts, { h, t: sentAt }]).slice(-TEXTS_PER_SENDER),
     };
     this.senders.set(uid, next);
     await this.d.senders.put(uid, next);
