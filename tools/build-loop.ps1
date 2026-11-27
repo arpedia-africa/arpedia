@@ -120,7 +120,7 @@ while ($true) {
     $prompt | claude -p --session-id $session --model $Model --permission-mode acceptEdits --add-dir $LockDir --allowedTools $allowed 2>&1 | Tee-Object -Variable lines | Write-Host
   }
   $text = ($lines | Out-String)
-  $dropped = $text -match "Can't reach the API server|ENOTFOUND|ECONNRESET|ETIMEDOUT|Unable to connect to API"
+  $dropped = $text -match "Can't reach the API server|ENOTFOUND|ECONNRESET|ECONNREFUSED|ECONNABORTED|ETIMEDOUT|EAI_AGAIN|EPIPE|API Error: Connection|fetch failed|socket hang up|Unable to connect to API"
   # A run that dies (internet drop, crash) leaves its locks behind, and the next run would wait 30 min
   # for them to go stale. Every lock a builder creates holds an "owner" file; remove ours after each run.
   # A dropped run that will be resumed keeps them.

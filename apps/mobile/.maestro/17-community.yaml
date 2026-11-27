@@ -1,0 +1,110 @@
+# Flow 17 rule 10 · Community: the seeded reader Ngozi joins a community from Discover, posts in it,
+# talks in a reading room, then reports a message in Grace Readers and blocks its sender.
+# `node tools/journeys/run.mjs community` (fresh reset); tools/journeys/staff.mjs check-report then
+# proves the report and the block are stored.
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- eraseText: 40
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Community'
+    timeout: 30000
+
+# ─── Join a community from Discover and post in it ──────────────────────────
+- tapOn: 'Community'
+- extendedWaitUntil:
+    visible: 'Discover communities'
+    timeout: 30000
+- tapOn: 'Discover communities'
+- extendedWaitUntil:
+    visible: 'Faith & Books'
+    timeout: 15000
+- tapOn:
+    text: 'Join'
+    childOf:
+      text: 'Faith & Books, .*'
+- extendedWaitUntil:
+    visible:
+      text: 'Joined'
+      childOf:
+        text: 'Faith & Books, .*'
+    timeout: 15000
+- takeScreenshot: community-${WIDTH}-joined
+- tapOn: 'Faith & Books'
+- extendedWaitUntil:
+    visible: 'Message Faith & Books'
+    timeout: 30000
+- tapOn: 'Message Faith & Books'
+- eraseText: 40
+- inputText: 'Hello from the whole-app journey'
+- tapOn: 'Send'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Hello from the whole-app journey'
+    timeout: 15000
+- takeScreenshot: community-${WIDTH}-posted
+
+# ─── A reading room ─────────────────────────────────────────────────────────
+- openLink: arpedia://rooms
+- extendedWaitUntil:
+    visible: 'Your rooms'
+    timeout: 30000
+- tapOn: 'Ruth of Ibadan, chapter 9'
+- extendedWaitUntil:
+    visible: 'Message the room'
+    timeout: 30000
+- tapOn: 'Message the room'
+- eraseText: 40
+- inputText: 'Chapter 9 made me cry'
+- tapOn: 'Send'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Chapter 9 made me cry'
+    timeout: 15000
+- takeScreenshot: community-${WIDTH}-room
+
+# ─── Report a message and block its sender ──────────────────────────────────
+- openLink: arpedia://community
+- extendedWaitUntil:
+    visible: 'Grace Readers'
+    timeout: 30000
+- tapOn: 'Grace Readers'
+- extendedWaitUntil:
+    visible: 'Message Grace Readers'
+    timeout: 30000
+- longPressOn: 'Chioma.*'
+- extendedWaitUntil:
+    visible: 'Report or block'
+    timeout: 10000
+- tapOn: 'Report or block.*'
+- assertVisible: 'Why are you reporting this?'
+- tapOn: 'Harassment.*'
+- tapOn: 'Also block Chioma'
+- takeScreenshot: community-${WIDTH}-report
+- tapOn: 'Send report'
+# The toast is short; best effort here, staff.mjs check-report proves the report and the block.
+- assertVisible:
+    text: 'Report sent.*'
+    optional: true
+- extendedWaitUntil:
+    notVisible: 'Why are you reporting this?'
+    timeout: 15000
+- openLink: arpedia://blocked
+- extendedWaitUntil:
+    visible: 'Chioma Okafor'
+    timeout: 15000
+- takeScreenshot: community-${WIDTH}-blocked

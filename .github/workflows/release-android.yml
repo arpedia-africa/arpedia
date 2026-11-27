@@ -3,8 +3,8 @@
 #   closed       promote the newest internal build to the closed beta track
 #   production   one rollout step (5, 20, 50, 100%): only from a release tag, only by an approver
 #   halt         stop the production rollout
-# Needs repo secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
-# ANDROID_KEY_PASSWORD, PLAY_JSON_KEY (service account JSON), plus EXPO_PUBLIC_* variables.
+# Needs repo secrets: ANDROID_UPLOAD_KEYSTORE (base64), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+# ANDROID_KEY_PASSWORD, PLAY_SERVICE_ACCOUNT_JSON (base64), plus EXPO_PUBLIC_* variables.
 # Approval (flow 17 rule 13): production and halt run in the `production` environment (add the
 # owner as a required reviewer there when the plan allows it) and only for logins listed in the
 # RELEASE_APPROVERS variable (comma-separated), so nobody else can start a rollout.
@@ -59,11 +59,11 @@ jobs:
       - name: Signing files
         working-directory: apps/mobile
         env:
-          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          PLAY_JSON: ${{ secrets.PLAY_JSON_KEY }}
+          KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE }}
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           echo "$KEYSTORE" | base64 -d > upload.keystore
-          echo "$PLAY_JSON" > play.json
+          echo "$PLAY_JSON" | base64 -d > play.json
       - name: Build and upload to Play internal
         working-directory: apps/mobile
         env:
@@ -116,8 +116,8 @@ jobs:
       - name: Play service account
         working-directory: apps/mobile
         env:
-          PLAY_JSON: ${{ secrets.PLAY_JSON_KEY }}
-        run: echo "$PLAY_JSON" > play.json
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: echo "$PLAY_JSON" | base64 -d > play.json
       - name: fastlane android ${{ inputs.lane }}
         working-directory: apps/mobile
         env:

@@ -328,6 +328,24 @@ export function priceChapters(chapters: WorkChapter[], previewPercent?: number) 
   return { words, pages, price, preview };
 }
 
+/**
+ * A new preview cut for a sealed working copy (flow 03 admin rule 2, staff preview override). The
+ * book keeps its price, spread again over the chapters now outside the preview.
+ */
+export function recutPreview(chapters: WorkChapter[], percent: number, price: number) {
+  const preview = previewCut(
+    chapters.map((c) => c.blocks.map((b) => (c.front ? 0 : b.words))),
+    percent,
+  );
+  const weights = chapterWeights(
+    chapters.map((c) => c.words),
+    chapters.map((c) => c.imagePages),
+    preview.freeThrough,
+  );
+  const prices = weights.some((w) => w > 0) ? chapterPrices(price, weights) : weights.map(() => 0);
+  return { preview, chapters: chapters.map((c, i) => ({ ...c, priceCredits: prices[i]! })) };
+}
+
 function findAll(el: Element, name: string, out: Element[] = []): Element[] {
   for (const c of el.children)
     if (c instanceof Element) {

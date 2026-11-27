@@ -2,7 +2,7 @@
 # automatic backups and pauses when idle). 02:00 Lagos: dump, encrypt, upload, prune, and a REST
 # query so the project never idles. 14:00 Lagos: the missed-backup alarm (also catches a nightly run
 # that never started). Failures alert the owner on ntfy.
-# Secrets in the `backup` environment: SUPABASE_DB_URL, BACKUP_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+# Secrets in the `backup` environment: SUPABASE_DB_URL, BACKUP_KEY, CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID,
 # R2_SECRET_ACCESS_KEY, NTFY_TOPIC; variables: SUPABASE_URL, SUPABASE_ANON_KEY.
 # The restore drill is a person's job: docs/launch/RUNBOOK.md#restore-drill.
 name: Backup
@@ -47,7 +47,7 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: PATH="/usr/lib/postgresql/17/bin:$PATH" node tools/launch/backup.mjs nightly --target production
@@ -57,7 +57,7 @@ jobs:
           URL: ${{ vars.SUPABASE_URL }}
           KEY: ${{ vars.SUPABASE_ANON_KEY }}
         run: |
-          curl -sf -o /dev/null -H "apikey: $KEY" "$URL/rest/v1/genres?select=id&limit=1"
+          curl -sf -o /dev/null -H "apikey: $KEY" "$URL/auth/v1/settings"
       - name: Alert
         if: failure()
         env:
@@ -79,7 +79,7 @@ jobs:
           node-version: 24
       - name: Newest backup under 26 hours old
         env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: node tools/launch/backup.mjs check --target production

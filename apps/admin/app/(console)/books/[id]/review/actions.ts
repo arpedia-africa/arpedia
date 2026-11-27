@@ -36,3 +36,17 @@ export async function publish(
   revalidatePath('/books');
   return { ok: true, status: (data as { status?: string } | null)?.status ?? 'live' };
 }
+
+/** Reject (rule 39): terminal, for rights or policy only; the reason is what the author is told. */
+export async function reject(revisionId: string, reason: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('reject_revision', { p_rev: revisionId, p_reason: reason });
+  if (error) {
+    if (error.message.includes('reason required')) return { ok: false, error: 'Write the reason the author will see.' };
+    if (error.message.includes('cannot reject')) return { ok: false, error: 'This book is no longer waiting for review.' };
+    if (error.code === '42501') return { ok: false, error: 'Only publishers can reject books.' };
+    return { ok: false, error: "Couldn't reject. Try again." };
+  }
+  revalidatePath('/books');
+  return { ok: true };
+}

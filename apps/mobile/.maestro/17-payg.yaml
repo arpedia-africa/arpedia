@@ -1,0 +1,117 @@
+# Flow 17 rule 10 · Pay as you read: the seeded reader Ngozi reads A House Called Grace past the free
+# preview with Pay as you read. Chapter 1 is charged and kept; reading on charges chapter 2, which she
+# undoes within 10 minutes; then she pays the rest from the book page. `node tools/journeys/run.mjs payg`
+# (fresh reset), then tools/journeys/staff.mjs check-undo proves the ledger rows and the money check the
+# totals. The reader blocks screen capture (paid text), so captures inside it are black by design.
+# `.` stands for the middle dot in patterns: Maestro on Windows reads the file as cp1252.
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'ngozi@example.com'
+- tapOn: 'Your password'
+- eraseText: 40
+- inputText: 'arpedia-local'
+- hideKeyboard
+- tapOn: 'Log in'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Ngozi.*'
+    timeout: 30000
+
+# ─── Read to the end of the preview, choose Pay as you read ─────────────────
+- openLink: arpedia://read/00000000-0000-4000-c000-000000000003
+- extendedWaitUntil:
+    visible: '\d+%'
+    timeout: 30000
+- tapOn:
+    text: 'OK'
+    optional: true
+- repeat:
+    while:
+      notVisible: 'You.ve read the free .*'
+    times: 80
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 200
+- tapOn: 'Pay as you read . about .* a chapter'
+- extendedWaitUntil:
+    visible: 'Start reading'
+    timeout: 10000
+- assertVisible: 'Most you.ll ever pay'
+- takeScreenshot: payg-${WIDTH}-choose
+- tapOn: 'Start reading'
+
+# ─── Chapter 1 is charged (Auto-unlock is on) and kept ──────────────────────
+# The toast lives 8 s and one hierarchy read can take seconds: remember a sighting in a flag.
+- evalScript: ${output.charged = false}
+- repeat:
+    while:
+      true: ${!output.charged}
+    times: 40
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 200
+      - runFlow:
+          when:
+            visible: 'Undo'
+          commands:
+            - evalScript: ${output.charged = true}
+- assertTrue: ${output.charged}
+- extendedWaitUntil:
+    notVisible: 'Undo'
+    timeout: 20000
+
+# ─── Read through chapter 1; chapter 2 is charged; Undo it at once ──────────
+- evalScript: ${output.undone = false}
+- repeat:
+    while:
+      true: ${!output.undone}
+    times: 80
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 200
+      - runFlow:
+          when:
+            visible: 'Undo'
+          commands:
+            - tapOn: 'Undo'
+            - evalScript: ${output.undone = true}
+- assertTrue: ${output.undone}
+# The reader confirms with a short notice; best effort here, staff.mjs check-undo proves the ledger.
+- assertVisible:
+    text: 'Chapter .* returned . .* credits back'
+    optional: true
+- back
+
+# ─── Pay the rest from the book page (money stated before the tap) ──────────
+- openLink: arpedia://book/00000000-0000-4000-c000-000000000003
+- extendedWaitUntil:
+    visible: 'Pay the rest . .* credits'
+    timeout: 30000
+- assertVisible: 'Paid .* of .* Pay the rest .*'
+- takeScreenshot: payg-${WIDTH}-book
+- tapOn: 'Pay the rest . .* credits'
+- extendedWaitUntil:
+    visible: 'Left to pay'
+    timeout: 10000
+# "Price" on the book page's sheet, "Book price" on the Library's.
+- assertVisible: '(Book p|P)rice'
+- assertVisible: 'Already paid'
+- takeScreenshot: payg-${WIDTH}-pay-rest
+- tapOn: 'Pay .* credits'
+- extendedWaitUntil:
+    visible: 'Unlocked'
+    timeout: 30000
+- assertNotVisible: 'Pay the rest.*'
+- takeScreenshot: payg-${WIDTH}-owned

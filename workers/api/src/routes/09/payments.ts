@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import {
   fwSubscriptionKey,
   normalizeFlutterwaveCharge,
+  normalizeFlutterwaveUnpaid,
   normalizeRevenueCat,
   safeEqual,
   type FlutterwaveTx,
@@ -9,9 +10,11 @@ import {
   type Ignored,
   type Json,
 } from '@arpedia/core';
+import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { handleTransferWebhook, isTransferEvent } from '../13/earnings';
+import { deliverNotices } from '../15/notify';
 
 // Flow 09 · payment webhooks and outbound provider calls.
 //   POST /v1/payments/revenuecat   RevenueCat webhook (Authorization header = shared secret)
@@ -69,6 +72,50 @@ payments.post('/revenuecat', async (c) => {
   return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
 });
 
+// Local test store (flow 17 whole-app check): until the RevenueCat SDK lands, a local build
+// (EXPO_PUBLIC_TEST_STORE) "buys" through here. It builds the event Google Play + RevenueCat would
+// send and applies it through the same normalise + ingest path as the webhook. Never on staging or
+// production: anything but APP_ENV local answers 404.
+payments.post('/test-store', requireUser, async (c) => {
+  if (c.env.APP_ENV !== 'local') return c.json({ error: 'not_found' }, 404);
+  const body = await c.req
+    .json<{ kind?: unknown; code?: unknown }>()
+    .catch(() => ({}) as Record<string, unknown>);
+  const kind = body.kind === 'plan' || body.kind === 'topup' ? body.kind : null;
+  const code = typeof body.code === 'string' ? body.code : '';
+  if (!kind || !code) return c.json({ error: 'bad_request' }, 400);
+  const db = serviceDb(c.env);
+  const { data: product } = await db
+    .from(kind === 'plan' ? 'plans' : 'topup_products')
+    .select('play_product_id')
+    .eq('code', code)
+    .maybeSingle();
+  const kobo = await lowestPriceKobo(db, kind, code);
+  if (!product || kobo == null) return c.json({ error: 'unknown_product' }, 404);
+  const now = Date.now();
+  const txn = `GPA.test-${crypto.randomUUID()}`;
+  const event = {
+    id: crypto.randomUUID(),
+    type: kind === 'plan' ? 'INITIAL_PURCHASE' : 'NON_RENEWING_PURCHASE',
+    app_user_id: c.get('user').sub!,
+    product_id: product.play_product_id,
+    transaction_id: txn,
+    original_transaction_id: txn,
+    purchased_at_ms: now,
+    expiration_at_ms: kind === 'plan' ? now + 30 * 86_400_000 : null,
+    event_timestamp_ms: now,
+    price_in_purchased_currency: kobo / 100,
+    currency: 'NGN',
+    store: 'PLAY_STORE',
+    environment: 'SANDBOX',
+  };
+  const mapped = normalizeRevenueCat({ event });
+  if (isIgnored(mapped)) return c.json({ error: 'ignored', reason: mapped.ignore }, 400);
+  const res = await ingest(db, mapped, { event });
+  if (res.error) return c.json({ error: 'apply_failed', id: res.id }, 500);
+  return c.json({ ok: true, outcome: res.outcome });
+});
+
 /** A Flutterwave answer that wasn't a success; 4xx is final, 5xx may pass on a retry. */
 class FlwError extends Error {
   constructor(
@@ -117,6 +164,14 @@ payments.post('/flutterwave', async (c) => {
   if (body.event === 'charge.completed' && body.data.id) {
     // Trust only Flutterwave's own answer for this transaction id, never the webhook body.
     const tx = await flw<FlutterwaveTx>(c.env, `/transactions/${body.data.id}/verify`);
+    if (tx.status === 'pending' || tx.status === 'failed') {
+      // Kept as a pending or failed transaction for the admin pills; nothing is granted.
+      const unpaid = normalizeFlutterwaveUnpaid(tx);
+      if (isIgnored(unpaid)) return c.json({ ok: true, ignored: unpaid.ignore });
+      const res = await ingest(db, unpaid, { webhook: body, verified: tx });
+      if (res.error) return c.json({ error: 'apply_failed', id: res.id }, 500);
+      return c.json({ ok: true, duplicate: res.duplicate ?? false, outcome: res.outcome });
+    }
     const { data: plans } = await db.rpc('get_plans');
     const code = tx.tx_ref.split(':')[2];
     const plan = ((plans as { plans?: { code: string; months: number }[] } | null)?.plans ?? []).find(
@@ -296,10 +351,13 @@ async function handle(env: Env, db: Db, msg: OutMsg): Promise<boolean> {
       if (!res.ok) throw new Error(`revenuecat promotional: ${res.status}`);
       return true;
     }
-    case 'finance_alert':
-      // Shown in admin Credits anomalies (credit_alerts); email to Finance arrives with flow 15.
-      console.warn('finance_alert', msg.alert, msg.transaction_id);
-      return true;
+    case 'finance_alert': {
+      // Shown in admin Credits anomalies (credit_alerts) and emailed to Finance (spec check 09-8).
+      const [ok] = await deliverNotices(env, db, [
+        { kind: 'finance_alert', alert: msg.alert, transaction_id: msg.transaction_id },
+      ]);
+      return ok ?? false;
+    }
     default:
       return true;
   }

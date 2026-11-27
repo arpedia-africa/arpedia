@@ -21,7 +21,7 @@ export function Claim({ revisionId, unassigned }: { revisionId: string; unassign
   return null;
 }
 
-/** The decision bar: queue position, Send back, Approve, Skip (J). */
+/** The decision bar: queue position, Reject (rule 39), Send back, Approve, Skip (J). */
 export function ReviewDecide({
   revisionId,
   position,
@@ -56,6 +56,9 @@ export function ReviewDecide({
         </Link>
       </div>
       <span className="grow"></span>
+      <Link className="btn btn-g" href={`/books/${revisionId}/reject`}>
+        Reject
+      </Link>
       <Link className="btn btn-g" href={`/books/${revisionId}/sendback`}>
         Send back
       </Link>

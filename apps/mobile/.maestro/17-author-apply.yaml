@@ -1,0 +1,86 @@
+# Flow 17 rule 10 · Author journey, part 1: a new reader signs up and applies to become an author.
+# Part of `node tools/journeys/run.mjs author` (fresh reset): staff.mjs approve-author follows as the
+# Publisher, then 17-author-upload.yaml.
+appId: com.arpedia.reader
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Welcome back'
+    timeout: 90000
+- tapOn: 'Create an account'
+- assertVisible: 'Create your account'
+- tapOn: 'Ada Writer'
+- eraseText: 40
+- inputText: 'Tobi Journey'
+- tapOn: 'you@example.com'
+- eraseText: 40
+- inputText: 'journey.author@example.com'
+- tapOn: 'At least 8 characters'
+- eraseText: 40
+- inputText: 'arpedia-e2e'
+- hideKeyboard
+- tapOn: 'Create account'
+- extendedWaitUntil:
+    visible: 'Choose the genres you love'
+    timeout: 30000
+- tapOn: 'Fiction'
+- tapOn: 'Continue'
+- assertVisible: 'Pick your colour'
+- tapOn: 'Continue'
+- assertVisible: 'How will you use Arpedia?'
+- takeScreenshot: author-${WIDTH}-role
+- tapOn: "I'm a reader"
+- tapOn: 'Continue'
+- assertVisible: 'Complete your profile'
+- tapOn: 'Skip for now'
+- extendedWaitUntil:
+    visible: 'Not now, browse first'
+    timeout: 30000
+- tapOn: 'Not now, browse first'
+- tapOn:
+    text: 'Don.t allow'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Good .*, Tobi.*'
+    timeout: 30000
+
+# Profile → Become an author (the Profile button opens the application for non-authors)
+- openLink: arpedia://become-author
+- extendedWaitUntil:
+    visible: 'Share your stories with Arpedia readers.'
+    timeout: 15000
+- tapOn: 'Start application'
+- extendedWaitUntil:
+    visible: 'Your author profile'
+    timeout: 15000
+- tapOn: 'DD / MM / YYYY'
+- eraseText: 40
+- inputText: '12031990'
+- hideKeyboard
+- tapOn: 'Where you live, e.g. Enugu'
+- eraseText: 40
+- inputText: 'Ibadan'
+- hideKeyboard
+- tapOn: 'Continue'
+- assertVisible: 'Your writing'
+- tapOn: 'African stories'
+- tapOn:
+    below: 'Short bio'
+- eraseText: 40
+- inputText: 'I write market stories from Ibadan, one long day at a time.'
+- hideKeyboard
+- tapOn: 'Continue'
+- assertVisible: 'Writing sample'
+- tapOn: 'Paste a chapter or a few pages'
+- eraseText: 40
+- inputText: 'The harmattan wind carried red dust over the market before the first trader opened her stall.'
+- hideKeyboard
+- tapOn: 'Continue'
+- assertVisible: 'Review and send'
+- tapOn: 'I agree'
+- tapOn: 'Send application'
+- extendedWaitUntil:
+    visible: 'Application received'
+    timeout: 30000
+- takeScreenshot: author-${WIDTH}-applied
