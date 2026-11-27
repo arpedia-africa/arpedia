@@ -33,7 +33,7 @@ async function pushToChat(groupId: string) {
   } = await supabase.auth.getSession();
   if (!session) return;
   try {
-    await fetch(`${process.env.CHAT_URL ?? 'http://127.0.0.1:8788'}/c/${groupId}/refresh`, {
+    await fetch(`${process.env.CHAT_URL ?? 'http://127.0.0.1:8788'}/c/${groupId}/enforce`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: '{}',
