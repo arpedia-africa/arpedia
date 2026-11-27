@@ -11,6 +11,7 @@ function errorText(error: { message: string; code?: string; details?: string }):
   const expired = stepUpError(m);
   if (expired) return expired;
   if (m.includes('bad_version')) return 'Use a version like 25.4 (major.minor).';
+  if (m.includes('bad_rollout')) return 'Use a rollout from 0 to 100%.';
   if (m.includes('missing_placeholder')) {
     const missing = /"missing"\s*:\s*\[([^\]]*)\]/.exec(error.details ?? '')?.[1]?.replace(/"/g, '');
     return `Keep ${missing || 'the placeholders'} in the text. The app fills ${missing ? 'it' : 'them'} in.`;
@@ -48,6 +49,31 @@ export async function saveConfig(key: string, value: unknown, otp: string | null
 export async function saveFlag(key: string, enabled: boolean): Promise<Result> {
   const supabase = await serverSupabase();
   const { error } = await supabase.rpc('set_flag', { p_key: key, p_enabled: enabled });
+  if (error) return { ok: false, error: errorText(error) };
+  revalidatePath('/config');
+  return { ok: true };
+}
+
+/**
+ * Rule 27: a flag's rollout (0 to 100%, picked per reader by a stable hash of their id) and its
+ * optional minimum app version. An empty version clears it.
+ */
+export async function saveFlagSettings(
+  key: string,
+  enabled: boolean,
+  rollout: number,
+  minVersion: string,
+): Promise<Result> {
+  if (!Number.isInteger(rollout) || rollout < 0 || rollout > 100) return { ok: false, error: 'Use a rollout from 0 to 100%.' };
+  const v = minVersion.trim();
+  if (v && !/^\d+\.\d+$/.test(v)) return { ok: false, error: 'Use a version like 25.4 (major.minor), or leave it empty.' };
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('set_flag', {
+    p_key: key,
+    p_enabled: enabled,
+    p_rollout: rollout,
+    p_min_version: v,
+  });
   if (error) return { ok: false, error: errorText(error) };
   revalidatePath('/config');
   return { ok: true };
