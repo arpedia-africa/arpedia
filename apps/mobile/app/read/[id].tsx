@@ -171,7 +171,12 @@ export default function ReaderScreen() {
   }, [r.elsewhere, r, toast]);
 
   const st = r.state;
-  const share = useShareToClub(st);
+  // Flow 07 rule 19: a highlight shared to a reading room on this book shows in its Annotations
+  // tab (the message becomes the note).
+  const share = useShareToClub(st, (roomId, name, sel, message) => {
+    void r.highlight(r.settings.highlight_color, message || undefined, sel, roomId);
+    toast({ message: `Shared with ${name}` });
+  });
   const theme = r.settings.theme;
   const ink = readerInk(theme);
   const chapter = st?.chapters.find((c) => c.chapter_uid === r.loc?.chapter_uid) ?? null;

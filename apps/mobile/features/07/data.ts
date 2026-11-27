@@ -98,16 +98,14 @@ export const membersKey = (id: string) => ['rooms', 'members', id] as const;
 export const annotationsKey = (id: string) => ['rooms', 'annotations', id] as const;
 
 /** No Realtime: the list refreshes on focus and every 20 s; the header every 15 s (rule 24). */
+export async function fetchMyRooms() {
+  const { data, error } = await supabase.rpc('get_my_rooms');
+  if (error) throw error;
+  return data as unknown as RoomRow[];
+}
+
 export function useMyRooms() {
-  return useQuery({
-    queryKey: roomsKey,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_my_rooms');
-      if (error) throw error;
-      return data as unknown as RoomRow[];
-    },
-    refetchInterval: 20_000,
-  });
+  return useQuery({ queryKey: roomsKey, queryFn: fetchMyRooms, refetchInterval: 20_000 });
 }
 
 /** A friend in one of my rooms, for the Community Read together card (flow 06 rule 6). */

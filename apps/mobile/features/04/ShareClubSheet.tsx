@@ -1,7 +1,10 @@
 // s-share-club, one to one with the prototype: bold sheet head "Share to a club", the .quote card,
 // a flush .option-list of the reader's groups (square avatar, name, members, radio), "Add a message"
 // and "Post to <group>". Posting opens that club's chat, which sends the quote card (flow 06 rule 19).
+// Reading rooms on this book are listed too ("Reading room · 8 members", as in the prototype):
+// choosing one shares the highlight to the room's Annotations tab (flow 07 rule 19).
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useNetInfo } from '@react-native-community/netinfo';
@@ -9,10 +12,11 @@ import { Avatar, Btn, EmptyState, Field, Press, Sheet, Skeleton, Text, useTheme 
 import { memberCount, QUOTE_MAX, type QuotePayload } from '@arpedia/core';
 import type { SelectionDetail } from '@arpedia/reader';
 import { toneFor, useInbox, type InboxRow } from '../06/data';
+import { fetchMyRooms, roomsKey } from '../07/data';
 import type { ReaderState } from './state';
 import { chapterNumber } from './useReader';
 
-// Reading rooms post through the room screen (spoiler stamps, flow 07) and DMs aren't clubs.
+// Reading rooms come from get_my_rooms (only rooms on this book), and DMs aren't clubs.
 const SHAREABLE = new Set<InboxRow['kind']>(['club', 'author', 'readalong', 'official']);
 
 /** The quote card for a passage (flow 06 rule 19), or null when its chapter isn't in the book. */
@@ -44,46 +48,93 @@ export function postQuote(groupId: string, quote: QuotePayload, message: string)
   });
 }
 
-/** Club / Share on the selection bar (flow 04 rule 35): `start(sel)` opens s-share-club for it. */
-export function useShareToClub(st: ReaderState | null | undefined) {
-  const [q, setQ] = useState<QuotePayload | null>(null);
+/**
+ * Club / Share on the selection bar (flow 04 rule 35): `start(sel)` opens s-share-club for it. A club
+ * gets the quote card in its chat; a reading room gets the highlight through `onRoom` (flow 07 rule 19).
+ */
+export function useShareToClub(
+  st: ReaderState | null | undefined,
+  onRoom?: (roomId: string, name: string, sel: SelectionDetail, message: string) => void,
+) {
+  const [q, setQ] = useState<{ quote: QuotePayload; sel: SelectionDetail } | null>(null);
   const start = (sel: SelectionDetail) => {
     const quote = quoteFor(st, sel.chapter_uid, sel.cfi_range, sel.text);
-    if (quote) setQ(quote);
+    if (quote) setQ({ quote, sel });
   };
   const element = (
     <ShareClubSheet
       open={!!q}
-      quote={q?.text ?? ''}
-      source={[q?.book_title, q?.chapter_title].filter(Boolean).join(' · ')}
+      quote={q?.quote.text ?? ''}
+      source={[q?.quote.book_title, q?.quote.chapter_title].filter(Boolean).join(' · ')}
+      bookId={onRoom ? st?.book.id : undefined}
       onClose={() => setQ(null)}
-      onPost={(gid, msg) => {
-        const quote = q;
+      onPost={(gid, msg, room) => {
+        const cur = q;
         setQ(null);
-        if (quote) postQuote(gid, quote, msg);
+        if (!cur) return;
+        if (room && onRoom) onRoom(gid, room, cur.sel, msg);
+        else postQuote(gid, cur.quote, msg);
       }}
     />
   );
   return { start, element };
 }
 
+interface ShareTarget {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  sub: string;
+  /** Set for a reading room: the highlight is shared to it instead of posted to a chat. */
+  room: boolean;
+}
+
+const membersLabel = (n: number) => `${memberCount(n)} member${n === 1 ? '' : 's'}`;
+
 export function ShareClubSheet({
   open,
   quote,
   source,
+  bookId,
   onClose,
   onPost,
 }: {
   open: boolean;
   quote: string;
   source: string;
+  /** With a book, its live and scheduled reading rooms are listed after the clubs. */
+  bookId?: string;
   onClose: () => void;
-  onPost: (groupId: string, message: string) => void;
+  /** `room` is the room's name when a reading room was chosen. */
+  onPost: (groupId: string, message: string, room?: string) => void;
 }) {
   const { c, s, bw } = useTheme();
   const net = useNetInfo();
   const inbox = useInbox('groups');
-  const groups = (inbox.data ?? []).filter((g) => SHAREABLE.has(g.kind));
+  const rooms = useQuery({ queryKey: roomsKey, queryFn: fetchMyRooms, enabled: open && !!bookId });
+  const groups: ShareTarget[] = [
+    ...(inbox.data ?? [])
+      .filter((g) => SHAREABLE.has(g.kind))
+      .map((g) => ({
+        id: g.group_id,
+        name: g.name,
+        avatar_url: g.avatar_url,
+        sub:
+          g.kind === 'readalong'
+            ? `Read-along · ${membersLabel(g.member_count)}`
+            : membersLabel(g.member_count),
+        room: false,
+      })),
+    ...(bookId ? (rooms.data ?? []) : [])
+      .filter((r) => r.state !== 'ended' && r.book.id === bookId)
+      .map((r) => ({
+        id: r.room_id,
+        name: r.name,
+        avatar_url: null,
+        sub: `Reading room · ${membersLabel(r.member_count)}`,
+        room: true,
+      })),
+  ];
   const [picked, setPicked] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
@@ -92,7 +143,7 @@ export function ShareClubSheet({
     setPicked(null);
     setMessage('');
   }, [open]);
-  const chosen = groups.find((g) => g.group_id === picked) ?? groups[0];
+  const chosen = groups.find((g) => g.id === picked) ?? groups[0];
 
   return (
     <Sheet open={open} onClose={onClose} bold title="Share to a club">
@@ -150,13 +201,12 @@ export function ShareClubSheet({
           {/* .pb .option-list--flush: margin 0 -18px, rows split by a 1px line */}
           <View accessibilityRole="radiogroup" style={{ marginHorizontal: -s(18) }}>
             {groups.map((g, i) => {
-              const on = g.group_id === chosen?.group_id;
-              const members = `${memberCount(g.member_count)} member${g.member_count === 1 ? '' : 's'}`;
-              const sub = g.kind === 'readalong' ? `Read-along · ${members}` : members;
+              const on = g.id === chosen?.id;
+              const sub = g.sub;
               return (
                 <Press
-                  key={g.group_id}
-                  onPress={() => setPicked(g.group_id)}
+                  key={g.id}
+                  onPress={() => setPicked(g.id)}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: on }}
                   accessibilityLabel={`${g.name}, ${sub}`}
@@ -172,7 +222,7 @@ export function ShareClubSheet({
                     ...(i && !on ? { borderTopWidth: bw(1), borderTopColor: c.line } : null),
                   }}
                 >
-                  <Avatar name={g.name} uri={g.avatar_url ?? undefined} tone={toneFor(g.group_id)} square />
+                  <Avatar name={g.name} uri={g.avatar_url ?? undefined} tone={toneFor(g.id)} square />
                   <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
                     <Text size={15.5} weight={700} ellipsis>
                       {g.name}
@@ -198,9 +248,9 @@ export function ShareClubSheet({
           <Field label="Add a message" value={message} onChangeText={setMessage} maxLength={2000} />
           {chosen ? (
             <Btn
-              label={`Post to ${chosen.name}`}
+              label={chosen.room ? `Share with ${chosen.name}` : `Post to ${chosen.name}`}
               block
-              onPress={() => onPost(chosen.group_id, message.trim())}
+              onPress={() => onPost(chosen.id, message.trim(), chosen.room ? chosen.name : undefined)}
             />
           ) : null}
         </>
