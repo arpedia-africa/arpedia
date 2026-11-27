@@ -16,6 +16,7 @@ type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const plain = (status: number, error: string) => {
   if (status === 403) return 'Only Publishers can edit books.';
+  if (status === 404) return 'This edit was replaced by a newer one. Start again.';
   if (error.includes('another revision of this book is open'))
     return 'Another revision of this book is still in the pipeline. Publish or send it back first.';
   if (error.includes('nothing changed')) return 'Nothing changed. Edit a field or choose a new cover.';
