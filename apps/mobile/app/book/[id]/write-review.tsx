@@ -58,17 +58,24 @@ export default function WriteReview() {
       router.back();
     },
     onError: (e) => {
-      const { code } = rpcError(e);
+      const { code, detail } = rpcError(e);
+      // 14-14: reviews open a few days after sign-up (automod review_wait_days); the RPC says when.
+      const until = (detail as { until?: string }).until;
+      const opens = until && !Number.isNaN(Date.parse(until)) ? DATE.format(new Date(until)) : null;
       setError(
         code === 'not_finished'
           ? 'Finish the book to review it.'
-          : code === 'rejected_by_rules'
-            ? 'New accounts can’t add links or phone numbers to reviews yet. Remove it and post again.'
-            : code === 'network'
-              ? 'No connection. Your review wasn’t posted. Try again.'
-              : code === 'signed_out'
-                ? 'You’re signed out. Sign in again to post your review.'
-                : 'Something went wrong. Try again.',
+          : code === 'review_wait'
+            ? opens
+              ? `New accounts can post reviews from ${opens}. Come back then.`
+              : 'New accounts can post reviews after a few days. Come back soon.'
+            : code === 'rejected_by_rules'
+              ? 'New accounts can’t add links or phone numbers to reviews yet. Remove it and post again.'
+              : code === 'network'
+                ? 'No connection. Your review wasn’t posted. Try again.'
+                : code === 'signed_out'
+                  ? 'You’re signed out. Sign in again to post your review.'
+                  : 'Something went wrong. Try again.',
       );
     },
   });
