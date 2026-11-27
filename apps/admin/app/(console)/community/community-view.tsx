@@ -94,7 +94,6 @@ export function CommunityView({
       (!t || `${r.name} ${ownerLabel(r.ownerName)}`.toLowerCase().includes(t)),
   );
   const filtered = kind !== 'all' || status !== 'all' || reportsOnly;
-  const soon = () => showToast('Reading rooms arrive with a later part of the build.');
 
   const today = stats?.messages_today ?? 0;
   const base = stats?.messages_last_week ?? 0;
@@ -124,15 +123,7 @@ export function CommunityView({
         <a role="tab" aria-selected="true" className="is-selected">
           Channels <span className="c">{num(rows.length)}</span>
         </a>
-        <a
-          role="tab"
-          aria-selected="false"
-          href="#rooms"
-          onClick={e => {
-            e.preventDefault();
-            soon();
-          }}
-        >
+        <a role="tab" aria-selected="false" href="/community/rooms">
           Reading rooms <span className="c">{`${num(stats?.rooms_live ?? 0)} live`}</span>
         </a>
       </div>
@@ -143,14 +134,7 @@ export function CommunityView({
             <span className="kpi__v">{num(stats?.channels ?? rows.length)}</span>
             <span className="kpi__d">{`${num(stats?.official ?? 0)} official · ${num(stats?.author ?? 0)} author`}</span>
           </div>
-          <a
-            className="kpi"
-            href="#rooms"
-            onClick={e => {
-              e.preventDefault();
-              soon();
-            }}
-          >
+          <a className="kpi" href="/community/rooms">
             <span className="kpi__l">Reading rooms live now</span>
             <span className="kpi__v">{num(stats?.rooms_live ?? 0)}</span>
             <span className="kpi__d">{`${num(stats?.rooms_readers ?? 0)} readers inside`}</span>
