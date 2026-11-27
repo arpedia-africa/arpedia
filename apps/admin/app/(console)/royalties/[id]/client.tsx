@@ -46,6 +46,7 @@ export function CycleActions({
   status,
   canPrepare,
   canRelease,
+  left = 0,
   lines,
 }: {
   id: string;
@@ -54,6 +55,8 @@ export function CycleActions({
   status: string;
   canPrepare: boolean;
   canRelease: boolean;
+  /** Authors approved, not sent after a partial release (13-12). */
+  left?: number;
   lines: CsvLine[];
 }) {
   const router = useRouter();
@@ -103,6 +106,17 @@ export function CycleActions({
         ) : (
           <button className="btn btn-p" type="button" disabled>
             Review and release
+          </button>
+        ))}
+      {status === 'releasing' &&
+        left > 0 &&
+        (canRelease ? (
+          <Link className="btn btn-p" href={`/royalties/${id}/release`}>
+            Send the rest
+          </Link>
+        ) : (
+          <button className="btn btn-p" type="button" disabled>
+            Send the rest
           </button>
         ))}
       <div className="mwrap" ref={ref}>

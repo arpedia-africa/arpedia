@@ -1,7 +1,9 @@
 import { Fragment } from 'react';
 import { QueueToast } from '../queue-toast';
 import { BooksHeader, FILE_TYPE, bookCounts, clock, coverClass, lagosDay, type Supa } from '../shared';
+import { getStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
+import { RetryJob } from './retry';
 
 /** The six steps written to `book_revisions.steps` (rule 49), with the wording for the one in progress. */
 const STEPS = [
@@ -14,6 +16,13 @@ const STEPS = [
 ] as const;
 
 type Steps = Partial<Record<(typeof STEPS)[number]['key'], string>>;
+
+/** No new step for this long: the job is stuck and can be retried (12-14, same as the server). */
+const STUCK_MS = 10 * 60_000;
+
+/** When a job last moved: its newest step, else when it was created. */
+const lastStep = (steps: Steps, created: string) =>
+  Math.max(new Date(created).getTime(), ...Object.values(steps).map(t => (t ? new Date(t).getTime() : 0)));
 
 /** Index of the first step not done yet (the current one, or the one that failed). */
 const current = (steps: Steps) => {
@@ -82,6 +91,8 @@ function Track({ steps, failed }: { steps: Steps; failed?: boolean }) {
 export default async function ProcessingPage({ searchParams }: { searchParams: Promise<{ added?: string }> }) {
   const { added } = await searchParams;
   const supabase = await serverSupabase();
+  const staff = await getStaff();
+  const canRetry = staff?.role === 'operations_admin' || staff?.role === 'super_admin';
   const book = `book:books!book_revisions_book_id_fkey(id, title, author:profiles!books_author_id_fkey(full_name))`;
   const [counts, jobs, failed] = await Promise.all([
     bookCounts(supabase),
@@ -141,6 +152,8 @@ export default async function ProcessingPage({ searchParams }: { searchParams: P
                 );
                 // "waiting 20 h" as the prototype; under an hour in minutes, so a new upload doesn't read "1 h".
                 const deskMin = Math.max(0, Math.floor((now - new Date(started).getTime()) / 60_000));
+                const stuckMin = desk ? 0 : Math.floor((now - lastStep(steps, r.created_at)) / 60_000);
+                const stuck = stuckMin * 60_000 >= STUCK_MS;
                 const deskWait = deskMin < 1 ? 'just now' : deskMin < 60 ? `${deskMin} min` : `${Math.floor(deskMin / 60)} h`;
                 return (
                   <div className="ct-job" key={r.id}>
@@ -155,7 +168,17 @@ export default async function ProcessingPage({ searchParams }: { searchParams: P
                     <span className="ct-job__t">
                       <b>{`Step ${at + 1} of ${STEPS.length}`}</b>
                       <br />
-                      {desk ? `With the desk · waiting ${deskWait}` : `${STEPS[at]!.doing} · about ${left} min left`}
+                      {desk
+                        ? `With the desk · waiting ${deskWait}`
+                        : stuck
+                          ? `${STEPS[at]!.doing} · no progress for ${stuckMin < 60 ? `${stuckMin} min` : `${Math.floor(stuckMin / 60)} h`}`
+                          : `${STEPS[at]!.doing} · about ${left} min left`}
+                      {stuck && canRetry && (
+                        <>
+                          <br />
+                          <RetryJob id={r.id} title={r.book?.title ?? 'The book'} />
+                        </>
+                      )}
                     </span>
                   </div>
                 );
