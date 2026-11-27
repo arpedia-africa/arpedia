@@ -239,6 +239,15 @@ export function plan(n: Notice, l: Lookup): Plan {
         screen: 'plans',
       });
       break;
+    case 'credits_granted': {
+      // Flow 14 rule 38: sent only once a staff grant is in the balance (never while it waits).
+      const credits = str(n.credits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      notice(`We added ${credits} credits to your account`, firstLine(n.message) || 'Enjoy your reading', {
+        kind: 'screen',
+        screen: 'credits',
+      });
+      break;
+    }
     case 'renewal_reminder': {
       const plan = str(n.plan).replace(/^./, (c) => c.toUpperCase());
       const date = day(n.period_end);

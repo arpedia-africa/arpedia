@@ -1660,14 +1660,14 @@ isOneToOne: true
                   ]
                 },"credit_grant_requests": {
                   Row: {
-                    "approved_by": string | null,"created_at": string,"credits": number,"decided_at": string | null,"id": string,"ledger_id": number | null,"reason": string,"requested_by": string,"status": string,"user_id": string
+                    "approved_by": string | null,"created_at": string,"credits": number,"decided_at": string | null,"id": string,"kind": string,"ledger_id": number | null,"message": string | null,"notify": boolean,"reason": string,"requested_by": string,"status": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_by"?: string | null,"created_at"?: string,"credits": number,"decided_at"?: string | null,"id"?: string,"ledger_id"?: number | null,"reason": string,"requested_by": string,"status"?: string,"user_id": string
+                    "approved_by"?: string | null,"created_at"?: string,"credits": number,"decided_at"?: string | null,"id"?: string,"kind"?: string,"ledger_id"?: number | null,"message"?: string | null,"notify"?: boolean,"reason": string,"requested_by": string,"status"?: string,"user_id": string
                   }
                   Update: {
-                    "approved_by"?: string | null,"created_at"?: string,"credits"?: number,"decided_at"?: string | null,"id"?: string,"ledger_id"?: number | null,"reason"?: string,"requested_by"?: string,"status"?: string,"user_id"?: string
+                    "approved_by"?: string | null,"created_at"?: string,"credits"?: number,"decided_at"?: string | null,"id"?: string,"kind"?: string,"ledger_id"?: number | null,"message"?: string | null,"notify"?: boolean,"reason"?: string,"requested_by"?: string,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -4168,14 +4168,14 @@ isOneToOne: false
                   ]
                 },"reading_sessions": {
                   Row: {
-                    "active_seconds": number,"book_id": string,"client_id": string,"created_at": string,"device_id": string | null,"ended_at": string,"id": string,"started_at": string,"user_id": string
+                    "active_seconds": number,"book_id": string,"client_id": string,"created_at": string,"device_id": string | null,"ended_at": string,"id": string,"offline": boolean | null,"pages": number | null,"started_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "active_seconds": number,"book_id": string,"client_id": string,"created_at"?: string,"device_id"?: string | null,"ended_at": string,"id"?: string,"started_at": string,"user_id": string
+                    "active_seconds": number,"book_id": string,"client_id": string,"created_at"?: string,"device_id"?: string | null,"ended_at": string,"id"?: string,"offline"?: boolean | null,"pages"?: number | null,"started_at": string,"user_id": string
                   }
                   Update: {
-                    "active_seconds"?: number,"book_id"?: string,"client_id"?: string,"created_at"?: string,"device_id"?: string | null,"ended_at"?: string,"id"?: string,"started_at"?: string,"user_id"?: string
+                    "active_seconds"?: number,"book_id"?: string,"client_id"?: string,"created_at"?: string,"device_id"?: string | null,"ended_at"?: string,"id"?: string,"offline"?: boolean | null,"pages"?: number | null,"started_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -6096,6 +6096,12 @@ isOneToOne: false
               "id": string,"why": string
             }[]
                            },
+"_grant_notice":
+{ Args: { "p_credits": number,"p_message": string,"p_user": string }; Returns: undefined
+                           },
+"_grant_tier":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "_has_link_or_phone":
 { Args: { "p_text": string }; Returns: boolean
                            },
@@ -6508,6 +6514,9 @@ isOneToOne: false
                            },
 "_remaining":
 { Args: { "p_book": string,"p_user": string }; Returns: number
+                           },
+"_remove_credits":
+{ Args: { "p_actor": string,"p_credits": number,"p_meta"?: Json,"p_reason": string,"p_user": string }; Returns: number
                            },
 "_replace_chapters":
 { Args: { "p_chapters": Json,"p_rev": string }; Returns: undefined
@@ -7236,6 +7245,9 @@ isOneToOne: false
 "credit_balance":
 { Args: { "p_user": string }; Returns: number
                            },
+"cross_channel_spam":
+{ Args: { "p_group": string,"p_text": string,"p_user": string }; Returns: boolean
+                           },
 "decide_appeal":
 { Args: { "p_appeal": string,"p_outcome": Database["public"]['Enums']["appeal_status"],"p_reduce_to_days"?: number,"p_reply"?: string }; Returns: undefined
                            },
@@ -7808,7 +7820,7 @@ isOneToOne: false
 { Args: { "p_rows": Json }; Returns: (number)[]
                            },
 "log_reading_session":
-{ Args: { "p_active_seconds": number,"p_book": string,"p_client_id": string,"p_device_id": string,"p_ended_at": string,"p_started_at": string }; Returns: undefined
+{ Args: { "p_active_seconds": number,"p_book": string,"p_client_id": string,"p_device_id": string,"p_ended_at": string,"p_offline"?: boolean,"p_pages"?: number,"p_started_at": string }; Returns: undefined
                            },
 "log_search":
 { Args: { "p_q": string,"p_result_count": number,"p_tapped_id"?: string,"p_tapped_type"?: string }; Returns: undefined
@@ -8631,6 +8643,12 @@ isOneToOne: false
 "staff_analytics_funnel":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
+"staff_analytics_growth":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"staff_analytics_reading":
+{ Args: { "p_from": string,"p_limit"?: number,"p_to": string }; Returns: Json
+                           },
 "staff_by_role":
 { Args: Record<PropertyKey, never>; Returns: {
               "invited": (string)[],"names": (string)[],"role": Database["public"]['Enums']["staff_role"]
@@ -8673,7 +8691,7 @@ isOneToOne: false
 { Args: { "p_user": string }; Returns: Json
                            },
 "staff_grant_credits":
-{ Args: { "p_credits": number,"p_reason": string,"p_user": string }; Returns: Json
+{ Args: { "p_credits": number,"p_message"?: string,"p_notify"?: boolean,"p_reason": string,"p_user": string }; Returns: Json
                            },
 "staff_list_banners":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -8701,6 +8719,9 @@ isOneToOne: false
                            },
 "staff_pause_campaign":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"staff_remove_credits":
+{ Args: { "p_credits": number,"p_reason": string,"p_user": string }; Returns: Json
                            },
 "staff_request_campaign_review":
 { Args: { "p_id": string }; Returns: undefined
