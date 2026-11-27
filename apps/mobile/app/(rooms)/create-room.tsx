@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { Screen, useToast } from '@arpedia/ui';
 import { ROOMS_HOSTED_MAX, paceFinishLine, roomNameError } from '@arpedia/core';
+import { revisionCoverUri } from '@/lib/cover';
 import { useSession } from '../../features/01/session';
 import {
   CreateRoomBody,
@@ -54,7 +55,13 @@ export default function CreateRoom() {
   const minor = useIsMinor(session?.user.id).data === true;
 
   const books = useMemo(
-    () => (library.data ?? []).map((b) => ({ id: b.id, title: b.title, tone: coverToneFor(b.id) })),
+    () =>
+      (library.data ?? []).map((b) => ({
+        id: b.id,
+        title: b.title,
+        tone: coverToneFor(b.id),
+        coverUrl: revisionCoverUri(b.revisionId),
+      })),
     [library.data],
   );
   const picked = (library.data ?? []).find((b) => b.id === values.book);

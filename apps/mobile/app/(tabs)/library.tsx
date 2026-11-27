@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, Share, View, type NativeScrollEvent } from 'react-native';
+import { Image, RefreshControl, ScrollView, Share, View, type NativeScrollEvent } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,6 +12,7 @@ import {
   type LibrarySort,
 } from '@arpedia/core';
 import { Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
+import { coverUri } from '@/lib/cover';
 import { coverTone } from '../../features/03/BookViews';
 import { useOnline } from '../../features/03/book';
 import { MenuBody } from '../../features/03/MoreSheet';
@@ -129,6 +130,14 @@ export default function Library() {
     }
     return out;
   }, [offline.entries, downloads, shelves]);
+  // Spec check 05-7: downloaded books keep their covers for offline (the platform image cache).
+  useEffect(() => {
+    if (!online) return;
+    for (const e of offline.entries) {
+      const uri = coverUri(e.item?.cover_key);
+      if (uri) Image.prefetch(uri).catch(() => undefined);
+    }
+  }, [online, offline.entries]);
   // Rule 15: the Offline pill means "opens without a connection", so only a valid licence counts.
   const offlineIds = useMemo(
     () =>
@@ -221,6 +230,7 @@ export default function Library() {
     title: i.title,
     author: i.author_name ?? '',
     tone: coverTone(i.book_id),
+    coverUri: coverUri(i.cover_key),
     percent: k === 'reading' || (k === 'search' && i.shelves.reading) ? i.percent : null,
     state: k === 'search' ? shelvesLabel(i, offlineIds.has(i.book_id)) : stateLine(i, k),
   });
@@ -233,6 +243,7 @@ export default function Library() {
       title: i.title,
       author: i.author_name ?? '',
       tone: coverTone(i.book_id),
+      coverUri: coverUri(i.cover_key),
       status: opened ? paymentLine(i) : (stateLine(i, k === 'search' ? 'saved' : k) ?? paymentLine(i)),
       percent: i.percent,
       meta: !opened
@@ -418,6 +429,7 @@ export default function Library() {
               title: e.title,
               author: e.author ?? '',
               tone: coverTone(e.bookId),
+              coverUri: coverUri(e.item?.cover_key),
               percent: e.item ? e.item.percent : null,
               state: line,
               busy: refreshing === e.bookId,

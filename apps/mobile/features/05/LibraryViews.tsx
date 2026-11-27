@@ -280,6 +280,8 @@ export interface GridBook {
   title: string;
   author: string;
   tone: CoverTone;
+  /** Real cover (`/v1/covers/{rev}`, spec check 05-7); the sample tone shows without it. */
+  coverUri?: string;
   /** Reading progress 0–100; null hides the badge and bar (rule 12). */
   percent: number | null;
   /** `.lib-state`: "Preview ended", "110 credits", "Out 4 December", "★ 5 · you rated" … */
@@ -322,7 +324,7 @@ function LibBook({
       style={{ width, gap: s(6) }}
     >
       <View>
-        <Cover title={b.title} author={b.author} tone={b.tone} fluid titleOneLine={13} />
+        <Cover title={b.title} author={b.author} tone={b.tone} uri={b.coverUri} fluid titleOneLine={13} />
         <Press
           onPress={onMore}
           pressScale={motion.press.icon}
@@ -481,6 +483,8 @@ export interface RowBook {
   title: string;
   author: string;
   tone: CoverTone;
+  /** Real cover (`/v1/covers/{rev}`, spec check 05-7); the sample tone shows without it. */
+  coverUri?: string;
   /** "Chapter 7 of 14 · unlocked", "Pay as you read · Paid 132 of 184 credits", … */
   status: string;
   percent: number;
@@ -520,7 +524,7 @@ function LibRow({
         ...(first ? null : { borderTopWidth: bw(1), borderTopColor: c.line }),
       }}
     >
-      <Cover title={b.title} author={b.author} tone={b.tone} size={64} />
+      <Cover title={b.title} author={b.author} tone={b.tone} uri={b.coverUri} size={64} />
       {/* `.cell__body` (gap 2) wins over `.v8`, and `.cell__sub`'s ink-3 over `.t-brand`, as drawn. */}
       <View style={{ flex: 1, minWidth: 0, gap: s(2) }}>
         <View style={{ gap: s(4) }}>

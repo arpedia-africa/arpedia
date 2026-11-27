@@ -52,6 +52,8 @@ export interface BookPageModel {
   title: string;
   author: string;
   tone: CoverTone;
+  /** Real cover (`/v1/covers/{rev}`); the sample tone shows without it. */
+  coverUri?: string;
   following: boolean;
   /** "Christian & Faith · 250 pages · about 5 hr read" */
   meta: string;
@@ -373,6 +375,7 @@ function BookHead({ m, a }: { m: BookPageModel; a: BookPageActions }) {
             author={m.author}
             size={128}
             tone={m.tone}
+            uri={m.coverUri}
             boxShadow={`0 ${s(14)}px ${s(30)}px rgba(26,17,0,0.32), inset ${s(3)}px 0 0 rgba(255,255,255,0.18)`}
           />
         </View>

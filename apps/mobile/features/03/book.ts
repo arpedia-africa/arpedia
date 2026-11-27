@@ -11,6 +11,7 @@ import {
   readTimeShort,
   type PlanState,
 } from '@arpedia/core';
+import { coverUri } from '@/lib/cover';
 import { supabase } from '@/lib/supabase';
 import { avatarTone, coverTone, type BookPageModel } from './BookViews';
 
@@ -129,6 +130,7 @@ export function toModel(d: BookPageData): BookPageModel {
     title: d.book.title,
     author: d.book.author.name ?? '',
     tone: coverTone(d.book.id),
+    coverUri: coverUri(d.book.cover_key),
     following: d.following,
     meta,
     rating: d.rating?.avg != null && count > 0 ? ratingLabel(Number(d.rating.avg)) : null,

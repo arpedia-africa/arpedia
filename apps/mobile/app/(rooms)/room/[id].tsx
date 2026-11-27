@@ -28,6 +28,7 @@ import {
   type PostBlock,
   type Reaction,
 } from '@arpedia/core';
+import { coverUri } from '@/lib/cover';
 import { useSession } from '../../../features/01/session';
 import {
   Bubble,
@@ -528,6 +529,7 @@ export default function RoomScreen() {
           book={bookTitle}
           code={room?.code ?? ''}
           tone={coverToneFor(room?.book.id ?? gid)}
+          coverUrl={coverUri(room?.book.cover_key)}
           members={chips}
           loading={roomQ.isPending}
           largeLine={room?.large ? `${room.finished_count} of ${room.member_count} finished` : null}
