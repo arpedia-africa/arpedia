@@ -78,17 +78,11 @@ export default function MyHighlights() {
         }}
         onQuery={setTyped}
         onRetry={() => void list.refetch()}
+        // Rule 11: the reader at that place. For a book not unlocked (a free-preview highlight, or one
+        // removed from the library) the reader itself asks to unlock past the preview (rule 13).
         onOpen={(g, i) => {
           track('collection_item_opened', { kind: i.kind });
-          return g.owned
-            ? router.push({ pathname: '/read/[id]', params: { id: g.book_id, cfi: i.cfi ?? undefined } })
-            : Alert.alert(g.title, 'Unlock or open this book again to read this part.', [
-                { text: 'Not now', style: 'cancel' },
-                {
-                  text: 'Open book',
-                  onPress: () => router.push({ pathname: '/book/[id]', params: { id: g.book_id } } as never),
-                },
-              ]);
+          router.push({ pathname: '/read/[id]', params: { id: g.book_id, cfi: i.cfi ?? undefined } });
         }}
         onItemMenu={(i) =>
           Alert.alert('Delete this?', undefined, [
