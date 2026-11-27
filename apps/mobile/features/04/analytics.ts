@@ -25,7 +25,8 @@ export type ReaderEvent =
   | 'download_started'
   | 'download_completed'
   | 'download_failed'
-  | 'license_expired_open_attempt';
+  | 'license_expired_open_attempt'
+  | 'reading_session';
 
 export type Track = (event: ReaderEvent, props?: Record<string, string | number | boolean>) => void;
 const noop: Track = () => {};

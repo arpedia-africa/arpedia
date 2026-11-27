@@ -9,6 +9,7 @@ import { onlineManager, useQueryClient } from '@tanstack/react-query';
 import {
   chargeKey,
   confirmCharge,
+  pagesTurned,
   pendingCharges,
   type ChapterAccess,
   type PendingStore,
@@ -32,7 +33,7 @@ import { useOnline } from '../03/book';
 import { rpcError } from '../03/UnlockSheet';
 import { applyProgress } from '../05/library';
 import { syncRoomProgress } from '../07/data';
-import { flushProgress, sendProgress } from './progressQueue';
+import { flushProgress, sendProgress, sendSession } from './progressQueue';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
 import {
@@ -77,6 +78,27 @@ export interface Annotation {
 const PROGRESS_EVERY = 10_000;
 const IDLE_MS = 60_000;
 const SESSION_EVERY = 60_000;
+
+interface Session {
+  id: string;
+  started: number;
+  active: number;
+  tick: number;
+  /** Standard pages read forward, and the percent the last move ended on. */
+  pages: number;
+  from: number | null;
+  /** Read without a connection (flow 15 rule 27). */
+  offline: boolean;
+}
+const newSession = (now: number, from: number | null): Session => ({
+  id: Crypto.randomUUID(),
+  started: now,
+  active: 0,
+  tick: now,
+  pages: 0,
+  from,
+  offline: !onlineManager.isOnline(),
+});
 
 /** The newest position on this phone (rule 66), kept per book. */
 interface LocalPosition {
@@ -173,6 +195,7 @@ export function useReader(
   const ready = useRef(false);
   const lastSync = useRef(0);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const session = useRef<Session | null>(null);
   const lastChapter = useRef<string | null>(null);
   const gateRoom = useRef(opts.gateRoom);
   gateRoom.current = opts.gateRoom;
@@ -458,6 +481,12 @@ export function useReader(
         localPos.current = lp;
         void AsyncStorage.setItem(posKey(bookId), JSON.stringify(lp)).catch(() => undefined);
       }
+      // Pages per session (flow 15 rule 27): standard pages read forward in this session.
+      const sess = session.current;
+      if (sess) {
+        sess.pages += pagesTurned(sess.from, d.percent, files.current?.manifest?.total_words ?? 0);
+        sess.from = d.percent;
+      }
       const chapterChanged = d.chapter_uid !== lastChapter.current;
       lastChapter.current = d.chapter_uid;
       clearTimeout(syncTimer.current);
@@ -468,30 +497,36 @@ export function useReader(
   );
 
   // ─── Reading sessions (rule 69): idle over 60 s pauses the clock ──────────
-  const session = useRef<{ id: string; started: number; active: number; tick: number } | null>(null);
+  // Each session is wholly online or offline (flow 15 rule 27, offline share): a change of
+  // connection ends it and starts the next. One that can't go up waits on the phone.
   const logSession = useCallback(
     async (end: boolean) => {
       const sess = session.current;
       if (!sess) return;
       if (end) session.current = null;
       if (sess.active < 1) return;
+      const seconds = Math.round(sess.active);
+      const pages = Math.round(sess.pages * 100) / 100;
+      if (end) track('reading_session', { seconds, offline: sess.offline, pages });
       const device = await deviceId().catch(() => null);
-      await supabase.rpc('log_reading_session', {
+      await sendSession({
         p_client_id: sess.id,
         p_book: bookId,
         p_device_id: device ?? undefined,
         p_started_at: new Date(sess.started).toISOString(),
         p_ended_at: new Date().toISOString(),
-        p_active_seconds: Math.round(sess.active),
-      } as never);
+        p_active_seconds: seconds,
+        p_pages: pages,
+        p_offline: sess.offline,
+      }).catch(() => undefined);
     },
-    [bookId],
+    [bookId, track],
   );
   const reading = phase === 'ready' && loc != null;
   useEffect(() => {
     if (!reading) return;
     const now = Date.now();
-    session.current ??= { id: Crypto.randomUUID(), started: now, active: 0, tick: now };
+    session.current ??= newSession(now, localPos.current?.percent ?? null);
     let sinceLog = 0;
     const t = setInterval(() => {
       const sess = session.current;
@@ -521,7 +556,7 @@ export function useReader(
         lastActive.current = Date.now();
         if (phase === 'ready') {
           const now = Date.now();
-          session.current ??= { id: Crypto.randomUUID(), started: now, active: 0, tick: now };
+          session.current ??= newSession(now, localPos.current?.percent ?? null);
         }
         void qc.invalidateQueries({ queryKey: readerKey(bookId) });
       }
@@ -831,12 +866,18 @@ export function useReader(
     const uid = userId.current;
     if (!uid || phase !== 'ready') return;
     if (online) void flushProgress();
+    // A reading session never mixes online and offline time (flow 15 rule 27).
+    const sess = session.current;
+    if (sess && sess.offline === online) {
+      void logSession(true);
+      session.current = newSession(Date.now(), sess.from);
+    }
     if (online)
       void flushAnnotations(uid)
         .catch(() => 0)
         .then(loadUnsaved);
     else void loadUnsaved();
-  }, [online, phase, loadUnsaved]);
+  }, [online, phase, loadUnsaved, logSession]);
 
   // Edge case "app killed mid-charge" (rule 56): a charge that never got its answer is sent again
   // with its first key once the book is open and online, so it lands at most once. Sent as `auto`:

@@ -227,3 +227,16 @@ export function licenseValid(l: License, deviceNow: number, lastSeenDeviceTime: 
   const serverNow = l.issued_at + (deviceNow - l.device_received_at);
   return serverNow < l.valid_until;
 }
+
+/** A forward move counts at most this many standard pages: a slider or contents jump is not reading. */
+export const MAX_PAGES_PER_MOVE = 2;
+
+/**
+ * Standard pages (250 words) read by one move from `from` to `to` percent, for the session's
+ * `pages` (flow 15 rule 27, pages per session). Moving back or staying put reads nothing.
+ */
+export function pagesTurned(from: number | null, to: number, totalWords: number): number {
+  if (from == null || !(to > from) || totalWords <= 0) return 0;
+  const pages = (((to - from) / 100) * totalWords) / WORDS_PER_PAGE;
+  return Math.min(pages, MAX_PAGES_PER_MOVE);
+}

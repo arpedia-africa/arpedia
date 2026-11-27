@@ -51,6 +51,7 @@ export async function sendProgress(args: ProgressArgs): Promise<boolean> {
 let flushing = false;
 /** Send every queued position (oldest book first). One that fails stays for the next try. */
 export async function flushProgress() {
+  void flushSessions();
   if (flushing || inMaintenance()) return;
   flushing = true;
   try {
@@ -64,5 +65,66 @@ export async function flushProgress() {
     }
   } finally {
     flushing = false;
+  }
+}
+
+// ─── Reading sessions (flow 04 rule 69, flow 15 rule 27) ─────────────────────
+// A session read offline is the point of the offline share, so one that can't go up waits here,
+// keyed by its client id (the server upserts on it, so the newest copy of a session wins).
+const SESSIONS_KEY = 'reader.sessions.queue';
+/** Oldest sessions are dropped past this; the reading stats are a sample, not a ledger. */
+const MAX_SESSIONS = 200;
+
+/** `log_reading_session` arguments, as the reader sends them. */
+export type SessionArgs = Record<string, unknown> & { p_client_id: string; p_ended_at: string };
+
+async function loadSessions(): Promise<Record<string, SessionArgs>> {
+  const raw = await AsyncStorage.getItem(SESSIONS_KEY).catch(() => null);
+  return raw ? (JSON.parse(raw) as Record<string, SessionArgs>) : {};
+}
+const storeSessions = (q: Record<string, SessionArgs>) =>
+  (Object.keys(q).length
+    ? AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(q))
+    : AsyncStorage.removeItem(SESSIONS_KEY)
+  ).catch(() => undefined);
+
+async function queueSession(args: SessionArgs) {
+  const q = await loadSessions();
+  q[args.p_client_id] = args;
+  const keep = Object.values(q)
+    .sort((a, b) => b.p_ended_at.localeCompare(a.p_ended_at))
+    .slice(0, MAX_SESSIONS);
+  await storeSessions(Object.fromEntries(keep.map((s) => [s.p_client_id, s])));
+}
+
+/** Send a session now, or keep it for later when it can't go. */
+export async function sendSession(args: SessionArgs): Promise<void> {
+  if (inMaintenance()) return queueSession(args);
+  const { error } = await supabase.rpc('log_reading_session', args as never);
+  if (!error) {
+    const q = await loadSessions();
+    if (q[args.p_client_id]) {
+      delete q[args.p_client_id];
+      await storeSessions(q);
+    }
+  } else if (retryLater(error)) await queueSession(args);
+}
+
+let flushingSessions = false;
+/** Send every queued session (oldest first). One that can't go yet stays for the next try. */
+export async function flushSessions() {
+  if (flushingSessions || inMaintenance()) return;
+  flushingSessions = true;
+  try {
+    const q = await loadSessions();
+    for (const args of Object.values(q).sort((a, b) => a.p_ended_at.localeCompare(b.p_ended_at))) {
+      const { error } = await supabase.rpc('log_reading_session', args as never);
+      if (error && retryLater(error)) break;
+      const now = await loadSessions();
+      if (now[args.p_client_id]?.p_ended_at === args.p_ended_at) delete now[args.p_client_id];
+      await storeSessions(now);
+    }
+  } finally {
+    flushingSessions = false;
   }
 }
