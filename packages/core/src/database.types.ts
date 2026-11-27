@@ -8439,6 +8439,9 @@ isOneToOne: false
 "staff_list_readers":
 { Args: { "p_filters"?: Json,"p_page"?: number,"p_query"?: string,"p_tab"?: string }; Returns: Json
                            },
+"staff_message_author":
+{ Args: { "p_author": string,"p_body": string }; Returns: Json
+                           },
 "staff_mfa_ok":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
@@ -8530,6 +8533,9 @@ isOneToOne: false
       } },
 "staff_test_push":
 { Args: { "p_id": string }; Returns: boolean
+                           },
+"staff_update_author_profile":
+{ Args: { "p_author": string,"p_bio": string,"p_location": string,"p_pen_name": string }; Returns: Json
                            },
 "start_application":
 { Args: Record<PropertyKey, never>; Returns: {

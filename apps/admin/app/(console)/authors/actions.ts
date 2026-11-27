@@ -33,3 +33,41 @@ export async function reinstateAuthor(userId: string): Promise<Result> {
   revalidatePath('/authors');
   return { ok: true };
 }
+
+/** Staff message to the author (staff_message_author): a push and a notification; audited. */
+export async function messageAuthor(userId: string, body: string): Promise<Result> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('staff_message_author', { p_author: userId, p_body: body });
+  if (error) {
+    if (error.message.includes('bad_body')) return { ok: false, error: 'Write 1 to 300 characters.' };
+    if (error.message.includes('not_author')) return { ok: false, error: 'This person is not an author.' };
+    if (error.code === '42501') return { ok: false, error: 'Your role can look at authors but not message them.' };
+    return { ok: false, error: "The message didn't send. Try again." };
+  }
+  return { ok: true };
+}
+
+/** Edit the author's public profile (staff_update_author_profile): pen name, bio, location; audited. */
+export async function editAuthorProfile(
+  userId: string,
+  profile: { penName: string; bio: string; location: string },
+): Promise<Result> {
+  const supabase = await serverSupabase();
+  const { error } = await supabase.rpc('staff_update_author_profile', {
+    p_author: userId,
+    p_pen_name: profile.penName,
+    p_bio: profile.bio,
+    p_location: profile.location,
+  });
+  if (error) {
+    if (error.message.includes('bad_pen_name')) return { ok: false, error: 'The pen name needs 1 to 60 characters.' };
+    if (error.message.includes('bad_bio')) return { ok: false, error: 'The bio can be up to 300 characters.' };
+    if (error.message.includes('bad_location')) return { ok: false, error: 'The location can be up to 60 characters.' };
+    if (error.message.includes('not_author')) return { ok: false, error: 'This person is not an author.' };
+    if (error.code === '42501') return { ok: false, error: 'Your role can look at authors but not edit them.' };
+    return { ok: false, error: "The profile didn't save. Try again." };
+  }
+  revalidatePath(`/authors/${userId}`);
+  revalidatePath('/authors');
+  return { ok: true };
+}

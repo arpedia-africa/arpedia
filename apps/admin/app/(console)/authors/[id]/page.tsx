@@ -80,6 +80,8 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
             name={name}
             suspended={suspended}
             canSuspend={g.staff.role === 'super_admin' || g.staff.role === 'support'}
+            canEdit={['super_admin', 'support', 'operations_admin'].includes(g.staff.role)}
+            profile={{ penName: a.profile.pen_name, bio: a.profile.bio ?? '', location: a.profile.location ?? '' }}
           />
         </div>
       </div>
