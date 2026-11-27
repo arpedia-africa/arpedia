@@ -2,7 +2,7 @@
 -- confirms with a fresh code; name-only edits save directly; one open change per plan.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(17);
 
 insert into auth.users (id, email) values
   ('16100000-0000-4000-a000-000000000001', 'sa1-pp@arpedia.africa'),
@@ -38,6 +38,20 @@ create function pg_temp.cur() returns bigint language sql as $$
   order by effective_from desc, id desc limit 1
 $$;
 grant execute on function pg_temp.cur() to authenticated;
+-- A single-use step-up for `uid` (flow 16 rule 6), as verify_stepup records a backup code.
+create function pg_temp.stepup(uid text, scope text) returns uuid
+language plpgsql as $$
+declare
+  v_role text := current_setting('role');
+  v_id uuid;
+begin
+  perform set_config('role', 'postgres', true);
+  insert into public.staff_stepups (user_id, scope, method, proof_at)
+    values (uid::uuid, scope, 'backup', now()) returning id into v_id;
+  perform set_config('role', v_role, true);
+  return v_id;
+end $$;
+grant execute on function pg_temp.stepup(text, text) to authenticated;
 
 set local role authenticated;
 
@@ -57,15 +71,17 @@ select throws_ok($$select public.save_plan('monthly', 'Monthly plus', null, 1200
 select throws_ok(format($$select public.save_plan('monthly', 'Renamed', null, %s, %s, 0, null)$$,
   (select price from pg_temp.was), (select credits from pg_temp.was)),
   'P0001', 'change_pending', 'no direct edit while a change waits');
-select throws_ok(format($$select public.decide_approval(%L, true)$$, (select id from pg_temp.ids where k = 'r')),
-  '42501', null, 'Finance cannot confirm');
+select throws_ok(format($$select public.decide_approval(%L, true, null, pg_temp.stepup(%L, 'confirm_price_change'))$$,
+  (select id from pg_temp.ids where k = 'r'), '16100000-0000-4000-a000-000000000004'), '42501', null, 'Finance cannot confirm');
 
--- A Super admin without a fresh code cannot confirm; with one, the price version is written.
-select pg_temp.as_user('16100000-0000-4000-a000-000000000001', '30 minutes');
-select throws_ok(format($$select public.decide_approval(%L, true)$$, (select id from pg_temp.ids where k = 'r')),
-  '42501', null, 'confirming needs a fresh 2-step code');
+-- A Super admin without a fresh single-use code cannot confirm; with one, the price version is written.
 select pg_temp.as_user('16100000-0000-4000-a000-000000000001');
-select is((public.decide_approval((select id from pg_temp.ids where k = 'r'), true)).status, 'approved',
+select throws_ok(format($$select public.decide_approval(%L, true)$$, (select id from pg_temp.ids where k = 'r')),
+  'P0001', 'stepup_expired', 'confirming needs a step-up code');
+select throws_ok(format($$select public.decide_approval(%L, true, null, pg_temp.stepup(%L, 'release_payout'))$$,
+  (select id from pg_temp.ids where k = 'r'), '16100000-0000-4000-a000-000000000001'), 'P0001', 'stepup_expired', 'a step-up for another action does not confirm');
+insert into pg_temp.ids values ('c1', pg_temp.stepup('16100000-0000-4000-a000-000000000001', 'confirm_price_change'));
+select is((public.decide_approval((select id from pg_temp.ids where k = 'r'), true, null, (select id from pg_temp.ids where k = 'c1'))).status, 'approved',
   'a Super admin confirms');
 select is(pg_temp.cur(), (select price from pg_temp.was) + 10000,
   'the new price applies');
@@ -76,8 +92,10 @@ select is((select changed_by from public.plan_price_versions where plan_code = '
 -- A Super admin's own price change waits for a second Super admin.
 insert into pg_temp.ids select 's', (public.save_plan('monthly', 'Monthly plus', null,
   (select price from pg_temp.was) + 20000, (select credits from pg_temp.was), 0, null) ->> 'pending_request')::uuid;
-select throws_ok(format($$select public.decide_approval(%L, true)$$, (select id from pg_temp.ids where k = 's')),
-  'P0001', 'own_request', 'nobody confirms their own change');
+select throws_ok(format($$select public.decide_approval(%L, true, null, (select id from pg_temp.ids where k = 'c1'))$$,
+  (select id from pg_temp.ids where k = 's')), 'P0001', 'stepup_expired', 'a used step-up does not confirm again');
+select throws_ok(format($$select public.decide_approval(%L, true, null, pg_temp.stepup(%L, 'confirm_price_change'))$$,
+  (select id from pg_temp.ids where k = 's'), '16100000-0000-4000-a000-000000000001'), 'P0001', 'own_request', 'nobody confirms their own change');
 select pg_temp.as_user('16100000-0000-4000-a000-000000000002');
 select is((public.decide_approval((select id from pg_temp.ids where k = 's'), false, 'Too soon')).status,
   'rejected', 'a second Super admin can reject it');

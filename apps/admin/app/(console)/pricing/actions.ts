@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { serverSupabase } from '@/lib/supabase/server';
+import { stepUp, stepUpError } from '@/lib/stepup';
 import { verifyCode } from './verify';
 
 export type SavePlanResult = { ok: true; pending: boolean } | { ok: false; error: string; needCode?: boolean };
@@ -59,19 +60,24 @@ export async function savePlan(input: {
 export type DecideResult = { ok: true } | { ok: false; error: string; needCode?: boolean };
 
 /**
- * Confirm or reject a plan price change someone else proposed (rule 17). Confirming needs a fresh
- * 2-step code: decide_approval writes the price version, running the plan check again.
+ * Confirm or reject a plan price change someone else proposed (rule 17). Confirming needs a fresh code,
+ * used once within 5 minutes (flow 16 rule 6): decide_approval writes the price version, running the
+ * plan check again.
  */
 export async function decidePriceChange(input: { id: string; approve: boolean; otp: string }): Promise<DecideResult> {
   const { id, approve, otp } = input;
+  let stepup: string | undefined;
   if (approve) {
-    const bad = await verifyCode(otp);
-    if (bad) return { ok: false, error: bad, needCode: true };
+    const step = await stepUp(otp, 'confirm_price_change');
+    if ('error' in step) return { ok: false, error: step.error, needCode: true };
+    stepup = step.id;
   }
   const supabase = await serverSupabase();
-  const { error } = await supabase.rpc('decide_approval', { p_id: id, p_approve: approve });
+  const { error } = await supabase.rpc('decide_approval', { p_id: id, p_approve: approve, p_stepup: stepup });
   if (error) {
     const m = error.message;
+    const expired = stepUpError(m);
+    if (expired) return { ok: false, error: expired, needCode: true };
     if (m.includes('own_request')) return { ok: false, error: 'You proposed this change, so another Super admin must confirm it.' };
     if (m.includes('already_decided')) return { ok: false, error: 'Someone has already decided this change.' };
     if (m.includes('request_expired')) return { ok: false, error: 'This change waited over 7 days and has expired. Propose it again.' };
