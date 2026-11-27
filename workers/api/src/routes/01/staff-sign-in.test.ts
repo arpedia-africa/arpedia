@@ -46,6 +46,39 @@ describe('password sign-in with the per-email lockout (spec check 01-3)', () => 
     expect(rpc).toHaveBeenLastCalledWith('note_staff_signin_failure', { p_email: 'ngozi@example.com' });
   });
 
+  it('a deleted account with the right password is told so and not counted (#72 row 13)', async () => {
+    rpc
+      .mockResolvedValueOnce({ data: false, error: null })
+      .mockResolvedValueOnce({ data: 'deleted', error: null });
+    signInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { status: 400, code: 'user_banned' },
+    });
+    const res = await post({ email: 'ngozi@example.com', password: 'pw' });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'deleted' });
+    expect(rpc).toHaveBeenLastCalledWith('banned_sign_in_reason', {
+      p_email: 'ngozi@example.com',
+      p_password: 'pw',
+    });
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it('a banned email with a wrong password is refused and counted like any other', async () => {
+    rpc
+      .mockResolvedValueOnce({ data: false, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
+    signInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { status: 400, code: 'user_banned' },
+    });
+    const res = await post({ email: 'ngozi@example.com', password: 'nope' });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'refused' });
+    expect(rpc).toHaveBeenLastCalledWith('note_staff_signin_failure', { p_email: 'ngozi@example.com' });
+  });
+
   it("Supabase's own limit is passed on and not counted", async () => {
     rpc.mockResolvedValueOnce({ data: false, error: null });
     signInWithPassword.mockResolvedValue({ data: { session: null }, error: { status: 429 } });
