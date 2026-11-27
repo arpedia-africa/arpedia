@@ -262,6 +262,15 @@ describe('preflight.mjs', () => {
     expect(items.find((i) => i.key === 'revenuecat_key').detail).toMatch(/REVENUECAT_ANDROID_PUBLIC_KEY/);
   });
 
+  it('fails revenuecat_key for a RevenueCat Test Store key, even when it is in the bundle', async () => {
+    const w = healthy();
+    w.rcKey = 'test_AbCdEfGhIjKlMnOp';
+    w.bundle.text += ' test_AbCdEfGhIjKlMnOp';
+    const items = await preflight(w);
+    expect(failed(items)).toEqual(['revenuecat_key']);
+    expect(items.find((i) => i.key === 'revenuecat_key').detail).toMatch(/live Google Play key/);
+  });
+
   it('fails a check whose source errors, without stopping the others', async () => {
     const w = healthy();
     const items = await runPreflight({

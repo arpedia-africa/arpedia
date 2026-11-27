@@ -271,16 +271,20 @@ export async function runPreflight({
       detail: kit ? 'built with EXPO_PUBLIC_KIT=1 (kit gallery and cleartext localhost)' : 'off',
     });
     // Flow 09: readers buy through RevenueCat with the public Android SDK key (goog_…).
+    // Production keys only (owner, 27 Nov): a RevenueCat Test Store key (test_…) never sells.
     const rcKey = revenueCatKey?.trim();
-    const hasKey = !!rcKey && bundle.text.includes(rcKey);
+    const live = !!rcKey && rcKey.startsWith('goog_');
+    const hasKey = live && bundle.text.includes(rcKey);
     items.push({
       key: 'revenuecat_key',
       status: hasKey ? 'pass' : 'fail',
       detail: !rcKey
         ? 'set REVENUECAT_ANDROID_PUBLIC_KEY to check the bundle'
-        : hasKey
-          ? 'RevenueCat Android key in the bundle'
-          : 'built without EXPO_PUBLIC_REVENUECAT_ANDROID_KEY (or another key): nobody can buy',
+        : !live
+          ? 'REVENUECAT_ANDROID_PUBLIC_KEY is not a live Google Play key (goog_…)'
+          : hasKey
+            ? 'RevenueCat Android key in the bundle'
+            : 'built without EXPO_PUBLIC_REVENUECAT_ANDROID_KEY (or another key): nobody can buy',
     });
     // The local test store (features/09/purchases.ts) must be compiled out of a release build.
     const testStore = bundle.text.includes(TEST_STORE_MARKER);

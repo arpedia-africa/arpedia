@@ -1,6 +1,7 @@
 // Google Play purchases for flow 09 (rules 5 to 7). The logic and every result live in
 // `@arpedia/core` (store.ts, unit-tested with a mocked SDK); this file only picks the store:
-//   - RevenueCat (`react-native-purchases`) when EXPO_PUBLIC_REVENUECAT_ANDROID_KEY is set,
+//   - RevenueCat (`react-native-purchases`, the live project) when the platform's public key is set
+//     (EXPO_PUBLIC_REVENUECAT_ANDROID_KEY, EXPO_PUBLIC_REVENUECAT_IOS_KEY),
 //   - the local test store only in kit or dev builds with EXPO_PUBLIC_TEST_STORE (flow 17 journeys),
 //   - otherwise none, and every screen says "Google Play is not responding".
 // Nothing here ever grants credits: credits come from the ledger after the server processes the
@@ -22,7 +23,12 @@ export {
   type StorePrice,
 } from '@arpedia/core';
 
-const KEY = Platform.OS === 'android' ? (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '') : '';
+const KEY =
+  Platform.OS === 'android'
+    ? (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '')
+    : Platform.OS === 'ios'
+      ? (process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '')
+      : '';
 // Written out here (not `kitEnabled`) so a release build without the kit folds this to false and
 // drops the test store from the bundle (preflight `test_store` checks the AAB).
 const TEST_STORE =
