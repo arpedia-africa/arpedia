@@ -207,6 +207,60 @@ describe('send path', () => {
     expect(bola.frames.some((f) => f.type === 'message')).toBe(false);
   });
 
+  const last = (p: { frames: ServerFrame[] }) => p.frames.filter((f) => f.type !== 'message').at(-1);
+
+  it('caps messages per minute at the safety setting, else 20 (flow 14 rule 23)', async () => {
+    const t = setup();
+    t.table.set('ada', access({ limits: { messages_per_minute: 3 } }));
+    t.table.set('bola', access());
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    for (let n = 1; n <= 4; n++) await t.send(ada, n);
+    expect(ada.frames.filter((f) => f.type === 'ack')).toHaveLength(3);
+    expect(last(ada)).toMatchObject({ type: 'error', error: 'rate_limited' });
+    t.tick(60_000);
+    await t.send(ada, 5);
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    for (let n = 10; n < 31; n++) await t.send(bola, n);
+    expect(bola.frames.filter((f) => f.type === 'ack')).toHaveLength(20);
+  });
+
+  it('refuses the same text a third time in 5 minutes, ignoring case and spacing', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('mod', access({ role: 'moderator' }));
+    const ada = t.peer('ada');
+    const mod = t.peer('mod');
+    await t.send(ada, 1, 'Join my channel');
+    await t.send(ada, 2, 'join  my CHANNEL');
+    await t.send(ada, 3, 'join my channel');
+    expect(ada.frames.filter((f) => f.type === 'ack')).toHaveLength(2);
+    expect(last(ada)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
+    await t.send(ada, 4, 'something else');
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    t.tick(5 * 60_000);
+    await t.send(ada, 5, 'join my channel');
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    for (let n = 6; n <= 8; n++) await t.send(mod, n, 'Please read the pinned rules');
+    expect(mod.frames.filter((f) => f.type === 'ack')).toHaveLength(3);
+  });
+
+  it('follows the identical-messages setting, and 0 switches it off', async () => {
+    const t = setup();
+    t.table.set('ada', access({ limits: { identical_messages: 2, identical_window_minutes: 1 } }));
+    t.table.set('bola', access({ limits: { identical_messages: 0 } }));
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    await t.send(ada, 1, 'hi');
+    await t.send(ada, 2, 'hi');
+    expect(last(ada)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
+    t.tick(61_000);
+    await t.send(ada, 3, 'hi');
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    for (let n = 10; n < 15; n++) await t.send(bola, n, 'same');
+    expect(bola.frames.filter((f) => f.type === 'ack')).toHaveLength(5);
+  });
+
   it('enforces slow mode with a countdown, except for moderators', async () => {
     const t = setup();
     t.table.set('ada', access({ slow_mode_seconds: 30 }));

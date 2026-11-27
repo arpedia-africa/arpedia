@@ -5799,6 +5799,9 @@ isOneToOne: false
               "action": string,"category": string,"id": string
             }[]
                            },
+"_automod_int":
+{ Args: { "p_default": number,"p_field": string,"p_key": string }; Returns: number
+                           },
 "_automod_norm":
 { Args: { "p": string }; Returns: string
                            },
@@ -6336,6 +6339,9 @@ isOneToOne: false
             }[]
                            },
 "_post_review_base":
+{ Args: { "p_body": string,"p_book": string,"p_spoiler": boolean,"p_stars": number }; Returns: Json
+                           },
+"_post_review_rules":
 { Args: { "p_body": string,"p_book": string,"p_spoiler": boolean,"p_stars": number }; Returns: Json
                            },
 "_publish_now":
