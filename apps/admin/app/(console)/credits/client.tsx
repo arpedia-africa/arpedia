@@ -70,7 +70,7 @@ export function FreezeGiftLoop({ alertId, frozen }: { alertId: number; frozen: b
   );
 }
 
-/** Approve or turn down a grant over 500 credits. The person who asked cannot decide it. */
+/** Approve or turn down a waiting grant or removal. The person who asked cannot decide it. */
 export function ApprovalButtons({ id, canDecide, why }: { id: string; canDecide: boolean; why: string }) {
   const router = useRouter();
   const [toast, show] = useToast();
