@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
-import { assignToMe, confirmBan, decideReport, escalate } from '../actions';
+import { assignToMe, confirmBan, decideReport, escalate, setSeverity } from '../actions';
 import {
   age,
   initials,
@@ -236,7 +236,7 @@ export function ReportView({
               </button>
               {menu ? (
                 <div className="menu">
-                  {user ? <a href={`/readers/${user.id}`}>{`Open ${user.name}`}</a> : null}
+                  {user ? <a href={`/users/${user.id}`}>{`Open ${user.name}`}</a> : null}
                   {canDecide && !decided ? (
                     <a
                       href="#assign"
@@ -253,6 +253,27 @@ export function ReportView({
                       Assign to me
                     </a>
                   ) : null}
+                  {canDecide && !decided
+                    ? (['high', 'medium', 'low'] as const)
+                        .filter((v) => v !== r.severity)
+                        .map((v) => (
+                          <a
+                            key={v}
+                            href={`#severity-${v}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setMenu(false);
+                              start(async () => {
+                                const res = await setSeverity(r.id, v);
+                                showToast(res.error ?? `Severity is ${v} now`);
+                                router.refresh();
+                              });
+                            }}
+                          >
+                            {`Mark as ${v} severity`}
+                          </a>
+                        ))
+                    : null}
                   <hr />
                   <a
                     className="danger"
@@ -415,7 +436,7 @@ export function ReportView({
               <div className="panel__head">
                 <h2>Reported user</h2>
                 {user ? (
-                  <a className="link" href={`/readers/${user.id}`}>
+                  <a className="link" href={`/users/${user.id}`}>
                     {`Open ${first(user.name)}`}
                   </a>
                 ) : null}
