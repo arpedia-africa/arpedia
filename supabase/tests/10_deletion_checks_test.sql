@@ -27,9 +27,9 @@ insert into public.credit_ledger (user_id, delta, reason, bucket, author_id, aut
   ('10160000-0000-4000-a000-000000000004', -20, 'chapter', 'topup', '10160000-0000-4000-a000-000000000002', 3200, 't1016:a2'),
   ('10160000-0000-4000-a000-000000000004', -5, 'chapter', 'topup', '10160000-0000-4000-a000-000000000003', 800, 't1016:a3');
 
--- October is paid: author 1 in full, author 2 for ₦16 of ₦32 (one transfer succeeded, one failed).
+-- A past month is paid: author 1 in full, author 2 for ₦16 of ₦32 (one transfer succeeded, one failed).
 insert into public.earning_cycles (id, month, status) values
-  ('10160000-0000-4000-c000-000000000001', '2026-10-01', 'paid_with_failures');
+  ('10160000-0000-4000-c000-000000000001', '2019-01-01', 'paid_with_failures');
 insert into public.author_earnings (id, cycle_id, author_id, amount_kobo, payable_kobo, status) values
   ('10160000-0000-4000-c000-000000000011', '10160000-0000-4000-c000-000000000001', '10160000-0000-4000-a000-000000000001',
    1600, 1600, 'paid'),
