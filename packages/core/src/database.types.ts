@@ -5874,6 +5874,9 @@ isOneToOne: false
 "_audit_as":
 { Args: { "p_action": string,"p_actor": string,"p_after": Json,"p_area": string,"p_before": Json,"p_object_id": string,"p_object_label": string,"p_object_type": string,"p_reason": string,"p_summary": string }; Returns: number
                            },
+"_audit_log_partition":
+{ Args: { "p_month": string }; Returns: boolean
+                           },
 "_author_dm":
 { Args: { "p_author": string,"p_reader": string }; Returns: string
                            },
@@ -7115,6 +7118,9 @@ isOneToOne: false
                            },
 "audit_fast_lane":
 { Args: { "p_actor"?: string,"p_note": string,"p_result": Database["public"]['Enums']["fast_lane_result"],"p_rev": string }; Returns: undefined
+                           },
+"audit_log_partitions":
+{ Args: { "p_ahead"?: number }; Returns: number
                            },
 "author_in_good_standing":
 { Args: { "p_author": string }; Returns: boolean
