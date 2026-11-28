@@ -3,7 +3,7 @@
 -- and leaves a line on the claim's timeline. Service role only.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(28);
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('14210000-0000-4000-a000-000000000001', 'au@flow1421.test', '{"full_name":"Claimed Author"}');
@@ -35,10 +35,10 @@ select is((public.ingest_claim_email('Legal@Paramount.ng', 'Barr. Yetunde Coker'
   'Book c1421003-0000-4000-b000-000000000003 copies ours.', '<m1>', 'plagiarism',
   '[{"key":"claims/a/proof.pdf","name":"proof.pdf","kind":"PDF","size":"1 KB"}]') ->> 'book_id'),
   'c1421003-0000-4000-b000-000000000003', 'a book id in the body names the book');
-select row_eq($$select claimant_name, claimant_contact, type::text, status::text, jsonb_array_length(evidence),
-                     left(details, 4), claim_hold_at is null
+select row_eq($$select c.claimant_name, c.claimant_contact, c.type::text, c.status::text, jsonb_array_length(c.evidence),
+                     left(c.details, 4), b.claim_hold_at is null
               from public.copyright_claims c join public.books b on b.id = c.book_id
-              where source_message_id = '<m1>'$$,
+              where c.source_message_id = '<m1>'$$,
   row('Barr. Yetunde Coker', 'legal@paramount.ng', 'plagiarism', 'new', 1, 'Book', true),
   'the claim keeps the sender, type, evidence and text, and does not hold the book');
 select ok((select due_at between now() + interval '6 days 23 hours' and now() + interval '7 days 1 hour'
@@ -96,12 +96,15 @@ select throws_ok($$select public.set_claim_similarity(gen_random_uuid(), null)$$
 select is(public.set_claim_similarity((select id from public.copyright_claims where source_message_id = '<m2>'),
   '{"failed": true, "reason": "no_text"}'), true, 'a failed check is stored');
 select is(public.set_claim_similarity((select id from public.copyright_claims where source_message_id = '<m2>'),
-  '{"failed": true, "reason": "no_text"}') and (select (similarity ->> 'attempts')::int = 2 and similarity ? 'retry_at'
-  from public.copyright_claims where source_message_id = '<m2>'), true, 'and retried, counting the attempts');
+  '{"failed": true, "reason": "no_text"}'), true, 'a failed check can be tried again');
+select ok((select (similarity ->> 'attempts')::int = 2 and similarity ? 'retry_at'
+           from public.copyright_claims where source_message_id = '<m2>'), 'counting the attempts');
+select is(public.set_claim_similarity((select id from public.copyright_claims where source_message_id = '<m2>'),
+  '{"score": 0, "flagged": 0, "checked": 2, "passages": []}'), true, 'a later success replaces the failure');
 reset role;
 select is((select count(*)::int from public.audit_log where object_type = 'claim' and action = 'claim.similarity'
-           and object_id = (select id::text from public.copyright_claims where source_message_id = '<m2>')), 1,
-  'the timeline shows a failure once');
+           and object_id = (select id::text from public.copyright_claims where source_message_id = '<m2>')), 2,
+  'the timeline shows the failure once and the result');
 select is((select summary from public.audit_log where object_type = 'claim' and action = 'claim.similarity'
            and object_id = (select id::text from public.copyright_claims where source_message_id = '<m3>')),
   'Similarity check run: 74% over 6 passages', 'the claim''s timeline shows the check');

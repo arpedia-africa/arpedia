@@ -136,7 +136,7 @@ begin
   if not found or (v_prev is not null and v_prev ->> 'failed' is distinct from 'true') then
     return false;
   end if;
-  v_failed := p_similarity ->> 'failed' = 'true';
+  v_failed := coalesce(p_similarity ->> 'failed' = 'true', false);
   if v_failed then
     v_attempts := coalesce((v_prev ->> 'attempts')::int, 0) + 1;
     p_similarity := p_similarity || jsonb_build_object('attempts', v_attempts,
