@@ -92,9 +92,9 @@ delete from public.promo_redemptions where user_id = '15230000-0000-4000-a000-00
 delete from public.subscriptions where user_id = '15230000-0000-4000-a000-000000000002';
 set local role authenticated;
 select pg_temp.as_staff();
-select is(public.staff_analytics_growth(current_date - 29, current_date - 1) -> 'promos' -> 0 -> 'paid', 'null'::jsonb,
+select is(public.staff_analytics_growth((now() at time zone 'Africa/Lagos')::date - 29, (now() at time zone 'Africa/Lagos')::date - 1) -> 'promos' -> 0 -> 'paid', 'null'::jsonb,
   'a code redeemed by fewer than 5 readers shows no conversion');
-select is(public.staff_analytics_growth(current_date - 29, current_date - 1) -> 'churn' -> 'plans' -> 0 -> 'rate', '80.0'::jsonb,
+select is(public.staff_analytics_growth((now() at time zone 'Africa/Lagos')::date - 29, (now() at time zone 'Africa/Lagos')::date - 1) -> 'churn' -> 'plans' -> 0 -> 'rate', '80.0'::jsonb,
   'churn still shows at 5 subscribers');
 reset role;
 

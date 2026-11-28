@@ -14,6 +14,8 @@ export interface Env {
   /** Local CLI stack only (HS256). Unset on staging and production, which verify with JWKS. */
   SUPABASE_JWT_SECRET?: string;
   BOOKS: R2Bucket;
+  /** Flow 12: Cloudflare Images, to cap book images at 1,600 px and make cover sizes. Unset → flags stay open, covers are served as uploaded. */
+  IMAGES?: ImagesBinding;
   /** This Worker's public origin, for URLs saved in the database (avatars). Defaults to the request origin. */
   PUBLIC_API_URL?: string;
   /** Admin console origin, for invite links (default http://localhost:3000). */
@@ -46,6 +48,10 @@ export interface Env {
   POSTHOG_KEY?: string;
   /** Flow 15: PostHog host (default https://eu.i.posthog.com). */
   POSTHOG_HOST?: string;
+  /** Flow 12: moderation-model key for the content-policy check (secret); unset → the check is skipped. */
+  MODERATION_API_KEY?: string;
+  /** Flow 12: moderation endpoint (default https://api.openai.com/v1/moderations). */
+  MODERATION_API_URL?: string;
   /** Flow 04: rate limit on /keys and /download, per reader and device (wrangler `ratelimits`). */
   KEYS_LIMIT?: RateLimiter;
 }
