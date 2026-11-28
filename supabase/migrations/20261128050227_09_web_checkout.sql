@@ -39,8 +39,8 @@ create policy web_checkouts_staff_read on public.web_checkouts for select to aut
   using ((select public.is_staff_any(array['finance']::public.staff_role[])));
 create policy web_payment_plans_staff_read on public.web_payment_plans for select to authenticated
   using ((select public.is_staff_any(array['finance']::public.staff_role[])));
-revoke all on public.web_checkouts, public.web_payment_plans from anon;
-revoke insert, update, delete, truncate on public.web_checkouts, public.web_payment_plans from authenticated;
+revoke all on public.web_checkouts, public.web_payment_plans from anon, authenticated;
+grant select on public.web_checkouts, public.web_payment_plans to authenticated;
 
 create function public.start_web_checkout(p_user uuid, p_kind text, p_code text) returns jsonb
 language plpgsql security definer set search_path = '' as $$

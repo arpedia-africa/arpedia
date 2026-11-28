@@ -21,6 +21,10 @@ insert into public.staff_roles (user_id, role) values ('90900000-0000-4000-a000-
 insert into public.subscriptions (user_id, plan_code, status, store, store_original_txn_id, period_end)
 values ('90900000-0000-4000-a000-000000000072', 'monthly', 'active', 'play', 'wc-play-72', now() + interval '10 days');
 
+-- Expected values, read before switching roles (_plan is not granted to the Worker's role).
+select set_config('t.price', public._plan('monthly') ->> 'price_web_kobo', true),
+       set_config('t.credits', public._plan('monthly') ->> 'total_credits', true);
+
 -- Readers cannot start one for themselves or anyone else.
 select set_config('request.jwt.claims', '{"sub":"90900000-0000-4000-a000-000000000071","role":"authenticated"}', true);
 set local role authenticated;
@@ -38,9 +42,9 @@ create temp table r as
 select public.start_web_checkout('90900000-0000-4000-a000-000000000071', 'plan', 'monthly') j;
 select ok((select j ->> 'tx_ref' from r) ~ '^arp:plan:monthly:90900000-0000-4000-a000-000000000071:[0-9a-f]{32}$',
   'the tx_ref is arp:{kind}:{code}:{user}:{nonce}');
-select is((select (j ->> 'amount_kobo')::bigint from r), (public._plan('monthly') ->> 'price_web_kobo')::bigint,
+select is((select (j ->> 'amount_kobo')::bigint from r), current_setting('t.price')::bigint,
   'a plan costs its current web price');
-select is((select (j ->> 'credits')::int from r), (public._plan('monthly') ->> 'total_credits')::int,
+select is((select (j ->> 'credits')::int from r), current_setting('t.credits')::int,
   'and carries its credits');
 select is((select concat_ws(' | ', j ->> 'email', j ->> 'name', j ->> 'months', j ->> 'title',
                             coalesce(j ->> 'flutterwave_plan_id', 'none')) from r),
@@ -48,7 +52,7 @@ select is((select concat_ws(' | ', j ->> 'email', j ->> 'name', j ->> 'months', 
 select is((select concat_ws(' | ', user_id, kind, code, amount_kobo) from public.web_checkouts
            where tx_ref = (select j ->> 'tx_ref' from r)),
   concat_ws(' | ', '90900000-0000-4000-a000-000000000071', 'plan', 'monthly',
-            (public._plan('monthly') ->> 'price_web_kobo')),
+            current_setting('t.price')),
   'the checkout is kept');
 select is((select count(*) from public.credit_ledger where user_id = '90900000-0000-4000-a000-000000000071')::int, 0,
   'a checkout grants no credits');
