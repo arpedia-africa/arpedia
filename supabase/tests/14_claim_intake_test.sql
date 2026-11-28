@@ -35,11 +35,11 @@ select is((public.ingest_claim_email('Legal@Paramount.ng', 'Barr. Yetunde Coker'
   'Book c1421003-0000-4000-b000-000000000003 copies ours.', '<m1>', 'plagiarism',
   '[{"key":"claims/a/proof.pdf","name":"proof.pdf","kind":"PDF","size":"1 KB"}]') ->> 'book_id'),
   'c1421003-0000-4000-b000-000000000003', 'a book id in the body names the book');
-select row_eq($$select c.claimant_name, c.claimant_contact, c.type::text, c.status::text, jsonb_array_length(c.evidence),
-                     left(c.details, 4), b.claim_hold_at is null
-              from public.copyright_claims c join public.books b on b.id = c.book_id
-              where c.source_message_id = '<m1>'$$,
-  row('Barr. Yetunde Coker', 'legal@paramount.ng', 'plagiarism', 'new', 1, 'Book', true),
+select is((select concat_ws(' | ', c.claimant_name, c.claimant_contact, c.type, c.status, jsonb_array_length(c.evidence),
+                            left(c.details, 4), b.claim_hold_at is null)
+           from public.copyright_claims c join public.books b on b.id = c.book_id
+           where c.source_message_id = '<m1>'),
+  'Barr. Yetunde Coker | legal@paramount.ng | plagiarism | new | 1 | Book | true',
   'the claim keeps the sender, type, evidence and text, and does not hold the book');
 select ok((select due_at between now() + interval '6 days 23 hours' and now() + interval '7 days 1 hour'
            from public.copyright_claims where source_message_id = '<m1>'), 'decision due in 7 days');
