@@ -458,8 +458,18 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           book_completed: boolean;
         };
         confirmCharge(pending.current, userId.current, chapterUid);
-        // The key may lag the charge: retried by the access effect on every refresh.
-        await files.current.refreshKeys(r.book_completed ? undefined : [chapterUid]).catch(() => undefined);
+        // The key may lag the charge: the card stays busy while /keys is retried with backoff
+        // (1, 2, 4 s); the access effect still retries on every later refresh.
+        const want = r.book_completed ? undefined : [chapterUid];
+        for (let i = 0; ; i++) {
+          const fc = files.current;
+          const got = await fc.refreshKeys(want).then(
+            () => fc.hasKey(chapterUid),
+            () => false,
+          );
+          if (got || i === 3) break;
+          await new Promise((res) => setTimeout(res, 1000 * 2 ** i));
+        }
         const fresh = await refresh();
         const ok = await files.current.licenceValid();
         const a = accessMap(fresh, files.current, ok);
@@ -505,12 +515,17 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     });
     if (e) {
       const { code } = rpcError(e);
+      // Codes from `undo_chapter_unlock` (flow 04 rule 59).
       setNotice(
-        code === 'read_too_far'
+        code === 'already_read'
           ? 'You’ve already read this chapter'
           : code === 'undo_expired'
             ? 'Undo has run out. You can ask Support to return it.'
-            : 'Couldn’t undo that. Try again.',
+            : code === 'book_unlocked'
+              ? 'You unlocked the whole book, so this can’t be undone'
+              : code === 'already_undone'
+                ? 'This chapter was already returned'
+                : 'Couldn’t undo that. Try again.',
       );
       return;
     }
@@ -522,8 +537,14 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       type: 'access.update',
       payload: { access: a, reload_section: true, gate_room: gateRoom.current },
     });
+    // Inside the returned chapter: move back to the end of the chapter before it.
+    if (loc?.chapter_uid === t.chapter_uid && manifest) {
+      const i = manifest.chapters.findIndex((c) => c.chapter_uid === t.chapter_uid);
+      const last = i > 0 ? manifest.chapters[i - 1]?.paragraphs.at(-1) : undefined;
+      if (last) send({ type: 'goTo', payload: { para_id: last.id } });
+    }
     setNotice(`Chapter ${t.ord} returned · ${t.spent} credits back`);
-  }, [toast, refresh, send]);
+  }, [toast, refresh, send, loc?.chapter_uid, manifest]);
 
   // ─── Bridge (rule D) ───────────────────────────────────────────────────────
   const onMessage = useCallback(
