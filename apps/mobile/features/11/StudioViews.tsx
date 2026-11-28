@@ -394,6 +394,8 @@ export interface StudioBookModel {
   /** Editor's issues for Changes requested (rule 24: same text as the pipeline flags). */
   issues: string[];
   action: string | null;
+  /** Flow 14 rule 31: a claim staff sent to the author, with its answer button. */
+  claim?: { text: string; action: string } | null;
 }
 
 const PILL: Record<StudioBookStatus, PillTone> = {
@@ -409,7 +411,15 @@ const PILL: Record<StudioBookStatus, PillTone> = {
   rejected: 'err',
 };
 
-function BookCard({ b, onAction }: { b: StudioBookModel; onAction: (b: StudioBookModel) => void }) {
+function BookCard({
+  b,
+  onAction,
+  onClaim,
+}: {
+  b: StudioBookModel;
+  onAction: (b: StudioBookModel) => void;
+  onClaim?: (b: StudioBookModel) => void;
+}) {
   const { s } = useTheme();
   const appeal = b.status === 'taken_down' || b.status === 'rejected';
   return (
@@ -440,6 +450,16 @@ function BookCard({ b, onAction }: { b: StudioBookModel; onAction: (b: StudioBoo
             </View>
           ) : null}
           {b.issues.length ? <Callout tone="warn">{b.issues.join('\n')}</Callout> : null}
+          {b.claim ? (
+            <>
+              <Callout tone="warn">{b.claim.text}</Callout>
+              {onClaim ? (
+                <View style={{ flexDirection: 'row' }}>
+                  <Btn label={b.claim.action} variant="s" size="sm" onPress={() => onClaim(b)} />
+                </View>
+              ) : null}
+            </>
+          ) : null}
           {b.action && appeal ? (
             <Link label={b.action} onPress={() => onAction(b)} />
           ) : b.action ? (
@@ -460,6 +480,7 @@ export function StudioBooksView({
   onBack,
   onSubmit,
   onAction,
+  onClaim,
   onRetry,
   canSubmit = true,
 }: {
@@ -469,6 +490,7 @@ export function StudioBooksView({
   onBack: () => void;
   onSubmit: () => void;
   onAction: (b: StudioBookModel) => void;
+  onClaim?: (b: StudioBookModel) => void;
   onRetry: () => void;
   canSubmit?: boolean;
 }) {
@@ -513,7 +535,7 @@ export function StudioBooksView({
       ) : (
         <View style={{ paddingTop: s(16), paddingHorizontal: s(16), paddingBottom: s(28), gap: s(12) }}>
           {books.map((b) => (
-            <BookCard key={b.id} b={b} onAction={onAction} />
+            <BookCard key={b.id} b={b} onAction={onAction} onClaim={onClaim} />
           ))}
         </View>
       )}

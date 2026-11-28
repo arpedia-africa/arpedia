@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { router, type Href } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
-import { APPEAL_SENT, studioBookLine } from '@arpedia/core';
+import {
+  APPEAL_SENT,
+  CLAIM_ANSWER_SENT,
+  claimAction,
+  claimCallout,
+  studioBookLine,
+  type AuthorClaim,
+} from '@arpedia/core';
 import { isNetworkError, useSession } from '../../../features/01/session';
 import { useOnline } from '../../../features/09/data';
 import { useCreateAppeal } from '../../../features/14/appeal';
 import { AppealSheet } from '../../../features/14/AppealViews';
+import { useAuthorClaims, useRespondToClaim } from '../../../features/14/claims';
+import { ClaimAnswerSheet } from '../../../features/14/ClaimViews';
 import { shortDate } from '../../../features/11/application';
 import { loadJob } from '../../../features/11/convert';
 import {
@@ -73,17 +82,54 @@ export default function StudioBooks() {
     );
   };
 
+  // Flow 14 rule 31: a claim staff sent to the author is answered on the book's card.
+  const claims = useAuthorClaims(uid);
+  const respond = useRespondToClaim(uid);
+  const [answering, setAnswering] = useState<AuthorClaim | null>(null);
+  const claimFor = (bookId: string) => claims.data?.find((c) => c.book_id === bookId) ?? null;
+  const openClaim = (m: StudioBookModel) => {
+    const c = claimFor(m.id);
+    if (!c) return;
+    respond.reset();
+    setAnswering(c);
+  };
+  const sendAnswer = (text: string) => {
+    if (!answering) return;
+    respond.mutate(
+      { id: answering.id, text },
+      {
+        onSuccess: () => {
+          setAnswering(null);
+          toast({ message: CLAIM_ANSWER_SENT });
+        },
+      },
+    );
+  };
+  const answeringTitle = answering
+    ? (books.data?.find((b) => b.book_id === answering.book_id)?.title ?? '')
+    : '';
+
   return (
     <Screen top="org" contentStyle={{ flexGrow: 1 }}>
       <StudioBooksView
         sub={books.data ? (books.data.length ? bookCountsLine(null, books.data) : 'Nothing here yet') : ' '}
-        books={books.data?.map((b) => toModel(b, suspended)) ?? null}
+        books={books.data?.map((b) => toModel(b, suspended, claimFor(b.book_id))) ?? null}
         state={state}
         onBack={back}
         onSubmit={submit}
         canSubmit={!suspended}
         onRetry={() => void books.refetch()}
         onAction={(b) => (b.status === 'taken_down' || b.status === 'rejected' ? howToAppeal(b) : act(b))}
+        onClaim={openClaim}
+      />
+      <ClaimAnswerSheet
+        claim={answering}
+        bookTitle={answeringTitle}
+        offline={!online}
+        sending={respond.isPending}
+        error={respond.error ? respond.error.message : null}
+        onClose={() => setAnswering(null)}
+        onSend={sendAnswer}
       />
       <AppealSheet
         open={!!appealing}
@@ -107,7 +153,7 @@ function continueStep(b: StudioBook): Href {
   return submitStep('processing', b.revision_id);
 }
 
-function toModel(b: StudioBook, suspended: boolean): StudioBookModel {
+function toModel(b: StudioBook, suspended: boolean, claim: AuthorClaim | null): StudioBookModel {
   const line = studioBookLine(b.author_status, b.revision_no, b.live_revision_no);
   const isLive = b.author_status === 'live' || b.author_status.startsWith('update_');
   const meta = [
@@ -141,5 +187,7 @@ function toModel(b: StudioBook, suspended: boolean): StudioBookModel {
     issues: b.author_status === 'changes_requested' ? b.issues.map((i) => `Editor: ${i}`) : [],
     // Suspended authors keep live books readable but cannot upload (States: edge cases).
     action: suspended && line.action !== 'How to appeal' ? null : line.action,
+    // A suspended author can still answer: rule 31 gives every author the chance to respond.
+    claim: claim ? { text: claimCallout(claim), action: claimAction(claim) } : null,
   };
 }

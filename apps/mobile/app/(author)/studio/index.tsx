@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { router, type Href } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
-import { formatKobo } from '@arpedia/core';
+import { claimsWaitingLine, formatKobo } from '@arpedia/core';
 import { isNetworkError, useMyProfile, useSession } from '../../../features/01/session';
 import { useTrack } from '../../../features/11/analytics';
 import { rpcCode } from '../../../features/11/application';
 import { SUBMIT } from '../../../features/11/submit';
+import { useAuthorClaims } from '../../../features/14/claims';
 import {
   STUDIO_BOOKS,
   STUDIO_EARNINGS,
@@ -39,6 +40,8 @@ export default function Studio() {
   const earnings = useStudioEarnings(home.data ? uid : undefined);
   const author = useAuthorProfile(home.data ? uid : undefined);
   const [dismissed, dismiss] = useBannerDismissed(uid);
+  // Flow 14 rule 31: the claim_author notice opens here, so My Books says a claim waits.
+  const claims = useAuthorClaims(home.data ? uid : undefined);
   useEffect(() => track('studio_opened'), [track]);
 
   const go = (to: StudioGo) => {
@@ -80,7 +83,14 @@ export default function Studio() {
         m={
           notAuthor
             ? previewModel(name)
-            : toModel(home.data!, name, earnings.data?.history, author.data?.visibility, dismissed)
+            : toModel(
+                home.data!,
+                name,
+                earnings.data?.history,
+                author.data?.visibility,
+                dismissed,
+                claimsWaitingLine(claims.data ?? []),
+              )
         }
         go={go}
         onDismissBanner={dismiss}
@@ -110,6 +120,7 @@ function toModel(
   history: Parameters<typeof nextPayout>[0] | undefined,
   visibility: 'public' | 'private' | undefined,
   dismissed: boolean,
+  claimsLine: string | null = null,
 ): StudioHomeModel {
   // Each bar is the book's share of the month's book earnings (the prototype's 78% / 22%).
   const total = Math.max(
@@ -140,7 +151,7 @@ function toModel(
       messages: { sub: 'No messages waiting', count: 0 },
       club: h.club_group_id ? `${name}’s Readers` : 'Opens with your first reader',
       books: {
-        sub: h.book_counts.all ? bookCountsLine(h.book_counts) : 'Submit your first book',
+        sub: claimsLine ?? (h.book_counts.all ? bookCountsLine(h.book_counts) : 'Submit your first book'),
         count: h.book_counts.all,
       },
       posts: 'Post to your followers and club',

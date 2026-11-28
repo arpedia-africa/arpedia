@@ -27,3 +27,4 @@ export * from './profile';
 export * from './appeal';
 export * from './applinks';
 export * from './claims';
+export * from './claimAnswer';
