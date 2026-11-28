@@ -34,6 +34,8 @@ export interface StageMsg {
 }
 
 export const workPrefix = (rev: string, version: number) => `work/${rev}/v${version}/`;
+/** What the phone counted when it converted the book (rule 11), written by /finalize. */
+export const phoneCountsKey = (rev: string) => `src/${rev}/phone-counts.json`;
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const bytesOf = async (env: Env, key: string | null) => {
   if (!key) return null;
@@ -181,6 +183,7 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   const v = verifyPackage(files, { cover: await bytesOf(env, rev.cover_key), previewPercent });
   if (!v.ok) return fail(v.reason, v.message);
   await capImages(env, v);
+  await logDrift(env, db, rev.id, v.words);
 
   const base = await baseWork(env, db, rev.base_revision_id);
   let work: WorkCopy = {
@@ -265,6 +268,32 @@ export async function capImages(env: Env, v: VerifyOk) {
       }),
     );
   v.flags = v.flags.filter((f) => !(f.check_key === 'image_too_large' && done.has(f.location?.image ?? '')));
+}
+
+/** Above this share of words, phone and Worker disagree enough to log (rule 11). */
+export const DRIFT_PCT = 3;
+
+/**
+ * Rule 11: the Worker's count always wins; when the phone's word count differs from it by more
+ * than 3%, `convert_drift {pct}` goes to the analytics outbox for engineering. Never blocks verify.
+ */
+export async function logDrift(env: Env, db: Db, rev: string, workerWords: number) {
+  try {
+    const o = await env.BOOKS.get(phoneCountsKey(rev));
+    if (!o || workerWords <= 0) return;
+    const phone = (await o.json()) as { words?: unknown; user?: unknown };
+    if (typeof phone.words !== 'number') return;
+    const pct = Math.round((Math.abs(phone.words - workerWords) / workerWords) * 1000) / 10;
+    if (pct <= DRIFT_PCT) return;
+    const { error } = await db.from('analytics_outbox').insert({
+      event: 'convert_drift',
+      distinct_id: typeof phone.user === 'string' ? phone.user : 'system',
+      props: { source: 'server', pct, phone_words: phone.words, worker_words: workerWords },
+    });
+    if (error) throw error;
+  } catch (e) {
+    console.error('[verify] convert_drift', e instanceof Error ? e.message : e);
+  }
 }
 
 /** Copyright and contents pages (Default Q51 front matter) are left out of the change. */
