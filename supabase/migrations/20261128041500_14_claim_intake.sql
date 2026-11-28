@@ -61,7 +61,7 @@ begin
       from public.books b
       where b.status in ('live', 'taken_down', 'unpublished')
         and btrim(b.title) ~ '\s'
-        and p_subject ~* ('(^|[^[:alnum:]_])' || regexp_replace(btrim(b.title), '([][.*+?^${}()|\\])', '\\\1', 'g')
+        and p_subject ~* ('(^|[^[:alnum:]_])' || regexp_replace(btrim(b.title), '([^[:alnum:][:space:]])', '\\\1', 'g')
                       || '($|[^[:alnum:]_])')
       order by char_length(b.title) desc, b.id
       limit 2

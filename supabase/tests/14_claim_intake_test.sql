@@ -39,7 +39,7 @@ select is((select concat_ws(' | ', c.claimant_name, c.claimant_contact, c.type, 
                             left(c.details, 4), b.claim_hold_at is null)
            from public.copyright_claims c join public.books b on b.id = c.book_id
            where c.source_message_id = '<m1>'),
-  'Barr. Yetunde Coker | legal@paramount.ng | plagiarism | new | 1 | Book | true',
+  'Barr. Yetunde Coker | legal@paramount.ng | plagiarism | new | 1 | Book | t',
   'the claim keeps the sender, type, evidence and text, and does not hold the book');
 select ok((select due_at between now() + interval '6 days 23 hours' and now() + interval '7 days 1 hour'
            from public.copyright_claims where source_message_id = '<m1>'), 'decision due in 7 days');
