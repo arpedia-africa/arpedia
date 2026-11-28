@@ -13,6 +13,7 @@ import {
   OnHero,
   Petals,
   Press,
+  Skeleton,
   Text,
   useBottomInset,
   useTheme,
@@ -538,6 +539,8 @@ export interface ChapterRow {
   title: string | null;
   words: number;
   canMerge: boolean;
+  /** Front matter (title page, copyright…): listed, not counted (flow 12 rule 7). */
+  front?: boolean;
 }
 
 /** `.st-lnk`: 13/700 org-ink text button, padding 6 4. */
@@ -612,7 +615,7 @@ export function SubmitChaptersView({
                   {ch.title ?? 'No title'}
                 </Text>
                 <Text size={12} color="ink3" tabular oneLine>
-                  {`${ch.words.toLocaleString('en-NG')} words`}
+                  {ch.front ? 'Not counted' : `${ch.words.toLocaleString('en-NG')} words`}
                 </Text>
               </View>
               <StLink
@@ -719,6 +722,7 @@ function PageCard({ page, width }: { page: PreviewPage; width: number }) {
 
 export function SubmitPreviewView({
   pages,
+  pagesLoading = false,
   readiness,
   readinessLabel,
   checklist,
@@ -730,6 +734,8 @@ export function SubmitPreviewView({
   onBack,
 }: {
   pages: PreviewPage[] | null;
+  /** The pages are on their way: three card-sized skeletons hold the row. */
+  pagesLoading?: boolean;
   /** 0–100 */
   readiness: number;
   readinessLabel: string;
@@ -755,7 +761,24 @@ export function SubmitPreviewView({
         onBack={onBack}
       />
       <View style={{ paddingTop: s(16), paddingHorizontal: s(16), paddingBottom: s(28), gap: s(16) }}>
-        {pages ? (
+        {pagesLoading ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: s(12),
+              marginHorizontal: -s(16),
+              paddingHorizontal: s(16),
+              paddingTop: s(4),
+              paddingBottom: s(8),
+              overflow: 'hidden',
+            }}
+            accessibilityLabel="Loading your pages"
+          >
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} width={pageW} height={s(250)} radius={s(16)} />
+            ))}
+          </View>
+        ) : pages?.length ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -827,6 +850,7 @@ export function SubmitDoneView({
   price,
   earn,
   submittedOn,
+  steps,
   onClose,
 }: {
   title: string;
@@ -836,6 +860,8 @@ export function SubmitDoneView({
   earn: string;
   /** "12 November" */
   submittedOn: string;
+  /** "What happens next" for an update (rule 25); a first submit uses the review steps. */
+  steps?: { title: string; sub: string; done?: boolean }[];
   onClose: () => void;
 }) {
   const { c, s } = useTheme();
@@ -883,15 +909,17 @@ export function SubmitDoneView({
         </Text>
         <View style={{ paddingTop: s(8) }}>
           <Timeline
-            steps={[
-              { title: 'Submitted', sub: submittedOn, done: true },
-              { title: 'Review', sub: 'Our team reads it and checks the formatting' },
-              {
-                title: 'Approved, or sent back with a list',
-                sub: 'If sent back, you get a short list of fixes',
-              },
-              { title: 'Published', sub: 'Your followers are notified' },
-            ]}
+            steps={
+              steps ?? [
+                { title: 'Submitted', sub: submittedOn, done: true },
+                { title: 'Review', sub: 'Our team reads it and checks the formatting' },
+                {
+                  title: 'Approved, or sent back with a list',
+                  sub: 'If sent back, you get a short list of fixes',
+                },
+                { title: 'Published', sub: 'Your followers are notified' },
+              ]
+            }
           />
         </View>
       </View>

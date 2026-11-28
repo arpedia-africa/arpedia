@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Share, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authorCount, authorRating, postTime, ratingLabel } from '@arpedia/core';
 import { Btn, Callout, EmptyState, Screen, Sheet, Text, useTheme, useToast } from '@arpedia/ui';
@@ -28,6 +28,8 @@ import {
   useAuthorProfile,
   type AuthorProfile,
 } from '../../../features/08/data';
+import { useFlag } from '../../../features/16/config';
+import { useAskPush } from '../../../features/15/push';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const n = (v: number) => v.toLocaleString('en-NG');
@@ -81,6 +83,8 @@ export default function AuthorPage() {
   const track = useTrack();
   const qc = useQueryClient();
   const online = useOnline();
+  const tipsOn = useFlag('tips', true);
+  const messagesOn = useFlag('author_messages', true);
   const profile = useAuthorProfile(id);
   const p = profile.data;
   const [tab, setTab] = useState<AuthorTab>('posts');
@@ -96,6 +100,7 @@ export default function AuthorPage() {
     }
   }, [p, id, source, track]);
 
+  const askPush = useAskPush();
   const follow = useMutation({
     mutationFn: async (on: boolean) => {
       const { data, error } = await supabase.rpc(on ? 'follow_author' : 'unfollow_author', {
@@ -116,6 +121,7 @@ export default function AuthorPage() {
       );
     },
     onSuccess: (r, on) => {
+      if (on) askPush('follow');
       track(on ? 'author_followed' : 'author_unfollowed', { author_id: id });
       qc.setQueryData<AuthorProfile>(authorKey(id), (old) =>
         old ? { ...old, following: r.following, follower_count: r.follower_count } : old,
@@ -142,6 +148,7 @@ export default function AuthorPage() {
       return group;
     },
     onSuccess: (group) => {
+      askPush('join');
       track('author_community_joined', { author_id: id });
       void qc.invalidateQueries({ queryKey: authorKey(id) });
       router.push({ pathname: '/community/[id]', params: { id: group } });
@@ -272,16 +279,16 @@ export default function AuthorPage() {
             if (p.following) setOverlay('unfollow');
             else follow.mutate(true);
           },
-          onMessage: reason ? undefined : openMessage,
+          onMessage: reason || !messagesOn ? undefined : openMessage,
           onTip:
-            p.state === 'active' && firstBook
+            tipsOn && p.state === 'active' && firstBook
               ? () => {
                   if (!online) return offline();
                   track('tip_started_from_profile', { author_id: id });
                   setOverlay('tip');
                 }
               : undefined,
-          onEditProfile: () => toast({ message: 'Edit your author profile in Author Studio' }),
+          onEditProfile: () => router.push('/studio/profile' as Href),
           onCommunity: p.community
             ? () => {
                 const g = p.community!;

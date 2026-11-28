@@ -6,12 +6,14 @@ import { Screen, useToast } from '@arpedia/ui';
 import { dateLabel, validPassword } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '../../features/01/session';
+import { useTrack } from '../../features/10/analytics';
 import { changePassword, removeDevice, useMyDevices } from '../../features/10/data';
 import { PasswordSheet, SecurityView } from '../../features/10/SettingsViews';
 
 // Flow 10 · Security (s-security, rules 29–32).
 export default function Security() {
   const toast = useToast();
+  const track = useTrack();
   const { isConnected } = useNetInfo();
   const offline = isConnected === false;
   const session = useSession();
@@ -32,6 +34,7 @@ export default function Security() {
     try {
       const r = await changePassword(pw.current, pw.next);
       if (r === 'ok') {
+        track('password_changed');
         setPwOpen(false);
         setPw({ current: '', next: '' });
         toast({ message: 'Password changed. Your other devices are signed out.' });
@@ -88,7 +91,10 @@ export default function Security() {
                 style: 'destructive',
                 onPress: () =>
                   void removeDevice(dev.id)
-                    .then(() => toast({ message: `${dev.model ?? 'Device'} removed` }))
+                    .then(() => {
+                      track('device_removed');
+                      toast({ message: `${dev.model ?? 'Device'} removed` });
+                    })
                     .catch(() => toast({ message: "Couldn't remove it. Try again." })),
               },
             ],

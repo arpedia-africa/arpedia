@@ -9,10 +9,12 @@ import {
   type PostBlock,
   type RoomJoinPolicy,
   type RoomPace,
+  type RoomProgressFrame,
   type RoomState,
 } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
 import { historyKey } from '../06/chat';
+import { useAskPush } from '../15/push';
 
 // Flow 07 server data: rooms list, one room, members, annotations, chat history with spoiler stamps,
 // the library for "Choose the book", and the create / join / leave / host actions
@@ -96,16 +98,68 @@ export const membersKey = (id: string) => ['rooms', 'members', id] as const;
 export const annotationsKey = (id: string) => ['rooms', 'annotations', id] as const;
 
 /** No Realtime: the list refreshes on focus and every 20 s; the header every 15 s (rule 24). */
+export async function fetchMyRooms() {
+  const { data, error } = await supabase.rpc('get_my_rooms');
+  if (error) throw error;
+  return data as unknown as RoomRow[];
+}
+
 export function useMyRooms() {
+  return useQuery({ queryKey: roomsKey, queryFn: fetchMyRooms, refetchInterval: 20_000 });
+}
+
+/** A friend in one of my rooms, for the Community Read together card (flow 06 rule 6). */
+export interface RoomsFriend {
+  user_id: string;
+  name: string;
+}
+export interface MyRoomsSummary {
+  people: RoomsFriend[];
+  readingNow: number;
+  books: { id: string; title: string }[];
+}
+
+/**
+ * Read together card (flow 06 rule 6, flow 07 "Read together card"): `get_read_together` counts the
+ * other members of my live and scheduled rooms who read in the last 24 hours (blocked and banned
+ * people left out), with the latest 3 of them and my rooms' books.
+ */
+export function useRoomsSummary(enabled: boolean) {
   return useQuery({
-    queryKey: roomsKey,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_my_rooms');
+    queryKey: ['rooms', 'summary'],
+    enabled,
+    staleTime: 30_000,
+    queryFn: async (): Promise<MyRoomsSummary> => {
+      const { data, error } = await supabase.rpc('get_read_together');
       if (error) throw error;
-      return data as unknown as RoomRow[];
+      const d = data as unknown as {
+        reading_now: number;
+        people: { id: string; name: string }[];
+        books: { id: string; title: string }[];
+      };
+      return {
+        people: d.people.map((p) => ({ user_id: p.id, name: p.name })),
+        readingNow: d.reading_now,
+        books: d.books.map((b) => ({ id: b.id, title: b.title })),
+      };
     },
-    refetchInterval: 20_000,
   });
+}
+
+/** Live `progress` frames (rule 24) move that member's chip on the header at once. */
+export function useApplyRoomProgress(id: string) {
+  const qc = useQueryClient();
+  return (f: RoomProgressFrame) =>
+    qc.setQueryData<Room>(roomKey(id), (r) =>
+      r && r.header.some((h) => h.user_id === f.user_id)
+        ? {
+            ...r,
+            header: r.header.map((h) =>
+              h.user_id === f.user_id ? { ...h, percent: f.percent, finished: f.finished } : h,
+            ),
+          }
+        : r,
+    );
 }
 
 export function useRoom(id: string) {
@@ -189,18 +243,26 @@ export function useStampRefresh(id: string) {
   }, [id, qc]);
 }
 
-/** Rule 6: books in the library (unlocked), each once. */
+/**
+ * Rule 6: books in the library, each once, newest first: unlocked books and books opened on the free
+ * preview only (the server accepts both; members unlock for themselves).
+ */
 export function useLibraryBooks() {
   return useQuery({
     queryKey: ['rooms', 'library'],
     queryFn: async () => {
-      const { data: ent, error } = await supabase
-        .from('entitlements')
-        .select('book_id, created_at')
-        .is('revoked_at', null)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      const ids = [...new Set((ent ?? []).map((e) => e.book_id))];
+      const [ent, prog] = await Promise.all([
+        supabase.from('entitlements').select('book_id, created_at').is('revoked_at', null),
+        supabase.from('reading_progress').select('book_id, chapter_ord, finished_at, last_opened_at'),
+      ]);
+      if (ent.error) throw ent.error;
+      if (prog.error) throw prog.error;
+      const progress = new Map((prog.data ?? []).map((p) => [p.book_id, p]));
+      const latest = new Map<string, string>();
+      for (const e of ent.data ?? []) latest.set(e.book_id, e.created_at);
+      for (const p of prog.data ?? [])
+        if (p.last_opened_at > (latest.get(p.book_id) ?? '')) latest.set(p.book_id, p.last_opened_at);
+      const ids = [...latest.keys()].sort((a, b) => latest.get(b)!.localeCompare(latest.get(a)!));
       if (!ids.length) return [] as LibraryBook[];
       const { data: books, error: e2 } = await supabase
         .from('books')
@@ -209,9 +271,20 @@ export function useLibraryBooks() {
         .eq('status', 'live');
       if (e2) throw e2;
       const byId = new Map((books ?? []).map((b) => [b.id, b]));
-      return ids.flatMap((id) => {
+      return ids.flatMap((id): LibraryBook[] => {
         const b = byId.get(id);
-        return b ? [{ id: b.id, title: b.title, revisionId: b.current_revision_id }] : [];
+        const p = progress.get(id);
+        return b
+          ? [
+              {
+                id: b.id,
+                title: b.title,
+                revisionId: b.current_revision_id,
+                chapterOrd: p?.chapter_ord ?? 0,
+                finished: !!p?.finished_at,
+              },
+            ]
+          : [];
       });
     },
   });
@@ -221,6 +294,15 @@ export interface LibraryBook {
   id: string;
   title: string;
   revisionId: string | null;
+  /** The chapter the reader is on (1-based; 0 before opening it). */
+  chapterOrd: number;
+  finished: boolean;
+}
+
+/** Rule 7: chapters the creator has not finished yet (the one they are on counts as unfinished). */
+export function chaptersLeft(book: Pick<LibraryBook, 'chapterOrd' | 'finished'>, chapters: number): number {
+  if (book.finished) return 0;
+  return Math.max(0, chapters - Math.max(0, book.chapterOrd - 1));
 }
 
 /** Chapter count of the picked book, for the pace hint ("Finishes around 28 December"). */
@@ -327,6 +409,7 @@ export function createErrorOf(e: unknown): CreateError {
 
 export function useCreateRoom() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   return useMutation({
     mutationFn: async (v: { name: string; book: string; pace: RoomPace; join_policy: RoomJoinPolicy }) => {
       const { data, error } = await supabase.rpc('create_reading_room', {
@@ -338,7 +421,10 @@ export function useCreateRoom() {
       if (error) throw error;
       return data as unknown as { room_id: string; code: string };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+    onSuccess: () => {
+      askPush('join');
+      return qc.invalidateQueries({ queryKey: ['rooms'] });
+    },
   });
 }
 
@@ -355,6 +441,7 @@ export interface JoinResult {
 /** Without `confirm` the server answers `confirm` (the consent line) instead of joining. */
 export function useJoinRoom() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
   return useMutation({
     mutationFn: async (v: { code: string; confirm: boolean }) => {
       const { data, error } = await supabase.rpc('join_reading_room', {
@@ -366,7 +453,54 @@ export function useJoinRoom() {
       if (r.room_id && (r.status === 'joined' || r.status === 'member')) await refreshRoom(r.room_id, true);
       return r;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rooms'] }),
+    onSuccess: (r) => {
+      if (r.status === 'joined') askPush('join');
+      return qc.invalidateQueries({ queryKey: ['rooms'] });
+    },
+  });
+}
+
+// ─── Read-alongs in Discover (rule 8) ───────────────────────────────────────
+export interface OpenRoom {
+  room_id: string;
+  name: string;
+  book: BookCard;
+  member_count: number;
+  finished_count: number;
+  state: RoomState;
+  starts_at: string;
+  joined: boolean;
+}
+
+/** Live and scheduled "Anyone" rooms (never the code). Empty for minors (server side). */
+export function useOpenRooms(enabled: boolean) {
+  return useQuery({
+    queryKey: ['rooms', 'open'],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_open_rooms', { p_limit: 50 });
+      if (error) throw error;
+      return data as unknown as OpenRoom[];
+    },
+  });
+}
+
+/** Join an "Anyone" room without the code; like `useJoinRoom`, the first call asks for consent. */
+export function useJoinOpenRoom() {
+  const qc = useQueryClient();
+  const askPush = useAskPush();
+  return useMutation({
+    mutationFn: async (v: { room: string; confirm: boolean }) => {
+      const { data, error } = await supabase.rpc('join_open_room', { p_room: v.room, p_confirm: v.confirm });
+      if (error) throw error;
+      const r = data as unknown as JoinResult;
+      if (r.room_id && (r.status === 'joined' || r.status === 'member')) await refreshRoom(r.room_id, true);
+      return r;
+    },
+    onSuccess: (r) => {
+      if (r.status === 'joined') askPush('join');
+      return qc.invalidateQueries({ queryKey: ['rooms'] });
+    },
   });
 }
 

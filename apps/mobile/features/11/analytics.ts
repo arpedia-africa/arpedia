@@ -11,11 +11,15 @@ export type AuthorEvent =
   | 'studio_opened'
   | 'book_submit_started'
   | 'book_processing_done'
+  // flow 12 rule 6: the phone's own conversion
+  | 'book_upload_started'
+  | 'convert_completed'
+  | 'convert_failed'
   | 'chapters_confirmed'
   | 'book_submitted'
   | 'book_update_submitted'
-  | 'studio_earnings_viewed'
-  | 'author_post_created';
+  | 'studio_earnings_viewed';
+// author_post_created comes from a table trigger on the server (20261128052742_11_post_event.sql).
 
 type Track = (event: AuthorEvent, props?: Record<string, string | number | boolean>) => void;
 const noop: Track = () => {};

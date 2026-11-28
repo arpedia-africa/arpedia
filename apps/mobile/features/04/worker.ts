@@ -73,6 +73,7 @@ export const fetchKeys = (b: {
   revision_id: string;
   device_id: string;
   chapter_uids?: string[];
+  online?: boolean;
 }) => call<KeysResponse>('/keys', b);
 
 export const fetchDownload = (b: {
@@ -80,4 +81,6 @@ export const fetchDownload = (b: {
   revision_id: string;
   device_id: string;
   scope: 'whole' | 'owned';
+  /** Reading online: works past the 3-device download limit (flow 10 rule 31). */
+  online?: boolean;
 }) => call<DownloadResponse>('/download', b);

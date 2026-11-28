@@ -34,9 +34,10 @@ export function CommunityHero({
   onDiscover,
 }: {
   tab: InboxTab;
-  counts: { all?: number; unread?: number };
+  counts: { all?: number; unread?: number; groups?: number };
   onTab: (t: InboxTab) => void;
-  onRooms: () => void;
+  /** Absent while the reading_rooms flag is off (flow 16 rule 27). */
+  onRooms?: () => void;
   onDiscover: () => void;
 }) {
   const { c, s } = useTheme();
@@ -64,7 +65,9 @@ export function CommunityHero({
           >
             Community
           </Text>
-          <IconButton icon="book" label="Reading rooms" onPress={onRooms} color={c.onOrg} />
+          {onRooms ? (
+            <IconButton icon="book" label="Reading rooms" onPress={onRooms} color={c.onOrg} />
+          ) : null}
           <IconButton icon="search" label="Discover communities" onPress={onDiscover} color={c.onOrg} />
         </View>
         <Tabs
@@ -74,7 +77,7 @@ export function CommunityHero({
           tabs={[
             { key: 'all', label: 'All', count: counts.all || undefined },
             { key: 'unread', label: 'Unread', count: counts.unread || undefined },
-            { key: 'groups', label: 'Groups' },
+            { key: 'groups', label: 'Groups', count: counts.groups || undefined },
           ]}
         />
       </View>
@@ -291,7 +294,8 @@ export function ReadTogether({
   onDiscover,
 }: {
   rooms?: RoomsSummary;
-  onRooms: () => void;
+  /** Absent while the reading_rooms flag is off (flow 16 rule 27). */
+  onRooms?: () => void;
   onDiscover: () => void;
 }) {
   const { c, s } = useTheme();
@@ -305,60 +309,62 @@ export function ReadTogether({
       >
         Read together
       </Text>
-      <RtCard rooms onPress={onRooms} label="Reading rooms">
-        <View style={{ flex: 1, minWidth: 0, gap: s(4) }}>
-          <RtTitle>Reading rooms</RtTitle>
-          <RtSub>One book, read chapter by chapter with friends</RtSub>
-          {rooms && rooms.readingNow > 0 ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8), marginTop: s(8) }}>
-              <View style={{ flexDirection: 'row' }}>
-                {rooms.people.slice(0, 3).map((p, i) => (
-                  // .rt-avs .av: 2px ring in the card tint, overlapping by 5
-                  <View
-                    key={p.name + i}
-                    style={{
-                      marginLeft: i ? -s(5) - s(2) * 2 : -s(2),
-                      marginVertical: -s(2),
-                      padding: s(2),
-                      borderRadius: 999,
-                      backgroundColor: c.orgTint2,
-                    }}
-                  >
-                    <Avatar name={p.name} tone={p.tone} size="sm" />
-                  </View>
-                ))}
+      {onRooms ? (
+        <RtCard rooms onPress={onRooms} label="Reading rooms">
+          <View style={{ flex: 1, minWidth: 0, gap: s(4) }}>
+            <RtTitle>Reading rooms</RtTitle>
+            <RtSub>One book, read chapter by chapter with friends</RtSub>
+            {rooms && rooms.readingNow > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(8), marginTop: s(8) }}>
+                <View style={{ flexDirection: 'row' }}>
+                  {rooms.people.slice(0, 3).map((p, i) => (
+                    // .rt-avs .av: 2px ring in the card tint, overlapping by 5
+                    <View
+                      key={p.name + i}
+                      style={{
+                        marginLeft: i ? -s(5) - s(2) * 2 : -s(2),
+                        marginVertical: -s(2),
+                        padding: s(2),
+                        borderRadius: 999,
+                        backgroundColor: c.orgTint2,
+                      }}
+                    >
+                      <Avatar name={p.name} tone={p.tone} size="sm" />
+                    </View>
+                  ))}
+                </View>
+                <Text size={12} weight={600} color="ink2" oneLine style={{ flexShrink: 1 }}>
+                  {`${rooms.readingNow} friend${rooms.readingNow === 1 ? '' : 's'} reading now`}
+                </Text>
               </View>
-              <Text size={12} weight={600} color="ink2" oneLine style={{ flexShrink: 1 }}>
-                {`${rooms.readingNow} friend${rooms.readingNow === 1 ? '' : 's'} reading now`}
-              </Text>
+            ) : null}
+          </View>
+          {rooms && rooms.books.length >= 2 ? (
+            <View style={{ width: s(86), height: s(96) }}>
+              {[rooms.books[0]!, rooms.books[1]!].map((b, i) => (
+                <View
+                  key={b.title + i}
+                  style={{
+                    position: 'absolute',
+                    width: s(56),
+                    ...(i === 0
+                      ? { right: 0, top: s(2), transform: [{ rotate: '8deg' }], zIndex: 0 }
+                      : { left: 0, top: s(10), transform: [{ rotate: '-6deg' }], zIndex: 1 }),
+                  }}
+                >
+                  <Cover
+                    title={b.title}
+                    tone={b.tone}
+                    size={48}
+                    fluid
+                    boxShadow="0 10px 18px -10px rgba(0,0,0,0.45)"
+                  />
+                </View>
+              ))}
             </View>
           ) : null}
-        </View>
-        {rooms && rooms.books.length >= 2 ? (
-          <View style={{ width: s(86), height: s(96) }}>
-            {[rooms.books[0]!, rooms.books[1]!].map((b, i) => (
-              <View
-                key={b.title + i}
-                style={{
-                  position: 'absolute',
-                  width: s(56),
-                  ...(i === 0
-                    ? { right: 0, top: s(2), transform: [{ rotate: '8deg' }], zIndex: 0 }
-                    : { left: 0, top: s(10), transform: [{ rotate: '-6deg' }], zIndex: 1 }),
-                }}
-              >
-                <Cover
-                  title={b.title}
-                  tone={b.tone}
-                  size={48}
-                  fluid
-                  boxShadow="0 10px 18px -10px rgba(0,0,0,0.45)"
-                />
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </RtCard>
+        </RtCard>
+      ) : null}
       <RtCard onPress={onDiscover} label="Discover communities">
         <RtTitle>Discover communities</RtTitle>
         <RtSub>Find readers who love what you love</RtSub>
@@ -422,7 +428,8 @@ export function InboxEmpty({
 }: {
   tab: InboxTab;
   onDiscover: () => void;
-  onRooms: () => void;
+  /** Absent while the reading_rooms flag is off (flow 16 rule 27). */
+  onRooms?: () => void;
 }) {
   const { s } = useTheme();
   if (tab === 'unread') return <EmptyState title="You're all caught up." />;
@@ -437,12 +444,14 @@ export function InboxEmpty({
     <View>
       <EmptyState
         title="No conversations yet"
-        body="Join a community or start a reading room"
+        body={onRooms ? 'Join a community or start a reading room' : 'Join a community to start talking'}
         action={{ label: 'Discover', onPress: onDiscover }}
       />
-      <View style={{ alignItems: 'center', marginTop: -s(26) }}>
-        <Btn label="Reading rooms" variant="g" size="md" onPress={onRooms} />
-      </View>
+      {onRooms ? (
+        <View style={{ alignItems: 'center', marginTop: -s(26) }}>
+          <Btn label="Reading rooms" variant="g" size="md" onPress={onRooms} />
+        </View>
+      ) : null}
     </View>
   );
 }

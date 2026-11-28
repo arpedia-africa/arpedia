@@ -191,6 +191,23 @@ export function memoryPendingStore(): PendingStore {
 
 // ─── Offline licence (rule 71) ──────────────────────────────────────────────
 export const LICENSE_DAYS = 7;
+/** Flow 10 rule 31: a device past the download limit still reads online, on a short licence. */
+export const ONLINE_LICENSE_MINUTES = 60;
+
+/**
+ * The licence a key request gets. A download, or any device under the limit, gets the full 7 days
+ * (recorded). Reading online on a device past the limit gets a short licence that is not recorded,
+ * so it never takes a download slot; a download there is refused.
+ */
+export function licenceTerms(
+  issuedAt: number,
+  online: boolean,
+  limitReached: boolean,
+): { validUntil: number; record: boolean } | 'device_limit' {
+  if (!limitReached) return { validUntil: issuedAt + LICENSE_DAYS * 86_400_000, record: true };
+  if (!online) return 'device_limit';
+  return { validUntil: issuedAt + ONLINE_LICENSE_MINUTES * 60_000, record: false };
+}
 
 export interface License {
   /** Server time at issue (ms). */
@@ -209,4 +226,17 @@ export function licenseValid(l: License, deviceNow: number, lastSeenDeviceTime: 
   if (deviceNow < lastSeenDeviceTime || deviceNow < l.device_received_at) return false;
   const serverNow = l.issued_at + (deviceNow - l.device_received_at);
   return serverNow < l.valid_until;
+}
+
+/** A forward move counts at most this many standard pages: a slider or contents jump is not reading. */
+export const MAX_PAGES_PER_MOVE = 2;
+
+/**
+ * Standard pages (250 words) read by one move from `from` to `to` percent, for the session's
+ * `pages` (flow 15 rule 27, pages per session). Moving back or staying put reads nothing.
+ */
+export function pagesTurned(from: number | null, to: number, totalWords: number): number {
+  if (from == null || !(to > from) || totalWords <= 0) return 0;
+  const pages = (((to - from) / 100) * totalWords) / WORDS_PER_PAGE;
+  return Math.min(pages, MAX_PAGES_PER_MOVE);
 }

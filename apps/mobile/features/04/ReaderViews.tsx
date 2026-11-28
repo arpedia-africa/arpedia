@@ -345,7 +345,8 @@ export function SelectionBar({
   current: HighlightColor;
   onColor: (c: HighlightColor) => void;
   onNote: () => void;
-  onDiscuss: () => void;
+  /** Absent while the `paragraph_discussions` flag is off (flow 16 rule 27). */
+  onDiscuss?: () => void;
   onClub?: () => void;
   onShare?: () => void;
   /** Tap on an existing highlight (rule 36): the same bar with Delete in place of Club and Share. */
@@ -428,7 +429,7 @@ export function SelectionBar({
         ))}
       </View>
       {btn('pen', 'Note', onNote)}
-      {btn('chat', 'Discuss', onDiscuss)}
+      {onDiscuss ? btn('chat', 'Discuss', onDiscuss) : null}
       {onClub ? btn('users', 'Club', onClub) : null}
       {onShare ? btn('share', 'Share', onShare) : null}
       {onDelete ? btn('trash', 'Delete', onDelete) : null}

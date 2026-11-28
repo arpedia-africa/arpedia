@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, useToast } from '@arpedia/ui';
 import { dateLabel } from '@arpedia/core';
 import { queryClient } from '@/lib/query';
+import { useTrack } from '../../features/10/analytics';
 import { deleteAnnotation, restoreAnnotation, summaryKey, useCollection } from '../../features/10/data';
 import { CollectionView, type CollectionKind, type CollectionPage } from '../../features/10/CollectionViews';
 
@@ -12,6 +13,7 @@ const KINDS: CollectionKind[] = ['bookmark', 'highlight', 'note'];
 
 export default function MyHighlights() {
   const toast = useToast();
+  const track = useTrack();
   const params = useLocalSearchParams<{ tab?: string }>();
   const [kind, setKind] = useState<CollectionKind>(
     KINDS.includes(params.tab as CollectionKind) ? (params.tab as CollectionKind) : 'highlight',
@@ -37,9 +39,10 @@ export default function MyHighlights() {
       queryClient.invalidateQueries({ queryKey: summaryKey }),
     ]);
 
-  const remove = (id: string, what: string) =>
+  const remove = (id: string, what: string, k: string) =>
     deleteAnnotation(id)
       .then(() => {
+        track('annotation_deleted', { kind: k });
         void refresh();
         toast({
           message: `${what} deleted`,
@@ -75,17 +78,12 @@ export default function MyHighlights() {
         }}
         onQuery={setTyped}
         onRetry={() => void list.refetch()}
-        onOpen={(g, i) =>
-          g.owned
-            ? router.push({ pathname: '/reader/[book]', params: { book: g.book_id, cfi: i.cfi } } as never)
-            : Alert.alert(g.title, 'Unlock or open this book again to read this part.', [
-                { text: 'Not now', style: 'cancel' },
-                {
-                  text: 'Open book',
-                  onPress: () => router.push({ pathname: '/book/[id]', params: { id: g.book_id } } as never),
-                },
-              ])
-        }
+        // Rule 11: the reader at that place. For a book not unlocked (a free-preview highlight, or one
+        // removed from the library) the reader itself asks to unlock past the preview (rule 13).
+        onOpen={(g, i) => {
+          track('collection_item_opened', { kind: i.kind });
+          router.push({ pathname: '/read/[id]', params: { id: g.book_id, cfi: i.cfi ?? undefined } });
+        }}
         onItemMenu={(i) =>
           Alert.alert('Delete this?', undefined, [
             { text: 'Cancel', style: 'cancel' },
@@ -96,6 +94,7 @@ export default function MyHighlights() {
                 void remove(
                   i.id,
                   i.kind === 'bookmark' ? 'Bookmark' : i.kind === 'note' ? 'Note' : 'Highlight',
+                  i.kind,
                 ),
             },
           ])

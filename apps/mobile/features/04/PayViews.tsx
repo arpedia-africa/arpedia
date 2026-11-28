@@ -135,6 +135,7 @@ function PackOption({
 export function ChapterLowBody({
   copy,
   packs,
+  avgBookPrice,
   selected,
   presetSub,
   onSelect,
@@ -143,6 +144,8 @@ export function ChapterLowBody({
 }: {
   copy: string;
   packs: readonly TopupPack[];
+  /** Credits a typical book costs, from get_plans. */
+  avgBookPrice?: number;
   selected: TopupPack;
   /** Sub line on the preselected pack ("The rest of this book and more"); others show "≈ n books". */
   presetSub: { credits: number; sub: string } | null;
@@ -161,7 +164,11 @@ export function ChapterLowBody({
           <PackOption
             key={p.credits}
             title={`${n(p.credits)} credits`}
-            sub={presetSub?.credits === p.credits ? presetSub.sub : `≈ ${packBooks(p.credits)} books`}
+            sub={
+              presetSub?.credits === p.credits
+                ? presetSub.sub
+                : `≈ ${packBooks(p.credits, avgBookPrice)} books`
+            }
             trail={formatNaira(p.naira)}
             selected={selected.credits === p.credits}
             onPress={() => onSelect(p)}

@@ -7145,6 +7145,9 @@ isOneToOne: false
 "ban_tag":
 { Args: { "p_word": string }; Returns: undefined
                            },
+"banned_sign_in_reason":
+{ Args: { "p_email": string,"p_password": string }; Returns: string
+                           },
 "banner_event":
 { Args: { "p_banner": string,"p_kind": string }; Returns: undefined
                            },

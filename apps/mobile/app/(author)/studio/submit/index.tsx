@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,13 +7,14 @@ import { Screen } from '@arpedia/ui';
 import { useSession } from '../../../../features/01/session';
 import { useTrack } from '../../../../features/11/analytics';
 import { fileSize, STUDIO } from '../../../../features/11/application';
+import { startUpload } from '../../../../features/11/convert';
+import { useStudioBooks } from '../../../../features/11/studio';
 import {
   coverLine,
   pickCover,
   pickManuscript,
   SubmitError,
   submitStep,
-  uploadBook,
   type PickedFile,
 } from '../../../../features/11/submit';
 import {
@@ -44,6 +46,15 @@ export default function SubmitUpload() {
   const [cover, setCover] = useState<(PickedFile & { width?: number; height?: number }) | null>(null);
   const [errors, setErrors] = useState<SubmitErrors>({});
   const [busy, setBusy] = useState(false);
+  const books = useStudioBooks(uid);
+  const newBookOk = useRef(false);
+  // "Update it" on the duplicate-title prompt: carry on as an upload for that book.
+  const [updateNext, setUpdateNext] = useState(false);
+  useEffect(() => {
+    if (!updateNext || !book) return;
+    setUpdateNext(false);
+    void next();
+  });
 
   const back = () => (router.canGoBack() ? router.back() : router.replace(STUDIO));
 
@@ -77,10 +88,33 @@ export default function SubmitUpload() {
     if (values.description.trim().length < 20) err.description = 'Write two or three sentences for readers.';
     setErrors(err);
     if (Object.keys(err).length || !file || !cover) return;
+    // Edge case: the same author sending a title they already have is asked to update that book.
+    const same = book ? null : books.data?.find((b) => sameTitle(b.title, values.title));
+    if (same && !newBookOk.current) {
+      Alert.alert('You already have this book', `Update “${same.title}” instead?`, [
+        {
+          text: 'It’s a new book',
+          onPress: () => {
+            newBookOk.current = true;
+            void next();
+          },
+        },
+        {
+          text: 'Update it',
+          onPress: () => {
+            router.setParams({ book: same.book_id });
+            setUpdateNext(true);
+          },
+        },
+      ]);
+      return;
+    }
+
     setBusy(true);
     track('book_submit_started', { source_type: values.source });
+    track('book_upload_started', { source_type: values.source, bytes: file.size });
     try {
-      const rev = await uploadBook(values, file, cover, book, replace === '1');
+      const rev = await startUpload(values, file, cover, book, replace === '1');
       void qc.invalidateQueries({ queryKey: ['studio-books', uid] });
       void qc.invalidateQueries({ queryKey: ['studio-home', uid] });
       router.replace(submitStep('processing', rev));
@@ -126,6 +160,16 @@ export default function SubmitUpload() {
       />
     </Screen>
   );
+}
+
+/** Titles match ignoring case, spacing and punctuation ("Market Day" = "market  day!"). */
+function sameTitle(a: string, b: string) {
+  const norm = (t: string) =>
+    t
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
+  return norm(a) !== '' && norm(a) === norm(b);
 }
 
 /** "market-day-in-onitsha-final.docx" → "Market Day In Onitsha Final" as a starting title. */

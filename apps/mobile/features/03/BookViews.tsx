@@ -52,6 +52,8 @@ export interface BookPageModel {
   title: string;
   author: string;
   tone: CoverTone;
+  /** Real cover (`/v1/covers/{rev}`); the sample tone shows without it. */
+  coverUri?: string;
   following: boolean;
   /** "Christian & Faith · 250 pages · about 5 hr read" */
   meta: string;
@@ -78,6 +80,8 @@ export interface BookPageActions {
   onBack: () => void;
   onSave?: () => void;
   onShare?: () => void;
+  /** The book is on the reader's Saved shelf. */
+  saved?: boolean;
   onMore: () => void;
   onAuthor?: () => void;
   onFollow?: () => void;
@@ -352,7 +356,13 @@ function BookHead({ m, a }: { m: BookPageModel; a: BookPageActions }) {
           <>
             <IconButton icon="back" label="Back" onPress={a.onBack} color={c.onOrg} />
             <View style={{ flex: 1 }} />
-            <IconButton icon="bookmark" label="Save to library" onPress={a.onSave} color={c.onOrg} />
+            <IconButton
+              icon="bookmark"
+              label={a.saved ? 'Remove from Saved' : 'Save to library'}
+              onPress={a.onSave}
+              color={c.onOrg}
+              pressed={a.onSave ? !!a.saved : undefined}
+            />
             <IconButton icon="share" label="Share" onPress={a.onShare} color={c.onOrg} />
             <IconButton icon="more" label="More options" onPress={a.onMore} color={c.onOrg} />
           </>
@@ -365,6 +375,7 @@ function BookHead({ m, a }: { m: BookPageModel; a: BookPageActions }) {
             author={m.author}
             size={128}
             tone={m.tone}
+            uri={m.coverUri}
             boxShadow={`0 ${s(14)}px ${s(30)}px rgba(26,17,0,0.32), inset ${s(3)}px 0 0 rgba(255,255,255,0.18)`}
           />
         </View>

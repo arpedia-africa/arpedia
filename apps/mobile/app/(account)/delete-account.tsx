@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +6,9 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { Screen } from '@arpedia/ui';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
+import { wipeReaderData } from '../../features/04/bookfiles';
 import { usePlanScreen } from '../../features/09/data';
+import { useTrack } from '../../features/10/analytics';
 import { requestDeletion, rpcReason, useProfileSummary } from '../../features/10/data';
 import { DeleteAccountFoot, DeleteAccountView } from '../../features/10/SettingsViews';
 
@@ -18,6 +20,12 @@ export default function DeleteAccount() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const track = useTrack();
+  useEffect(() => track('delete_account_started'), [track]);
+  const keep = () => {
+    track('delete_account_cancelled');
+    router.back();
+  };
   // Live credit number for the first line (rule 34).
   const credits = useQuery({
     queryKey: ['delete-credits'],
@@ -42,9 +50,11 @@ export default function DeleteAccount() {
     setError(undefined);
     try {
       await requestDeletion(text);
+      track('delete_account_confirmed');
       // Every session is already ended on the server; clear this phone and go to Log in.
       await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       queryClient.clear();
+      await wipeReaderData();
       router.replace({ pathname: '/(auth)/login', params: { deleted: '1' } });
     } catch (e) {
       setError(
@@ -68,7 +78,7 @@ export default function DeleteAccount() {
           offline={offline}
           error={offline ? 'Connect to the internet to do this.' : error}
           onDelete={() => void del()}
-          onKeep={() => router.back()}
+          onKeep={keep}
         />
       }
     >
@@ -81,7 +91,7 @@ export default function DeleteAccount() {
         }}
         text={text}
         onText={setText}
-        onBack={() => router.back()}
+        onBack={keep}
         onOpenPlay={() => void Linking.openURL('https://play.google.com/store/account/subscriptions')}
       />
     </Screen>

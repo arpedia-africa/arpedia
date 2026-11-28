@@ -1,8 +1,18 @@
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { onlineManager, useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
-import { ledgerDay } from '@arpedia/core';
+import {
+  AVG_BOOK_PRICE,
+  LAUNCH_PLANS,
+  TIP_PRESETS,
+  TOPUP_PACKS,
+  ledgerDay,
+  naira,
+  type Plan,
+  type TopupPack,
+} from '@arpedia/core';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
+import { productKey, storePrices, type StorePrice } from './purchases';
 
 // Reader RPCs of flow 09 (supabase/migrations/20261120000000_09_credits.sql). Every credit movement
 // happens on the server; the app only reads balances and asks for pause, resume and promo codes.
@@ -33,6 +43,10 @@ export interface PlanJson {
   price_play_kobo: number;
   price_web_kobo: number;
   play_product_id: string | null;
+  /** Google Play's own price text (screens fall back to `price_play_kobo` without a store). */
+  price_text?: string;
+  /** Google Play's per-month text, when it gives one. */
+  month_text?: string | null;
   badge: string | null;
   active: boolean;
   sort: number;
@@ -43,6 +57,8 @@ export interface TopupJson {
   credits: number;
   price_kobo: number;
   play_product_id: string | null;
+  /** Google Play's own price text (screens fall back to `price_kobo` without a store). */
+  price_text?: string;
 }
 
 export interface PlansJson {
@@ -119,6 +135,36 @@ export const balanceKey = ['credit-balance'] as const;
 
 const PAGE = 50;
 
+/** What Google Play charges for a plan, in its own words. */
+export const planPrice = (p: PlanJson) => p.price_text ?? naira(p.price_play_kobo);
+/** The per-month figure: Google Play's own when it gives one. */
+export const planPerMonth = (p: PlanJson) => p.month_text ?? naira(Math.round(p.price_play_kobo / p.months));
+/** What Google Play charges for a credit pack. */
+export const packPrice = (t: TopupJson) => t.price_text ?? naira(t.price_kobo);
+
+/**
+ * Put Google Play's own price text on plans and packs. The queries wait for it, so the screens
+ * keep their skeleton prices until the store answers (States: Loading).
+ */
+function priced<T extends { plans?: PlanJson[]; topups?: TopupJson[] }>(
+  json: T,
+  prices: Record<string, StorePrice>,
+): T {
+  const plan = (p: PlanJson): PlanJson => {
+    const sp = prices[productKey({ kind: 'plan', code: p.code })];
+    return sp ? { ...p, price_text: sp.text, month_text: sp.monthText } : p;
+  };
+  const pack = (t: TopupJson): TopupJson => {
+    const sp = prices[productKey({ kind: 'topup', code: t.code })];
+    return sp ? { ...t, price_text: sp.text } : t;
+  };
+  return {
+    ...json,
+    ...(json.plans ? { plans: json.plans.map(plan) } : {}),
+    ...(json.topups ? { topups: json.topups.map(pack) } : {}),
+  };
+}
+
 /** Server error code (`raise exception '<code>'`). */
 export const errCode = (e: unknown) => (e as { message?: string } | null)?.message ?? 'unknown';
 
@@ -141,12 +187,12 @@ export function useCreditsScreen() {
     queryKey: creditsKey,
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) => {
-      const { data, error } = await supabase.rpc('get_credits_screen', {
-        p_limit: PAGE,
-        p_before: pageParam ?? undefined,
-      });
+      const [{ data, error }, prices] = await Promise.all([
+        supabase.rpc('get_credits_screen', { p_limit: PAGE, p_before: pageParam ?? undefined }),
+        pageParam ? {} : storePrices(),
+      ]);
       if (error) throw error;
-      return data as unknown as CreditsScreenJson;
+      return priced(data as unknown as CreditsScreenJson, prices);
     },
     getNextPageParam: (last) =>
       last.history.length >= PAGE ? last.history[last.history.length - 1]!.at : undefined,
@@ -158,9 +204,9 @@ export function usePlanScreen() {
   return useQuery({
     queryKey: planScreenKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_plan_screen');
+      const [{ data, error }, prices] = await Promise.all([supabase.rpc('get_plan_screen'), storePrices()]);
       if (error) throw error;
-      return data as unknown as PlanScreenJson;
+      return priced(data as unknown as PlanScreenJson, prices);
     },
   });
 }
@@ -170,11 +216,60 @@ export function usePlans() {
   return useQuery({
     queryKey: plansKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_plans');
+      const [{ data, error }, prices] = await Promise.all([supabase.rpc('get_plans'), storePrices()]);
       if (error) throw error;
-      return data as unknown as PlansJson;
+      return priced(data as unknown as PlansJson, prices);
     },
   });
+}
+
+/** Flow 03 rule 36: tip amounts as staff set them (`app_config.tip_presets`, which `tip_author` checks). */
+export function useTipPresets(): readonly number[] {
+  const q = useQuery({
+    queryKey: ['app-config-row', 'tip_presets'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'tip_presets')
+        .single();
+      if (error) throw error;
+      const v = data.value as unknown;
+      return Array.isArray(v) && v.every((x) => typeof x === 'number') && v.length ? (v as number[]) : null;
+    },
+  });
+  return q.data ?? TIP_PRESETS;
+}
+
+/**
+ * Flow 03 rules 28, 31, 36: the unlock and top-up sheets' packs, plan credits and prices, as staff set
+ * them (`get_plans`, persisted for offline). The launch values show only until it first loads.
+ */
+export function useSheetPrices(): {
+  packs: readonly TopupPack[];
+  plans: readonly Plan[];
+  avgBookPrice: number;
+} {
+  const d = usePlans().data;
+  return useMemo(() => {
+    if (!d) return { packs: TOPUP_PACKS, plans: LAUNCH_PLANS, avgBookPrice: AVG_BOOK_PRICE };
+    const packs = d.topups.map((t) => ({ credits: t.credits, naira: Math.round(t.price_kobo / 100) }));
+    const plans = d.plans.map((p) => ({
+      id: p.code,
+      name: p.name,
+      priceNaira: Math.round(p.price_play_kobo / 100),
+      priceText: p.price_text,
+      monthText: p.month_text,
+      credits: p.total_credits,
+      months: p.months,
+    }));
+    return {
+      packs: packs.length ? packs : TOPUP_PACKS,
+      plans: plans.length ? plans : LAUNCH_PLANS,
+      avgBookPrice: Number(d.avg_book_price_credits) || AVG_BOOK_PRICE,
+    };
+  }, [d]);
 }
 
 export async function fetchBalance(): Promise<BalanceJson> {

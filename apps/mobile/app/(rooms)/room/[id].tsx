@@ -28,6 +28,7 @@ import {
   type PostBlock,
   type Reaction,
 } from '@arpedia/core';
+import { coverUri } from '@/lib/cover';
 import { useSession } from '../../../features/01/session';
 import {
   Bubble,
@@ -44,7 +45,9 @@ import {
   type ReportReason,
 } from '../../../features/06/SheetViews';
 import { useChat, useChatAction, useMarkRead, useMergedMessages } from '../../../features/06/chat';
+import { useTrack as useCommunityTrack } from '../../../features/06/analytics';
 import { toneFor } from '../../../features/06/data';
+import { useTrack as useRoomsTrack } from '../../../features/07/analytics';
 import {
   AnnotationsList,
   AnnotationsLocked,
@@ -67,6 +70,7 @@ import {
   finishedLabel,
   roomDayLabel,
   roomShareMessage,
+  useApplyRoomProgress,
   useRoom,
   useRoomActions,
   useRoomAnnotations,
@@ -90,6 +94,21 @@ type Item =
       };
     };
 
+// A live message has no spoiler stamp until Postgres saves it. Its text waits that long (rule 18), and
+// shows after this if the stamp never comes (unknown sender chapter counts as 0: Spoiler edge cases).
+const STAMP_WAIT_MS = 30_000;
+
+/** Someone else's live message whose stamp hasn't arrived (history always carries one). */
+function awaitingStamp(m: RoomMessage, me: string | undefined, now: number): boolean {
+  return (
+    m.sender_id !== me &&
+    m.spoiler_chapter == null &&
+    m.state === 'visible' &&
+    m.kind !== 'system' &&
+    now - Date.parse(m.created_at) < STAMP_WAIT_MS
+  );
+}
+
 const MUTE_OPTIONS = [
   { label: 'For 1 hour', until: () => new Date(Date.now() + 3_600_000).toISOString() },
   { label: 'For 24 hours', until: () => new Date(Date.now() + 86_400_000).toISOString() },
@@ -106,6 +125,7 @@ export default function RoomScreen() {
   const { id: gid, share } = useLocalSearchParams<{ id: string; share?: string }>();
   const { c, s } = useTheme();
   const toast = useToast();
+  const track06 = useCommunityTrack();
   const session = useSession();
   const me = session?.user.id;
   const net = useNetInfo();
@@ -130,12 +150,18 @@ export default function RoomScreen() {
   const roomQ = useRoom(gid);
   const room = roomQ.data;
   const history = useRoomHistory(gid);
-  const chat = useChat(gid, (e, wait) => {
-    if (e === 'slow_mode') return toast({ message: postBlockCopy('slow_mode', { waitSeconds: wait }) });
-    toast({ message: sendErrorCopy(e) });
-  });
+  const applyProgress = useApplyRoomProgress(gid);
+  const chat = useChat(
+    gid,
+    (e, wait) => {
+      if (e === 'slow_mode') return toast({ message: postBlockCopy('slow_mode', { waitSeconds: wait }) });
+      toast({ message: sendErrorCopy(e) });
+    },
+    applyProgress,
+  );
   const action = useChatAction(gid);
   const acts = useRoomActions(gid);
+  const track = useRoomsTrack();
   const stampRefresh = useStampRefresh(gid);
   const merged = useMergedMessages(history.data, chat.pending);
   const list = merged.list as RoomMessage[];
@@ -169,6 +195,17 @@ export default function RoomScreen() {
   useEffect(() => {
     if (newestId && !newestStamped) stampRefresh();
   }, [newestId, newestStamped, stampRefresh]);
+  // Until every live message is stamped, ask again every 3 s (the save can lag the socket).
+  const [now, setNow] = useState(() => Date.now());
+  const waiting = list.some((m) => awaitingStamp(m, me, now));
+  useEffect(() => {
+    if (!waiting) return;
+    const t = setInterval(() => {
+      stampRefresh();
+      setNow(Date.now());
+    }, 3000);
+    return () => clearInterval(t);
+  }, [waiting, stampRefresh]);
 
   const count = list.length + pending.length;
   const prevCount = useRef(count);
@@ -179,6 +216,23 @@ export default function RoomScreen() {
     }
     prevCount.current = count;
   }, [count, atBottom]);
+
+  // Analytics: annotations open once the reader finishes; finishing while the room is open.
+  const unlockedSent = useRef(false);
+  const annotationsLocked = annotations.data?.locked;
+  useEffect(() => {
+    if (annotationsLocked === false && !unlockedSent.current) {
+      unlockedSent.current = true;
+      track('room_annotations_unlocked');
+    }
+  }, [annotationsLocked, track]);
+  const wasFinished = useRef<boolean | null>(null);
+  const myFinished = room?.my_finished;
+  useEffect(() => {
+    if (myFinished == null) return;
+    if (wasFinished.current === false && myFinished) track('room_finished_by_member');
+    wasFinished.current = myFinished;
+  }, [myFinished, track]);
 
   // After create: the system share sheet with the code (rule 9), once.
   const shared = useRef(false);
@@ -199,8 +253,13 @@ export default function RoomScreen() {
       out.push(item);
     };
     const viewerChapter = room?.my_chapter ?? 0;
+    // A sender the header shows at or behind the viewer can't be ahead, so their text shows at once.
+    const behindMe = new Set(
+      (room?.header ?? []).filter((h) => h.percent <= (room?.my_percent ?? 0)).map((h) => h.user_id),
+    );
     for (const m of list) {
       const mine = m.sender_id === me;
+      const hold = awaitingStamp(m, me, now) && !revealed.has(m.id) && !behindMe.has(m.sender_id ?? '');
       const chapter = messageSpoilerChapter({ spoiler_chapter: m.spoiler_chapter, quote: m.quote });
       if (
         !mine &&
@@ -231,10 +290,20 @@ export default function RoomScreen() {
           senderTone: toneFor(m.sender_id ?? m.id),
           senderAvatar: m.sender_avatar,
           author: m.sender_is_author,
-          body: m.state === 'visible' ? (m.kind === 'quote' && !m.body && m.quote ? '' : m.body) : null,
-          muted: m.state === 'removed' ? 'Removed by a moderator' : 'This message was deleted',
+          body: hold
+            ? null
+            : m.state === 'visible'
+              ? m.kind === 'quote' && !m.body && m.quote
+                ? ''
+                : m.body
+              : null,
+          muted: hold
+            ? 'Checking for spoilers…'
+            : m.state === 'removed'
+              ? 'Removed by a moderator'
+              : 'This message was deleted',
           quote:
-            m.state === 'visible' && m.quote
+            !hold && m.state === 'visible' && m.quote
               ? {
                   text: `“${m.quote.text}”`,
                   source: [m.quote.book_title, `Ch. ${m.quote.chapter}`].filter(Boolean).join(' · '),
@@ -268,7 +337,7 @@ export default function RoomScreen() {
         },
       });
     return out;
-  }, [list, pending, me, room?.my_chapter, revealed]);
+  }, [list, pending, me, room?.my_chapter, room?.my_percent, room?.header, revealed, now]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/rooms'));
 
@@ -299,6 +368,7 @@ export default function RoomScreen() {
     if (!body) return;
     if (!chat.send(body, { reply_to_id: replyTo?.id ?? null }))
       return toast({ message: 'You can queue up to 5 messages while offline.' });
+    track('room_message_sent');
     setText('');
     setReplyTo(null);
   };
@@ -413,6 +483,7 @@ export default function RoomScreen() {
                 danger: true,
                 onPress: () => {
                   setReporting(selected);
+                  track06('report_started', { content_type: 'message' });
                   setReason(null);
                   setDetails('');
                   setAlsoBlock(false);
@@ -458,6 +529,7 @@ export default function RoomScreen() {
           book={bookTitle}
           code={room?.code ?? ''}
           tone={coverToneFor(room?.book.id ?? gid)}
+          coverUrl={coverUri(room?.book.cover_key)}
           members={chips}
           loading={roomQ.isPending}
           largeLine={room?.large ? `${room.finished_count} of ${room.member_count} finished` : null}
@@ -523,7 +595,10 @@ export default function RoomScreen() {
                       tone={item.spoiler.tone}
                       chapter={item.spoiler.chapter}
                       time={item.spoiler.time}
-                      onReveal={() => setRevealed((r) => new Set(r).add(item.key))}
+                      onReveal={() => {
+                        track('room_spoiler_revealed');
+                        setRevealed((r) => new Set(r).add(item.key));
+                      }}
                     />
                   ) : (
                     <Bubble
@@ -591,7 +666,9 @@ export default function RoomScreen() {
                 <AnnotationsLocked
                   book={bookTitle}
                   percent={annotations.data.percent}
-                  onContinue={() => toast({ message: 'The reader comes in a later part of the build.' })}
+                  onContinue={() =>
+                    room && router.push({ pathname: '/read/[id]', params: { id: room.book.id } })
+                  }
                 />
               ) : annotationRows.length === 0 ? (
                 <EmptyState title="Nobody has shared a highlight yet." />
@@ -763,6 +840,7 @@ export default function RoomScreen() {
           onConfirm={() =>
             acts.end.mutate(undefined, {
               onSuccess: () => {
+                track('room_ended', { by: 'host' });
                 setConfirm(null);
                 toast({ message: 'Room ended.' });
               },
@@ -793,6 +871,7 @@ export default function RoomScreen() {
           onConfirm={() =>
             acts.leave.mutate(undefined, {
               onSuccess: () => {
+                track('room_left');
                 setConfirm(null);
                 router.replace('/rooms');
               },

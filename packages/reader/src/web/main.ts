@@ -22,6 +22,7 @@ import {
   type NativeToWeb,
   type ReaderSettings,
   type RelocateDetail,
+  type StartPosition,
   type WebToNative,
 } from '../protocol';
 import type { Rect } from '../placement';
@@ -69,6 +70,7 @@ interface Renderer extends HTMLElement {
   start: number;
   end: number;
   viewSize: number;
+  size: number;
   atEnd: boolean;
   scrolled: boolean;
   getContents(): { index: number; doc: Document; overlayer?: Overlayer }[];
@@ -204,6 +206,18 @@ function paraOf(node: Node | null): Element | null {
   for (let e = el as Element | null; e; e = e.parentElement) if (e.id && paraIndex.has(e.id)) return e;
   return null;
 }
+/** Characters from the start of `para` to (node, offset); 0 when the point is outside it. */
+function charsInto(para: Element | null, node: Node, offset: number): number {
+  if (!para) return 0;
+  const r = para.ownerDocument.createRange();
+  r.setStart(para, 0);
+  try {
+    r.setEnd(node, offset);
+  } catch {
+    return 0;
+  }
+  return r.toString().length;
+}
 const countWords = (s: string) => (s.match(/\S+/g) ?? []).length;
 function wordsInto(para: Element, node: Node, offset: number): number {
   const r = para.ownerDocument.createRange();
@@ -224,12 +238,61 @@ function gateTop(doc: Document): number | null {
   return v.x >= 0 && v.x < window.innerWidth && v.y < window.innerHeight ? v.y : null;
 }
 
+const PEEK_HIDDEN = 'data-arp-peek-hidden';
+/**
+ * A locked chapter's gate is its first page (rules 51, 53, 54): the peek file can run to several
+ * pages with a large font, so the blocks after the first page (and, with Auto-unlock off, after the
+ * room for the card) are hidden, so the gate's one page is the first page. Headings are never
+ * hidden. The section reloads with its full file on unlock, which shows them again (rule 8).
+ */
+function fitPeek(doc: Document): void {
+  if (!view) return;
+  const r = view.renderer;
+  const g = doc.querySelector<HTMLElement>('[data-arp-gate]');
+  if (!g) return;
+  doc.querySelectorAll(`[${PEEK_HIDDEN}]`).forEach((el) => {
+    (el as HTMLElement).style.removeProperty('display');
+    el.removeAttribute(PEEK_HIDDEN);
+  });
+  const first = doc.body.firstElementChild;
+  if (!first || first === g) return;
+  const size = r.size;
+  if (!(size > 0)) return;
+  const fits = () => {
+    const a = first.getBoundingClientRect();
+    const b = g.getBoundingClientRect();
+    return r.scrolled ? b.bottom - a.top <= size : b.left - a.left < size / 2;
+  };
+  const blocks = Array.from(doc.body.children).filter(
+    (el) => el !== g && el !== first && !/^H[1-6]$/.test(el.tagName),
+  );
+  while (!fits() && blocks.length > 0) {
+    const el = blocks.pop() as HTMLElement;
+    el.style.setProperty('display', 'none', 'important');
+    el.setAttribute(PEEK_HIDDEN, '');
+  }
+}
+/** The first paragraph the peek hid, if it starts on the page now shown (after an unlock). */
+function hiddenStartsHere(doc: Document, id: string | null): boolean {
+  if (!id || !view) return false;
+  const el = doc.getElementById(id);
+  if (!el) return false;
+  const v = toViewport(doc, el.getBoundingClientRect());
+  return v.x >= 0 && v.x < window.innerWidth && v.y >= 0 && v.y < window.innerHeight;
+}
+
 function onRelocate(loc: { cfi: string; range: Range }) {
   // While opening or reopening, foliate passes through the section start: not a real place.
   if (!manifest || !view || settling) return;
   const contents = view.renderer.getContents()[0];
   const index = contents?.index ?? currentIndex;
   const chapter = chapterAt(index);
+  if (contents && gateFor(index)?.kind === 'chapter') {
+    fitPeek(contents.doc);
+    // Held: a move that still left the first page (late font load, a slider drag) goes back to it.
+    const rr = view.renderer;
+    if (rr.scrolled ? rr.start > rr.size : rr.page > 1) return void view.goTo(index);
+  }
   // A page with no paragraph start on it (the tail of a long paragraph, the gate room) keeps the
   // place of the page before it in this chapter, so percent never steps back.
   const own = paraOf(loc.range.startContainer);
@@ -283,6 +346,9 @@ async function forward() {
   if (!gate) return view.next();
   if (advanceInFlight) return;
   advanceInFlight = true;
+  const doc = view.renderer.getContents()[0]?.doc;
+  const firstHidden = doc?.querySelector(`[${PEEK_HIDDEN}]`);
+  const hiddenId = firstHidden?.id || firstHidden?.querySelector('[id]')?.id || null;
   const id = nextId();
   const decision = await new Promise<{ allow: boolean; reason?: string }>((resolve) => {
     pendingAdvance.set(id, resolve);
@@ -294,7 +360,13 @@ async function forward() {
   });
   advanceInFlight = false;
   // On allow, native has already sent access.update (the section is reloaded with its full file).
-  if (decision.allow) await reopened.then(() => view?.next());
+  // A locked chapter's first page now shows the text the peek hid: stay, so none of it is skipped.
+  if (decision.allow)
+    await reopened.then(() => {
+      const d = view?.renderer.getContents()[0]?.doc;
+      if (d && gate.kind === 'chapter' && hiddenStartsHere(d, hiddenId)) return;
+      return view?.next();
+    });
 }
 
 // ─── Section setup ───────────────────────────────────────────────────────────
@@ -319,10 +391,13 @@ function decorate(doc: Document, index: number) {
   const gate = gateFor(index);
   const room = gate ? (gate.kind === 'preview' ? gateRoom.preview : gateRoom.chapter) : 0;
   doc.querySelector('[data-arp-gate]')?.remove();
-  if (room > 0) {
+  // A locked chapter always gets the marker (0 px with Auto-unlock on), so its peek can be fitted to
+  // the first page (rules 53, 54).
+  if (room > 0 || gate?.kind === 'chapter') {
     const g = doc.createElement('div');
     g.setAttribute('data-arp-gate', gate!.kind);
     g.style.height = `${room}px`;
+    g.style.breakInside = 'avoid';
     doc.body.append(g);
   }
   watchSelection(doc);
@@ -365,13 +440,17 @@ function watchSelection(doc: Document) {
       const index = view?.renderer.getContents()[0]?.index ?? currentIndex;
       const fe = doc.defaultView?.frameElement as HTMLElement | null;
       const page = fe?.parentElement?.getBoundingClientRect();
+      const startPara = paraOf(range.startContainer);
+      const endPara = paraOf(range.endContainer);
       post({
         type: 'selection',
         payload: {
           cfi_range: view!.getCFI(index, range),
           text: text.slice(0, 500),
-          para_id_start: paraOf(range.startContainer)?.id ?? null,
-          para_id_end: paraOf(range.endContainer)?.id ?? null,
+          para_id_start: startPara?.id ?? null,
+          para_id_end: endPara?.id ?? null,
+          start_char: charsInto(startPara, range.startContainer, range.startOffset),
+          end_char: charsInto(endPara, range.endContainer, range.endOffset),
           chapter_uid: chapterAt(index)?.chapter_uid ?? null,
           rects: lineRects(doc, range),
           page_rect: { x: 0, y: page?.top ?? 0, w: window.innerWidth, h: window.innerHeight },
@@ -649,21 +728,41 @@ function mount(): FoliateView {
   return v;
 }
 
-async function startAt(start: { cfi?: string; para_id?: string } | string | null) {
-  if (!view) return;
-  if (typeof start === 'string') return view.init({ lastLocation: start });
-  if (start?.cfi) return view.init({ lastLocation: start.cfi });
+/**
+ * Goes to a place. Resolves true when it couldn't be found and the page fell back (to the start of
+ * the paragraph's or the saved chapter, or the first page).
+ */
+async function startAt(start: StartPosition | string | null): Promise<boolean> {
+  if (!view) return false;
+  if (typeof start === 'string') start = { cfi: start };
+  // Rule 11: a CFI that no longer resolves (revision changed) re-anchors by paragraph id, then by
+  // the saved chapter's start.
+  if (start?.cfi && view.resolveNavigation(start.cfi)) {
+    await view.init({ lastLocation: start.cfi });
+    return false;
+  }
   if (start?.para_id) {
     const c = paraIndex.get(start.para_id)?.chapter;
     if (c) {
       await view.goTo(c.ord);
       const doc = view.renderer.getContents()[0]?.doc;
       const el = doc?.getElementById(start.para_id);
-      if (el) return void view.goTo(view.getCFI(c.ord, rangeOf(doc!, el)));
-      return;
+      if (el) {
+        await view.goTo(view.getCFI(c.ord, rangeOf(doc!, el)));
+        return false;
+      }
+      return true;
     }
   }
-  return view.init({ lastLocation: null });
+  const saved = start?.chapter_uid
+    ? manifest?.chapters.find((c) => c.chapter_uid === start.chapter_uid)
+    : null;
+  if (saved) {
+    await view.goTo(saved.ord);
+    return true;
+  }
+  await view.init({ lastLocation: null });
+  return !!(start?.cfi || start?.para_id);
 }
 const rangeOf = (doc: Document, el: Element) => {
   const r = doc.createRange();
@@ -698,7 +797,11 @@ async function open(p: Extract<NativeToWeb, { type: 'open' }>['payload']) {
         sections: book.sections.length,
       },
     });
-    await settled(() => startAt(p.start));
+    let moved = false;
+    await settled(async () => {
+      moved = await startAt(p.start);
+    });
+    if (moved) post({ type: 'start.moved' });
   } catch (e) {
     settling = false;
     post({ type: 'error', payload: { code: 'render_failed', detail: String(e) } });
@@ -795,8 +898,25 @@ async function onMessage(raw: unknown) {
       if ('percent' in t) {
         const target = (t.percent / 100) * manifest.total_words;
         let pid: string | null = null;
+        let words = 0;
+        let ord = -1;
         for (const c of manifest.chapters)
-          for (const p of c.paragraphs) if (p.words_before <= target) pid = p.id;
+          for (const p of c.paragraphs)
+            if (p.words_before <= target) [pid, words, ord] = [p.id, p.words_before, c.ord];
+        // Rule 21: a release past the first gate stops at it. A preview stops at its cut; a locked
+        // chapter opens at its start, where its card shows.
+        const gate = [...manifest.chapters].sort((a, b) => a.ord - b.ord).find((c) => isGated(c.ord));
+        if (pid && gate && ord >= gate.ord) {
+          const cut = manifest.preview_cut;
+          const cutPara = cut?.chapter_uid === gate.chapter_uid ? paraIndex.get(cut.para_id) : undefined;
+          if (access[gate.chapter_uid] === 'partial' && cut && cutPara) {
+            if (ord > gate.ord || words > cutPara.words_before) pid = cut.para_id;
+          } else {
+            currentIndex = gate.ord;
+            applyGates();
+            return void view.goTo(gate.ord);
+          }
+        }
         if (pid) return startAt({ para_id: pid });
       }
       return;

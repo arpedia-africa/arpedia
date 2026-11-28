@@ -12,8 +12,9 @@ import { WebView } from 'react-native-webview';
 import { percentToParagraph, timeLeftLabel } from '@arpedia/core';
 import { placeToolbar, type HighlightColor, type Rect, type SelectionDetail } from '@arpedia/reader';
 import { readerHtml } from '@arpedia/reader/html';
-import { EmptyState, useTheme, useToast } from '@arpedia/ui';
-import { useBookPage, useOnline } from '../../features/03/book';
+import { Btn, EmptyState, useTheme, useToast } from '@arpedia/ui';
+import { bookKey, useBookPage, useOnline } from '../../features/03/book';
+import { useBookDiscussion } from '../../features/03/discussion';
 import { rpcError, UnlockSheet } from '../../features/03/UnlockSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
 import {
@@ -30,7 +31,10 @@ import {
   readerInk,
 } from '../../features/04/ReaderViews';
 import { DiscussSheet, NoteDialog, NotesSheet, type AnnotRowModel } from '../../features/04/AnnotationSheets';
+import { useTrack } from '../../features/04/analytics';
 import { usePassageThread } from '../../features/04/passage';
+import { postQuote, quoteFor, useShareToClub } from '../../features/04/ShareClubSheet';
+import { useInbox } from '../../features/06/data';
 import { ChapterLowSheet, PayRestSheet } from '../../features/04/PaySheets';
 import {
   ChaptersSheet,
@@ -41,6 +45,8 @@ import {
   type ChapterRowModel,
 } from '../../features/04/ReaderSheets';
 import { chapterNumber, useReader } from '../../features/04/useReader';
+import { useBuyPack } from '../../features/09/buyPack';
+import { useFlag } from '../../features/16/config';
 
 const READER_ORIGIN = 'https://reader.arpedia.invalid/';
 const TOAST_MS = 8000;
@@ -50,7 +56,8 @@ const HINT_KEY = 'reader.hint.seen';
 const OTHER_COLORS: HighlightColor[] = ['yellow', 'green', 'pink', 'blue', 'purple', 'peach'];
 
 export default function ReaderScreen() {
-  const { id, cfi } = useLocalSearchParams<{ id: string; cfi?: string }>();
+  const { id, cfi, from } = useLocalSearchParams<{ id: string; cfi?: string; from?: string }>();
+  const track = useTrack();
   const { s } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -65,11 +72,18 @@ export default function ReaderScreen() {
     const chapter = autoUnlock ? 0 : cardH.chapter + s(16);
     return { preview: payGo ? chapter : cardH.preview + s(16), chapter };
   }, [cardH, autoUnlock, payGo, s]);
-  const r = useReader(id, { gateRoom, startCfi: cfi, payGo });
+  // Flow 16 rule 27: with Paragraph discussions off there are no markers and no Discuss button.
+  const discussions = useFlag('paragraph_discussions', true);
+  const r = useReader(id, { gateRoom, startCfi: cfi, payGo, source: from, discussions });
   useEffect(() => setAutoUnlockLocal(r.settings.auto_unlock), [r.settings.auto_unlock]);
   useEffect(() => {
     if ((r.state?.paid_credits ?? 0) > 0) setPayGo(true);
   }, [r.state?.paid_credits]);
+  // Flow 16 rule 31: Pay as you read turned Off before this reader started: back to the preview gate.
+  const paygOff = r.state?.pay_as_you_read === false;
+  useEffect(() => {
+    if (paygOff) setPayGo(false);
+  }, [paygOff]);
 
   const [chrome, setChrome] = useState(false);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -86,6 +100,8 @@ export default function ReaderScreen() {
   const [discussFor, setDiscussFor] = useState<{ para: string; quote: string | null } | null>(null);
   const thread = usePassageThread(id, panel === 'discuss' ? (discussFor?.para ?? null) : null);
   const book = useBookPage(id);
+  // Top-ups from the reader's low-balance sheets (rule 60): nothing is spent automatically.
+  const pack = useBuyPack([bookKey(id)]);
 
   const back = useCallback(() => {
     void r.syncNow();
@@ -160,6 +176,12 @@ export default function ReaderScreen() {
   }, [r.elsewhere, r, toast]);
 
   const st = r.state;
+  // Flow 07 rule 19: a highlight shared to a reading room on this book shows in its Annotations
+  // tab (the message becomes the note).
+  const share = useShareToClub(st, (roomId, name, sel, message) => {
+    void r.highlight(r.settings.highlight_color, message || undefined, sel, roomId);
+    toast({ message: `Shared with ${name}` });
+  });
   const theme = r.settings.theme;
   const ink = readerInk(theme);
   const chapter = st?.chapters.find((c) => c.chapter_uid === r.loc?.chapter_uid) ?? null;
@@ -172,7 +194,7 @@ export default function ReaderScreen() {
   const previewPct =
     st && st.revision.words > 0 && r.manifest?.preview_cut ? r.manifest.preview_cut.percent : 10;
   const perChapter =
-    st && st.chapters.some((c) => c.price_credits > 0)
+    st && !paygOff && st.chapters.some((c) => c.price_credits > 0)
       ? Math.round(
           st.chapters.filter((c) => c.price_credits > 0).reduce((a, c) => a + c.price_credits, 0) /
             st.chapters.filter((c) => c.price_credits > 0).length,
@@ -230,6 +252,28 @@ export default function ReaderScreen() {
     });
   }, [sel, pageH, s]);
 
+  // Flow 04 analytics for what the reader sees: the preview end, a chapter card, the toolbar.
+  const seenPreview = useRef(false);
+  useEffect(() => {
+    if (!previewGate || seenPreview.current) return;
+    seenPreview.current = true;
+    track('preview_end_seen');
+  }, [previewGate, track]);
+  const cardChapter = st && gateChapter && chapterGate && !autoUnlock ? gateChapter : null;
+  const seenCard = useRef<string | null>(null);
+  useEffect(() => {
+    if (!st || !cardChapter || seenCard.current === cardChapter.chapter_uid) return;
+    seenCard.current = cardChapter.chapter_uid;
+    track('chapter_card_seen', {
+      chapter_ord: chapterNumber(st, cardChapter.chapter_uid),
+      price: cardChapter.price_credits,
+    });
+  }, [st, cardChapter, track]);
+  const placementKind = placement?.kind;
+  useEffect(() => {
+    if (sel && placementKind) track('selection_toolbar_shown', { placement: placementKind });
+  }, [sel, placementKind, track]);
+
   const menuAnnotation = menuFor ? r.annotations.find((a) => a.client_id === menuFor.clientId) : null;
   const menuPlacement = useMemo(() => {
     if (!menuFor || !pageH) return null;
@@ -257,10 +301,19 @@ export default function ReaderScreen() {
     [r.settings.highlight_color],
   );
 
-  // Sharing a passage to a club needs a club for this book, which has no lookup yet.
-  const soon = () => toast({ message: 'Coming soon' });
-  // The book room lives in Community (flow 06).
-  const toRoom = () => router.push('/community');
+  // The book room is the chat of the club reading this book (s-channel, flow 06); with no club it
+  // lives in Community.
+  const room = useBookDiscussion(id);
+  // Rule 39: the Note switch names the book's club, only when the reader is a member of it.
+  const myGroups = useInbox('groups');
+  const bookClub = room.data?.club;
+  const noteClub =
+    bookClub && (myGroups.data ?? []).some((g) => g.group_id === bookClub.id) ? bookClub : null;
+  const toRoom = () => {
+    const club = room.data?.club;
+    if (club) router.push({ pathname: '/chat/[id]', params: { id: club.id } });
+    else router.push('/community');
+  };
   const shareBook = () => {
     if (!st) return;
     const by = st.book.author.name ? ` by ${st.book.author.name}` : '';
@@ -317,11 +370,12 @@ export default function ReaderScreen() {
         color: a.kind === 'bookmark' ? null : a.color,
         note: a.kind === 'note' ? a.note_text : null,
         scope: a.kind === 'note' ? 'Private' : null,
+        unsaved: r.unsaved.has(a.client_id),
       });
     }
     return out;
     // chapterLabel reads st, which the deps cover.
-  }, [r.annotations, st]);
+  }, [r.annotations, r.unsaved, st]);
   const openAnnotation = (clientId: string) => {
     const a = r.annotations.find((x) => x.client_id === clientId);
     setPanel(null);
@@ -351,6 +405,16 @@ export default function ReaderScreen() {
     st && threadData?.chapter_ord != null ? st.chapters.find((c) => c.ord === threadData.chapter_ord) : null;
   const threadChapterNo = st && threadChapter ? chapterNumber(st, threadChapter.chapter_uid) : null;
   const threadCount = (threadData?.count ?? 0) + thread.pending.length;
+  // One discussion_opened per opening, once the thread's count is known.
+  const seenThread = useRef<string | null>(null);
+  useEffect(() => {
+    if (panel !== 'discuss' || !discussFor || !threadData || seenThread.current === discussFor.para) return;
+    seenThread.current = discussFor.para;
+    track('discussion_opened', { count: threadData.count });
+  }, [panel, discussFor, threadData, track]);
+  useEffect(() => {
+    if (panel !== 'discuss') seenThread.current = null;
+  }, [panel]);
 
   // ─── States ───────────────────────────────────────────────────────────────
   const body = () => {
@@ -380,6 +444,25 @@ export default function ReaderScreen() {
         </View>
       );
     }
+    if (r.phase === 'expired') {
+      // Rule 71: the download's 7 days ran out; the free preview still opens.
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: ink.page }}>
+          <EmptyState
+            title="Connect to refresh"
+            body="This download needs a quick check online. Connect and it opens again."
+            action={{ label: 'Try again', onPress: r.retry }}
+          />
+          <Btn
+            label="Read the preview"
+            variant="g"
+            size="md"
+            style={{ alignSelf: 'center' }}
+            onPress={r.readPreview}
+          />
+        </View>
+      );
+    }
     if (r.phase === 'error') {
       return (
         <View style={{ flex: 1, justifyContent: 'center', backgroundColor: ink.page }}>
@@ -388,6 +471,18 @@ export default function ReaderScreen() {
             body="Try again. If it keeps happening, report it and we'll fix the book."
             action={{ label: 'Try again', onPress: r.retry }}
           />
+          {st ? (
+            <Btn
+              label="Report a problem"
+              variant="g"
+              size="md"
+              style={{ alignSelf: 'center' }}
+              onPress={() => {
+                setReporting('idle');
+                setPanel('report');
+              }}
+            />
+          ) : null}
         </View>
       );
     }
@@ -416,7 +511,7 @@ export default function ReaderScreen() {
                   if (r.selection) return r.clearSelection();
                   setChrome((v) => !v);
                 },
-                onMarker: (para) => startDiscuss(para, null),
+                onMarker: (para) => discussions && startDiscuss(para, null),
                 onAnnotation: (aid, rect) => {
                   // Tap on a highlight: colour, note, discuss, delete (rule 36).
                   const a = r.annotations.find((x) => x.id === aid);
@@ -480,7 +575,11 @@ export default function ReaderScreen() {
             offline={!online}
             autoUnlock={autoUnlock}
             onUnlock={() => void r.unlockChapter(gateChapter.chapter_uid, 'tap')}
-            onPayRest={() => (st.paid_credits > 0 ? setPanel('payrest') : setSheet('all'))}
+            onPayRest={() => {
+              track('pay_rest', { left: st.remaining });
+              if (st.paid_credits > 0) setPanel('payrest');
+              else setSheet('all');
+            }}
             onAuto={(v) => {
               setAutoUnlockLocal(v);
               void r.changeSetting('auto_unlock', v);
@@ -510,12 +609,16 @@ export default function ReaderScreen() {
             current={r.settings.highlight_color}
             onColor={(c) => void r.highlight(c)}
             onNote={startNote}
-            onDiscuss={() => {
-              const quote = sel.text.slice(0, 500);
-              r.clearSelection();
-              startDiscuss(sel.para_id_start, quote);
-            }}
-            onClub={soon}
+            onDiscuss={
+              discussions
+                ? () => {
+                    const quote = sel.text.slice(0, 500);
+                    r.clearSelection();
+                    startDiscuss(sel.para_id_start, quote);
+                  }
+                : undefined
+            }
+            onClub={() => (share.start(sel), r.clearSelection())}
             onShare={() => {
               const quote = sel.text.slice(0, 500);
               const title = st?.book.title;
@@ -550,10 +653,14 @@ export default function ReaderScreen() {
               setNoteFor({ clientId: menuAnnotation.client_id });
               setPanel('note');
             }}
-            onDiscuss={() => {
-              setMenuFor(null);
-              startDiscuss(menuAnnotation.start_para_id, menuAnnotation.quote);
-            }}
+            onDiscuss={
+              discussions
+                ? () => {
+                    setMenuFor(null);
+                    startDiscuss(menuAnnotation.start_para_id, menuAnnotation.quote);
+                  }
+                : undefined
+            }
             onDelete={() => void deleteAnnotation(menuAnnotation.client_id)}
           />
         ) : null}
@@ -733,7 +840,14 @@ export default function ReaderScreen() {
               r.clearLow();
               void r.refresh();
             }}
-            onTopUp={() => router.push('/credits')}
+            // Back on page 1 of the chapter with the new balance once the credits land.
+            onTopUp={(p) =>
+              void pack.buy(p).then((ok) => {
+                if (!ok) return;
+                r.clearLow();
+                void r.refresh();
+              })
+            }
             onLibrary={() => {
               r.clearLow();
               void r.syncNow();
@@ -753,12 +867,25 @@ export default function ReaderScreen() {
             quote={(noteSel?.text ?? noteAnnotation?.quote ?? '').slice(0, 500)}
             color={noteAnnotation?.color ?? r.settings.highlight_color}
             initial={noteAnnotation?.note_text ?? ''}
-            // Sharing to a club arrives with flow 06 groups; until then the switch stays hidden.
-            club={null}
-            onSave={(text) => {
+            club={noteClub?.name ?? null}
+            onSave={(text, share) => {
               setPanel(null);
-              if (noteAnnotation) void r.editNote(noteAnnotation.client_id, text);
-              else if (noteSel) void r.highlight(r.settings.highlight_color, text, noteSel);
+              const group = share && noteClub ? noteClub.id : null;
+              if (noteAnnotation) void r.editNote(noteAnnotation.client_id, text, group);
+              else if (noteSel) void r.highlight(r.settings.highlight_color, text, noteSel, group);
+              // Rule 39: a shared note posts to the club as a quote card (rule 56), the note as its message.
+              const q =
+                group &&
+                (noteSel
+                  ? quoteFor(st, noteSel.chapter_uid, noteSel.cfi_range, noteSel.text)
+                  : noteAnnotation &&
+                    quoteFor(
+                      st,
+                      noteAnnotation.chapter_uid,
+                      noteAnnotation.cfi_range,
+                      noteAnnotation.quote ?? '',
+                    ));
+              if (group && q) postQuote(group, q, text);
             }}
           />
           <DiscussSheet
@@ -776,6 +903,7 @@ export default function ReaderScreen() {
             onRetry={(c) => void thread.post(c.body ?? '', discussFor?.quote ?? null, c.id)}
             onReact={(c, k) => void thread.react(c, k)}
           />
+          {share.element}
         </>
       ) : null}
       {book.data ? (
@@ -792,7 +920,7 @@ export default function ReaderScreen() {
             setSheet(null);
           }}
           onPlans={() => router.push('/plan')}
-          onBuyPack={() => router.push('/credits')}
+          onBuyPack={(p) => void pack.buy(p)}
         />
       ) : null}
     </View>

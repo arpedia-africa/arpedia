@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { RefreshControl, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { EmptyState, Screen, useTheme, useToast } from '@arpedia/ui';
@@ -10,40 +10,66 @@ import {
   type NotifRow,
 } from '../../features/02/NotificationViews';
 import { toRow, useMarkRead, useNotifications, type ServerNotif } from '../../features/02/notifications';
-import { discoveryLinks } from '../../features/02/links';
+import { useTrack as useEngageTrack } from '../../features/15/analytics';
+import { hrefFor } from '../../features/15/push';
 import { ListError } from '../../features/02/ListViews';
+import { APPEAL_SENT, appealSubject, decisionTitle, type ModerationRow } from '@arpedia/core';
+import { useSession } from '../../features/01/session';
+import { useOnline } from '../../features/09/data';
+import { useCreateAppeal, useMyModeration } from '../../features/14/appeal';
+import { AppealSheet, DecisionCards } from '../../features/14/AppealViews';
+import { useTrack } from '../../features/02/analytics';
 
 /** `s-notifications`: New and Earlier, category tabs, Mark all read (rules 30–33). */
 export default function Notifications() {
   const { c, s } = useTheme();
   const toast = useToast();
-  const go = discoveryLinks(toast);
   const [category, setCategory] = useState<NotifCategory>('all');
   const feed = useNotifications(category);
   const mark = useMarkRead();
+  const track = useTrack();
+  const track15 = useEngageTrack();
+  useEffect(() => track15('notification_feed_opened'), [track15]);
   const pages = feed.data?.pages;
   const items = pages?.flatMap((p) => p.items) ?? [];
   const unread = pages?.[0]?.unread ?? 0;
+  // Rule 26 (flow 14): decisions on the reader's account, each with Appeal while it is open.
+  const uid = useSession()?.user.id;
+  const online = useOnline();
+  const decisions = useMyModeration(uid);
+  const appeal = useCreateAppeal(uid);
+  const [appealing, setAppealing] = useState<ModerationRow | null>(null);
+  const sendAppeal = (text: string) => {
+    if (!appealing) return;
+    appeal.mutate(
+      { ...appealSubject(appealing), text },
+      {
+        onSuccess: () => {
+          setAppealing(null);
+          toast({ message: APPEAL_SENT });
+        },
+      },
+    );
+  };
 
   const open = (row: NotifRow) => {
     const n = items.find((x) => x.id === row.id);
     if (!n) return;
+    track('notification_opened', { kind: n.kind });
+    track15('notification_item_opened', { type: n.kind });
     if (!n.read_at) mark.one.mutate(n.id);
     openTarget(n);
   };
+  // Same routes as a push tap (flow 15): reader at the saved page, author, post, room, group.
   const openTarget = (n: ServerNotif) => {
     if (!n.target_type || !n.target_id) return toast({ message: 'That is no longer available' });
-    switch (n.target_type) {
-      case 'book':
-      case 'reader':
-        return go.book(n.target_id);
-      case 'author':
-      case 'profile':
-        return go.author(n.target_id);
-      default:
-        // Clubs, posts, discussions and messages live in Community.
-        return router.push('/community');
-    }
+    const target =
+      n.target_type === 'screen'
+        ? { kind: 'screen', screen: n.target_id }
+        : { kind: n.target_type, id: n.target_id };
+    const href = hrefFor(target, 'notifications') ?? '/community';
+    // Discussions and messages without their own route live in Community.
+    router.push(target.kind !== 'screen' && href === '/home' ? '/community' : href);
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -58,6 +84,8 @@ export default function Notifications() {
 
   const body = () => {
     if (pages) {
+      // Decision cards already fill the page: an empty state under them reads as a contradiction.
+      if (!items.length && decisions.data?.length) return null;
       if (!items.length)
         return (
           <EmptyState
@@ -79,7 +107,10 @@ export default function Notifications() {
       refreshControl={
         <RefreshControl
           refreshing={feed.isRefetching && !feed.isFetchingNextPage && !feed.isLoading}
-          onRefresh={() => void feed.refetch()}
+          onRefresh={() => {
+            void feed.refetch();
+            void decisions.refetch();
+          }}
           colors={[c.org]}
           progressBackgroundColor={c.white}
         />
@@ -93,7 +124,23 @@ export default function Notifications() {
         onSettings={() => router.push('/notification-settings')}
         onMarkAll={() => mark.all.mutate()}
       />
+      <DecisionCards
+        rows={decisions.data ?? []}
+        onAppeal={(r) => {
+          appeal.reset();
+          setAppealing(r);
+        }}
+      />
       {body()}
+      <AppealSheet
+        open={!!appealing}
+        title={appealing ? decisionTitle(appealing) : ''}
+        offline={!online}
+        sending={appeal.isPending}
+        error={appeal.error ? appeal.error.message : null}
+        onClose={() => setAppealing(null)}
+        onSend={sendAppeal}
+      />
     </Screen>
   );
 }

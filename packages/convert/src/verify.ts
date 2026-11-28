@@ -94,6 +94,8 @@ const CHAPTER_LINE = /^(chapter\s+[\w-]+|prologue|epilogue|\d{1,3}\.)$/i;
 export const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 export const IMAGE_MAX_PX = 1600;
 const MIN_WORDS = 1000;
+const TITLE_PAGE_MAX_LINES = 6;
+const TITLE_PAGE_LINE_WORDS = 12;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const escText = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -182,9 +184,20 @@ export function verifyPackage(
 
   // Front matter, then parts for long chapters (rule 13).
   const front = body.map((c) => FRONT_TITLES.find(([re]) => re.test(c.title?.trim() ?? ''))?.[1] ?? null);
+  // A few short untitled lines before the first chapter (the book's title, author) are the title
+  // page, not an untitled "Chapter 1" (rule 7: front matter detected). A prose paragraph is not.
+  const first = body[0]!;
+  const titlePage =
+    body.length > 1 &&
+    !first.title &&
+    first.blocks.length <= TITLE_PAGE_MAX_LINES &&
+    first.blocks.every((b) => b.words <= TITLE_PAGE_LINE_WORDS);
+  if (titlePage) front[0] = 'title_page';
+  const titleOf = (c: RawChapter, i: number) =>
+    c.title ?? (i === 0 && titlePage ? 'Title page' : `Chapter ${titlePage ? i : i + 1}`);
   const parts = splitParts(
     body.map((c, i) => ({
-      title: c.title ?? `Chapter ${i + 1}`,
+      title: titleOf(c, i),
       paragraphs: c.blocks.map((b) => (front[i] ? 0 : b.words)),
       sceneBreaks: c.blocks.flatMap((b, j) => (b.sceneBreak ? [j] : [])),
     })),
@@ -222,7 +235,9 @@ export function verifyPackage(
   const toc = readToc(files, opf);
   const story = (titles: string[]) =>
     titles.filter((t) => !NOT_A_CHAPTER.some((re) => re.test(t.trim()))).length;
-  const tocChapters = toc ? [...new Set([story(toc.top), story(toc.leaves), story(toc.all)])] : null;
+  const counts = toc ? [story(toc.top), story(toc.leaves), story(toc.all)] : [];
+  // An untitled title page is listed under the book's own name (writeEpub), so it may be one more.
+  const tocChapters = toc ? [...new Set(titlePage ? counts.flatMap((n) => [n, n - 1]) : counts)] : null;
 
   // ─── Checks (rule 24). Plagiarism and policy run through provider adapters in the Worker. ───
   flags.push(...checkChapters(chapters, { untitledBook, tocChapters }));

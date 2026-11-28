@@ -12,9 +12,13 @@ onlineManager.setEventListener((setOnline) =>
   NetInfo.addEventListener((state) => setOnline(state.isConnected !== false)),
 );
 
+// The mirror lasts as long as an offline licence (7 days, flow 04 rule 71, flow 05 rule 33): a reader who stays
+// offline for days still opens the Library, Home and their books from it. Each persist restamps it.
+const MIRROR_MS = 1000 * 60 * 60 * 24 * 7;
+
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { gcTime: 1000 * 60 * 60 * 24, staleTime: 1000 * 30, retry: 2, networkMode: 'offlineFirst' },
+    queries: { gcTime: MIRROR_MS, staleTime: 1000 * 30, retry: 2, networkMode: 'offlineFirst' },
     mutations: { networkMode: 'online', retry: 0 },
   },
 });
@@ -36,10 +40,7 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 }}
-    >
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: MIRROR_MS }}>
       {children}
     </PersistQueryClientProvider>
   );

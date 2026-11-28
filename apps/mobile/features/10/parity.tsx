@@ -221,6 +221,7 @@ export function Flow10({ page }: { page: Page10 }) {
           onBack={noop}
           onFeed={noop}
           onToggle={noop}
+          onMessages={noop}
           onOpenSettings={noop}
         />
       );

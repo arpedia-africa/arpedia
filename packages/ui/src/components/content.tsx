@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Image, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedProps, useAnimatedStyle } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -196,6 +196,8 @@ export function Cover({
   const w = s(size);
   const h = s(coverH[size]);
   const [from, to, deg, fg] = covers[tone];
+  const [failedUri, setFailedUri] = useState<string>();
+  const showImage = !!uri && failedUri !== uri;
   const tiny = size <= 48;
   const titleSize = size === 150 ? 17 : size === 128 ? 15 : tiny ? 7.5 : 12;
   const frame: ViewStyle = {
@@ -226,92 +228,90 @@ export function Cover({
         width: fluid ? '100%' : w,
       }}
     >
-      {uri ? (
-        <Image
-          source={{ uri }}
-          style={{
-            width: frame.width,
-            height: frame.height,
-            aspectRatio: frame.aspectRatio,
-            borderRadius: frame.borderRadius,
-          }}
-          resizeMode="cover"
+      <View style={frame}>
+        <LinearGradient
+          colors={[from, to]}
+          {...gradientPoints(deg)}
+          style={{ position: 'absolute', inset: 0 }}
         />
-      ) : (
-        <View style={frame}>
-          <LinearGradient
-            colors={[from, to]}
-            {...gradientPoints(deg)}
-            style={{ position: 'absolute', inset: 0 }}
+        <CoverArt tone={tone} w={w} h={h} s={s} />
+        {boxShadow ? null : (
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: s(3),
+              backgroundColor: 'rgba(255,255,255,0.18)',
+            }}
           />
-          <CoverArt tone={tone} w={w} h={h} s={s} />
-          {boxShadow ? null : (
-            <View
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: s(3),
-                backgroundColor: 'rgba(255,255,255,0.18)',
-              }}
-            />
-          )}
-          {titleOneLine ? (
-            <Text
-              family="reading"
-              weight={600}
-              size={titleOneLine}
-              color={fg}
-              numberOfLines={1}
-              style={{ lineHeight: s(titleOneLine) * 1.25 }}
-            >
-              {title}
-            </Text>
-          ) : (
-            /* Word by word, like the browser: lines break at spaces only, and a word wider than
+        )}
+        {titleOneLine ? (
+          <Text
+            family="reading"
+            weight={600}
+            size={titleOneLine}
+            color={fg}
+            numberOfLines={1}
+            style={{ lineHeight: s(titleOneLine) * 1.25 }}
+          >
+            {title}
+          </Text>
+        ) : (
+          /* Word by word, like the browser: lines break at spaces only, and a word wider than
               the cover is clipped (Android would otherwise split it, "Harm/attan"). */
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: center ? 'center' : undefined,
-                columnGap: s(titleSize) * 0.25,
-              }}
-            >
-              {title.split(/\s+/).map((word, i) => (
-                <Text
-                  key={i}
-                  family="reading"
-                  weight={600}
-                  size={titleSize}
-                  color={fg}
-                  numberOfLines={1}
-                  ellipsizeMode="clip"
-                  style={{ lineHeight: s(titleSize) * 1.15 }}
-                >
-                  {word}
-                </Text>
-              ))}
-            </View>
-          )}
-          {author && !tiny ? (
-            <Text
-              size={7.5}
-              color={tone === 'c3' ? '#222222' : fg}
-              center={center}
-              style={{
-                opacity: 0.85,
-                letterSpacing: s(7.5) * 0.05,
-                marginTop: s(3),
-                textTransform: 'uppercase',
-              }}
-            >
-              {author}
-            </Text>
-          ) : null}
-        </View>
-      )}
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: center ? 'center' : undefined,
+              columnGap: s(titleSize) * 0.25,
+            }}
+          >
+            {title.split(/\s+/).map((word, i) => (
+              <Text
+                key={i}
+                family="reading"
+                weight={600}
+                size={titleSize}
+                color={fg}
+                numberOfLines={1}
+                ellipsizeMode="clip"
+                style={{ lineHeight: s(titleSize) * 1.15 }}
+              >
+                {word}
+              </Text>
+            ))}
+          </View>
+        )}
+        {author && !tiny ? (
+          <Text
+            size={7.5}
+            color={tone === 'c3' ? '#222222' : fg}
+            center={center}
+            style={{
+              opacity: 0.85,
+              letterSpacing: s(7.5) * 0.05,
+              marginTop: s(3),
+              textTransform: 'uppercase',
+            }}
+          >
+            {author}
+          </Text>
+        ) : null}
+        {/* The real cover sits over the sample: the sample shows while it loads, offline without a
+            cached copy, and if it fails (spec check 03-7, 05-7, 07-11). */}
+        {showImage ? (
+          <Image
+            source={{ uri }}
+            onError={() => setFailedUri(uri)}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors
+          />
+        ) : null}
+      </View>
     </View>
   );
 }

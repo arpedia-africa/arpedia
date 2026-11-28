@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AvatarTone } from '@arpedia/ui';
-import type { Database } from '@arpedia/core';
+import { tabBadgeLabel, type Database } from '@arpedia/core';
 import { supabase } from '@/lib/supabase';
+import { useAskPush } from '../15/push';
+import { useTrack } from './analytics';
 
 // Flow 06 server data: inbox rows, filter counts, Mark all read (RPCs in 20261119000600_06_community).
 
@@ -34,16 +36,22 @@ export function useInbox(filter: InboxFilter) {
   });
 }
 
+async function fetchCounts() {
+  const { data, error } = await supabase.rpc('get_inbox_counts');
+  if (error) throw error;
+  return data as unknown as InboxCounts;
+}
+
 export function useInboxCounts() {
-  return useQuery({
-    queryKey: countsKey,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_inbox_counts');
-      if (error) throw error;
-      return data as unknown as InboxCounts;
-    },
-    refetchInterval: POLL_MS,
-  });
+  return useQuery({ queryKey: countsKey, queryFn: fetchCounts, refetchInterval: POLL_MS });
+}
+
+/** Community tab badge (rule 5): unread conversations, muted excluded, "9+" cap. Same cache as the
+ * inbox counts; outside Community it refreshes every minute and when the app comes back. */
+export function useCommunityBadge(): string | undefined {
+  const q = useQuery({ queryKey: countsKey, queryFn: fetchCounts, refetchInterval: 60_000 });
+  const n = q.data?.tab ?? 0;
+  return n > 0 ? tabBadgeLabel(n) : undefined;
 }
 
 export function useMarkAllRead() {
@@ -79,12 +87,22 @@ export function useCommunities(q: string, type: string) {
 /** Join adds the user as member and puts the community in the inbox; it doesn't open the chat. */
 export function useJoin() {
   const qc = useQueryClient();
+  const askPush = useAskPush();
+  const track = useTrack();
   return useMutation({
     mutationFn: async (group: string) => {
       const { error } = await supabase.rpc('join_group', { p_group: group });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['community'] }),
+    onSuccess: (_d, group) => {
+      askPush('join');
+      const row = qc
+        .getQueriesData<Community[]>({ queryKey: ['community', 'discover'] })
+        .flatMap(([, d]) => d ?? [])
+        .find((g) => g.id === group);
+      track('group_joined', { group_kind: row?.kind ?? 'unknown', source: 'discover' });
+      return qc.invalidateQueries({ queryKey: ['community'] });
+    },
   });
 }
 

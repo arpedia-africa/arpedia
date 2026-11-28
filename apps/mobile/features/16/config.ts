@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { focusManager, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 
 const api = process.env.EXPO_PUBLIC_API_URL ?? '';
@@ -21,6 +22,10 @@ export interface PendingPolicy {
   version: number;
   change_summary: string | null;
 }
+
+/** Rule 26: offline sync waits while maintenance mode is on (last config read; off when unknown). */
+export const inMaintenance = () =>
+  queryClient.getQueryData<AppConfig>(['app-config'])?.maintenance.on === true;
 
 /** `major.minor` of the installed app ("26.0.0" → "26.0"), the form the console compares. */
 export const appVersion = (Application.nativeApplicationVersion ?? '0.0').split('.').slice(0, 2).join('.');
@@ -58,8 +63,12 @@ export function useRemoteCopy(key: string, fallback: string, vars: Record<string
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 }
 
-export function useFlag(key: string) {
-  return useAppConfig().data?.flags[key] === true;
+/**
+ * A feature flag for this reader (rule 27). `fallback` is used until the config loads (or when it
+ * cannot): kill switches for live features pass true so nothing disappears offline.
+ */
+export function useFlag(key: string, fallback = false) {
+  return useAppConfig().data?.flags[key] ?? fallback;
 }
 
 export function usePendingPolicies(userId: string | undefined) {

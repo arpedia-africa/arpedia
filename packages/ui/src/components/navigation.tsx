@@ -104,10 +104,12 @@ export interface TabBarProps {
   tabs?: TabItem[];
   active: string;
   onChange: (key: string) => void;
+  /** Unread label per tab key ("3", "9+"), drawn as the `.count` pill on the icon's corner. */
+  badges?: Partial<Record<string, string>>;
 }
 
 /** `.tabbar`: four tabs; the active one is night with a main-colour line that grows from the centre. */
-export function TabBar({ tabs = mainTabs, active, onChange }: TabBarProps) {
+export function TabBar({ tabs = mainTabs, active, onChange, badges }: TabBarProps) {
   const { c, s, bw } = useTheme();
   const bottom = useBottomInset(22);
   return (
@@ -127,18 +129,44 @@ export function TabBar({ tabs = mainTabs, active, onChange }: TabBarProps) {
       {tabs.map((t) => {
         const on = t.key === active;
         const col = on ? c.night : c.ink3;
+        const badge = badges?.[t.key];
         return (
           <Press
             key={t.key}
             onPress={() => onChange(t.key)}
             pressScale={motion.press.tab}
             accessibilityRole="tab"
-            accessibilityLabel={t.label}
+            accessibilityLabel={badge ? `${t.label}, ${badge} unread` : t.label}
             accessibilityState={{ selected: on }}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: s(3), minHeight: s(48) }}
           >
             <TabIndicator on={on} />
-            <Icon name={t.icon} color={col} />
+            <View>
+              <Icon name={t.icon} color={col} />
+              {badge ? (
+                // `.count` (accent pill, 11.5 bold), smaller on the icon corner with a white ring.
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -s(6),
+                    left: s(14),
+                    minWidth: s(18),
+                    height: s(18),
+                    paddingHorizontal: s(5),
+                    borderRadius: 999,
+                    backgroundColor: c.acc,
+                    borderWidth: bw(2),
+                    borderColor: c.white,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text size={10.5} weight={700} color={c.accOn} tabular oneLine>
+                    {badge}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             <Text size={11} weight={600} color={col} oneLine>
               {t.label}
             </Text>

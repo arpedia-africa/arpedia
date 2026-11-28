@@ -11,7 +11,7 @@ import { avatarTone } from '../../../features/03/BookViews';
 import { useOnline } from '../../../features/03/book';
 import { rpcError } from '../../../features/03/UnlockSheet';
 import { OptionList, ReportBody, type OptionItem, type ReportReason } from '../../../features/06/SheetViews';
-import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
+import { REPORT_SAVED, REPORT_SENT, reportErrorCopy, useReport } from '../../../features/14/report';
 import { useTrack } from '../../../features/08/analytics';
 import {
   CommentBox,
@@ -79,6 +79,7 @@ export default function PostPage() {
   const { s } = useTheme();
   const toast = useToast();
   const track = useTrack();
+  const reportFlow = useReport();
   const qc = useQueryClient();
   const online = useOnline();
   const post = usePost(id);
@@ -151,7 +152,6 @@ export default function PostPage() {
   };
 
   const submit = () => {
-    if (!online) return toast({ message: 'Connect to do this' });
     if (!validMessage(text)) return;
     const p: Pending = {
       client_id: Crypto.randomUUID(),
@@ -163,6 +163,8 @@ export default function PostPage() {
     setText('');
     setReplyTo(null);
     input.current?.blur();
+    // States: offline. The comment waits as "Not sent. Tap to retry" with its client_id.
+    if (!online) return setPending((l) => [...l, { ...p, state: 'failed' }]);
     void send(p);
   };
 
@@ -299,6 +301,7 @@ export default function PostPage() {
                   setReason(null);
                   setDetails('');
                   setAlsoBlock(false);
+                  reportFlow.started('post_comment');
                   setReporting(menu);
                 },
               },
@@ -447,16 +450,17 @@ export default function PostPage() {
             onSend={() => {
               if (!reason) return;
               setSendingReport(true);
-              createReport(
-                {
-                  content_type: 'post_comment',
-                  content_id: reporting.id,
-                  reason,
-                  details: details.trim() || null,
-                  also_block: alsoBlock,
-                },
-                !online,
-              )
+              reportFlow
+                .send(
+                  {
+                    content_type: 'post_comment',
+                    content_id: reporting.id,
+                    reason,
+                    details: details.trim() || null,
+                    also_block: alsoBlock,
+                  },
+                  !online,
+                )
                 .then(
                   (ref) => {
                     setReporting(null);

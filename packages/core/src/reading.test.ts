@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   chargeKey,
   confirmCharge,
+  licenceTerms,
   licenseValid,
   memoryPendingStore,
   pageAt,
+  pagesTurned,
   pendingCharges,
   percentToParagraph,
   positionAllowed,
@@ -142,5 +144,32 @@ describe('licence clock', () => {
   it('treats a clock moved back as expired', () => {
     expect(licenseValid(l, 503 * day, 504 * day)).toBe(false);
     expect(licenseValid(l, 499 * day, 0)).toBe(false);
+  });
+});
+
+describe('licence terms (flow 10 rule 31)', () => {
+  const day = 86_400_000;
+  it('gives 7 recorded days under the device limit, online or download', () => {
+    expect(licenceTerms(0, true, false)).toEqual({ validUntil: 7 * day, record: true });
+    expect(licenceTerms(0, false, false)).toEqual({ validUntil: 7 * day, record: true });
+  });
+  it('lets a fourth device read online on a short unrecorded licence, but not download', () => {
+    expect(licenceTerms(0, true, true)).toEqual({ validUntil: 60 * 60_000, record: false });
+    expect(licenceTerms(0, false, true)).toBe('device_limit');
+  });
+});
+
+describe('pages turned (flow 15 rule 27)', () => {
+  it('counts standard pages for a forward move', () => {
+    // 1% of 50,000 words = 500 words = 2 standard pages.
+    expect(pagesTurned(10, 10.5, 50_000)).toBeCloseTo(1);
+    expect(pagesTurned(10, 11, 50_000)).toBe(2);
+  });
+  it('caps a jump and ignores moving back, the first place and empty books', () => {
+    expect(pagesTurned(10, 60, 50_000)).toBe(2);
+    expect(pagesTurned(20, 10, 50_000)).toBe(0);
+    expect(pagesTurned(10, 10, 50_000)).toBe(0);
+    expect(pagesTurned(null, 10, 50_000)).toBe(0);
+    expect(pagesTurned(10, 11, 0)).toBe(0);
   });
 });

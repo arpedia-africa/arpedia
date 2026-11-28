@@ -5,6 +5,8 @@
 #   halt         stop the production rollout
 # Needs repo secrets: ANDROID_UPLOAD_KEYSTORE (base64), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
 # ANDROID_KEY_PASSWORD, PLAY_SERVICE_ACCOUNT_JSON (base64), plus EXPO_PUBLIC_* variables.
+# Push: FIREBASE_GOOGLE_SERVICES_JSON (the google-services.json, raw or base64) is written outside the
+# checkout before `expo prebuild`; EXPO_PUBLIC_PUSH=1 only when it has a client for com.arpedia.reader.
 # Approval (flow 17 rule 13): production and halt run in the `production` environment (add the
 # owner as a required reviewer there when the plan allows it) and only for logins listed in the
 # RELEASE_APPROVERS variable (comma-separated), so nobody else can start a rollout.
@@ -64,6 +66,22 @@ jobs:
         run: |
           echo "$KEYSTORE" | base64 -d > upload.keystore
           echo "$PLAY_JSON" | base64 -d > play.json
+      - name: Firebase file
+        working-directory: apps/mobile
+        env:
+          FIREBASE_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        run: |
+          f="$RUNNER_TEMP/google-services.json"
+          if [ -n "$FIREBASE_JSON" ]; then
+            case "$FIREBASE_JSON" in
+              \{*) printf '%s' "$FIREBASE_JSON" > "$f" ;;
+              *) printf '%s' "$FIREBASE_JSON" | base64 -d > "$f" ;;
+            esac
+          fi
+          echo "GOOGLE_SERVICES_JSON=$f" >> "$GITHUB_ENV"
+          push=$(GOOGLE_SERVICES_JSON="$f" node plugins/google-services.js com.arpedia.reader)
+          echo "EXPO_PUBLIC_PUSH=$push" >> "$GITHUB_ENV"
+          if [ "$push" = 1 ]; then echo "Push on"; else echo "::warning::No Firebase client for com.arpedia.reader: this build has no push"; fi
       - name: Build and upload to Play internal
         working-directory: apps/mobile
         env:
@@ -77,6 +95,7 @@ jobs:
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
           EXPO_PUBLIC_SENTRY_DSN: ${{ vars.EXPO_PUBLIC_SENTRY_DSN }}
           EXPO_PUBLIC_POSTHOG_KEY: ${{ vars.EXPO_PUBLIC_POSTHOG_KEY }}
+          EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: ${{ secrets.REVENUECAT_ANDROID_PUBLIC_KEY }}
         run: bundle exec fastlane android internal
       - name: Keep the bundle for preflight
         uses: actions/upload-artifact@v4
@@ -87,7 +106,7 @@ jobs:
       - name: Remove signing files
         if: always()
         working-directory: apps/mobile
-        run: rm -f upload.keystore play.json
+        run: rm -f upload.keystore play.json "$RUNNER_TEMP/google-services.json"
 
   promote:
     if: github.event_name == 'workflow_dispatch' && inputs.lane != 'internal'

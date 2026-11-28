@@ -25,7 +25,7 @@ Export these in your shell (or GitHub environment) for the target. Never commit 
 | Tool | Settings |
 |---|---|
 | `tools/launch/setup.mjs` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `ADMIN_URL`, `RESEND_API_KEY` (optional) |
-| `tools/launch/preflight.mjs` | the above, plus `API_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECTS`, `POSTHOG_HOST`, `POSTHOG_PROJECT_ID`, `POSTHOG_PERSONAL_API_KEY` |
+| `tools/launch/preflight.mjs` | the above, plus `API_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECTS`, `POSTHOG_HOST`, `POSTHOG_PROJECT_ID`, `POSTHOG_PERSONAL_API_KEY`, `REVENUECAT_ANDROID_PUBLIC_KEY` |
 | `tools/launch/backup.mjs` | `SUPABASE_DB_URL`, `BACKUP_KEY`, `R2_*` |
 | `tools/launch/unmatched.mjs` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
 | `tools/launch/staging-content.mjs` (staging only) | `APP_ENV=staging`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BOOK_MASTER_KEY` (staging api Worker's), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (a token that can write `arpedia-books-staging`) |
@@ -95,6 +95,7 @@ node tools/launch/preflight.mjs --target production --bundle app-release.aab
 | backups | a backup under 26 hours old |
 | sentry, posthog | events received in the last 24 hours (send a test event on a fresh project) |
 | release_endpoints, expo_public_kit | no staging or local URL in the bundle; built without `EXPO_PUBLIC_KIT` |
+| revenuecat_key, test_store | the RevenueCat Android key (`goog_…`) is in the bundle; the local test store isn't |
 | live_books, empty_genres, empty_home_rails (warn) | 50 Live (Q3), no empty genre or Home rail |
 | database_size (warn at 80%) | under the free plan's 500 MB |
 | unmatched_store_events (warn) | Finance has handled every v25 store event |
@@ -145,6 +146,41 @@ Finance refunds or settles each in Play Console or RevenueCat, then marks it han
 select public.resolve_unmatched_store_event(<id>, 'Refunded in Play Console');
 ```
 **Support macro (v25 subscriber):** "Arpedia has a brand-new app, and it's a fresh start: accounts, credits and subscriptions from the old app don't carry over. Please create a new account. For anything you paid for in the old app, our Finance team will contact you about a refund." Then assign the ticket to Finance.
+
+### Owner step: Google Play purchases on a real phone (flow 09)
+The app buys through RevenueCat (`react-native-purchases`) and logs in to it with the Arpedia user id. Credits come only from the webhook → ledger; the app never grants them. Product ids come from `public.plans` and `public.topup_products` (`play_product_id`).
+
+**1. Play Console → Monetise → Products** (all new ids, Q2; check none equals a v25 id):
+
+| Play product id | Type | Base plan | Price (Nigeria) | Credits |
+|---|---|---|---|---|
+| `arpedia_monthly` | Subscription | `p1m`, auto-renewing, 1 month | ₦900 | 300 |
+| `arpedia_quarterly` | Subscription | `p3m`, auto-renewing, 3 months | ₦2,400 | 800 |
+| `arpedia_yearly` | Subscription | `p1y`, auto-renewing, 1 year | ₦8,400 | 3,000 (incl. 200 bonus) |
+| `arpedia_topup_200` | In-app product (consumable) | – | ₦600 | 200 |
+| `arpedia_topup_500` | In-app product (consumable) | – | ₦1,500 | 500 |
+| `arpedia_topup_1000` | In-app product (consumable) | – | ₦3,000 | 1,000 |
+
+Base plan ids are free to choose (the server ignores the part after `:`). Turn on subscription pause (flow 09 rule 18) and set the grace period (flow 09 Q8). Add your test Google account under Licence testing.
+
+**2. RevenueCat** (project shared with v25):
+- [ ] Android app `com.arpedia.reader` linked to Play (service account credentials).
+- [ ] Import the six products above. One entitlement `reader` with the three subscriptions (top-ups stay outside entitlements).
+- [ ] Project settings → **Restore behaviour: "Keep with original App User ID"**, so a Play subscription already on another Arpedia account is refused ("This Google Play subscription is linked to another Arpedia account", rule 7) instead of moved.
+- [ ] Webhook → `https://<api>/v1/payments/revenuecat`, Authorization header = `REVENUECAT_WEBHOOK_AUTH`.
+- [ ] The public Android SDK key (`goog_…`) as the GitHub secret `REVENUECAT_ANDROID_PUBLIC_KEY` (`tools/sync-secrets.mjs` sets it); the Release Android workflow passes it as `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`. Without it the app says "Google Play is not responding" and preflight `revenuecat_key` fails.
+
+**3. On a real phone** (internal track build, signed in to Play with the licence-test account; local test logins don't apply):
+1. Sign up, reach the paywall: prices show Play's own text after a short skeleton.
+2. Subscribe to **Quarterly**, pay with the test card "always approves": "Setting up your plan", then **800 credits** on Credits within about 10 seconds. RevenueCat → Customer shows the Arpedia user id.
+3. Credits → Top up **200**: balance +200, history line.
+4. Subscribe again with "slow test card, approves after a few minutes": "Google Play is still waiting for your payment…", credits arrive later without paying twice.
+5. Try "always declines": the store's message shows, nothing is charged.
+6. Close the Play sheet without paying: back on checkout, no message.
+7. Sign out, sign in as a second Arpedia account on the same phone, tap **Restore purchases**: "linked to another Arpedia account", nothing changes. Sign back in to the first: Restore says the plan is back.
+8. **Refund:** Play Console → Order management → refund the top-up order (with "Revoke"). Within minutes the unspent 200 credits are removed (ledger `refund` row); spent ones stay spent. Then refund and revoke the Quarterly order: subscription `refunded`, unspent plan credits removed, unlocked books stay.
+9. Pause 1 month in Play: credits kept (flow 09 Done when). Resume.
+10. Note the results in the flow 09 fix PR.
 
 ## 7. Release steps (rules 13–15)
 All from GitHub: **Actions → Release Android → Run workflow**.

@@ -1,7 +1,7 @@
 // Flow 10 · Settings (s-account), App colour (s-theme-settings), Notifications (s-notif-prefs),
 // Security (s-security), About (s-about) and Delete account (s-delete-account). Pure views: the
 // routes in app/(account) pass data and callbacks; tools/parity draws them with sample data.
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import {
@@ -477,8 +477,17 @@ export function ThemeBody({
 }
 
 /* ─── s-notif-prefs ──────────────────────────────────────────────────────── */
+/** Club and room messages (flow 15 rule 3); `clubs` is true unless this is `off`. */
+export type MessagesLevel = 'all' | 'mentions' | 'off';
+export const MESSAGES_LEVELS: { k: MessagesLevel; label: string }[] = [
+  { k: 'all', label: 'All messages' },
+  { k: 'mentions', label: 'Mentions and replies only' },
+  { k: 'off', label: 'Off' },
+];
+
 export interface NotifPrefs {
   clubs: boolean;
+  messages_level?: MessagesLevel;
   authors: boolean;
   note_replies: boolean;
   reminders: boolean;
@@ -487,7 +496,7 @@ export interface NotifPrefs {
   quiet_start: string;
   quiet_end: string;
 }
-export type NotifKey = keyof Omit<NotifPrefs, 'quiet_start' | 'quiet_end'>;
+export type NotifKey = keyof Omit<NotifPrefs, 'quiet_start' | 'quiet_end' | 'messages_level'>;
 
 function ToggleCell({
   title,
@@ -514,22 +523,31 @@ function ToggleCell({
 export function NotifPrefsView({
   prefs,
   phoneOff,
+  noPush,
   onBack,
   onFeed,
   onToggle,
+  onMessages,
   onOpenSettings,
 }: {
   prefs?: NotifPrefs;
   phoneOff?: boolean;
+  /** This build has no push (staging test build without Firebase): say so instead. */
+  noPush?: boolean;
   onBack: () => void;
   onFeed: () => void;
   onToggle: (k: NotifKey, v: boolean) => void;
+  /** All messages, Mentions and replies only, or Off (flow 15 rule 3). */
+  onMessages: (level: MessagesLevel) => void;
   onOpenSettings: () => void;
 }) {
-  const { c, s } = useTheme();
+  const { c, s, bw } = useTheme();
+  const [choosing, setChoosing] = useState(false);
   const hm = (t: string) => t.slice(0, 5);
+  const level: MessagesLevel = prefs?.messages_level ?? (prefs && !prefs.clubs ? 'off' : 'mentions');
+  const levelLabel = MESSAGES_LEVELS.find((l) => l.k === level)!.label;
   const rows: { k: NotifKey; title: string; sub?: string }[] = [
-    { k: 'clubs', title: 'Club and room messages', sub: 'Mentions and replies only' },
+    { k: 'clubs', title: 'Club and room messages', sub: levelLabel },
     { k: 'authors', title: 'Authors you follow', sub: 'New books and posts' },
     { k: 'note_replies', title: 'Replies to your notes' },
     { k: 'reminders', title: 'Reading reminders', sub: "A nudge if you haven't read in 3 days" },
@@ -543,11 +561,17 @@ export function NotifPrefsView({
         onBack={onBack}
         action={<IconButton icon="bell" label="Open notification feed" onPress={onFeed} color={c.onOrg} />}
       />
-      {phoneOff ? (
+      {noPush ? (
+        <View style={{ paddingHorizontal: s(16), paddingTop: s(16) }}>
+          <Callout tone="info">
+            This test build doesn’t get push notifications. Your choices are saved and the feed still fills.
+          </Callout>
+        </View>
+      ) : phoneOff ? (
         <View style={{ paddingHorizontal: s(16), paddingTop: s(16), gap: s(8) }}>
-          <Callout tone="warn">Notifications are off on this phone.</Callout>
+          <Callout tone="warn">Notifications are off in your phone settings.</Callout>
           <Btn
-            label="Open phone settings"
+            label="Open settings"
             variant="g"
             size="sm"
             onPress={onOpenSettings}
@@ -559,7 +583,16 @@ export function NotifPrefsView({
         <GroupLabel>Send me</GroupLabel>
         <Group>
           {rows.map((r) =>
-            prefs ? (
+            prefs && r.k === 'clubs' ? (
+              // The row opens the three choices; its switch stays the quick on/off of the prototype.
+              <Cell
+                key={r.k}
+                title={r.title}
+                sub={r.sub}
+                onPress={() => setChoosing(true)}
+                trail={<Toggle value={level !== 'off'} onChange={(v) => onToggle(r.k, v)} label={r.title} />}
+              />
+            ) : prefs ? (
               <ToggleCell
                 key={r.k}
                 title={r.title}
@@ -597,6 +630,50 @@ export function NotifPrefsView({
           )}
         </Group>
       </Section>
+      <Sheet open={choosing} onClose={() => setChoosing(false)} title="Club and room messages">
+        {/* .option rows with a .radio, as in the report sheet: 22px ring, 7px when chosen */}
+        <View accessibilityRole="radiogroup" style={{ marginHorizontal: -s(18) }}>
+          {MESSAGES_LEVELS.map((l, i) => {
+            const on = level === l.k;
+            return (
+              <Press
+                key={l.k}
+                onPress={() => {
+                  setChoosing(false);
+                  if (!on) onMessages(l.k);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={l.label}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: s(12),
+                  paddingVertical: s(12),
+                  paddingHorizontal: s(14),
+                  minHeight: s(48),
+                  backgroundColor: on ? c.orgTint2 : c.white,
+                  boxShadow: on ? `inset 0 0 0 ${s(2)}px ${c.org}` : undefined,
+                  ...(i && !on ? { borderTopWidth: bw(1), borderTopColor: c.line } : null),
+                }}
+              >
+                <View
+                  style={{
+                    width: s(22),
+                    height: s(22),
+                    borderRadius: 999,
+                    borderWidth: on ? s(7) : s(2),
+                    borderColor: on ? c.org : c.control,
+                  }}
+                />
+                <Text size={15.5} weight={700} oneLine style={{ flex: 1 }}>
+                  {l.label}
+                </Text>
+              </Press>
+            );
+          })}
+        </View>
+      </Sheet>
     </View>
   );
 }
@@ -774,6 +851,7 @@ export function AboutView({
   build,
   onBack,
   onHelp,
+  onContact,
   onCopy,
   onTerms,
   onPrivacy,
@@ -783,6 +861,8 @@ export function AboutView({
   build: string;
   onBack: () => void;
   onHelp: () => void;
+  /** Tap on the row: an email with app version, device and user id (flow 14 rule 34). */
+  onContact?: () => void;
   onCopy: () => void;
   onTerms: () => void;
   onPrivacy: () => void;
@@ -798,6 +878,7 @@ export function AboutView({
           <Cell
             title="Contact support"
             sub="support@arpedia.africa"
+            onPress={onContact}
             trail={<Btn label="Copy" variant="g" size="sm" onPress={onCopy} />}
           />
           <Cell title="Terms of Service" chevron onPress={onTerms} />

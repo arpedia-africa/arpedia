@@ -12,6 +12,7 @@ import { rpcError, UnlockSheet } from '../03/UnlockSheet';
 import type { UnlockMode } from '../03/UnlockViews';
 import { useTrack } from './analytics';
 import type { ShelfName } from './LibraryViews';
+import { useAskPush } from '../15/push';
 
 const n = (v: number) => v.toLocaleString('en-NG');
 
@@ -199,6 +200,7 @@ export function PayRestLibSheet({
 }) {
   const qc = useQueryClient();
   const track = useTrack();
+  const askPush = useAskPush();
   // One idempotency key per opening, reused for every retry of the same tap (flow 03 rule 19), so a
   // double tap charges once.
   const [key, setKey] = useState('');
@@ -232,6 +234,7 @@ export function PayRestLibSheet({
       return data as { balance: number; spent: number; status: string };
     },
     onSuccess: (r, it) => {
+      askPush('unlock');
       track('pay_rest_confirmed', { left: r.spent });
       onPaid(it, r.spent);
     },
@@ -329,6 +332,7 @@ export interface CoverMenuItem {
 export function coverMenu({
   saved,
   offline,
+  downloading = false,
   downloadable,
   online,
   onBook,
@@ -339,6 +343,8 @@ export function coverMenu({
 }: {
   saved: boolean;
   offline: boolean;
+  /** A download in flight or paused: Remove reads as Cancel (rule 27). */
+  downloading?: boolean;
   /** Owned or partly paid: there are files to download. */
   downloadable: boolean;
   online: boolean;
@@ -352,12 +358,19 @@ export function coverMenu({
     { key: 'book', title: 'View book page', sub: 'Details, reviews and the discussion', onPress: onBook },
     ...(offline
       ? [
-          {
-            key: 'remove',
-            title: 'Remove download',
-            sub: 'Frees space on this phone. Your unlocks stay.',
-            onPress: onRemoveDownload,
-          },
+          downloading
+            ? {
+                key: 'cancel',
+                title: 'Cancel download',
+                sub: 'Stops it and frees the space. Your unlocks stay.',
+                onPress: onRemoveDownload,
+              }
+            : {
+                key: 'remove',
+                title: 'Remove download',
+                sub: 'Frees space on this phone. Your unlocks stay.',
+                onPress: onRemoveDownload,
+              },
         ]
       : downloadable
         ? [

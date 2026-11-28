@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
+import { REASON_LABELS, reasonsFor, type ReportReason } from '@arpedia/core';
 import { Btn, Callout, Cell, Group, Sheet, useTheme, useToast } from '@arpedia/ui';
-import { supabase } from '@/lib/supabase';
+import { REPORT_SAVED, REPORT_SENT, reportErrorCopy, useReport } from '../14/report';
 
 // s-book-more (rule 11) and its report sheet. Views stay pure for tools/parity.
 
@@ -27,7 +28,10 @@ export function MenuBody({ items }: { items: MoreItem[] }) {
   );
 }
 
-/** The ⋯ menu items for a book (Gift hidden for coming-soon books, Tip hidden on your own book). */
+/**
+ * The ⋯ menu items for a book (Gift hidden for coming-soon books, Tip hidden on your own book).
+ * Download, Gift and Tip also hide while their feature flag is off (flow 16 rule 27).
+ */
 export function moreItems({
   author,
   comingSoon,
@@ -37,6 +41,7 @@ export function moreItems({
   onGift,
   onTip,
   onReport,
+  flags = { downloads: true, gifts: true, tips: true },
 }: {
   author: string;
   comingSoon: boolean;
@@ -46,6 +51,7 @@ export function moreItems({
   onGift: () => void;
   onTip: () => void;
   onReport: () => void;
+  flags?: { downloads: boolean; gifts: boolean; tips: boolean };
 }): MoreItem[] {
   const off = 'Connect to continue';
   const first = author.split(' ')[0] || 'the author';
@@ -53,70 +59,90 @@ export function moreItems({
     ...(comingSoon
       ? []
       : [
-          {
-            key: 'download',
-            title: 'Download for offline',
-            sub: 'Whole book with Unlock all; paid chapters with pay as you read',
-            onPress: onDownload,
-          },
-          {
-            key: 'gift',
-            title: 'Gift this book',
-            sub: online ? 'Send it to a friend with your credits' : off,
-            onPress: onGift,
-          },
+          ...(flags.downloads
+            ? [
+                {
+                  key: 'download',
+                  title: 'Download for offline',
+                  sub: 'Whole book with Unlock all; paid chapters with pay as you read',
+                  onPress: onDownload,
+                },
+              ]
+            : []),
+          ...(flags.gifts
+            ? [
+                {
+                  key: 'gift',
+                  title: 'Gift this book',
+                  sub: online ? 'Send it to a friend with your credits' : off,
+                  onPress: onGift,
+                },
+              ]
+            : []),
         ]),
     ...(isAuthor
       ? []
       : [
-          {
-            key: 'tip',
-            title: 'Tip the author',
-            sub: online ? `Credits go straight to ${first}` : off,
-            onPress: onTip,
-          },
+          ...(flags.tips
+            ? [
+                {
+                  key: 'tip',
+                  title: 'Tip the author',
+                  sub: online ? `Credits go straight to ${first}` : off,
+                  onPress: onTip,
+                },
+              ]
+            : []),
           {
             key: 'report',
             title: 'Report this book',
-            sub: online ? 'Wrong content, copyright or abuse' : off,
+            // Reports queue offline and send on reconnect (flow 14 States: Offline).
+            sub: 'Wrong content, copyright or abuse',
             onPress: onReport,
           },
         ]),
   ];
 }
 
-const REASONS = [
-  { key: 'wrong_content', title: 'Wrong content', sub: 'The book isn’t what the page says it is' },
-  { key: 'copyright', title: 'Copyright', sub: 'Someone else wrote it, or it was copied' },
-  { key: 'abuse', title: 'Abuse', sub: 'Hate, harassment or harmful content' },
-] as const;
+// Flow 14 rule 3: a book offers Copyright infringement, Sexual content, Something else.
+const SUBS: Partial<Record<ReportReason, string>> = {
+  copyright: 'Someone else wrote it, or it was copied',
+  sexual: 'Explicit content that isn’t marked or allowed',
+  other: 'Wrong content, abuse or anything else',
+};
+const REASONS = reasonsFor('book').map((key) => ({ key, title: REASON_LABELS[key], sub: SUBS[key] }));
 
-/** Report this book: pick a reason; writes a `reports` row (flow 14). */
+/** Report this book: pick a reason; flow 14 `create_report` (copyright also opens a claim). Queued offline. */
 export function ReportSheet({
   bookId,
   open,
+  online,
   onClose,
 }: {
   bookId: string;
   open: boolean;
+  online: boolean;
   onClose: () => void;
 }) {
   const { s } = useTheme();
   const toast = useToast();
-  const [reason, setReason] = useState<string | null>(null);
-  useEffect(() => {
-    if (open) setReason(null);
-  }, [open]);
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const reportFlow = useReport();
   const send = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc('report_book', { p_book: bookId, p_reason: reason! });
-      if (error) throw error;
-    },
-    onSuccess: () => {
+    mutationFn: () => reportFlow.send({ content_type: 'book', content_id: bookId, reason: reason! }, !online),
+    onSuccess: (ref) => {
       onClose();
-      toast({ message: 'Thanks. Our team will look at it.' });
+      toast({ message: ref === null ? REPORT_SAVED : REPORT_SENT, duration: 6000 });
     },
   });
+  const { reset } = send;
+  useEffect(() => {
+    if (!open) return;
+    setReason(null);
+    reset();
+    reportFlow.started('book');
+  }, [open, reset, reportFlow]);
+  const refused = send.error ? reportErrorCopy(String(send.error.message)) : null;
   return (
     <Sheet open={open} onClose={onClose} locked={send.isPending} title="Report this book">
       <View style={{ marginHorizontal: s(-18) }}>
@@ -133,9 +159,7 @@ export function ReportSheet({
           ))}
         </Group>
       </View>
-      {send.isError ? (
-        <Callout tone="err">That didn’t send. Check your connection and try again.</Callout>
-      ) : null}
+      {refused ? <Callout tone="err">{refused}</Callout> : null}
       <Btn
         label="Send report"
         block

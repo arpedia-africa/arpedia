@@ -5,12 +5,14 @@ import { onlineManager, useQuery } from '@tanstack/react-query';
 import {
   compactCount,
   mainButton,
+  payAsYouReadOffered,
   perChapter,
   ratingBars,
   ratingLabel,
   readTimeShort,
   type PlanState,
 } from '@arpedia/core';
+import { coverUri } from '@/lib/cover';
 import { supabase } from '@/lib/supabase';
 import { avatarTone, coverTone, type BookPageModel } from './BookViews';
 
@@ -49,6 +51,8 @@ export interface BookPageData {
   chapters: number;
   chargeable_chapters: number;
   per_chapter: number | null;
+  /** Flow 16 rule 31: false when the rule is Off and this reader hasn't started paying by chapter. */
+  pay_as_you_read?: boolean;
   preview_percent: number;
   rating: { avg: number | null; count: number; h: number[] } | null;
   reads: number;
@@ -129,6 +133,7 @@ export function toModel(d: BookPageData): BookPageModel {
     title: d.book.title,
     author: d.book.author.name ?? '',
     tone: coverTone(d.book.id),
+    coverUri: coverUri(d.book.cover_key),
     following: d.following,
     meta,
     rating: d.rating?.avg != null && count > 0 ? ratingLabel(Number(d.rating.avg)) : null,
@@ -149,7 +154,9 @@ export function toModel(d: BookPageData): BookPageModel {
           : {
               kind: 'options',
               price: d.price,
-              perChapter: d.per_chapter ?? perChapter(d.price, d.chargeable_chapters),
+              perChapter: payAsYouReadOffered(d)
+                ? (d.per_chapter ?? perChapter(d.price, d.chargeable_chapters))
+                : null,
               balance: d.balance,
             },
     owned: d.owns_book,

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Screen, Section, useTheme, useToast } from '@arpedia/ui';
 import { greeting } from '@arpedia/core';
 import {
@@ -25,7 +26,8 @@ import {
   type HomeBook,
 } from '../../features/02/home';
 import { discoveryLinks } from '../../features/02/links';
-import { BANNERS_KEY, HomeAnnouncements } from '../../features/15/AnnouncementCard';
+import { useTrack } from '../../features/02/analytics';
+import { BANNERS_KEY, HomeAnnouncements, LaunchAnnouncement } from '../../features/15/AnnouncementCard';
 
 const card = (b: HomeBook): BookCard => ({
   id: b.id,
@@ -38,12 +40,36 @@ export default function Home() {
   const { c, s } = useTheme();
   const toast = useToast();
   const go = discoveryLinks(toast);
+  const track = useTrack();
   const home = useHome();
   const qc = useQueryClient();
+  // Rule 7: the credits chip and bell follow a spend or a read elsewhere as soon as Home shows again.
+  const { refetch } = home;
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
   const [pulling, setPulling] = useState(false);
   const data = home.data;
   const name = data?.first_name?.trim();
   const hello = `${greeting(new Date().getHours())}${name ? `, ${name}` : ''}.`;
+
+  const viewed = useRef(false);
+  useEffect(() => {
+    if (!data || viewed.current) return;
+    viewed.current = true;
+    track('home_viewed');
+  }, [data, track]);
+  const tapCard = (sectionKey: string, position: number, id: { book_id: string } | { author_id: string }) => {
+    logShelfTap(sectionKey, position);
+    track('shelf_card_tapped', { section_key: sectionKey, position, ...id });
+  };
+  const seeAll = (sectionKey: string) => {
+    track('see_all_tapped', { section_key: sectionKey });
+    if (sectionKey === 'recommended') go.explore();
+    else go.seeAll(sectionKey);
+  };
 
   const refresh = async () => {
     setPulling(true);
@@ -80,7 +106,7 @@ export default function Home() {
                       uri: a.avatar_url ?? undefined,
                     }}
                     onPress={() => {
-                      logShelfTap(sec.key, i);
+                      tapCard(sec.key, i, { author_id: a.id });
                       go.author(a.id);
                     }}
                   />
@@ -94,11 +120,12 @@ export default function Home() {
               key={sec.key}
               title={sec.title}
               books={sec.items.map((b) => ({ ...card(b), rank: b.rank ?? 0 }))}
-              onSeeAll={() => go.seeAll('top10')}
+              onSeeAll={() => seeAll('top10')}
               onBook={(id) => {
-                logShelfTap(
+                tapCard(
                   sec.key,
                   sec.items.findIndex((b) => b.id === id),
+                  { book_id: id },
                 );
                 go.book(id);
               }}
@@ -123,7 +150,7 @@ export default function Home() {
               title={sec.title}
               sub={recommended ? picksLine(data.picks) : undefined}
               link="See all"
-              onLink={() => (recommended ? go.explore() : go.seeAll(sec.key))}
+              onLink={() => seeAll(sec.key)}
             >
               <Rail label={sec.title}>
                 {sec.items.map((b, i) => (
@@ -131,7 +158,7 @@ export default function Home() {
                     key={b.id}
                     book={card(b)}
                     onPress={() => {
-                      logShelfTap(sec.key, i);
+                      tapCard(sec.key, i, { book_id: b.id });
                       go.book(b.id);
                     }}
                   />
@@ -168,6 +195,7 @@ export default function Home() {
       />
       <HomeAnnouncements style={{ paddingHorizontal: s(16), paddingTop: s(16) }} />
       <View>{body()}</View>
+      <LaunchAnnouncement />
     </Screen>
   );
 }

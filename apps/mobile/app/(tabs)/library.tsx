@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, Share, View, type NativeScrollEvent } from 'react-native';
+import { Image, RefreshControl, ScrollView, Share, View, type NativeScrollEvent } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,13 +12,16 @@ import {
   type LibrarySort,
 } from '@arpedia/core';
 import { Screen, Sheet, useTheme, useToast } from '@arpedia/ui';
+import { coverUri } from '@/lib/cover';
 import { coverTone } from '../../features/03/BookViews';
 import { useOnline } from '../../features/03/book';
 import { MenuBody } from '../../features/03/MoreSheet';
 import type { UnlockMode } from '../../features/03/UnlockViews';
+import { useTrack as useReaderTrack } from '../../features/04/analytics';
 import { useTrack } from '../../features/05/analytics';
 import {
   ACCOUNT_SHELVES,
+  adoptSavedView,
   downloadBook,
   refreshLicence,
   removeBookDownload,
@@ -86,8 +89,10 @@ export default function Library() {
   const qc = useQueryClient();
   const toast = useToast();
   const track = useTrack();
+  const trackReader = useReaderTrack();
   const online = useOnline();
   usePendingOpsSync();
+  useEffect(() => void adoptSavedView(), []);
 
   const { view, sort, setSort } = useLibraryPrefs();
   const { shelf, setShelf, downloads } = useLibrarySession();
@@ -125,7 +130,22 @@ export default function Library() {
     }
     return out;
   }, [offline.entries, downloads, shelves]);
-  const offlineIds = useMemo(() => new Set(offlineEntries.map((e) => e.bookId)), [offlineEntries]);
+  // Spec check 05-7: downloaded books keep their covers for offline (the platform image cache).
+  useEffect(() => {
+    if (!online) return;
+    for (const e of offline.entries) {
+      const uri = coverUri(e.item?.cover_key);
+      if (uri) Image.prefetch(uri).catch(() => undefined);
+    }
+  }, [online, offline.entries]);
+  // Rule 15: the Offline pill means "opens without a connection", so only a valid licence counts.
+  const offlineIds = useMemo(
+    () =>
+      new Set(
+        offlineEntries.filter((e) => e.validUntil != null && e.validUntil > Date.now()).map((e) => e.bookId),
+      ),
+    [offlineEntries],
+  );
   const onRefreshed = useCallback(
     (ok: boolean) => track('offline_shelf_refresh', { result: ok ? 'ok' : 'failed' }),
     [track],
@@ -166,8 +186,9 @@ export default function Library() {
   const openBook = (id: string) => router.push({ pathname: '/book/[id]', params: { id, source: 'library' } });
   const browse = (from: ShelfName | 'search', cta: string) => {
     track('library_empty_cta', { shelf: from, cta });
-    // Home and Explore are flow 02's.
-    router.navigate('/home');
+    // Rule 30: Explore (flow 02); "Search all books" carries the typed text to global search.
+    if (from === 'search') router.push({ pathname: '/search', params: { q: query.trim() } });
+    else router.push('/explore');
   };
 
   const changeShelf = (k: ShelfName) => {
@@ -209,6 +230,7 @@ export default function Library() {
     title: i.title,
     author: i.author_name ?? '',
     tone: coverTone(i.book_id),
+    coverUri: coverUri(i.cover_key),
     percent: k === 'reading' || (k === 'search' && i.shelves.reading) ? i.percent : null,
     state: k === 'search' ? shelvesLabel(i, offlineIds.has(i.book_id)) : stateLine(i, k),
   });
@@ -221,6 +243,7 @@ export default function Library() {
       title: i.title,
       author: i.author_name ?? '',
       tone: coverTone(i.book_id),
+      coverUri: coverUri(i.cover_key),
       status: opened ? paymentLine(i) : (stateLine(i, k === 'search' ? 'saved' : k) ?? paymentLine(i)),
       percent: i.percent,
       meta: !opened
@@ -287,6 +310,7 @@ export default function Library() {
     ? coverMenu({
         saved: !!menu.item?.shelves.saved,
         offline: offlineIds.has(menu.id),
+        downloading: downloads[menu.id] != null,
         downloadable: !!menu.item && (menu.item.owns_book || menu.item.paid_credits > 0),
         online,
         onBook: () => {
@@ -297,14 +321,15 @@ export default function Library() {
           setMenu(null);
           if (!online) return toast({ message: 'Connect to continue' });
           toast({ message: `Downloading ${menu.title}` });
-          void downloadBook(qc, menu.id);
+          void downloadBook(qc, menu.id, trackReader);
         },
         onRemoveDownload: () => {
           const bytes = offlineEntries.find((e) => e.bookId === menu.id)?.bytes ?? 0;
+          const inFlight = downloads[menu.id] != null;
           setMenu(null);
           removeBookDownload(qc, menu.id);
           track('download_removed', { book_id: menu.id, bytes });
-          toast({ message: `Removed ${menu.title} from this phone` });
+          toast({ message: inFlight ? 'Download cancelled' : `Removed ${menu.title} from this phone` });
         },
         onUnsave: () => {
           const it = menu.item;
@@ -404,6 +429,7 @@ export default function Library() {
               title: e.title,
               author: e.author ?? '',
               tone: coverTone(e.bookId),
+              coverUri: coverUri(e.item?.cover_key),
               percent: e.item ? e.item.percent : null,
               state: line,
               busy: refreshing === e.bookId,
@@ -414,9 +440,13 @@ export default function Library() {
             if (!e) return;
             if (downloads[e.bookId] === 'paused') {
               if (!online) return toast({ message: 'Connect to continue' });
-              return void downloadBook(qc, e.bookId);
+              return void downloadBook(qc, e.bookId, trackReader);
             }
             void openOffline(e);
+          }}
+          onLongPress={(b) => {
+            // Rule 27: cancel a download in flight (or paused) from a long-press.
+            if (downloads[b.id] != null) setMenu({ item: find(b.id), id: b.id, title: b.title });
           }}
           onMore={(b) => setMenu({ item: find(b.id), id: b.id, title: b.title })}
         />
@@ -537,7 +567,7 @@ export default function Library() {
           toast({ message: `Paid ${n(left)} credits · ${it.title} is yours to keep` });
           void qc.invalidateQueries({ queryKey: ['library'] });
           void qc.invalidateQueries({ queryKey: ['book-page', it.book_id] });
-          void downloadBook(qc, it.book_id);
+          void downloadBook(qc, it.book_id, trackReader);
         }}
       />
       {unlock ? (

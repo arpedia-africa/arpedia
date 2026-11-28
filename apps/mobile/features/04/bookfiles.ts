@@ -4,7 +4,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Directory, File, Paths } from 'expo-file-system';
 import { chapterAad, licenseValid, openFile, type ChapterAccess } from '@arpedia/core';
-import { openLocal, sealLocal, unsealKey } from './crypto';
+import { forgetReaderKeys, openLocal, sealLocal, unsealKey } from './crypto';
+import { clearPendingCharges } from './state';
 import { deviceId, fetchDownload, fetchKeys, WorkerError, type KeysResponse } from './worker';
 
 export interface ManifestChapter {
@@ -48,6 +49,8 @@ export class BookFiles {
   private urlsUntil = 0;
   private keys = new Map<string, Uint8Array>();
   private licence: Omit<StoredKeys, 'keys'> | null = null;
+  /** Files already fetched again this session (rule 19 allows one re-download each). */
+  private refetched = new Set<string>();
   manifest: BookManifest | null = null;
 
   constructor(
@@ -65,14 +68,18 @@ export class BookFiles {
     return new File(this.dir, 'keys.bin');
   }
 
-  /** Short-lived read links for the sealed files, plus a fresh key bundle (online only). */
-  async refreshLinks(): Promise<void> {
+  /**
+   * Short-lived read links for the sealed files, plus a fresh key bundle (online only). `online`:
+   * reading now, which a device past the download limit may still do (flow 10 rule 31).
+   */
+  async refreshLinks(online = true): Promise<void> {
     const device_id = await deviceId();
     const r = await fetchDownload({
       book_id: this.bookId,
       revision_id: this.revisionId,
       device_id,
       scope: this.owns ? 'whole' : 'owned',
+      online,
     });
     this.urls = new Map(r.files.map((f) => [f.path, f.url]));
     this.urlsUntil = Date.parse(r.expires_at) - 30_000;
@@ -80,13 +87,14 @@ export class BookFiles {
   }
 
   /** Keys for chapters the reader just became entitled to (after an unlock). */
-  async refreshKeys(chapterUids?: string[]): Promise<void> {
+  async refreshKeys(chapterUids?: string[], online = true): Promise<void> {
     const device_id = await deviceId();
     const r = await fetchKeys({
       book_id: this.bookId,
       revision_id: this.revisionId,
       device_id,
       chapter_uids: chapterUids,
+      online,
     });
     await this.storeKeys(r, !!chapterUids);
   }
@@ -102,13 +110,19 @@ export class BookFiles {
       valid_until: Date.parse(r.licence.valid_until),
       device_received_at: now,
     };
+    await this.persist();
+    await this.seeClock(now);
+  }
+
+  /** The key bundle on disk, sealed under the local master key (rule 4). */
+  private async persist() {
+    if (!this.licence) return;
     const stored: StoredKeys = {
       ...this.licence,
       keys: Object.fromEntries([...this.keys].map(([k, v]) => [k, btoa(String.fromCharCode(...v))])),
     };
     this.dir.create({ intermediates: true, idempotent: true });
     await this.keysFile().write(await sealLocal(enc.encode(JSON.stringify(stored)), this.label()));
-    await this.seeClock(now);
   }
 
   private label() {
@@ -156,8 +170,10 @@ export class BookFiles {
   hasFreeKey() {
     return this.keys.has(FREE);
   }
-  forgetKey(chapterUid: string) {
-    this.keys.delete(chapterUid);
+  /** Undo (rule 59): the chapter's key leaves memory and the sealed bundle on disk. */
+  async forgetKey(chapterUid: string) {
+    if (!this.keys.delete(chapterUid)) return;
+    await this.persist().catch(() => undefined);
   }
 
   /** The sealed bytes of a file: from disk, else fetched once and kept (ciphertext only). */
@@ -194,8 +210,41 @@ export class BookFiles {
   /**
    * Decrypted bytes for a path the reader bundle asked for. A chapter gets its full file only when
    * its access is open or unlocked (and the key is here); otherwise its free file (rule 7).
+   * A missing or undecryptable file is fetched again once with fresh links (rule 19).
    */
   async read(path: string, access: Record<string, ChapterAccess>): Promise<Uint8Array | null> {
+    let failed: unknown = null;
+    try {
+      const bytes = await this.readOnce(path, access);
+      if (bytes) return bytes;
+    } catch (e) {
+      if (e instanceof WorkerError) throw e;
+      failed = e;
+    }
+    const file = this.fileFor(path, access);
+    if (!file || this.refetched.has(file)) {
+      if (failed) throw failed;
+      return null;
+    }
+    this.refetched.add(file);
+    this.evict(file);
+    await this.refreshLinks();
+    return this.readOnce(path, access);
+  }
+
+  /** The stored file behind a requested path: the chapter's free file when its full file is closed. */
+  private fileFor(path: string, access: Record<string, ChapterAccess>): string | null {
+    const spine = /^c(\d+)\.full\.xhtml$/.exec(path);
+    if (!spine) return path;
+    const c = this.manifest?.chapters.find((x) => x.ord === Number(spine[1]));
+    if (!c) return null;
+    const a = access[c.chapter_uid];
+    if (a === 'unlocked' && this.keys.has(c.chapter_uid)) return path;
+    if (a === 'open' && !c.free_file) return path;
+    return c.free_file;
+  }
+
+  private async readOnce(path: string, access: Record<string, ChapterAccess>): Promise<Uint8Array | null> {
     const m = this.manifest;
     if (!m) throw new Error('not_open');
     let file = path;
@@ -237,7 +286,7 @@ export class BookFiles {
    * are skipped, so an interrupted download resumes where it stopped.
    */
   async downloadAll(onProgress?: (done: number, total: number) => void): Promise<void> {
-    await this.refreshLinks();
+    await this.refreshLinks(false);
     const paths = [...this.urls.keys()];
     let done = 0;
     for (const p of paths) {
@@ -275,6 +324,7 @@ export interface OfflineBook {
 }
 
 const root = () => new Directory(Paths.document, 'reader');
+const EXPIRED_PURGE_MS = 30 * 86_400_000;
 
 function walk(d: Directory, out: { bytes: number; chapters: number; newest: number }) {
   for (const e of d.list()) {
@@ -302,6 +352,12 @@ export async function offlineBooks(): Promise<OfflineBook[]> {
       if (t.chapters === 0) continue;
       const bf = new BookFiles(b.name, rev.name, false);
       await bf.loadStoredKeys();
+      // Rule 72: files whose licence ended more than 30 days ago are deleted.
+      const until = bf.licenceUntil();
+      if (until !== null && Date.now() > until + EXPIRED_PURGE_MS) {
+        rev.delete();
+        continue;
+      }
       out.push({
         bookId: b.name,
         revisionId: rev.name,
@@ -315,8 +371,28 @@ export async function offlineBooks(): Promise<OfflineBook[]> {
   return out;
 }
 
+/** Flow 16 rule 26: a book with files on this phone stays readable in maintenance mode. */
+export function hasBookFiles(bookId: string): boolean {
+  try {
+    return new Directory(root(), bookId).exists;
+  } catch {
+    return false;
+  }
+}
+
 /** Remove download (flow 05 rule 14): files and keys of this book on this phone; unlocks stay. */
 export function removeDownload(bookId: string) {
   const d = new Directory(root(), bookId);
   if (d.exists) d.delete();
+}
+
+/** Rule 72: sign-out and account deletion wipe every book file, key bundle and device key. */
+export async function wipeReaderData() {
+  try {
+    const r = root();
+    if (r.exists) r.delete();
+  } catch {
+    // a file still open: the purge below and the next wipe get it
+  }
+  await Promise.all([forgetReaderKeys().catch(() => undefined), clearPendingCharges()]);
 }

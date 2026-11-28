@@ -2,6 +2,7 @@
 // Views take plain props so the parity pages can draw them with the prototype's sample data.
 import { forwardRef, type ComponentRef, type ReactNode } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
+import { useTrack } from './analytics';
 import {
   Avatar,
   Btn,
@@ -650,6 +651,11 @@ export function TopResultCard({
   onPreview?: () => void;
 }) {
   const { c, s, bw } = useTheme();
+  const track = useTrack();
+  const open = () => {
+    track('search_result_tapped', { type: 'book', position: 0 });
+    onOpen?.();
+  };
   const mark = (t: string, i: number) => (
     <Text key={i} family="display" weight={800} size={20} style={{ backgroundColor: c.hlY }}>
       {t}
@@ -657,7 +663,7 @@ export function TopResultCard({
   );
   return (
     <Press
-      onPress={onOpen}
+      onPress={open}
       pressScale={motion.press.row}
       accessibilityRole="button"
       accessibilityLabel={`Top result, ${book.title} by ${book.author}, ${book.meta}`}
@@ -702,7 +708,7 @@ export function TopResultCard({
           {book.meta}
         </Text>
         <View style={{ marginTop: 'auto', paddingTop: s(10), alignItems: 'flex-start', gap: s(6) }}>
-          <Btn label="Read free preview" variant="p" size="sm" onPress={onPreview ?? onOpen} />
+          <Btn label="Read free preview" variant="p" size="sm" onPress={onPreview ?? open} />
           <Text size={12.5} color="ink2" oneLine>
             {'or unlock for '}
             <Text size={12.5} weight={700}>
@@ -749,6 +755,8 @@ export type ResultItem =
       meta: string;
       credits: number;
       promoted?: boolean;
+      /** Scheduled book: "Coming soon" instead of the price (02 rule 25). */
+      comingSoon?: boolean;
       tone: CoverTone;
       uri?: string;
     }
@@ -776,6 +784,7 @@ export function ResultList({
   onAction?: (it: ResultItem) => void;
 }) {
   const { c, s, bw } = useTheme();
+  const track = useTrack();
   const mark = (size: number, weight: 400 | 700, family?: 'reading') =>
     function M(t: string, i: number) {
       return (
@@ -789,7 +798,14 @@ export function ResultList({
       {items.map((it, i) => (
         <Press
           key={`${it.kind}:${it.id}`}
-          onPress={() => onOpen?.(it)}
+          onPress={() => {
+            // Position within its group, from 1 (the top result card is 0).
+            track('search_result_tapped', {
+              type: it.kind === 'person' ? 'author' : it.kind,
+              position: i + 1,
+            });
+            onOpen?.(it);
+          }}
           pressScale={motion.press.row}
           accessibilityRole="button"
           accessibilityLabel={
@@ -838,7 +854,10 @@ export function ResultList({
           </View>
           {it.kind === 'book' ? (
             <View style={{ alignSelf: 'center' }}>
-              <Pill tone="grey" label={`${n(it.credits)} cr`} />
+              <Pill
+                tone={it.comingSoon ? 'brand' : 'grey'}
+                label={it.comingSoon ? 'Coming soon' : `${n(it.credits)} cr`}
+              />
             </View>
           ) : (
             <Btn
