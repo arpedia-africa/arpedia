@@ -51,6 +51,8 @@ select throws_ok($$select * from public.analytics_imports$$, '42501', null, 'nor
 select throws_ok($$select public.staff_analytics_imports('2026-11-01', '2026-11-03')$$, '42501', null,
   'nor read the growth numbers');
 
+reset role;
+
 -- ─── Reading (staff with view_analytics) ─────────────────────────────────────
 create function pg_temp.as_staff() returns void language sql as $$
   select set_config('request.jwt.claims', jsonb_build_object(
@@ -59,7 +61,6 @@ create function pg_temp.as_staff() returns void language sql as $$
     'amr', jsonb_build_array(jsonb_build_object('method', 'totp',
            'timestamp', extract(epoch from now() - interval '1 minute')::bigint)))::text, true)
 $$;
-reset role;
 grant execute on function pg_temp.as_staff() to authenticated;
 create table pg_temp.r (j jsonb);
 grant all on pg_temp.r to authenticated;
