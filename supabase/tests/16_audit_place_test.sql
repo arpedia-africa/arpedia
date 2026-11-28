@@ -30,7 +30,11 @@ select is((select country from public.audit_log where action = 'test.badplace'),
 -- list_audit (as a staff member who may read the log) returns the city.
 insert into auth.users (id, email) values ('16270000-0000-4000-a000-000000000001', 'ops@flow1627.test');
 insert into public.staff_roles (user_id, role) values ('16270000-0000-4000-a000-000000000001', 'operations_admin');
-select set_config('request.jwt.claims', '{"sub":"16270000-0000-4000-a000-000000000001","role":"authenticated"}', true);
+-- has_permission needs a two-step in the last 12 hours.
+select set_config('request.jwt.claims', jsonb_build_object(
+  'sub', '16270000-0000-4000-a000-000000000001', 'role', 'authenticated', 'aal', 'aal2',
+  'amr', jsonb_build_array(jsonb_build_object('method', 'totp',
+         'timestamp', extract(epoch from now() - interval '1 minute')::bigint)))::text, true);
 set local role authenticated;
 select is((select r ->> 'city' from jsonb_array_elements(public.list_audit(p_q => 'test.place') -> 'rows') r
            where r ->> 'action' = 'test.place'), 'Lagos', 'list_audit returns the city');
