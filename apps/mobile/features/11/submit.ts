@@ -140,11 +140,20 @@ export interface UploadTicket {
 
 export type ConvertSkipReason = 'conversion_failed' | 'out_of_memory' | 'too_large' | 'conversion_skipped';
 
-export const finalizeRevision = (rev: string, converted: boolean, reason?: ConvertSkipReason) =>
+/**
+ * `words` is the phone's own count of a converted book (flow 12 rule 11): the Worker compares it with
+ * its count at verify and logs `convert_drift` past 3%. The Worker's numbers always win.
+ */
+export const finalizeRevision = (
+  rev: string,
+  converted: boolean,
+  reason?: ConvertSkipReason,
+  words?: number,
+) =>
   call<{ status: string }>('/finalize', {
     revision_id: rev,
     converted,
-    ...(converted ? {} : { reason: reason ?? 'conversion_skipped' }),
+    ...(converted ? (words !== undefined ? { words } : {}) : { reason: reason ?? 'conversion_skipped' }),
   });
 
 /**

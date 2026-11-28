@@ -131,7 +131,7 @@ async function run(job: ConvertJob, onStage: (s: JobStage) => void): Promise<Con
     onStage('upload');
     const epub = res.epub.buffer.slice(res.epub.byteOffset, res.epub.byteOffset + res.epub.byteLength);
     await putBytes(job.convertedUrl, epub as ArrayBuffer, 'application/epub+zip');
-    await finalizeRevision(job.rev, true);
+    await finalizeRevision(job.rev, true, undefined, res.hints.words);
     await clearJob(job.rev);
     return { rev: job.rev, converted: true, hints: res.hints, ms: Date.now() - started };
   }
