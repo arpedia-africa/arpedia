@@ -6,7 +6,8 @@
 --                               otherwise the Worker files it as a support ticket as before.
 --   claims_needing_similarity   open claims with no passage check yet, and the working copy to read
 --   set_claim_similarity        the Worker's result (packages/core claimSimilarity), once per claim,
---                               with a "Similarity check run" line on the claim's timeline
+--                               with a "Similarity check run" line on the claim's timeline; a failed
+--                               check is tried again hourly for a day
 -- A follow-up about a book the same address already has an open claim on becomes a support ticket.
 -- A claim by email does not hold the book: Ask author does, as for claims from an app report, so an
 -- email alone cannot take a book out of Discover.
@@ -48,7 +49,8 @@ begin
     if cardinality(v_ids) = 1 then v_book := v_ids[1]; end if;
   end if;
 
-  -- 3. The subject names one published book's title (the longest title wins; a tie names none).
+  -- 3. The subject names one published book's title of two or more words, as whole words (the
+  --    longest title wins; a tie names none). One-word titles are found by id or link only.
   if v_book is null and coalesce(btrim(p_subject), '') <> '' then
     select case when count(*) = 1 or max(len) > min(len) filter (where rn = 2) then
              (array_agg(id order by rn))[1] end
@@ -58,8 +60,9 @@ begin
              row_number() over (order by char_length(b.title) desc, b.id) rn
       from public.books b
       where b.status in ('live', 'taken_down', 'unpublished')
-        and char_length(btrim(b.title)) >= 4
-        and position(lower(btrim(b.title)) in lower(p_subject)) > 0
+        and btrim(b.title) ~ '\s'
+        and p_subject ~* ('(^|[^[:alnum:]_])' || regexp_replace(btrim(b.title), '([][.*+?^${}()|\\])', '\\\1', 'g')
+                      || '($|[^[:alnum:]_])')
       order by char_length(b.title) desc, b.id
       limit 2
     ) t;
@@ -105,36 +108,56 @@ begin
        or (b.current_revision_id is null and x.book_id = b.id)
     order by x.revision_no desc limit 1
   ) r on true
-  where c.similarity is null and c.status in ('new', 'waiting_on_author')
+  where c.status in ('new', 'waiting_on_author')
+    and (c.similarity is null
+         or (c.similarity ->> 'failed' = 'true' and (c.similarity ->> 'retry_at')::timestamptz <= now()))
   order by c.created_at
   limit least(greatest(coalesce(p_limit, 5), 1), 20);
 end $$;
 
+-- A failed check (no working copy yet, or the Worker could not read it) is tried again every hour
+-- for a day; the timeline shows the first failure and the result, never each retry.
 create function public.set_claim_similarity(p_claim uuid, p_similarity jsonb) returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
   c public.copyright_claims;
-  v_score int := (p_similarity ->> 'score')::int;
-  v_flagged int := (p_similarity ->> 'flagged')::int;
-  v_checked int := (p_similarity ->> 'checked')::int;
+  v_prev jsonb;
+  v_failed boolean;
+  v_attempts int;
+  v_score int;
+  v_flagged int;
+  v_checked int;
 begin
   perform public._require_service('set_claim_similarity');
-  if jsonb_typeof(p_similarity) <> 'object' then
+  if p_similarity is null or jsonb_typeof(p_similarity) <> 'object' then
     raise exception 'set_claim_similarity: bad result' using errcode = '22023';
   end if;
-  update public.copyright_claims set similarity = p_similarity
-  where id = p_claim and similarity is null
-  returning * into c;
-  if not found then return false; end if;
-  perform public._audit(null, 'trust', 'claim.similarity', 'claim', c.id::text, c.ref,
-    case
-      when (p_similarity ->> 'failed')::boolean then 'Similarity check could not read the book'
-      when coalesce(v_checked, 0) = 0 then 'Similarity check: no passage to compare in the claim'
-      when coalesce(v_flagged, 0) = 0 then 'Similarity check run: no passage found in the book'
-      else format('Similarity check run: %s%% over %s %s', v_score, v_flagged,
-                  case when v_flagged = 1 then 'passage' else 'passages' end)
-    end,
-    null, jsonb_build_object('score', v_score, 'flagged', v_flagged));
+  select similarity into v_prev from public.copyright_claims where id = p_claim for update;
+  if not found or (v_prev is not null and v_prev ->> 'failed' is distinct from 'true') then
+    return false;
+  end if;
+  v_failed := p_similarity ->> 'failed' = 'true';
+  if v_failed then
+    v_attempts := coalesce((v_prev ->> 'attempts')::int, 0) + 1;
+    p_similarity := p_similarity || jsonb_build_object('attempts', v_attempts,
+      'retry_at', case when v_attempts < 24 then now() + interval '1 hour' end);
+  else
+    v_score := case when jsonb_typeof(p_similarity -> 'score') = 'number' then (p_similarity ->> 'score')::numeric::int end;
+    v_flagged := case when jsonb_typeof(p_similarity -> 'flagged') = 'number' then (p_similarity ->> 'flagged')::numeric::int end;
+    v_checked := case when jsonb_typeof(p_similarity -> 'checked') = 'number' then (p_similarity ->> 'checked')::numeric::int end;
+  end if;
+  update public.copyright_claims set similarity = p_similarity where id = p_claim returning * into c;
+  if not v_failed or v_prev is null then
+    perform public._audit(null, 'trust', 'claim.similarity', 'claim', c.id::text, c.ref,
+      case
+        when v_failed then 'Similarity check could not read the book yet'
+        when coalesce(v_checked, 0) = 0 then 'Similarity check: no passage to compare in the claim'
+        when coalesce(v_flagged, 0) = 0 then 'Similarity check run: no passage found in the book'
+        else format('Similarity check run: %s%% over %s %s', v_score, v_flagged,
+                    case when v_flagged = 1 then 'passage' else 'passages' end)
+      end,
+      null, jsonb_build_object('score', v_score, 'flagged', v_flagged, 'failed', v_failed));
+  end if;
   return true;
 end $$;
 

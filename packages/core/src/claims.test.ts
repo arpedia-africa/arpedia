@@ -40,6 +40,32 @@ describe('claimPassages', () => {
   });
 });
 
+describe('claimSimilarity across paragraphs', () => {
+  it('finds a long quote the book splits into paragraphs', () => {
+    const paras = Array.from(
+      { length: 3 },
+      (_, p) =>
+        `Paragraph ${p} begins here with words that only it has, then it goes on about thing ${p} and more thing ${p}. It ends with another sentence of its own about place ${p} today.`,
+    );
+    const sim = claimSimilarity(`They copied: "${paras.join(' ')}"`, [
+      { title: 'Chapter 1', paragraphs: paras },
+    ]);
+    expect(sim.flagged).toBeGreaterThanOrEqual(3);
+    expect(sim.score).toBeGreaterThan(80);
+  });
+
+  it('splits a quote on its blank lines', () => {
+    expect(
+      claimPassages(
+        '"one two three four five six seven eight\n\nnine ten eleven twelve thirteen fourteen fifteen sixteen"',
+      ),
+    ).toEqual([
+      'one two three four five six seven eight',
+      'nine ten eleven twelve thirteen fourteen fifteen sixteen',
+    ]);
+  });
+});
+
 describe('claimSimilarity', () => {
   it('flags passages found in the book, with the chapter and marked words', () => {
     const sim = claimSimilarity(

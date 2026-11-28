@@ -225,14 +225,24 @@ trust.post('/support/inbound', async (c) => {
   }
 
   if (claim) {
+    // The claim keeps 4,000 characters of the email; a longer one is kept whole as text evidence,
+    // which the passage check reads too.
+    const text = d.text ? body : plainText(body);
+    const evidence = files.map(evidenceOf);
+    if (text.length > 4000) {
+      const key = `claims/${crypto.randomUUID()}/email.txt`;
+      const bytes = new TextEncoder().encode(text);
+      await c.env.BOOKS.put(key, bytes, { httpMetadata: { contentType: 'text/plain' } });
+      evidence.push(evidenceOf({ key, name: 'email.txt', type: 'text/plain', bytes: bytes.byteLength }));
+    }
     const { data, error } = await serviceDb(c.env).rpc('ingest_claim_email', {
       p_from: from,
       p_name: senderName(d.from) ?? '',
       p_subject: subject,
-      p_body: d.text ? body : plainText(body),
+      p_body: text,
       p_message_id: messageId,
       p_type: claimTypeOf(subject, body),
-      p_attachments: files.map(evidenceOf),
+      p_attachments: evidence,
     });
     if (error) throw error;
     if ((data as { routed?: string } | null)?.routed !== 'ticket') return c.json(data);

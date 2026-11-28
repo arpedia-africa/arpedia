@@ -28,6 +28,8 @@ export interface ClaimSimilarity {
 
 const N = 5;
 const MIN_PASSAGE_WORDS = 8;
+/** Quotes longer than this are checked a few sentences at a time. */
+const LONG_QUOTE = 60;
 const MAX_PASSAGES = 40;
 const MAX_SHOWN = 6;
 /** A passage counts as found when this share of its 5-word runs is in one paragraph. */
@@ -77,16 +79,36 @@ const wordCount = (s: string) => tokens(s).filter((t) => t.norm).length;
  */
 export function claimPassages(text: string): string[] {
   const clean = text.replace(/\r/g, '').replace(/\[\[|\]\]/g, '');
+  const squash = (t: string) => t.replace(/\s+/g, ' ').trim();
   const quoted = [...clean.matchAll(/["“]([^"“”]+)["”]/g)]
-    .map((m) => m[1]!.replace(/\s+/g, ' ').trim())
+    // A quote over several paragraphs, or a long one, is checked a paragraph or a few sentences
+    // at a time, so text the book splits into paragraphs is still found.
+    .flatMap((m) => m[1]!.split(/\n\s*\n/))
+    .flatMap((q) => (wordCount(q) > LONG_QUOTE ? sentenceGroups(q) : [squash(q)]))
     .filter((q) => wordCount(q) >= MIN_PASSAGE_WORDS);
   const list = quoted.length
     ? quoted
     : clean
         .split(/\n\s*\n|(?<=[.!?])\s+/)
-        .map((s) => s.replace(/\s+/g, ' ').trim())
+        .map(squash)
         .filter((s) => wordCount(s) >= MIN_PASSAGE_WORDS);
   return [...new Set(list)].slice(0, MAX_PASSAGES);
+}
+
+/** Sentences joined into groups of 8 words or more. */
+function sentenceGroups(text: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  for (const s of text.split(/(?<=[.!?])\s+/)) {
+    cur = cur ? `${cur} ${s}` : s;
+    if (wordCount(cur) >= MIN_PASSAGE_WORDS) {
+      out.push(cur.replace(/\s+/g, ' ').trim());
+      cur = '';
+    }
+  }
+  if (cur && out.length) out[out.length - 1] += ` ${cur.replace(/\s+/g, ' ').trim()}`;
+  else if (cur) out.push(cur.replace(/\s+/g, ' ').trim());
+  return out;
 }
 
 /** Wraps the marked tokens in [[…]], joining neighbours (and punctuation between them) into one run. */

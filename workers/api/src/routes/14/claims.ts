@@ -30,26 +30,45 @@ export function sizeLabel(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
+/** "text/plain; charset=utf-8" → "text/plain". */
+export const mediaType = (type: unknown) =>
+  typeof type === 'string' ? (type.split(';')[0] ?? '').trim().toLowerCase() : '';
+
 /** An attachment as the claim's evidence list holds it (admin claim page: name, kind, size). */
 export function evidenceOf(f: EvidenceFile) {
-  const kind = KINDS[f.type.toLowerCase()] ?? (f.type.startsWith('image/') ? 'Image' : 'File');
+  const t = mediaType(f.type);
+  const kind = KINDS[t] ?? (t.startsWith('image/') ? 'Image' : 'File');
   return { key: f.key, name: f.name, kind, size: sizeLabel(f.bytes), type: f.type };
 }
 
 /** An HTML-only email body as text: paragraphs and line breaks kept, tags and entities dropped. */
 export function plainText(html: string): string {
+  const named: Record<string, string> = {
+    nbsp: ' ',
+    quot: '"',
+    apos: "'",
+    lt: '<',
+    gt: '>',
+    amp: '&',
+    ldquo: '“',
+    rdquo: '”',
+    lsquo: '‘',
+    rsquo: '’',
+    mdash: '—',
+    ndash: '–',
+    hellip: '…',
+  };
   return html
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|li|blockquote|h[1-6])>/gi, '\n\n')
     .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/[ \t]+/g, ' ')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+      if (e[0] !== '#') return named[e.toLowerCase()] ?? m;
+      const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+    })
+    .replace(/[ \t\u00a0]+/g, ' ')
     .replace(/\n\s*\n\s*/g, '\n\n')
     .trim();
 }
@@ -67,7 +86,8 @@ export async function claimText(env: Env, row: Pick<Row, 'details' | 'evidence'>
   const parts = [row.details ?? ''];
   const files = Array.isArray(row.evidence) ? (row.evidence as { key?: unknown; type?: unknown }[]) : [];
   for (const f of files.slice(0, 10)) {
-    if (typeof f.key !== 'string' || !f.key.startsWith('claims/') || f.type !== 'text/plain') continue;
+    if (typeof f.key !== 'string' || !f.key.startsWith('claims/') || mediaType(f.type) !== 'text/plain')
+      continue;
     const o = await env.BOOKS.get(f.key);
     if (!o || o.size > TEXT_MAX) continue;
     parts.push(await o.text());
@@ -101,7 +121,12 @@ export async function checkClaimSimilarity(env: Env): Promise<{ checked: number 
       if (we) throw we;
       checked++;
     } catch (e) {
+      // Recorded as failed, so one bad claim never blocks the queue; it is tried again in an hour.
       console.error('claim similarity failed', row.id, e);
+      await db.rpc('set_claim_similarity', {
+        p_claim: row.id,
+        p_similarity: { failed: true, reason: 'error' },
+      });
     }
   }
   return { checked };

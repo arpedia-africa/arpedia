@@ -3,14 +3,16 @@
 -- and leaves a line on the claim's timeline. Service role only.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(26);
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('14210000-0000-4000-a000-000000000001', 'au@flow1421.test', '{"full_name":"Claimed Author"}');
 insert into public.books (id, author_id, title, status) values
   ('c1421001-0000-4000-b000-000000000001', '14210000-0000-4000-a000-000000000001', 'The Lantern Keeper of Ibadan', 'live'),
   ('c1421002-0000-4000-b000-000000000002', '14210000-0000-4000-a000-000000000001', 'Lantern Keeper', 'live'),
-  ('c1421003-0000-4000-b000-000000000003', '14210000-0000-4000-a000-000000000001', 'Quiet Draft Nobody Sees', 'draft');
+  ('c1421003-0000-4000-b000-000000000003', '14210000-0000-4000-a000-000000000001', 'Quiet Draft Nobody Sees', 'draft'),
+  ('c1421004-0000-4000-b000-000000000004', '14210000-0000-4000-a000-000000000001', 'Notice', 'live'),
+  ('c1421005-0000-4000-b000-000000000005', '14210000-0000-4000-a000-000000000001', 'What Now? (A Novel)', 'live');
 insert into public.book_revisions (id, book_id, revision_no, status, words, pages, price_credits, work_version,
                                    sealed_work_version) values
   ('c1421001-0000-4000-c000-000000000001', 'c1421001-0000-4000-b000-000000000001', 1, 'live', 25000, 100, 50, 3, 2),
@@ -57,6 +59,13 @@ select is((public.ingest_claim_email('a@b.ng', 'A', 'About Lantern Keeper', 'x',
 select is((public.ingest_claim_email('a@b.ng', 'A', 'Quiet Draft Nobody Sees', 'x', '<m5>') ->> 'routed'), 'ticket',
   'a draft is not found by its title');
 
+select is((public.ingest_claim_email('a@b.ng', 'A', 'Copyright notice', 'x', '<m8>') ->> 'routed'), 'ticket',
+  'a one-word title is never matched in the subject');
+select is((public.ingest_claim_email('a@b.ng', 'A', 'Lantern Keepers of Lagos', 'x', '<m9>') ->> 'routed'), 'ticket',
+  'titles match whole words only');
+select is((public.ingest_claim_email('a4@b.ng', 'A', 'Claim: what now? (a novel)', 'x', '<m10>') ->> 'book_id'),
+  'c1421005-0000-4000-b000-000000000005', 'a title with punctuation still matches');
+
 -- 4. No book: left for the support inbox, nothing stored.
 select is((public.ingest_claim_email('a@b.ng', 'A', 'Hello', 'Someone copied my poem', '<m6>')), '{"routed": "ticket"}'::jsonb,
   'mail that names no book goes to the support inbox');
@@ -82,7 +91,17 @@ select is(public.set_claim_similarity((select id from public.copyright_claims wh
   '{"score": 74, "flagged": 6, "checked": 9, "passages": []}'), true, 'the result is stored');
 select is(public.set_claim_similarity((select id from public.copyright_claims where source_message_id = '<m3>'),
   '{"score": 1, "flagged": 1, "checked": 1, "passages": []}'), false, 'and never overwritten');
+select throws_ok($$select public.set_claim_similarity(gen_random_uuid(), null)$$, '22023', null, 'a missing result is refused');
+-- A failed check is tried again later, and the timeline shows it once.
+select is(public.set_claim_similarity((select id from public.copyright_claims where source_message_id = '<m2>'),
+  '{"failed": true, "reason": "no_text"}'), true, 'a failed check is stored');
+select is(public.set_claim_similarity((select id from public.copyright_claims where source_message_id = '<m2>'),
+  '{"failed": true, "reason": "no_text"}') and (select (similarity ->> 'attempts')::int = 2 and similarity ? 'retry_at'
+  from public.copyright_claims where source_message_id = '<m2>'), true, 'and retried, counting the attempts');
 reset role;
+select is((select count(*)::int from public.audit_log where object_type = 'claim' and action = 'claim.similarity'
+           and object_id = (select id::text from public.copyright_claims where source_message_id = '<m2>')), 1,
+  'the timeline shows a failure once');
 select is((select summary from public.audit_log where object_type = 'claim' and action = 'claim.similarity'
            and object_id = (select id::text from public.copyright_claims where source_message_id = '<m3>')),
   'Similarity check run: 74% over 6 passages', 'the claim''s timeline shows the check');

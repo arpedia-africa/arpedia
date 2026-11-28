@@ -120,6 +120,17 @@ describe('POST /support/inbound: mail to copyright@', () => {
     expect((ticket.p_attachments as { key: string }[])[0]!.key).toMatch(/^support\//);
   });
 
+  it('keeps a long email whole as text evidence', async () => {
+    await inbound({ ...mail, text: 'word '.repeat(1000), attachments: [] });
+    const [file] = callOf('ingest_claim_email')!.p_attachments as {
+      key: string;
+      name: string;
+      kind: string;
+    }[];
+    expect(file).toMatchObject({ name: 'email.txt', kind: 'Text' });
+    expect(store.get(file!.key)!.body).toHaveLength(5000);
+  });
+
   it('reads the copyright address from cc too', async () => {
     await inbound({ ...mail, to: 'support@arpedia.africa', cc: 'copyright@arpedia.africa' });
     expect(callOf('ingest_claim_email')).toBeDefined();
@@ -152,7 +163,7 @@ describe('checkClaimSimilarity (cron)', () => {
       {
         id: 'c1',
         details: 'Please take this down.',
-        evidence: [{ key: 'claims/x/source.txt', name: 'source.txt', type: 'text/plain' }],
+        evidence: [{ key: 'claims/x/source.txt', name: 'source.txt', type: 'text/plain; charset=UTF-8' }],
         revision_id: 'r1',
         work_version: 2,
       },
@@ -185,6 +196,20 @@ describe('checkClaimSimilarity (cron)', () => {
     expect(BOOKS.get).not.toHaveBeenCalledWith('support/y/source.txt');
   });
 
+  it('records a failed check when reading the book throws, so the queue moves on', async () => {
+    store.set('work/r9/v1/book.json', { body: '{not json' });
+    queue = [
+      { id: 'c3', details: 'x', evidence: [], revision_id: 'r9', work_version: 1 },
+      { id: 'c4', details: 'x', evidence: [], revision_id: null, work_version: null },
+    ];
+    expect(await checkClaimSimilarity(env as never)).toEqual({ checked: 1 });
+    const sets = rpc.mock.calls.filter(([f]) => f === 'set_claim_similarity').map(([, a]) => a);
+    expect(sets).toEqual([
+      { p_claim: 'c3', p_similarity: { failed: true, reason: 'error' } },
+      { p_claim: 'c4', p_similarity: { failed: true, reason: 'no_text' } },
+    ]);
+  });
+
   it('records a failed check when the book has no working copy', async () => {
     queue = [{ id: 'c2', details: 'x', evidence: [], revision_id: null, work_version: null }];
     await checkClaimSimilarity(env as never);
@@ -202,6 +227,7 @@ describe('plainText', () => {
         '<style>p{}</style><p>Our text: &quot;The dust&nbsp;sat&quot;</p><p>Kind &amp; true<br>Yetunde</p>',
       ),
     ).toBe('Our text: "The dust sat"\n\nKind & true\nYetunde');
+    expect(plainText('&ldquo;Dust&rdquo; &#8220;sat&#x201D; &bogus; &#0;')).toBe('“Dust” “sat” &bogus; &#0;');
   });
 });
 
@@ -215,5 +241,8 @@ describe('evidence labels', () => {
       size: '2 KB',
     });
     expect(evidenceOf({ key: 'k', name: 'a.bin', type: 'application/zip', bytes: 2048 }).kind).toBe('File');
+    expect(evidenceOf({ key: 'k', name: 'a.txt', type: 'Text/Plain; charset=utf-8', bytes: 1 }).kind).toBe(
+      'Text',
+    );
   });
 });
