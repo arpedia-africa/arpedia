@@ -13,5 +13,31 @@ export function clientContextHeaders(h: Pick<Headers, 'get'>): Record<string, st
   if (ua) out['x-client-user-agent'] = ua.slice(0, 300);
   const id = (h.get('x-vercel-id') ?? h.get('x-request-id'))?.trim();
   if (id) out['x-client-request-id'] = id.slice(0, 200);
+  // Spec check 16-27: the place in "IP and place", from Vercel's geolocation of the browser.
+  const city = asciiCity(h.get('x-vercel-ip-city'));
+  if (city) out['x-client-city'] = city;
+  const country = h.get('x-vercel-ip-country')?.trim().toUpperCase();
+  if (country && /^[A-Z]{2}$/.test(country)) out['x-client-country'] = country;
   return out;
+}
+
+/**
+ * Vercel sends the city URI-encoded ("Port%20Harcourt", "Lom%C3%A9"). Header values must stay
+ * ASCII, so accents are dropped ("Lomé" → "Lome") and anything else odd is left out.
+ */
+function asciiCity(raw: string | null): string | null {
+  if (!raw) return null;
+  let city: string;
+  try {
+    city = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  city = city
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9 .'-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return city ? city.slice(0, 80) : null;
 }
