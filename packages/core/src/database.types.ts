@@ -8757,6 +8757,9 @@ isOneToOne: false
 "staff_pause_campaign":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"staff_preview_as":
+{ Args: { "p_role": Database["public"]['Enums']["staff_role"] }; Returns: Json
+                           },
 "staff_remove_credits":
 { Args: { "p_credits": number,"p_reason": string,"p_user": string }; Returns: Json
                            },
