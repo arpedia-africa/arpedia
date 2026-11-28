@@ -6157,6 +6157,12 @@ isOneToOne: false
 "_genre_name":
 { Args: { "p_slug": string }; Returns: string
                            },
+"_get_book_page_base":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"_get_reader_state_base":
+{ Args: { "p_book": string }; Returns: Json
+                           },
 "_gift_people":
 { Args: { "p_user": string }; Returns: {
               "id": string,"why": string
@@ -6427,6 +6433,9 @@ isOneToOne: false
                            },
 "_passage_reached":
 { Args: { "p_book": string,"p_para": string,"p_user": string }; Returns: boolean
+                           },
+"_pay_as_you_read":
+{ Args: { "p_book": string,"p_user": string }; Returns: boolean
                            },
 "_payable_account":
 { Args: { "p_author": string }; Returns: string
@@ -6822,6 +6831,9 @@ isOneToOne: false
                            },
 "_undo_chapter":
 { Args: { "p_key": string,"p_ledger": number,"p_staff": boolean,"p_user": string }; Returns: Json
+                           },
+"_unlock_chapter_base":
+{ Args: { "p_book": string,"p_chapter_uid": string,"p_key": string,"p_source": string }; Returns: Json
                            },
 "_unpaid_earnings_kobo":
 { Args: { "p_user": string }; Returns: number
