@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
-  transpilePackages: ['@arpedia/core', '@arpedia/ui'],
+  transpilePackages: ['@arpedia/convert', '@arpedia/core', '@arpedia/reader', '@arpedia/ui'],
   poweredByHeader: false,
 };
 

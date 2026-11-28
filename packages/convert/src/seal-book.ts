@@ -86,6 +86,56 @@ export const BOOK_CSS = `body{margin:0}p{margin:0 0 .8em}h1{font-size:1.4em}h2,h
 .centered{text-align:center}.right{text-align:right}.small-caps{font-variant:small-caps}
 figure{margin:1em 0;text-align:center}img{max-width:100%;height:auto}`;
 
+/** One chapter's reader files (rule 17): the full and free XHTML and the images they use. */
+export function chapterFiles(
+  c: Pick<WorkChapter, 'title' | 'blocks'>,
+  ord: number,
+  ids: string[],
+  freeCount: number,
+): { full: string; free: string; images: { src: string; target: string; free: boolean }[] } {
+  const imgMap = new Map<string, string>();
+  const freeImages = new Set<string>();
+  const blocks = c.blocks.map((b, j) => {
+    let html = withId(b.html, ids[j]!);
+    for (const img of b.images ?? []) {
+      const target =
+        imgMap.get(img.path) ?? `img/c${ord}-${imgMap.size + 1}${img.path.slice(img.path.lastIndexOf('.'))}`;
+      imgMap.set(img.path, target);
+      if (j < freeCount) freeImages.add(img.path);
+      html = html.split(`src="${img.path}"`).join(`src="${target}"`);
+    }
+    return html;
+  });
+  const heading = `<h1>${esc(c.title)}</h1>`;
+  return {
+    full: xhtml(c.title, heading + blocks.join('')),
+    free: xhtml(c.title, heading + blocks.slice(0, Math.max(0, freeCount)).join('')),
+    images: [...imgMap].map(([src, target]) => ({ src, target, free: freeImages.has(src) })),
+  };
+}
+
+/** The package files every book carries (container, OPF, contents, style sheet). */
+export function packageFiles(
+  bookId: string,
+  title: string,
+  chapters: { title: string }[],
+): Record<string, string> {
+  const spine = chapters.map((_, ord) => `<itemref idref="c${ord}"/>`).join('');
+  const items = chapters
+    .map((_, ord) => `<item id="c${ord}" href="c${ord}.full.xhtml" media-type="application/xhtml+xml"/>`)
+    .join('');
+  return {
+    'META-INF/container.xml':
+      '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
+    'content.opf': `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:uuid:${bookId}</dc:identifier><dc:title>${esc(title)}</dc:title><dc:language>en</dc:language></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>${items}</manifest><spine>${spine}</spine></package>`,
+    'nav.xhtml': xhtml(
+      'Contents',
+      `<nav epub:type="toc"><ol>${chapters.map((c, ord) => `<li><a href="c${ord}.full.xhtml">${esc(c.title)}</a></li>`).join('')}</ol></nav>`,
+    ),
+    'style.css': BOOK_CSS,
+  };
+}
+
 export interface BookAnchors {
   /** chapter_uid per chapter. */
   uids: string[];
@@ -153,28 +203,13 @@ export async function sealBook(input: SealInput & { anchors?: BookAnchors }): Pr
   const manifestChapters: BookManifest['chapters'] = [];
   for (const [ord, c] of chapters.entries()) {
     const key = keyOf[ord];
-    const imgMap = new Map<string, string>();
-    const freeImages = new Set<string>();
-    const blocks = c.blocks.map((b, j) => {
-      let html = withId(b.html, ids[ord]![j]!);
-      for (const img of b.images ?? []) {
-        const target =
-          imgMap.get(img.path) ??
-          `img/c${ord}-${imgMap.size + 1}${img.path.slice(img.path.lastIndexOf('.'))}`;
-        imgMap.set(img.path, target);
-        if (j < free[ord]!) freeImages.add(img.path);
-        html = html.split(`src="${img.path}"`).join(`src="${target}"`);
-      }
-      return html;
-    });
-    const heading = `<h1>${esc(c.title)}</h1>`;
+    const cf = chapterFiles(c, ord, ids[ord]!, free[ord]!);
     const full = `c${ord}.full.xhtml`;
     const partial = key && free[ord]! >= 0 ? `c${ord}.free.xhtml` : null;
-    await put(full, key ?? kFree, enc.encode(xhtml(c.title, heading + blocks.join(''))));
-    if (partial)
-      await put(partial, kFree, enc.encode(xhtml(c.title, heading + blocks.slice(0, free[ord]).join(''))));
-    for (const [src, target] of imgMap)
-      await put(target, key && !freeImages.has(src) ? key : kFree, input.images[src] ?? new Uint8Array());
+    await put(full, key ?? kFree, enc.encode(cf.full));
+    if (partial) await put(partial, kFree, enc.encode(cf.free));
+    for (const img of cf.images)
+      await put(img.target, key && !img.free ? key : kFree, input.images[img.src] ?? new Uint8Array());
     out.push({ chapter_uid: uids[ord]!, free_file: partial, full_file: full });
 
     let before = 0;
@@ -203,41 +238,14 @@ export async function sealBook(input: SealInput & { anchors?: BookAnchors }): Pr
       price_credits: c.priceCredits,
       free_file: key ? partial : null,
       full_file: full,
-      images: imgMap.size,
+      images: cf.images.length,
       paragraphs,
     });
   }
 
   // ─── Package files (K_free) ───────────────────────────────────────────────
-  const spine = chapters.map((_, ord) => `<itemref idref="c${ord}"/>`).join('');
-  const items = chapters
-    .map((_, ord) => `<item id="c${ord}" href="c${ord}.full.xhtml" media-type="application/xhtml+xml"/>`)
-    .join('');
-  await put(
-    'META-INF/container.xml',
-    kFree,
-    enc.encode(
-      '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
-    ),
-  );
-  await put(
-    'content.opf',
-    kFree,
-    enc.encode(
-      `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:uuid:${input.bookId}</dc:identifier><dc:title>${esc(input.title)}</dc:title><dc:language>en</dc:language></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>${items}</manifest><spine>${spine}</spine></package>`,
-    ),
-  );
-  await put(
-    'nav.xhtml',
-    kFree,
-    enc.encode(
-      xhtml(
-        'Contents',
-        `<nav epub:type="toc"><ol>${chapters.map((c, ord) => `<li><a href="c${ord}.full.xhtml">${esc(c.title)}</a></li>`).join('')}</ol></nav>`,
-      ),
-    ),
-  );
-  await put('style.css', kFree, enc.encode(BOOK_CSS));
+  for (const [path, text] of Object.entries(packageFiles(input.bookId, input.title, chapters)))
+    await put(path, kFree, enc.encode(text));
 
   const cutChapter = manifestChapters[preview.chapter]!;
   const manifest: BookManifest = {

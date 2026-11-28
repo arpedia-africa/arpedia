@@ -8,3 +8,4 @@ export * from './normalize';
 export * from './epub-write';
 export * from './docx';
 export * from './phone';
+export * from './preview-book';
