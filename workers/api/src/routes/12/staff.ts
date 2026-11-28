@@ -26,7 +26,7 @@ import {
   workImages,
   type WorkCopy,
 } from './pipeline';
-import { shrinkImage } from './images';
+import { shrinkImage, tooLarge } from './images';
 
 const staff = new Hono<AppEnv>();
 type Db = ReturnType<typeof serviceDb>;
@@ -144,7 +144,7 @@ staff.post('/fix', async (c) => {
     const bytes = all?.[op.image];
     if (!all || !bytes) return c.json({ error: 'That image is no longer in the book.' }, 409);
     const shrunk = await shrinkImage(c.env, bytes);
-    if (!shrunk)
+    if (!shrunk || tooLarge({ ...shrunk, bytes: shrunk.bytes.byteLength }))
       return c.json(
         { error: 'This image could not be shrunk. Dismiss the flag or send the book to the desk.' },
         409,

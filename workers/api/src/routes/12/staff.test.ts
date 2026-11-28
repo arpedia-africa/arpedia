@@ -154,6 +154,21 @@ describe('POST /fix shrink_image', () => {
     expect(objects.has(`work/${REV}/v3/book.json`)).toBe(false);
   });
 
+  it('keeps the flag open when the shrunk file is still over 2 MB', async () => {
+    const heavy = {
+      input: () => ({
+        transform: () => heavy.input(),
+        output: async () => ({
+          image: () => new Blob([jpeg(1067, 1600, 2 * 1024 * 1024 + 1)]).stream(),
+          contentType: () => 'image/jpeg',
+        }),
+      }),
+    };
+    const res = await fix({ IMAGES: heavy as unknown as ImagesBinding });
+    expect(res.status).toBe(409);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it('says so when the image is gone from the working copy', async () => {
     objects.delete(`work/${REV}/v1/img/1.jpg`);
     const res = await fix({ IMAGES });
