@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@arpedia/convert": "workspace:*",
     "@arpedia/core": "workspace:*",
+    "@arpedia/reader": "workspace:*",
     "@arpedia/ui": "workspace:*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
