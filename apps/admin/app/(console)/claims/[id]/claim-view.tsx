@@ -47,6 +47,8 @@ export interface ClaimDetail {
       source_title?: string;
       source_label?: string;
       passages?: Passage[];
+      checked?: number;
+      failed?: boolean;
     } | null;
     author_response: string | null;
     status: ClaimStatus;
@@ -248,8 +250,9 @@ export function ClaimView({
                   </>
                 ) : (
                   <span className="muted">
-                    No passage check for this claim. Read the claimant&apos;s evidence and the author&apos;s
-                    response in More details.
+                    {sim?.checked
+                      ? `${sim.checked === 1 ? 'The passage in the claim was not found' : `None of the ${num(sim.checked)} passages in the claim was found`} in the book. Read the claimant's evidence and the author's response in More details.`
+                      : "No passage check for this claim. Read the claimant's evidence and the author's response in More details."}
                   </span>
                 )}
               </div>

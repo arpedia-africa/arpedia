@@ -1520,14 +1520,14 @@ isOneToOne: false
                   ]
                 },"copyright_claims": {
                   Row: {
-                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
+                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"source_message_id": string | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"source_message_id"?: string | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Update: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"source_message_id"?: string | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Relationships: [
                     {
@@ -7184,6 +7184,11 @@ isOneToOne: false
 "claim_scheduled_report":
 { Args: { "p_fire_at": string,"p_id": string }; Returns: boolean
                            },
+"claims_needing_similarity":
+{ Args: { "p_limit"?: number }; Returns: {
+              "details": string,"evidence": Json,"id": string,"revision_id": string,"work_version": number
+            }[]
+                           },
 "clawback_purchase":
 { Args: { "p_credits"?: number,"p_end_sub"?: boolean,"p_reason": string,"p_transaction": string }; Returns: Json
                            },
@@ -7708,6 +7713,9 @@ isOneToOne: false
 { Args: { "p_user": string }; Returns: {
               "avatar_url": string,"group_id": string,"is_author": boolean,"kind": Database["public"]['Enums']["group_kind"],"last_at": string,"last_body": string,"last_from_author": boolean,"last_kind": Database["public"]['Enums']["message_kind"],"last_sender": string,"last_state": Database["public"]['Enums']["message_state"],"live": boolean,"member_count": number,"muted": boolean,"name": string,"other_user_id": string,"role": Database["public"]['Enums']["group_role"],"unread_count": number
             }[]
+                           },
+"ingest_claim_email":
+{ Args: { "p_attachments"?: Json,"p_body": string,"p_from": string,"p_message_id": string,"p_name": string,"p_subject": string,"p_type"?: Database["public"]['Enums']["claim_type"] }; Returns: Json
                            },
 "ingest_payment_event":
 { Args: { "p_event_id": string,"p_event_type": string,"p_normalized": Json,"p_occurred_at": string,"p_payload": Json,"p_provider": string }; Returns: Json
@@ -8533,6 +8541,9 @@ isOneToOne: false
                            },
 "set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined
+                           },
+"set_claim_similarity":
+{ Args: { "p_claim": string,"p_similarity": Json }; Returns: boolean
                            },
 "set_club_settings":
 { Args: { "p_slow_mode_seconds": number,"p_who_can_post": string }; Returns: undefined

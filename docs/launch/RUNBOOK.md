@@ -32,6 +32,8 @@ Export these in your shell (or GitHub environment) for the target. Never commit 
 
 **api Worker (staging and production):** besides the secrets in `workers/api/wrangler.jsonc`, set `ADMIN_URL`, `PUBLIC_API_URL` and `PUSH_MODE=expo` (as secrets or vars), `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_API_KEY`, `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH`, `PAYOUT_ACCOUNT_KEY`. Preflight lists any that are missing.
 
+**Inbound email (Resend):** point the inbound webhook for `support@arpedia.africa` and `copyright@arpedia.africa` at `POST {PUBLIC_API_URL}/v1/trust/support/inbound` (signed with `RESEND_WEBHOOK_SECRET`). Mail to `copyright@` that names a book (its link, id or title in the subject) opens a copyright claim; anything else becomes a support ticket.
+
 ## 2. Production set-up (rule 5, 6)
 Safe to repeat: each step checks first, and a second run changes nothing. If it stops halfway, run it again.
 
