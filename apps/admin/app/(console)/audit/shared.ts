@@ -13,6 +13,22 @@ export interface AuditRow {
   object_label: string | null;
   summary: string | null;
   ip: string | null;
+  /** Where the staff browser was (spec check 16-27); null for older entries. */
+  city: string | null;
+}
+
+/** "IP and place": "105.112.34.18 · Lagos", or with the country, "· Lagos, Nigeria". */
+export function ipAndPlace(ip: string | null, city: string | null, country?: string | null): string {
+  let name: string | undefined;
+  if (country) {
+    try {
+      name = new Intl.DisplayNames(['en'], { type: 'region' }).of(country);
+    } catch {
+      name = country;
+    }
+  }
+  const place = [city, name].filter(Boolean).join(', ');
+  return [ip, place].filter(Boolean).join(' · ') || '–';
 }
 
 export interface AuditPage {
@@ -76,6 +92,10 @@ const ACTIONS: Record<string, string> = {
   request_credit_grant: 'Asked to grant credits',
   approve_credit_grant: 'Approved credit grant',
   reject_credit_grant: 'Rejected credit grant',
+  remove_credits: 'Removed credits',
+  request_credit_removal: 'Asked to remove credits',
+  approve_credit_removal: 'Approved credit removal',
+  reject_credit_removal: 'Rejected credit removal',
   return_chapter: 'Returned a chapter',
   extend_subscription: 'Extended subscription',
   save_plan: 'Saved plan',

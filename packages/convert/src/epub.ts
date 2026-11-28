@@ -14,6 +14,9 @@ export interface Opf {
   /** All manifest items by href (package-relative). */
   items: Map<string, string>;
   coverHref: string | null;
+  /** The EPUB 3 navigation document and the EPUB 2 NCX, when the package has them. */
+  navHref: string | null;
+  ncxHref: string | null;
 }
 
 const elements = (nodes: ChildNode[], name: string, out: Element[] = []): Element[] => {
@@ -75,8 +78,86 @@ export function readOpf(files: Record<string, Uint8Array>): Opf {
     [...byId.values()].find((x) => x.props.split(' ').includes('cover-image'))?.href ??
     (metaCover ? byId.get(metaCover)?.href : undefined) ??
     null;
-  return { dir, spine, items, coverHref: cover };
+  const tocId = elements(doc.children, 'spine')[0]?.attribs.toc;
+  const navHref = [...byId.values()].find((x) => x.props.split(' ').includes('nav'))?.href ?? null;
+  const ncxHref =
+    (tocId ? byId.get(tocId)?.href : undefined) ??
+    [...byId.values()].find((x) => x.type === 'application/x-dtbncx+xml')?.href ??
+    null;
+  return { dir, spine, items, coverHref: cover, navHref, ncxHref };
 }
+
+export interface Toc {
+  /** Titles of the top-level entries, in order. */
+  top: string[];
+  /** Titles of every entry at any depth. */
+  all: string[];
+  /** Titles of the entries with nothing under them (a contents list that nests chapters under parts). */
+  leaves: string[];
+}
+
+/**
+ * The package's own contents list: the EPUB 3 `nav epub:type="toc"`, else the EPUB 2 NCX. Null
+ * when there is none or it cannot be read (no contents list is not a fault).
+ */
+export function readToc(files: Record<string, Uint8Array>, opf: Opf): Toc | null {
+  try {
+    const nav = opf.navHref ? files[opf.navHref] : undefined;
+    if (nav) {
+      const doc = parseDocument(dec.decode(nav), { xmlMode: true });
+      const navs = elements(doc.children, 'nav');
+      const toc = navs.find((n) => /\btoc\b/.test(n.attribs['epub:type'] ?? '')) ?? navs[0];
+      const list = toc && childElements(toc.children, 'ol')[0];
+      if (list) {
+        const toc: Toc = { top: [], all: [], leaves: [] };
+        const walk = (ol: Element, depth: number) => {
+          for (const li of childElements(ol.children, 'li')) {
+            const label = childElements(li.children, 'a')[0] ?? childElements(li.children, 'span')[0];
+            const subs = childElements(li.children, 'ol');
+            add(toc, label ? textOf(label.children) : '', depth, subs.length === 0);
+            for (const sub of subs) walk(sub, depth + 1);
+          }
+        };
+        walk(list, 0);
+        if (toc.all.length) return toc;
+      }
+    }
+    const ncx = opf.ncxHref ? files[opf.ncxHref] : undefined;
+    if (ncx) {
+      const doc = parseDocument(dec.decode(ncx), { xmlMode: true });
+      const map = elements(doc.children, 'navMap')[0];
+      if (!map) return null;
+      const toc: Toc = { top: [], all: [], leaves: [] };
+      const walk = (el: Element, depth: number) => {
+        for (const point of childElements(el.children, 'navPoint')) {
+          const label = childElements(point.children, 'navLabel')[0];
+          add(
+            toc,
+            label ? textOf(label.children) : '',
+            depth,
+            childElements(point.children, 'navPoint').length === 0,
+          );
+          walk(point, depth + 1);
+        }
+      };
+      walk(map, 0);
+      if (toc.all.length) return toc;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function add(toc: Toc, title: string, depth: number, leaf: boolean) {
+  if (!title) return;
+  toc.all.push(title);
+  if (depth === 0) toc.top.push(title);
+  if (leaf) toc.leaves.push(title);
+}
+
+const childElements = (nodes: ChildNode[], name: string): Element[] =>
+  nodes.filter((n): n is Element => n instanceof Element && (n.name === name || n.name.endsWith(`:${name}`)));
 
 /** Text of a parsed node tree, block elements separated by spaces. */
 export function textOf(nodes: ChildNode[]): string {

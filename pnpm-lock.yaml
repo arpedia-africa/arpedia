@@ -208,9 +208,15 @@ importers:
 
   apps/admin:
     dependencies:
+      '@arpedia/convert':
+        specifier: workspace:*
+        version: link:../../packages/convert
       '@arpedia/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@arpedia/reader':
+        specifier: workspace:*
+        version: link:../../packages/reader
       '@arpedia/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -223,9 +229,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.107.2
         version: 5.107.2(@types/react@19.3.0)(react@19.3.0)
-      '@tanstack/react-table':
+      '@tanstack/table-core':
         specifier: ^9.3.1
-        version: 9.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 9.3.1
       next:
         specifier: ^16.4.6
         version: 16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -242,6 +248,9 @@ importers:
       '@types/react-dom':
         specifier: ~19.3.0
         version: 19.3.0(@types/react@19.3.0)
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
 
   apps/mobile:
     dependencies:
@@ -2527,18 +2536,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  '@tanstack/react-store@0.11.2':
-    resolution: {integrity: sha512-oj5O5DmiMWE+ih+SioX2ayC1kbK7d3fpLx0B75fPJr9nY3zU+hoW010yr64qXsY/9fyiLVE2bn5mGNV3owm8RQ==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  '@tanstack/react-table@9.3.1':
-    resolution: {integrity: sha512-E6Ya5TnY6EaGyZYIUqig/29Lr/gJSAubQkLJFqiWkUl5nRCr0Xr9hvJot+NiRTtG+TzGxHTiqUW3bnLtQxlHug==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      react: '>=18'
 
   '@tanstack/store@0.11.2':
     resolution: {integrity: sha512-sJ4mjol8uQsHV0gOJzzjwXfh2Fwm+Sz0+8deqiTm4jGbMdjzNSW+xZCFm0kUa870uhd8yi+DpKnZb5Kc4apa0Q==}
@@ -7282,21 +7279,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  '@tanstack/react-store@0.11.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      '@tanstack/store': 0.11.2
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      use-sync-external-store: 1.7.0(react@19.3.0)
-
-  '@tanstack/react-table@9.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      '@tanstack/react-store': 0.11.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tanstack/table-core': 9.3.1
-      react: 19.3.0
-    transitivePeerDependencies:
-      - react-dom
-
   '@tanstack/store@0.11.2': {}
 
   '@tanstack/table-core@9.3.1':
@@ -10087,6 +10069,7 @@ snapshots:
   use-sync-external-store@1.7.0(react@19.3.0):
     dependencies:
       react: 19.3.0
+    optional: true
 
   util@0.12.5:
     dependencies:

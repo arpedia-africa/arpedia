@@ -44,6 +44,7 @@ import {
 } from '../../../features/06/chat';
 import { toneFor } from '../../../features/06/data';
 import { createReport, REPORT_SAVED, REPORT_SENT, reportErrorCopy } from '../../../features/14/report';
+import { useTrackAuthorReply } from '../../../features/08/analytics';
 
 type Item = { key: string; day: string } | { key: string; bubble: BubbleView; msg?: ChatMessage };
 
@@ -80,6 +81,7 @@ export default function Chat() {
   const membership = useGroupMembership(gid);
   const { list, pending } = useMergedMessages(history.data, chat.pending);
   const g = group.data;
+  const trackAuthorReply = useTrackAuthorReply(g, history.data, me);
   const large = (g?.member_count ?? 0) > 10_000;
 
   const [text, setText] = useState('');
@@ -199,6 +201,7 @@ export default function Chat() {
     if (!body) return;
     if (!chat.send(body, { reply_to_id: replyTo?.id ?? null }))
       return toast({ message: 'You can queue up to 5 messages while offline.' });
+    trackAuthorReply();
     setText('');
     setReplyTo(null);
     // Your own message always jumps to the end, even when you were scrolled up.

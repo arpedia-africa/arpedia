@@ -17,6 +17,10 @@ export interface WorkCopy {
   imagesFrom?: number;
   /** One untitled body at verify: rechecks raise no chapter-title flags (see `checkChapters`). */
   untitledBook?: boolean;
+  /** Chapter counts the uploaded contents list allows, for the contents checks on a recheck. */
+  tocChapters?: number[] | null;
+  /** Preview target the cut aims for: the book's override (flow 03, 5–25), else the 10% default. */
+  previewPercent?: number;
 }
 
 export type ChapterEdit = { op: 'rename'; ord: number; title: string } | { op: 'merge_up'; ord: number };
@@ -28,7 +32,39 @@ export type FixOp =
   | { op: 'remove_paragraph'; chapter_uid: string; para_id: string }
   | { op: 'insert_copyright_page'; text: string; chapter_uid?: string; para_id?: string }
   | { op: 'dismiss_flag'; reason: string }
-  | { op: 'shrink_image'; image: string };
+  | {
+      op: 'shrink_image';
+      image: string;
+      /** The shrunk image's size, set by the Worker after the Images binding made it. */
+      size?: ImageSize;
+    };
+
+export interface ImageSize {
+  width: number;
+  height: number;
+  bytes: number;
+}
+
+/**
+ * The chapters with one working-copy image's recorded size replaced (after it was shrunk), and the
+ * chapters that use it. Paths are kept, so the chapter HTML still points at the image.
+ */
+export function withImageSize(chapters: WorkChapter[], path: string, size: ImageSize) {
+  const touched: number[] = [];
+  const out = chapters.map((c, ord) => {
+    if (!c.blocks.some((b) => b.images?.some((i) => i.path === path))) return c;
+    touched.push(ord);
+    return {
+      ...c,
+      blocks: c.blocks.map((b) =>
+        b.images?.some((i) => i.path === path)
+          ? { ...b, images: b.images.map((i) => (i.path === path ? { ...i, ...size } : i)) }
+          : b,
+      ),
+    };
+  });
+  return { chapters: out, touched };
+}
 
 export class FixError extends Error {}
 
@@ -84,8 +120,8 @@ export function applyEdits(work: WorkCopy, edits: ChapterEdit[]): WorkCopy {
       out.anchors.fps.push(a.fps[i]!.slice(p.start, p.end));
     }
   });
-  // the 10% default target; per-book overrides are flow 03's
-  Object.assign(out, priceChapters(out.chapters));
+  // the book's preview target (its override, else 10%)
+  Object.assign(out, priceChapters(out.chapters, work.previewPercent));
   return out;
 }
 
@@ -112,11 +148,18 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
   switch (op.op) {
     case 'dismiss_flag':
       return { work, touched: [], restructured: false };
-    case 'shrink_image':
-      // No image codec runs in the Worker; the desk shrinks images (Notes).
-      throw new FixError(
-        'Images are shrunk on the desk for now. Dismiss the flag or send the book to the desk.',
-      );
+    case 'shrink_image': {
+      // The Worker shrinks the file through the Images binding and passes the new size here.
+      if (!op.size)
+        throw new FixError('This image could not be shrunk. Dismiss the flag or send the book to the desk.');
+      const { chapters, touched } = withImageSize(work.chapters, op.image, op.size);
+      if (!touched.length) throw new FixError('That image is no longer in the book.');
+      return {
+        work: { ...work, chapters },
+        touched: touched.map((o) => work.anchors.uids[o]!),
+        restructured: false,
+      };
+    }
     case 'rename_chapter':
       return {
         work: applyEdits(work, [{ op: 'rename', ord: ordOf(op.chapter_uid), title: op.title.trim() }]),
@@ -146,7 +189,7 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
       }
       if (chapters[ord]!.blocks.length === 0) throw new FixError('A chapter cannot be left empty.');
       const next: WorkCopy = { ...work, chapters, anchors };
-      Object.assign(next, priceChapters(next.chapters));
+      Object.assign(next, priceChapters(next.chapters, work.previewPercent));
       return { work: next, touched: [op.chapter_uid], restructured: true };
     }
     case 'insert_copyright_page': {
@@ -176,7 +219,7 @@ export async function applyFix(work: WorkCopy, op: FixOp): Promise<FixResult> {
       anchors.ids.unshift([op.para_id ?? newParaId()]);
       anchors.fps.unshift([await fingerprint(text)]);
       const next: WorkCopy = { ...work, chapters, anchors };
-      Object.assign(next, priceChapters(next.chapters));
+      Object.assign(next, priceChapters(next.chapters, work.previewPercent));
       return { work: next, touched: [uid], restructured: true };
     }
   }
@@ -201,8 +244,8 @@ export function carryCopyright(work: WorkCopy, base: WorkCopy): WorkCopy | null 
   anchors.ids.unshift([...base.anchors.ids[at]!]);
   anchors.fps.unshift([...base.anchors.fps[at]!]);
   const next: WorkCopy = { ...work, chapters, anchors };
-  // the default target, as verify and the fixes use (preview.percent is what the cut achieved)
-  Object.assign(next, priceChapters(next.chapters));
+  // the same target verify and the fixes use (preview.percent is what the cut achieved)
+  Object.assign(next, priceChapters(next.chapters, work.previewPercent));
   return next;
 }
 

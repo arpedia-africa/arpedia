@@ -1,5 +1,8 @@
+import { cookies } from 'next/headers';
 import { Icon } from '@/components/icon';
-import { getStaff } from '@/lib/staff';
+import { soleSuperAdminTask, type HomeTask } from '@/lib/home-tasks';
+import { PREVIEW_COOKIE, PREVIEW_ROLES, previewHref, previewRoleOf } from '@/lib/preview-as';
+import { getStaff, roleLabel } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
 
 // Greeting by the time in Lagos (WAT), as on the prototype's Home.
@@ -8,13 +11,7 @@ function greeting(now = new Date()) {
   return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 }
 
-interface Task {
-  id: string;
-  href: string;
-  title: string;
-  sub: string;
-  due: string;
-}
+type Task = HomeTask;
 
 const since = (iso: string) => {
   const days = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
@@ -23,12 +20,13 @@ const since = (iso: string) => {
 
 /**
  * Tasks for the signed-in role, most urgent first. Super admins: bans waiting for them (flow 14 rule
- * 17) and plan price changes someone else proposed (flow 16 rule 17).
+ * 17), plan price changes someone else proposed (flow 16 rule 17) and, while they are the only
+ * one, adding a second Super admin (flow 16 open question 4).
  */
 async function tasksFor(staff: { id: string; role: string } | null): Promise<Task[]> {
   if (staff?.role !== 'super_admin') return [];
   const supabase = await serverSupabase();
-  const [{ data }, { data: changes }] = await Promise.all([
+  const [{ data }, { data: changes }, { data: holders }] = await Promise.all([
     supabase.rpc('admin_pending_bans'),
     supabase
       .from('approval_requests')
@@ -38,6 +36,7 @@ async function tasksFor(staff: { id: string; role: string } | null): Promise<Tas
       .neq('requested_by', staff.id)
       .gt('expires_at', new Date().toISOString())
       .order('created_at'),
+    supabase.rpc('staff_by_role'),
   ]);
   const prices = (changes ?? []).map((c) => {
     const p = c.payload as { plan_code?: string; name?: string };
@@ -56,14 +55,18 @@ async function tasksFor(staff: { id: string; role: string } | null): Promise<Tas
     sub: `${b.decided_by_name ?? 'A moderator'} asked for it${b.reason ? ` · ${b.reason}` : ''}${b.is_minor ? ' · under 18' : ''}`,
     due: since(b.created_at),
   }));
-  return [...bans, ...prices];
+  const sole = soleSuperAdminTask((holders ?? []).find((h) => h.role === 'super_admin')?.names ?? []);
+  return [...bans, ...prices, ...(sole ? [sole] : [])];
 }
 
 /** Home = My tasks for the signed-in role (s-overview markup). Tasks arrive with the flows that create them. */
 export default async function Home() {
   const staff = await getStaff();
   const first = staff?.name.split(' ')[0] ?? '';
-  const tasks = await tasksFor(staff);
+  // Preview as (spec check 16-25): Home shows the previewed role's tasks; nothing here acts as it.
+  const preview = previewRoleOf(staff?.role, (await cookies()).get(PREVIEW_COOKIE)?.value);
+  const tasks = await tasksFor(staff && { id: staff.id, role: preview ?? staff.role });
+  const viewing = preview ?? 'super_admin';
   return (
     <section className="screen enter">
       <div className="band band--home">
@@ -79,6 +82,23 @@ export default async function Home() {
             </p>
           </div>
         </div>
+        {staff?.role === 'super_admin' && (
+          <div className="preview-as" style={{ marginTop: 14 }}>
+            <span>Preview as</span>
+            <div className="seg">
+              {(['super_admin', ...PREVIEW_ROLES] as const).map((r) => (
+                <a
+                  key={r}
+                  href={previewHref(r)}
+                  className={r === viewing ? 'is-selected' : undefined}
+                  aria-selected={r === viewing ? 'true' : undefined}
+                >
+                  {roleLabel[r]}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <div className="page">
         <div className="home">

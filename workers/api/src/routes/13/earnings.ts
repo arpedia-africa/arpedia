@@ -5,8 +5,11 @@
 //        Flutterwave, encrypt the number, score the name against the legal name, submit_bank_account
 //   GET  /v1/earnings/flutterwave/balance      Finance / Super admin: NGN balance, feeds prepare_cycle
 //   POST /v1/earnings/flutterwave/webhook      transfer events (verif-hash), re-queried by transfer id
+//   /v1/earnings/statements/…                  statement PDFs (./statements.ts)
 // Cron: drainPayouts (every minute) sends queued transfers with the payout reference as idempotency
-// key; pollPendingPayouts (hourly) re-queries transfers pending over 48 hours.
+// key; pollPendingPayouts (hourly) re-queries transfers pending over 48 hours and raises the ones
+// still unsettled to Finance; payoutReminder (daily) tells Finance 3 days before payout day about
+// unverified accounts and the Flutterwave balance. Finance alerts go through the flow 15 dispatcher.
 // Flutterwave has one webhook URL per account, so flow 09's /v1/payments/flutterwave hands
 // `transfer.completed` events to handleTransferWebhook as well.
 import {
@@ -27,7 +30,17 @@ import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { rpcError, userDb } from '../12/http';
+import { deliverNotices } from '../15/notify';
+import {
+  failedAlert,
+  reminderAlert,
+  retryAlert,
+  stuckAlert,
+  type PayoutAlert,
+  type ReminderDue,
+} from './alerts';
 import { FlwError, payoutClient, type PayoutClient } from './flutterwave';
+import statements from './statements';
 
 type Db = SupabaseClient<Database>;
 
@@ -166,7 +179,10 @@ export async function applyTransfer(db: Db, client: PayoutClient, transferId: st
     p_transient: mapped.transient,
   });
   if (error) throw new Error(`payout_apply_event: ${error.message}`);
-  return data as { applied: boolean; replayed?: boolean; retry_id?: string | null };
+  return {
+    ...(data as { applied: boolean; replayed?: boolean; retry_id?: string | null }),
+    status: mapped.status,
+  };
 }
 
 interface TransferWebhook {
@@ -210,8 +226,24 @@ interface Sendable {
   account_number_enc: string;
 }
 
+type Alert = (a: PayoutAlert) => Promise<unknown>;
+
+/** Hands a Finance alert to the dispatcher; a failed send is logged, never blocks the payout. */
+const alertFinance =
+  (env: Env, db: Db): Alert =>
+  async (a) => {
+    const [ok] = await deliverNotices(env, db, [a]).catch(() => [false]);
+    if (!ok) console.error('payout_alert not sent', a.alert, a.subject);
+  };
+
 /** Returns true when the message is done (ack it). */
-export async function sendPayout(db: Db, client: PayoutClient, key: Uint8Array, payoutId: string) {
+export async function sendPayout(
+  db: Db,
+  client: PayoutClient,
+  key: Uint8Array,
+  payoutId: string,
+  alert: Alert = async () => undefined,
+) {
   const { data, error } = await db.rpc('payout_for_transfer', { p_payout: payoutId });
   if (error) throw new Error(`payout_for_transfer: ${error.message}`);
   const p = data as unknown as Sendable;
@@ -231,11 +263,20 @@ export async function sendPayout(db: Db, client: PayoutClient, key: Uint8Array, 
   } catch (e) {
     // No transfer exists: the same reference goes again after 1 h, then 6 h, then fails (rule 20).
     console.error('createTransfer', p.reference, e);
-    const { error: eErr } = await db.rpc('payout_transfer_error', {
+    const reason = e instanceof FlwError ? e.message.slice(0, 300) : 'Flutterwave could not be reached';
+    const { data: delay, error: eErr } = await db.rpc('payout_transfer_error', {
       p_payout: p.payout_id,
-      p_message: e instanceof FlwError ? e.message.slice(0, 300) : 'Flutterwave could not be reached',
+      p_message: reason,
     });
     if (eErr) throw new Error(`payout_transfer_error: ${eErr.message}`, { cause: e });
+    // No delay back: that was the third error and the payout is now failed (rule 20).
+    if (delay == null) await alert(failedAlert(p.reference, p.amount_kobo, reason));
+    else {
+      // The run is paused, retrying: Finance hears once per outage (13-11).
+      const { data: tell, error: aErr } = await db.rpc('payout_retry_alert', { p_payout: p.payout_id });
+      if (aErr) console.error('payout_retry_alert', p.reference, aErr.message);
+      else if (tell) await alert(retryAlert(p.reference, reason, delay));
+    }
     return false;
   }
 
@@ -265,7 +306,9 @@ export async function drainPayouts(env: Env, client = payoutClient(env)): Promis
   }
   for (const m of (data ?? []) as { msg_id: number; message: { payout_id?: string } }[]) {
     try {
-      const done = m.message.payout_id ? await sendPayout(db, client, key, m.message.payout_id) : true;
+      const done = m.message.payout_id
+        ? await sendPayout(db, client, key, m.message.payout_id, alertFinance(env, db))
+        : true;
       if (done) await db.rpc('payout_queue_ack', { p_msg_id: m.msg_id });
     } catch (e) {
       console.error('payout_transfer', m.msg_id, e);
@@ -273,23 +316,65 @@ export async function drainPayouts(env: Env, client = payoutClient(env)): Promis
   }
 }
 
-/** Hourly: transfers pending over 48 hours are re-queried; never retried until Flutterwave says failed. */
-export async function pollPendingPayouts(env: Env, client = payoutClient(env)): Promise<void> {
+interface PendingOver {
+  reference: string;
+  transfer_id: string | null;
+  amount_kobo: number;
+  newly_raised?: boolean;
+}
+
+/**
+ * Hourly: transfers pending over 48 hours are re-queried; never retried until Flutterwave says failed.
+ * Those still not settled are raised to Finance once (rule 19).
+ */
+export async function pollPendingPayouts(
+  env: Env,
+  client = payoutClient(env),
+  db: Db = serviceDb(env),
+  alert: Alert = alertFinance(env, db),
+): Promise<void> {
   if (!client) return;
-  const db = serviceDb(env);
   const { data, error } = await db.rpc('payouts_pending_over', { p_hours: 48 });
   if (error) {
     console.error('payouts_pending_over', error.message);
     return;
   }
-  for (const p of (data ?? []) as { reference: string; transfer_id: string | null }[]) {
-    if (!p.transfer_id) continue;
-    try {
-      await applyTransfer(db, client, p.transfer_id);
-    } catch (e) {
-      console.error('poll transfer', p.reference, e);
+  const stuck: PendingOver[] = [];
+  for (const p of (data ?? []) as unknown as PendingOver[]) {
+    let settled = false;
+    if (p.transfer_id) {
+      try {
+        const res = await applyTransfer(db, client, p.transfer_id);
+        settled = 'status' in res && res.status !== 'pending';
+      } catch (e) {
+        console.error('poll transfer', p.reference, e);
+      }
     }
+    if (p.newly_raised && !settled) stuck.push(p);
   }
+  if (stuck.length) await alert(stuckAlert(stuck));
 }
+
+/**
+ * Daily (09:00 Lagos): 3 days before payout day, once per cycle. payout_reminder_due marks the cycle
+ * first, so a dispatcher failure loses this one email (logged) rather than sending it twice.
+ */
+export async function payoutReminder(
+  env: Env,
+  client = payoutClient(env),
+  db: Db = serviceDb(env),
+  alert: Alert = alertFinance(env, db),
+): Promise<void> {
+  const { data, error } = await db.rpc('payout_reminder_due');
+  if (error) {
+    console.error('payout_reminder_due', error.message);
+    return;
+  }
+  if (!data) return;
+  const balance = client ? await client.balanceKobo().catch(() => null) : null;
+  await alert(reminderAlert(data as unknown as ReminderDue, balance));
+}
+
+earnings.route('/statements', statements);
 
 export default earnings;

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { naira } from '@arpedia/core';
 import { api } from '@/lib/api';
+import { stepUp, stepUpError } from '@/lib/stepup';
 import { serverSupabase } from '@/lib/supabase/server';
 import { verifyCode } from '../pricing/verify';
 import { payoutError } from './shared';
@@ -54,14 +55,18 @@ export async function prepareCycle(cycle: string, month: string): Promise<Result
   return { ok: true, message: `${month} prepared. A Super admin who didn't prepare it can now approve and release.` };
 }
 
-/** Release (Super admin, not the preparer, fresh 2-step code). Safe to call twice. */
+/**
+ * Release (Super admin, not the preparer). Needs a fresh code, used once within 5 minutes (flow 16
+ * rule 6). Safe to call twice: a second release replays, with a new code.
+ */
 export async function releaseCycle(cycle: string, otp: string, label: string): Promise<Result> {
-  if (otp.replace(/\D/g, '').length !== 6) return { ok: false, error: 'Enter the 6-digit code.', needCode: true };
-  const bad = await verifyCode(otp);
-  if (bad) return { ok: false, error: bad, needCode: true };
+  const step = await stepUp(otp, 'release_payout');
+  if ('error' in step) return { ok: false, error: step.error, needCode: true };
   const supabase = await serverSupabase();
-  const { data, error } = await supabase.rpc('release_cycle', { p_cycle: cycle });
+  const { data, error } = await supabase.rpc('release_cycle', { p_cycle: cycle, p_stepup: step.id });
   if (error) {
+    const expired = stepUpError(error.message);
+    if (expired) return { ok: false, error: expired, needCode: true };
     return {
       ok: false,
       error: payoutError(
@@ -77,7 +82,8 @@ export async function releaseCycle(cycle: string, otp: string, label: string): P
       ),
     };
   }
-  const r = data as { authors: number; total_kobo: number; replayed: boolean };
+  const r = data as { authors: number; total_kobo: number; held_unverified?: number; replayed: boolean };
+  const held = r.held_unverified ?? 0;
   revalidatePath('/royalties');
   revalidatePath(`/royalties/${cycle}`);
   revalidatePath('/payouts');
@@ -85,7 +91,72 @@ export async function releaseCycle(cycle: string, otp: string, label: string): P
     ok: true,
     message: r.replayed
       ? `${label} was already released. Nothing was sent twice.`
-      : `Release sent to Flutterwave. ${r.authors} author${r.authors === 1 ? '' : 's'} will be paid ${naira(r.total_kobo)}.`,
+      : `Release sent to Flutterwave. ${r.authors} author${r.authors === 1 ? '' : 's'} will be paid ${naira(r.total_kobo)}.` +
+        (held > 0
+          ? ` ${held} author${held === 1 ? ' has' : 's have'} no verified bank account; their money carries to next month.`
+          : ''),
+  };
+}
+
+/**
+ * Release in part, or send what was left (13-12): the Flutterwave balance can't cover the whole month,
+ * so the server sends whole lines, smallest first, up to `budgetKobo`; the rest stays approved, not
+ * sent, until the balance is topped up. Same two-person rule and single-use code as a full release.
+ */
+export async function releaseCyclePart(cycle: string, otp: string, label: string, budgetKobo: number): Promise<Result> {
+  const step = await stepUp(otp, 'release_payout');
+  if ('error' in step) return { ok: false, error: step.error, needCode: true };
+  const supabase = await serverSupabase();
+  const { data, error } = await supabase.rpc('release_cycle_part', {
+    p_cycle: cycle,
+    p_stepup: step.id,
+    p_budget_kobo: Math.floor(budgetKobo),
+  });
+  if (error) {
+    const expired = stepUpError(error.message);
+    if (expired) return { ok: false, error: expired, needCode: true };
+    return {
+      ok: false,
+      error: payoutError(
+        error,
+        {
+          '42501': 'Only a Super admin can release payouts.',
+          same_person: 'You prepared this release, so another Super admin must approve it.',
+          hold_not_ended: "The hold hasn't ended yet.",
+          ledger_mismatch: 'The month no longer matches the credit ledger. Recheck it first.',
+          bad_status: 'Prepare this month before releasing it.',
+          balance_too_low: "The Flutterwave balance doesn't cover any author's amount. Top it up first.",
+        },
+        "Couldn't release. No money moved. Try again.",
+      ),
+    };
+  }
+  const r = data as {
+    authors: number;
+    total_kobo: number;
+    held_unverified?: number;
+    left_authors?: number;
+    left_kobo?: number;
+    replayed: boolean;
+  };
+  const held = r.held_unverified ?? 0;
+  const left = r.left_authors ?? 0;
+  revalidatePath('/royalties');
+  revalidatePath(`/royalties/${cycle}`);
+  revalidatePath('/payouts');
+  if (r.replayed) return { ok: true, message: `${label} was already released. Nothing was sent twice.` };
+  return {
+    ok: true,
+    message:
+      (r.authors > 0
+        ? `Release sent to Flutterwave. ${r.authors} author${r.authors === 1 ? '' : 's'} will be paid ${naira(r.total_kobo)}.`
+        : 'Nothing was sent.') +
+      (left > 0
+        ? ` ${left} author${left === 1 ? '' : 's'} (${naira(r.left_kobo ?? 0)}) ${left === 1 ? 'is' : 'are'} approved, not sent. Send the rest once the balance is topped up.`
+        : '') +
+      (held > 0
+        ? ` ${held} author${held === 1 ? ' has' : 's have'} no verified bank account; their money carries to next month.`
+        : ''),
   };
 }
 

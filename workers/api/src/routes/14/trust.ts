@@ -1,8 +1,11 @@
 import { Hono, type Context } from 'hono';
 import {
+  claimTypeOf,
   hasBlockedLink,
   hasPhoneNumber,
+  isClaimAddress,
   matchMutedWords,
+  senderName,
   type MutedWord,
   type WordAction,
 } from '@arpedia/core';
@@ -10,11 +13,13 @@ import { AuthError, bearer, verifySupabaseJwt } from '@arpedia/core/jwt';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { deliverNotices, type Notice } from '../15/notify';
+import { evidenceOf, plainText } from './claims';
 
 // Flow 14 · Trust, safety and support.
-//   POST /v1/trust/moderate {text, surface, sender_new?, to_author?}  (signed-in user or internal key)
-//        → {action: allow | hide | hide_and_report | blur | warn, reason?, hits}
-//        The moderate-text check: safety-rule muted words, links, phone numbers. Rules are cached
+//   POST /v1/trust/moderate {text, surface, sender_new?, to_author?, sender_id?, group_id?}
+//        (signed-in user or internal key) → {action: allow | hide | hide_and_report | blur | warn, reason?, hits}
+//        The moderate-text check: safety-rule muted words, links, phone numbers, and (chat Worker
+//        only, with sender_id and group_id) the same text in many channels. Rules are cached
 //        for 60 s and reloaded at once after a change (rules_changed in the outbox).
 //   POST /v1/trust/support/inbound   Resend inbound-email webhook (Svix signature) → ticket
 //   POST /v1/trust/outbox/drain      (internal key) sends ticket replies by email, acks the rest
@@ -49,22 +54,24 @@ async function rules(env: Env, force = false): Promise<Rules> {
 }
 
 /** Workers call each other with the service key; the app calls with the reader's own token. */
-async function authorised(c: Context<AppEnv>): Promise<boolean> {
+async function caller(c: Context<AppEnv>): Promise<'internal' | 'user' | null> {
   const key = c.req.header('X-Internal-Key');
-  if (key && timingSafeEqual(key, c.env.SUPABASE_SERVICE_ROLE_KEY)) return true;
+  if (key && timingSafeEqual(key, c.env.SUPABASE_SERVICE_ROLE_KEY)) return 'internal';
   const token = bearer(c.req.header('Authorization'));
-  if (!token) return false;
+  if (!token) return null;
   try {
     await verifySupabaseJwt(token, {
       supabaseUrl: c.env.SUPABASE_URL,
       hsSecret: c.env.APP_ENV === 'local' ? c.env.SUPABASE_JWT_SECRET : undefined,
     });
-    return true;
+    return 'user';
   } catch (e) {
-    if (e instanceof AuthError) return false;
+    if (e instanceof AuthError) return null;
     throw e;
   }
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -80,7 +87,8 @@ const stronger = (a: WordAction | null, b: WordAction): WordAction =>
 const trust = new Hono<AppEnv>();
 
 trust.post('/moderate', async (c) => {
-  if (!(await authorised(c))) return c.json({ error: 'unauthorized' }, 401);
+  const who = await caller(c);
+  if (!who) return c.json({ error: 'unauthorized' }, 401);
   const body = await c.req.json().catch(() => null);
   const text = typeof body?.text === 'string' ? body.text.slice(0, 4000) : null;
   const surface: Surface = ['chat', 'dm', 'review', 'comment'].includes(body?.surface)
@@ -106,6 +114,22 @@ trust.post('/moderate', async (c) => {
     // Hide and ask the sender to edit (rule 23).
     action = stronger(action, 'hide');
     reason ??= 'phone_number';
+  }
+  // Same text in many channels (rule 23): only the chat Worker may ask, since the answer says
+  // what a sender wrote elsewhere. Fails open: chat never stalls on a slow database.
+  const sender = typeof body?.sender_id === 'string' && UUID_RE.test(body.sender_id) ? body.sender_id : null;
+  const group = typeof body?.group_id === 'string' && UUID_RE.test(body.group_id) ? body.group_id : null;
+  if (who === 'internal' && sender && group && (surface === 'chat' || surface === 'dm') && text.trim()) {
+    const { data, error } = await serviceDb(c.env).rpc('cross_channel_spam', {
+      p_user: sender,
+      p_group: group,
+      p_text: text,
+    });
+    if (error) console.error('cross_channel_spam', error.message);
+    else if (data === true) {
+      action = stronger(action, 'hide');
+      reason = 'spam';
+    }
   }
 
   if (hits.length) {
@@ -178,29 +202,59 @@ trust.post('/support/inbound', async (c) => {
   );
   if (!from) return c.json({ ok: true, ignored: 'no_sender' });
 
-  // Attachments go to R2 under support/; the ticket keeps their keys.
-  const files: { key: string; name: string; type: string }[] = [];
+  // A copyright claim (rule 29): mail to copyright@ that names a book opens a claim; mail that
+  // names no book falls through to the support inbox below.
+  const claim = isClaimAddress([...[d.to ?? []].flat(), ...[d.cc ?? []].flat()]);
+  const subject = String(d.subject ?? '');
+  const body = String(d.text ?? d.html ?? '').slice(0, 20000);
+
+  // Attachments go to R2 under support/ (claims/ for claim evidence); the row keeps their keys.
+  const files: { key: string; name: string; type: string; bytes: number }[] = [];
   for (const a of (
     (d.attachments ?? []) as { filename?: string; content?: string; content_type?: string }[]
   ).slice(0, 10)) {
     if (!a.content) continue;
     const name = (a.filename ?? 'file').replace(/[^\w.-]+/g, '_').slice(0, 100);
-    const key = `support/${crypto.randomUUID()}/${name}`;
+    const key = `${claim ? 'claims' : 'support'}/${crypto.randomUUID()}/${name}`;
     const bytes = Uint8Array.from(atob(a.content), (ch) => ch.charCodeAt(0));
     if (bytes.byteLength > 10 * 1024 * 1024) continue;
     await c.env.BOOKS.put(key, bytes, {
       httpMetadata: { contentType: a.content_type ?? 'application/octet-stream' },
     });
-    files.push({ key, name, type: a.content_type ?? 'application/octet-stream' });
+    files.push({ key, name, type: a.content_type ?? 'application/octet-stream', bytes: bytes.byteLength });
+  }
+
+  if (claim) {
+    // The claim keeps 4,000 characters of the email; a longer one is kept whole as text evidence,
+    // which the passage check reads too.
+    const text = d.text ? body : plainText(body);
+    const evidence = files.map(evidenceOf);
+    if (text.length > 4000) {
+      const key = `claims/${crypto.randomUUID()}/email.txt`;
+      const bytes = new TextEncoder().encode(text);
+      await c.env.BOOKS.put(key, bytes, { httpMetadata: { contentType: 'text/plain' } });
+      evidence.push(evidenceOf({ key, name: 'email.txt', type: 'text/plain', bytes: bytes.byteLength }));
+    }
+    const { data, error } = await serviceDb(c.env).rpc('ingest_claim_email', {
+      p_from: from,
+      p_name: senderName(d.from) ?? '',
+      p_subject: subject,
+      p_body: text,
+      p_message_id: messageId,
+      p_type: claimTypeOf(subject, body),
+      p_attachments: evidence,
+    });
+    if (error) throw error;
+    if ((data as { routed?: string } | null)?.routed !== 'ticket') return c.json(data);
   }
 
   const { data, error } = await serviceDb(c.env).rpc('ingest_support_email', {
     p_from: from,
-    p_subject: String(d.subject ?? ''),
-    p_body: String(d.text ?? d.html ?? '').slice(0, 20000),
+    p_subject: subject,
+    p_body: body,
     p_message_id: messageId,
     p_in_reply_to: (d.in_reply_to as string | undefined) ?? headers['in-reply-to'] ?? undefined,
-    p_attachments: files,
+    p_attachments: files.map(({ key, name, type }) => ({ key, name, type })),
   });
   if (error) throw error;
   return c.json(data);
@@ -209,6 +263,8 @@ trust.post('/support/inbound', async (c) => {
 // ─── Outbox ─────────────────────────────────────────────────────────────────
 interface OutboxItem {
   kind: string;
+  op?: string;
+  user_id?: string;
   ticket_id?: string;
   message_id?: string;
   email?: string | null;
@@ -246,6 +302,38 @@ async function sendTicketReply(env: Env, item: OutboxItem): Promise<void> {
   if (!res.ok) throw new Error(`resend ${res.status}`);
 }
 
+/**
+ * `live` / `refresh_user` (spec check 14-28): a mute, suspension, ban, confirmed ban or overturn
+ * changes what this person may do in every conversation, not only the reported one. Each
+ * conversation they belong to re-reads their access now (closing their socket or changing their
+ * composer), instead of waiting for its 60 s cache. A conversation with no socket of theirs
+ * does nothing.
+ */
+export async function refreshUserEverywhere(
+  env: Pick<Env, 'CONVERSATION'>,
+  db: Pick<ReturnType<typeof serviceDb>, 'from'>,
+  userId: string,
+): Promise<number> {
+  const ns = env.CONVERSATION;
+  if (!ns || !UUID_RE.test(userId)) return 0;
+  const { data, error } = await db.from('group_members').select('group_id').eq('user_id', userId).limit(500);
+  if (error) throw error;
+  const groups = (data ?? []).map((r) => r.group_id);
+  for (let i = 0; i < groups.length; i += 20) {
+    await Promise.all(
+      groups.slice(i, i + 20).map(async (gid) => {
+        const res = await ns.get(ns.idFromName(gid)).fetch(`https://do/c/${gid}/refresh`, {
+          method: 'POST',
+          headers: { 'X-Group-Id': gid, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId }),
+        });
+        if (!res.ok) throw new Error(`refresh ${gid}: ${res.status}`);
+      }),
+    );
+  }
+  return groups.length;
+}
+
 export async function drainTrustOutbox(env: Env): Promise<{ handled: number }> {
   const db = serviceDb(env);
   const { data, error } = await db.rpc('trust_queue_read', { p_qty: 20, p_vt: 60 });
@@ -253,7 +341,7 @@ export async function drainTrustOutbox(env: Env): Promise<{ handled: number }> {
   const done: number[] = [];
   const rows = (data ?? []) as { msg_id: number; message: unknown }[];
   // Pushes and emails for every notice (reporter, sanction, appeal, claims, staff alerts, the
-  // ticket-reply push): flow 15's dispatcher. live: pushed by the admin console to the chat Worker.
+  // ticket-reply push): flow 15's dispatcher. live refresh_user: every conversation of that person.
   const delivered = await deliverNotices(
     env,
     db,
@@ -267,6 +355,8 @@ export async function drainTrustOutbox(env: Env): Promise<{ handled: number }> {
     try {
       if (item.kind === 'ticket_reply') await sendTicketReply(env, item);
       if (item.kind === 'rules_changed') cached = null;
+      if (item.kind === 'live' && item.op === 'refresh_user' && item.user_id)
+        await refreshUserEverywhere(env, db, item.user_id);
       // trust_queue_read has no read count: a notice still failing an hour after it was written
       // (_trust_notify stamps `at`) is given up, so a bad one can't retry forever.
       const at = Date.parse(String((row.message as { at?: unknown }).at ?? ''));

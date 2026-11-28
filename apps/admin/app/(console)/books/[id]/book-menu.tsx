@@ -19,9 +19,8 @@ export function ToastButton({ label, message, className }: { label: string; mess
 }
 
 /**
- * The book header's ⋯ menu (s-book): app preview, edit details, replace cover, Unpublish. Editing
- * details and the cover make a new revision through the author upload path (flow 12); until the
- * console can do that itself these explain where to do it.
+ * The book header's ⋯ menu (s-book): app preview, edit details, replace cover, Unpublish. Edit
+ * details and Replace cover open /books/[id]/edit, which saves a new revision (flow 12 rule 41).
  */
 export function BookMenu({ bookId, title, live }: { bookId: string; title: string; live: boolean }) {
   const [open, setOpen] = useState(false);
@@ -59,12 +58,25 @@ export function BookMenu({ bookId, title, live }: { bookId: string; title: strin
           <a role="button" tabIndex={0} onClick={pick(`Open ${title} in the Arpedia app to preview it as a reader.`)}>
             Open in app preview
           </a>
-          <a role="button" tabIndex={0} onClick={pick('Details change through a new revision: upload it under Books → Upload a book.')}>
-            Edit details
-          </a>
-          <a role="button" tabIndex={0} onClick={pick('A new cover comes with a new revision: upload it under Books → Upload a book.')}>
-            Replace cover
-          </a>
+          {live ? (
+            <>
+              <Link href={`/books/${bookId}/edit`} onClick={() => setOpen(false)}>
+                Edit details
+              </Link>
+              <Link href={`/books/${bookId}/edit?cover=1`} onClick={() => setOpen(false)}>
+                Replace cover
+              </Link>
+            </>
+          ) : (
+            <>
+              <a role="button" tabIndex={0} onClick={pick('Details change through a new revision once the book is live.')}>
+                Edit details
+              </a>
+              <a role="button" tabIndex={0} onClick={pick('A new cover comes with a new revision once the book is live.')}>
+                Replace cover
+              </a>
+            </>
+          )}
           {live && (
             <>
               <hr />

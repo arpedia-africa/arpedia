@@ -116,11 +116,27 @@ describe('applyFix', () => {
     );
   });
 
-  it('dismisses without changing the copy; shrinking is left to the desk', async () => {
+  it('dismisses without changing the copy', async () => {
     const w = await work();
     const r = await applyFix(w, { op: 'dismiss_flag', reason: 'Intended' });
     expect(r).toEqual({ work: w, touched: [], restructured: false });
-    await expect(applyFix(w, { op: 'shrink_image', image: 'img/1.png' })).rejects.toBeInstanceOf(FixError);
+  });
+
+  it('records a shrunk image size in every block that shows it; needs the size from the Worker', async () => {
+    const w = await work();
+    const img = { path: 'img/1.jpg', width: 3200, height: 4800, bytes: 3_000_000, alone: true };
+    w.chapters[1]!.blocks.push({ html: '<img src="img/1.jpg"/>', text: '', words: 0, images: [img] });
+    const size = { width: 1067, height: 1600, bytes: 400_000 };
+    await expect(applyFix(w, { op: 'shrink_image', image: img.path })).rejects.toBeInstanceOf(FixError);
+    await expect(applyFix(w, { op: 'shrink_image', image: 'img/9.png', size })).rejects.toBeInstanceOf(
+      FixError,
+    );
+    const r = await applyFix(w, { op: 'shrink_image', image: img.path, size });
+    expect(r.restructured).toBe(false);
+    expect(r.touched).toEqual([w.anchors.uids[1]]);
+    expect(r.work.chapters[1]!.blocks.at(-1)!.images).toEqual([{ ...img, ...size }]);
+    expect(w.chapters[1]!.blocks.at(-1)!.images![0]).toBe(img); // the old copy is untouched
+    expect(r.work.pages).toBe(w.pages);
   });
 });
 

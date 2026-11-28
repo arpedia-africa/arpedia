@@ -8,10 +8,11 @@ import { z } from 'zod';
 import { requireUser } from '../../auth';
 import { serviceDb } from '../../db';
 import type { AppEnv } from '../../env';
-import { countsPayload, loadWork, locateFlags, runStage, type WorkCopy } from './pipeline';
+import { countsPayload, loadWork, locateFlags, phoneCountsKey, runStage, type WorkCopy } from './pipeline';
 import desk from './desk';
 import { rpcError, signedUrl, userDb } from './http';
 import staff from './staff';
+import staffEdit from './staff-edit';
 import { verifyUpload } from './tokens';
 
 const MB = 1024 * 1024;
@@ -58,6 +59,7 @@ books.get('/objects/:token/:path{.+}', async (c) => {
 books.use('*', requireUser);
 books.route('/', staff);
 books.route('/desk', desk);
+books.route('/staff-edit', staffEdit);
 
 const UploadBody = z.object({
   book_id: z.uuid().optional(),
@@ -112,6 +114,8 @@ const FinalizeBody = z.object({
   converted: z.boolean(),
   /** Why the phone did not convert (falls back to the desk). */
   reason: z.enum(['conversion_failed', 'out_of_memory', 'too_large', 'conversion_skipped']).optional(),
+  /** The phone's own word count of the converted book (rule 11), compared at verify (`convert_drift`). */
+  words: z.number().int().min(0).max(10_000_000).optional(),
   /** Desk push only: the epubcheck report as flags (rule 21). */
   flags: z
     .array(
@@ -166,6 +170,13 @@ books.post('/finalize', async (c) => {
   });
   if (fe) return rpcError(c, fe);
   const res = data as { status: string; generation: number; duplicate?: boolean };
+  // Rule 11: what the phone counted, for the drift check at verify (only a number and who sent it).
+  if (body.data.converted && body.data.words !== undefined && !res.duplicate)
+    await c.env.BOOKS.put(
+      phoneCountsKey(rev.id),
+      JSON.stringify({ words: body.data.words, user: c.var.user.sub }),
+      { httpMetadata: { contentType: 'application/json' } },
+    );
   if (res.status === 'processing' && !res.duplicate)
     c.executionCtx.waitUntil(
       runStage(c.env, { revision_id: rev.id, stage: 'verify', generation: res.generation }),
@@ -208,7 +219,10 @@ books.post('/confirm', async (c) => {
     return c.json({ error: 'invalid_request' }, 400);
   }
   // The text checks run again on the edited chapters, so a renamed chapter loses its title flag.
-  const flags = locateFlags(checkChapters(next.chapters, { untitledBook: next.untitledBook }), next.anchors);
+  const flags = locateFlags(
+    checkChapters(next.chapters, { untitledBook: next.untitledBook, tocChapters: next.tocChapters }),
+    next.anchors,
+  );
   // The author's confirm RPC checks ownership before anything is stored.
   const { data, error } = await db.rpc('confirm_chapters', {
     p_rev: rev.id,

@@ -46,6 +46,9 @@ function setup(moderate?: Deps['moderate']) {
   let failPush = false;
   const pushes: { ids: string[]; open: string[] }[] = [];
   const flushAt: number[] = [];
+  const changed: { id: string; state: 'visible' | 'auto_hidden' | 'removed' | 'deleted'; at: number }[] = [];
+  const sinceAsked: string[] = [];
+  let failStates = false;
   const db: ChatDb = {
     getAccess: async (_g, u) => {
       calls.access++;
@@ -69,6 +72,11 @@ function setup(moderate?: Deps['moderate']) {
     pushMessages: async (ids, open) => {
       if (failPush) throw new Error('push down');
       pushes.push({ ids, open });
+    },
+    changedStates: async (_g, since) => {
+      if (failStates) throw new Error('postgres down');
+      sinceAsked.push(since);
+      return changed.filter((c) => c.at >= Date.parse(since)).map(({ id, state }) => ({ id, state }));
     },
   };
   const q = new Map<string, PersistItem>();
@@ -129,6 +137,10 @@ function setup(moderate?: Deps['moderate']) {
     poison: (body: string) => (poison = body),
     pushes,
     failPush: (v: boolean) => (failPush = v),
+    changed,
+    sinceAsked,
+    failStates: (v: boolean) => (failStates = v),
+    now: () => now,
   };
 }
 
@@ -193,6 +205,60 @@ describe('send path', () => {
     await t.conv.connect('bola');
     await t.send(ada, 1);
     expect(bola.frames.some((f) => f.type === 'message')).toBe(false);
+  });
+
+  const last = (p: { frames: ServerFrame[] }) => p.frames.filter((f) => f.type !== 'message').at(-1);
+
+  it('caps messages per minute at the safety setting, else 20 (flow 14 rule 23)', async () => {
+    const t = setup();
+    t.table.set('ada', access({ limits: { messages_per_minute: 3 } }));
+    t.table.set('bola', access());
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    for (let n = 1; n <= 4; n++) await t.send(ada, n);
+    expect(ada.frames.filter((f) => f.type === 'ack')).toHaveLength(3);
+    expect(last(ada)).toMatchObject({ type: 'error', error: 'rate_limited' });
+    t.tick(60_000);
+    await t.send(ada, 5);
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    for (let n = 10; n < 31; n++) await t.send(bola, n);
+    expect(bola.frames.filter((f) => f.type === 'ack')).toHaveLength(20);
+  });
+
+  it('refuses the same text a third time in 5 minutes, ignoring case and spacing', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('mod', access({ role: 'moderator' }));
+    const ada = t.peer('ada');
+    const mod = t.peer('mod');
+    await t.send(ada, 1, 'Join my channel');
+    await t.send(ada, 2, 'join  my CHANNEL');
+    await t.send(ada, 3, 'join my channel');
+    expect(ada.frames.filter((f) => f.type === 'ack')).toHaveLength(2);
+    expect(last(ada)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
+    await t.send(ada, 4, 'something else');
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    t.tick(5 * 60_000);
+    await t.send(ada, 5, 'join my channel');
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    for (let n = 6; n <= 8; n++) await t.send(mod, n, 'Please read the pinned rules');
+    expect(mod.frames.filter((f) => f.type === 'ack')).toHaveLength(3);
+  });
+
+  it('follows the identical-messages setting, and 0 switches it off', async () => {
+    const t = setup();
+    t.table.set('ada', access({ limits: { identical_messages: 2, identical_window_minutes: 1 } }));
+    t.table.set('bola', access({ limits: { identical_messages: 0 } }));
+    const ada = t.peer('ada');
+    const bola = t.peer('bola');
+    await t.send(ada, 1, 'hi');
+    await t.send(ada, 2, 'hi');
+    expect(last(ada)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
+    t.tick(61_000);
+    await t.send(ada, 3, 'hi');
+    expect(last(ada)).toMatchObject({ type: 'ack' });
+    for (let n = 10; n < 15; n++) await t.send(bola, n, 'same');
+    expect(bola.frames.filter((f) => f.type === 'ack')).toHaveLength(5);
   });
 
   it('enforces slow mode with a countdown, except for moderators', async () => {
@@ -311,7 +377,8 @@ describe('moderate-text (flow 14)', () => {
     expect(bola.frames.filter((f) => f.type === 'message')).toHaveLength(1);
     await t.conv.flush();
     expect(t.stored.map((s) => s.state)).toEqual(['auto_hidden', 'visible']);
-    expect(seen[0]).toEqual({ text: 'a bad word', surface: 'dm', sender_new: true });
+    expect(seen[0]).toMatchObject({ text: 'a bad word', surface: 'dm', sender_new: true, sender_id: 'ada' });
+    expect((seen[0] as { group_id?: string }).group_id).toBeTruthy();
   });
 
   it('asks to edit phone numbers and refuses blocked links, storing neither', async () => {
@@ -324,6 +391,15 @@ describe('moderate-text (flow 14)', () => {
     expect(ada.frames.at(-1)).toMatchObject({ error: 'phone_number' });
     await t.send(ada, 2, 'see example.com');
     expect(ada.frames.at(-1)).toMatchObject({ error: 'rejected_by_rules' });
+    expect(t.q.size).toBe(0);
+  });
+
+  it('refuses the same text in many channels (spam), storing nothing', async () => {
+    const t = setup(async () => ({ action: 'hide', reason: 'spam' }));
+    t.table.set('ada', access());
+    const ada = t.peer('ada');
+    await t.send(ada, 1, 'buy cheap credits');
+    expect(ada.frames.at(-1)).toMatchObject({ type: 'error', error: 'rejected_by_rules' });
     expect(t.q.size).toBe(0);
   });
 
@@ -413,6 +489,50 @@ describe('enforcement push-down', () => {
     t.table.set('mod', access({ role: 'moderator' }));
     await t.conv.refresh(undefined, 'mod');
     expect(dee.closed).toBe(4403);
+  });
+
+  it('enforce takes messages moderated in Postgres out of live clients', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('staff', access({ access: 'staff', is_staff: true }));
+    const ada = t.peer('ada');
+    await t.conv.connect('ada');
+    t.changed.push(
+      { id: 'm-removed', state: 'removed', at: t.now() - 60_000 },
+      { id: 'm-hidden', state: 'auto_hidden', at: t.now() - 5_000 },
+      { id: 'm-restored', state: 'visible', at: t.now() - 5_000 },
+      { id: 'm-old', state: 'removed', at: t.now() - 11 * 60_000 },
+    );
+    await t.conv.enforce(undefined, 'staff');
+    expect(t.sinceAsked).toEqual([new Date(t.now() - 10 * 60_000).toISOString()]);
+    expect(ada.frames.filter((f) => f.type === 'state')).toEqual([
+      { type: 'state', message_id: 'm-removed', state: 'removed' },
+      { type: 'state', message_id: 'm-hidden', state: 'auto_hidden' },
+    ]);
+    expect(ada.frames.find((f) => f.type === 'group')).toBeTruthy();
+  });
+
+  it('enforce by a plain member refreshes only them and pushes no message states', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('dee', access());
+    t.peer('ada');
+    const dee = t.peer('dee');
+    t.changed.push({ id: 'm1', state: 'removed', at: t.now() });
+    await t.conv.enforce(undefined, 'ada');
+    expect(t.sinceAsked).toEqual([]);
+    expect(dee.frames.some((f) => f.type === 'state')).toBe(false);
+  });
+
+  it('enforce still refreshes access when reading message states fails', async () => {
+    const t = setup();
+    t.table.set('ada', access());
+    t.table.set('mod', access({ role: 'moderator' }));
+    const ada = t.peer('ada');
+    t.table.set('ada', access({ access: 'banned' }));
+    t.failStates(true);
+    await expect(t.conv.enforce(undefined, 'mod')).resolves.toBeUndefined();
+    expect(ada.closed).toBe(4403);
   });
 });
 

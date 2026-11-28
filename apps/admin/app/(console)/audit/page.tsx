@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { Icon } from '@/components/icon';
+import { OfflineBanner } from '@/components/online';
 import { NoAccess } from '@/components/no-access';
 import { avClass, initials, n0 } from '@/lib/money';
 import { canOpen } from '@/lib/nav';
@@ -13,6 +14,7 @@ import { AuditToolbar } from './toolbar';
 import {
   actionLabel,
   filterHref,
+  ipAndPlace,
   longDate,
   objectHref,
   RANGES,
@@ -41,6 +43,8 @@ interface Entry {
   reason: string | null;
   request_id: string | null;
   ip: string | null;
+  city: string | null;
+  country: string | null;
   device: string | null;
   mfa_verified_at: string | null;
   retain_until: string | null;
@@ -127,7 +131,7 @@ function EntryDrawer({ e, back, now }: { e: Entry; back: string; now: number }) 
                 <dt>Request id</dt>
                 <dd className="mono">{e.request_id ?? '–'}</dd>
                 <dt>IP address</dt>
-                <dd className="mono">{e.ip ?? '–'}</dd>
+                <dd className="mono">{ipAndPlace(e.ip, e.city, e.country)}</dd>
                 <dt>Device</dt>
                 <dd>{e.device ?? '–'}</dd>
                 <dt>Two-step</dt>
@@ -194,6 +198,7 @@ export default async function AuditLogPage({
           </div>
         </div>
         <div className="page">
+          <OfflineBanner />
           <AuditToolbar filters={f} actors={list.actors} />
           <div className="panel panel--flush">
             {list.rows.length ? (
@@ -238,7 +243,7 @@ export default async function AuditLogPage({
                               )}
                             </td>
                             <td className="muted">{r.summary}</td>
-                            <td className="nw mono">{r.ip ?? '–'}</td>
+                            <td className="nw mono">{ipAndPlace(r.ip, r.city)}</td>
                           </RowLink>
                         );
                       })}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Icon } from '@/components/icon';
 import { useToast } from '@/components/toast';
+import { sortRows } from '@/lib/table';
 import {
   cancelCampaign,
   deleteDraft,
@@ -169,13 +170,13 @@ export function CampaignsView({
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase();
     const test = FILTERS.find(f => f.key === filter)!.test;
-    return rows
-      .filter(r => test(r) && (!t || r.title.toLowerCase().includes(t)))
-      .sort((a, b) =>
-        sort === 'opened'
-          ? openRate(b) - openRate(a)
-          : (sort === 'old' ? 1 : -1) * (new Date(when(a)).getTime() - new Date(when(b)).getTime()),
-      );
+    const list = rows.filter(r => test(r) && (!t || r.title.toLowerCase().includes(t)));
+    return sortRows(
+      list,
+      sort === 'opened'
+        ? [{ id: 'opened', value: openRate, desc: true }]
+        : [{ id: 'when', value: r => new Date(when(r)).getTime(), desc: sort !== 'old' }],
+    );
   }, [rows, q, filter, sort]);
 
   const run = (p: Promise<ActionResult>, ok: string, undo?: () => void) =>

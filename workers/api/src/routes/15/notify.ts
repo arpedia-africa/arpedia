@@ -23,6 +23,8 @@ export interface Lookup {
   users: Record<string, { email: string | null; first_name: string; name: string }>;
   books: Record<string, { title: string; author_id: string | null }>;
   staff: Record<string, string[]>;
+  /** Alert kinds each staff member turned off on My account (flow 16 rule 40). */
+  staff_off?: Record<string, string[]>;
   followers: Record<string, string[]>;
 }
 
@@ -56,11 +58,20 @@ const day = (v: unknown) => (typeof v === 'string' && v ? ledgerDay(v) : '');
 const money = (v: unknown) => (typeof v === 'number' ? naira(v) : '');
 const firstLine = (v: unknown) => str(v).split('\n')[0]!.slice(0, 140);
 
-/** Staff notices go to everyone holding the role (Super admins always). */
+/** The switches on My account (flow 16 rule 40). */
+export type StaffAlertKind =
+  'high_severity_reports' | 'failed_payouts' | 'copyright_claims' | 'applications_waiting' | 'system_health';
+
+/** Staff notices go to everyone holding the role (Super admins always), minus their switched-off alerts. */
 const STAFF_ROLE: Record<string, string> = {
   application_sla: 'publisher',
   staff_alert: 'moderator',
   finance_alert: 'finance',
+  payout_alert: 'finance',
+  claim_new: 'publisher',
+  claim_deadline: 'publisher',
+  system_alert: 'operations_admin',
+  ticket_late: 'support',
 };
 
 /** Finance alerts from flow 09's payments_out queue. */
@@ -72,6 +83,15 @@ const FINANCE_ALERT: Record<string, [subject: string, message: string]> = {
   duplicate_charge: [
     'A reader was charged twice within a minute',
     'The second charge is waiting in Refunds as "Refund the duplicate".',
+  ],
+  // Flow 09 store_reconcile (weekly).
+  store_unmatched: [
+    'Store payments do not match our records',
+    "This week's check found payments that Google Play or Flutterwave and Arpedia disagree on. See Credits → Anomalies.",
+  ],
+  store_reconcile_failed: [
+    "This week's store payment check did not run",
+    'Google Play or Flutterwave did not answer the weekly check. It runs again next Monday.',
   ],
 };
 
@@ -147,9 +167,12 @@ export function plan(n: Notice, l: Lookup): Plan {
   const email = (key: string, vars: Record<string, string> = {}, who = to) => {
     if (who) mail.push({ key, user_id: who, vars });
   };
-  const staff = (role: string, subject: string, message: string) => {
-    for (const u of l.staff[role] ?? [])
+  // `pref` is the My account switch the alert falls under; High-severity reports always arrive.
+  const staff = (role: string, subject: string, message: string, pref?: StaffAlertKind) => {
+    for (const u of l.staff[role] ?? []) {
+      if (pref && l.staff_off?.[u]?.includes(pref)) continue;
       mail.push({ key: 'staff_alert', user_id: u, vars: { subject, message } });
+    }
   };
   const studio = { kind: 'screen', screen: 'studio' };
   const earnings = { kind: 'screen', screen: 'earnings' };
@@ -217,6 +240,15 @@ export function plan(n: Notice, l: Lookup): Plan {
         screen: 'plans',
       });
       break;
+    case 'credits_granted': {
+      // Flow 14 rule 38: sent only once a staff grant is in the balance (never while it waits).
+      const credits = str(n.credits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      notice(`We added ${credits} credits to your account`, firstLine(n.message) || 'Enjoy your reading', {
+        kind: 'screen',
+        screen: 'credits',
+      });
+      break;
+    }
     case 'renewal_reminder': {
       const plan = str(n.plan).replace(/^./, (c) => c.toUpperCase());
       const date = day(n.period_end);
@@ -273,7 +305,12 @@ export function plan(n: Notice, l: Lookup): Plan {
       notice('Your author account is paused', 'Open Studio to see why', studio);
       break;
     case 'application_sla':
-      staff('publisher', `${str(n.count)} author applications are waiting`, 'Some are past the reply time.');
+      staff(
+        'publisher',
+        `${str(n.count)} author applications are waiting`,
+        'Some are past the reply time.',
+        'applications_waiting',
+      );
       break;
 
     // ─── book_notify ───
@@ -323,6 +360,18 @@ export function plan(n: Notice, l: Lookup): Plan {
     case 'sent_back_reminder':
       notice(`${book} is waiting for your changes`, 'Open Studio to send it back to us', studio);
       break;
+    case 'screening_skipped':
+      // Rule 25: a plagiarism or content-policy check could not run; the book was not blocked.
+      staff(
+        'operations_admin',
+        'A book check was skipped',
+        `${book}: the ${(Array.isArray(n.checks) ? n.checks.map(str) : [])
+          .map((c) => (c === 'plagiarism' ? 'plagiarism' : 'content policy'))
+          .join(
+            ' and ',
+          )} check could not run (the provider did not answer). Look at the book before it goes live.`,
+      );
+      break;
     case 'desk_job':
     case 'pipeline_late':
     case 'fast_lane_problem': {
@@ -346,6 +395,43 @@ export function plan(n: Notice, l: Lookup): Plan {
             ? 'A report was escalated to you'
             : 'A report needs a look',
         [str(n.severity), str(n.reason)].filter(Boolean).join(' · ') || 'Open Reports in the console.',
+        n.severity === 'high' ? undefined : 'high_severity_reports',
+      );
+      break;
+    case 'ticket_late': {
+      // Flow 14 rule 35: one alert per sla_watch run, however many tickets went late.
+      const count = Number(n.count) || 1;
+      staff(
+        'support',
+        count === 1
+          ? 'A support ticket is past its first-reply time'
+          : `${count} support tickets are past their first-reply time`,
+        `First replies are promised within 1 day.${n.oldest_ref ? ` Oldest: ${str(n.oldest_ref)}.` : ''} Open Support in the console.`,
+      );
+      break;
+    }
+    case 'claim_new':
+      staff(
+        'publisher',
+        `New copyright claim on ${book}`,
+        `${str(n.ref)}${n.claimant_name ? ` from ${str(n.claimant_name)}` : ''}. Open Claims in the console.`,
+        'copyright_claims',
+      );
+      break;
+    case 'claim_deadline':
+      staff(
+        'publisher',
+        `Copyright claim ${str(n.ref)} is due ${day(n.due_at)}`,
+        `The claim on ${book} needs a decision within 2 days. Open Claims in the console.`,
+        'copyright_claims',
+      );
+      break;
+    case 'system_alert':
+      staff(
+        'operations_admin',
+        `${str(n.label) || str(n.service)} is ${n.status === 'failing' ? 'failing' : 'having problems'}`,
+        `${str(n.note) || 'See Settings → Integrations.'}`,
+        'system_health',
       );
       break;
     case 'finance_alert': {
@@ -353,9 +439,33 @@ export function plan(n: Notice, l: Lookup): Plan {
         `Payment alert: ${str(n.alert) || 'unknown'}`,
         'See Credits → Anomalies.',
       ];
-      staff('finance', subject, `${message} Transaction ${str(n.transaction_id)}.`);
+      const txn = str(n.transaction_id);
+      staff('finance', subject, txn ? `${message} Transaction ${txn}.` : message);
       break;
     }
+    case 'export_ready': {
+      // Flow 15 rule 29, to the staff member who made the export (no file or row data in the mail).
+      const what = str(n.export_kind).replace(/_/g, ' ') || 'export';
+      const rows = typeof n.row_count === 'number' ? n.row_count : null;
+      email('staff_alert', {
+        subject: `Your ${what} export is ready`,
+        message:
+          (rows == null ? '' : `${rows.toLocaleString('en-NG')} ${rows === 1 ? 'row' : 'rows'}. `) +
+          'Download it from Exports in the console within 7 days.',
+      });
+      break;
+    }
+    case 'payout_alert':
+      // Flow 13 writes its own copy (payout reminder, stuck, retrying and failed transfers).
+      staff(
+        'finance',
+        str(n.subject) || 'Payout alert',
+        str(n.message) || 'Open Royalties in the console.',
+        ['payout_failed', 'transfer_stuck', 'payout_retrying'].includes(str(n.alert))
+          ? 'failed_payouts'
+          : undefined,
+      );
+      break;
     case 'sanction_notice':
       typed('moderation_notice');
       email('sanction_notice', { message: str(n.message) });

@@ -3,6 +3,7 @@ import { NoAccess } from '@/components/no-access';
 import { canOpen } from '@/lib/nav';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
+import { sortRows } from '@/lib/table';
 import { HelpView, type HelpRow } from './help-view';
 
 export const metadata: Metadata = { title: 'Help articles · Arpedia Admin' };
@@ -14,7 +15,7 @@ export default async function HelpPage() {
     return <NoAccess page="help" label="Help articles" role={staff.role} />;
   const supabase = await serverSupabase();
   const { data, error } = await supabase.rpc('admin_list_help');
-  const rows: HelpRow[] = (data ?? [])
+  const unsorted: HelpRow[] = (data ?? [])
     .map((a) => ({
       id: a.id,
       title: a.title,
@@ -25,7 +26,10 @@ export default async function HelpPage() {
       helpful: a.helpful_pct,
       needsRewrite: a.needs_rewrite,
       updatedAt: a.updated_at,
-    }))
-    .sort((a, b) => b.views - a.views || a.title.localeCompare(b.title));
+    }));
+  const rows = sortRows(unsorted, [
+    { id: 'views', value: a => a.views, desc: true },
+    { id: 'title', value: a => a.title },
+  ]);
   return <HelpView rows={rows} failed={!!error} />;
 }

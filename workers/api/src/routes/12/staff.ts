@@ -23,14 +23,16 @@ import {
   revision,
   saveWork,
   sealStage,
+  workImages,
   type WorkCopy,
 } from './pipeline';
+import { shrinkImage, tooLarge } from './images';
 
 const staff = new Hono<AppEnv>();
 type Db = ReturnType<typeof serviceDb>;
 
 /** Publisher (or Super admin): the RPCs check again; this only saves work for everyone else. */
-async function isPublisher(db: Db, uid: string) {
+export async function isPublisher(db: Db, uid: string) {
   const { data } = await db
     .from('staff_roles')
     .select('role')
@@ -48,7 +50,10 @@ const notStaff = (c: Context<AppEnv>) => c.json({ error: 'Only Publishers can do
  * dismissed, are left as they are.
  */
 async function rescore(db: Db, revId: string, version: number, work: WorkCopy, touched: string[]) {
-  const all = locateFlags(checkChapters(work.chapters, { untitledBook: work.untitledBook }), work.anchors);
+  const all = locateFlags(
+    checkChapters(work.chapters, { untitledBook: work.untitledBook, tocChapters: work.tocChapters }),
+    work.anchors,
+  );
   const flags = all.filter((f) => !f.location.chapter_uid || touched.includes(f.location.chapter_uid));
   const { data, error } = await db.rpc('complete_rescore', {
     p_rev: revId,
@@ -130,6 +135,23 @@ staff.post('/fix', async (c) => {
 
   const work = await loadWork(c.env, rev.id, rev.work_version);
   if (!work) return c.json({ error: 'The working copy is missing. Send the book to the desk.' }, 409);
+
+  // Shrink image (rule 30): the Images binding makes the 1,600 px copy, and the next version holds
+  // every image (with the shrunk one swapped in), so Undo still finds the old one in its version.
+  let images: Record<string, Uint8Array> = {};
+  if (op.op === 'shrink_image') {
+    const all = await workImages(c.env, rev, work, rev.work_version).catch(() => null);
+    const bytes = all?.[op.image];
+    if (!all || !bytes) return c.json({ error: 'That image is no longer in the book.' }, 409);
+    const shrunk = await shrinkImage(c.env, bytes);
+    if (!shrunk || tooLarge({ ...shrunk, bytes: shrunk.bytes.byteLength }))
+      return c.json(
+        { error: 'This image could not be shrunk. Dismiss the flag or send the book to the desk.' },
+        409,
+      );
+    op = { ...op, size: { width: shrunk.width, height: shrunk.height, bytes: shrunk.bytes.byteLength } };
+    images = { ...all, [op.image]: shrunk.bytes };
+  }
   let result;
   try {
     result = await applyFix(work, op);
@@ -141,8 +163,11 @@ staff.post('/fix', async (c) => {
   // The next version's file is written before the RPC takes the version lock, so the database never
   // points at a missing file. The winner writes it again afterwards: if two staff raced, the loser's
   // copy may have landed first.
-  const nextWork: WorkCopy = { ...result.work, imagesFrom: work.imagesFrom ?? rev.work_version };
-  await saveWork(c.env, rev.id, rev.work_version + 1, nextWork, {});
+  const nextWork: WorkCopy = {
+    ...result.work,
+    imagesFrom: Object.keys(images).length ? undefined : (work.imagesFrom ?? rev.work_version),
+  };
+  await saveWork(c.env, rev.id, rev.work_version + 1, nextWork, images);
   const { data: fix, error } = await db.rpc('record_fix', {
     p_rev: rev.id,
     // null when the op is not for a flag (generated types do not mark SQL args nullable)
@@ -154,7 +179,7 @@ staff.post('/fix', async (c) => {
   });
   if (error) return rpcError(c, error);
   const rec = fix as { fix_id: string; work_version: number; readiness: number; blocking: boolean };
-  await saveWork(c.env, rev.id, rec.work_version, nextWork, {});
+  await saveWork(c.env, rev.id, rec.work_version, nextWork, images);
   const scored = result.restructured
     ? await rescore(db, rev.id, rec.work_version, result.work, result.touched)
     : rec;

@@ -5,7 +5,8 @@ import { AUTHOR_RATE, ledgerDate, naira } from '@arpedia/core';
 import { Icon } from '@/components/icon';
 import { Empty, dayMonth, guard, n0, thisMonth } from '@/lib/money';
 import { serverSupabase } from '@/lib/supabase/server';
-import { ApprovalButtons, FreezeGifting } from './client';
+import { approverOf, canDecide } from '@/lib/grant-rules';
+import { ApprovalButtons, FreezeGiftLoop, FreezeGifting } from './client';
 
 export const metadata: Metadata = { title: 'Credits · Arpedia Admin' };
 
@@ -39,6 +40,7 @@ const ALERT_TITLE: Record<string, (who: string) => string> = {
   reconcile: who => `${who}'s balance does not match the ledger`,
   duplicate_charge: who => `${who} was charged twice`,
   clawback_short: who => `A refund could not take back all of ${who}'s credits`,
+  store_unmatched: who => `${who}'s payment does not match the store`,
 };
 const FARMING = new Set(['gift_loop', 'transfers']);
 
@@ -70,7 +72,7 @@ export default async function CreditsPage() {
     supabase
       .from('credit_grant_requests')
       .select(
-        `id, user_id, credits, reason, requested_by, created_at,
+        `id, user_id, credits, reason, requested_by, created_at, kind,
          user:profiles!credit_grant_requests_user_id_fkey(full_name),
          asker:profiles!credit_grant_requests_requested_by_fkey(full_name)`,
       )
@@ -107,7 +109,6 @@ export default async function CreditsPage() {
     ? await supabase.from('profiles').select('id, full_name').in('id', people)
     : { data: [] };
   const nameOf = (id: string | null | undefined) => (names ?? []).find(p => p.id === id)?.full_name || '—';
-  const canApprove = staff.role === 'finance' || staff.role === 'super_admin';
   const pendingGrants = requests.data ?? [];
 
   return (
@@ -248,8 +249,12 @@ export default async function CreditsPage() {
                           <small>{sub}</small>
                         </Link>
                         <span className="li__trail">
-                          <span className="st st-err">Likely farming</span>
-                          {!frozen && <FreezeGifting frozen={false} />}
+                          {a.kind !== 'gift_loop' && <span className="st st-err">Likely farming</span>}
+                          {a.kind === 'gift_loop' ? (
+                            <FreezeGiftLoop alertId={a.id} frozen={frozen} />
+                          ) : (
+                            !frozen && <FreezeGifting frozen={false} />
+                          )}
                         </span>
                       </div>
                     ) : (
@@ -272,7 +277,7 @@ export default async function CreditsPage() {
             <div className="panel panel--flush">
               <div className="panel__head">
                 <h2>Waiting for approval</h2>
-                <span className="sub">{`${pendingGrants.length} grants over 500`}</span>
+                <span className="sub">{`${pendingGrants.length} over the instant limit`}</span>
               </div>
               {pendingGrants.length ? (
                 <div className="tw">
@@ -294,7 +299,7 @@ export default async function CreditsPage() {
                               {g.user?.full_name || 'Reader'}
                             </Link>
                           </td>
-                          <td className="n">{`+${n0(g.credits)}`}</td>
+                          <td className="n">{`${g.kind === 'remove' ? '−' : '+'}${n0(g.credits)}`}</td>
                           <td className="mn-wrap">{g.reason}</td>
                           <td>
                             {g.asker?.full_name || '—'}
@@ -303,11 +308,11 @@ export default async function CreditsPage() {
                           <td className="acts">
                             <ApprovalButtons
                               id={g.id}
-                              canDecide={canApprove && g.requested_by !== staff.id}
+                              canDecide={canDecide(staff.role, g.kind === 'remove' ? 'remove' : 'add', g.credits) && g.requested_by !== staff.id}
                               why={
                                 g.requested_by === staff.id
-                                  ? 'You asked for this grant, so someone else has to approve it.'
-                                  : 'Only Finance and Super admins can approve a grant.'
+                                  ? 'You asked for this, so someone else has to approve it.'
+                                  : `Only ${approverOf(g.kind === 'remove' ? 'remove' : 'add', g.credits)} can approve this.`
                               }
                             />
                           </td>
@@ -317,7 +322,7 @@ export default async function CreditsPage() {
                   </table>
                 </div>
               ) : (
-                <Empty title="Nothing waiting" text="Grants over 500 credits show here until a second approver decides." />
+                <Empty title="Nothing waiting" text="Grants and removals over the instant limit show here until a second person decides." />
               )}
             </div>
             <details className="fold">
@@ -347,7 +352,7 @@ export default async function CreditsPage() {
                     <b>{n0(o.unspent)}</b>
                   </div>
                 </div>
-                <span className="mn-fold-h">Staff grants (over 500 needs a second approver)</span>
+                <span className="mn-fold-h">Staff grants (over the instant limit needs a second approver)</span>
                 {grants.length ? (
                   <div className="tw">
                     <table className="tbl">

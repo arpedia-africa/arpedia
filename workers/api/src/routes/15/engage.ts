@@ -8,6 +8,7 @@ import { dispatchPushes, releaseHeld } from './dispatcher';
 import { applyResendEvent, sendTestEmail, verifySvix } from './email';
 import { buildExports, expireExports } from './exports';
 import { pollReceipts } from './receipts';
+import { runScheduledReports } from './reports';
 
 // Flow 15 · Engage and insights.
 //   GET  /v1/engage/exports/:id/download   staff: the CSV (creator or Super admin, two-step, unexpired)
@@ -94,5 +95,13 @@ export async function engageCron(env: Env, scheduledTime: number): Promise<void>
     settle('exports', buildExports(env)),
     at.getUTCMinutes() % 5 === 0 ? settle('receipts', pollReceipts(env, at)) : null,
     at.getUTCHours() === 1 && at.getUTCMinutes() === 0 ? settle('expire', expireExports(env)) : null,
+    at.getUTCMinutes() % 15 === 10 ? settle('conversions', refreshConversions(env)) : null,
+    at.getUTCMinutes() === 2 ? settle('scheduled-reports', runScheduledReports(env, at)) : null,
   ]);
+}
+
+/** 15-17: unlocks, joins, returns and follows within 24 hours of a campaign push (rule 20). */
+export async function refreshConversions(env: Env): Promise<void> {
+  const { error } = await serviceDb(env).rpc('refresh_campaign_conversions');
+  if (error) throw new Error(error.message);
 }

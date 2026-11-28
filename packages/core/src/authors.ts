@@ -45,3 +45,24 @@ export function validMessage(body: string, max = 1000): boolean {
   const n = body.trim().length;
   return n >= 1 && n <= max;
 }
+
+/**
+ * `dm_author_replied` (Analytics): hours from the reader's oldest unanswered message to the author's
+ * reply, to one decimal. `messages` is the thread oldest first; `authorId` is the DM's owner. Null
+ * when nothing from the reader is waiting since the author's last message (no event then).
+ */
+export function dmReplyHours(
+  messages: readonly { sender_id: string | null; kind: string; state: string; created_at: string }[],
+  authorId: string,
+  now: Date = new Date(),
+): number | null {
+  let waitingSince: string | null = null;
+  for (const m of messages) {
+    if (m.kind === 'system' || !m.sender_id) continue;
+    if (m.sender_id === authorId) waitingSince = null;
+    else if (waitingSince === null && m.state !== 'deleted') waitingSince = m.created_at;
+  }
+  if (waitingSince === null) return null;
+  const hours = (now.getTime() - new Date(waitingSince).getTime()) / 3_600_000;
+  return Math.max(0, Math.round(hours * 10) / 10);
+}

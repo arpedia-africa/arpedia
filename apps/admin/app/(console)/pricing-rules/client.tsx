@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { naira, planCheck, type PlanInfo } from '@arpedia/core';
 import { Icon } from '@/components/icon';
+import { OfflineNote, useOnline } from '@/components/online';
 import { useToast } from '@/components/toast';
 import { describeChange, nairaDec, num, RULE_LABEL, ruleValue, type Plan, type Rules, type Topup } from '../pricing/format';
 import { Otp } from '../pricing/otp';
@@ -23,6 +24,7 @@ interface Form {
   rollover: string;
   pause: string;
   autoUnlock: boolean;
+  payg: boolean;
 }
 
 const toForm = (r: Rules): Form => ({
@@ -36,6 +38,7 @@ const toForm = (r: Rules): Form => ({
   rollover: String(r.rollover_cap_plans),
   pause: String(r.pause_max_months),
   autoUnlock: r.auto_unlock_default,
+  payg: r.pay_as_you_read !== false,
 });
 
 /** The form as rules, or null while a field isn't a number. Naira become kobo. */
@@ -52,6 +55,7 @@ function toRules(f: Form): Edits | null {
     rollover_cap_plans: n(f.rollover),
     pause_max_months: n(f.pause),
     auto_unlock_default: f.autoUnlock,
+    pay_as_you_read: f.payg,
   };
   return Object.values(out).every(v => typeof v === 'boolean' || Number.isFinite(v)) ? out : null;
 }
@@ -94,6 +98,7 @@ export function RulesForm({
   const router = useRouter();
   const [toast, show] = useToast();
   const [pending, start] = useTransition();
+  const online = useOnline();
   const [f, setF] = useState<Form>(() => toForm(rules));
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState<RulesPreview | null>(null);
@@ -232,7 +237,7 @@ export function RulesForm({
               </div>
             </div>
             <div className="ph__acts">
-              <button className="btn btn-p" type="button" disabled={pending || !planOk} onClick={review}>
+              <button className="btn btn-p" type="button" disabled={pending || !online || !planOk} onClick={review}>
                 {pending && !confirm ? 'Checking…' : 'Review and save'}
               </button>
               <div className="mwrap" ref={menuRef}>
@@ -252,6 +257,7 @@ export function RulesForm({
           </div>
         </div>
         <div className="page">
+          <OfflineNote online={online} />
           <div className="split split--wide">
             <div className="stack s20">
               <div className="panel">
@@ -346,7 +352,14 @@ export function RulesForm({
                       <b>Pay as you read</b>
                       <small>Readers can pay per chapter instead of upfront. Same total, re-reading free.</small>
                     </span>
-                    <span className="switch on" role="switch" aria-checked="true" aria-disabled="true" aria-label="Pay as you read"></span>
+                    <button
+                      className={`switch${f.payg ? ' on' : ''}`}
+                      type="button"
+                      role="switch"
+                      aria-checked={f.payg}
+                      aria-label="Pay as you read"
+                      onClick={() => setF(p => ({ ...p, payg: !p.payg }))}
+                    ></button>
                   </div>
                   <div className="setrow">
                     <span className="setrow__b">
@@ -464,7 +477,7 @@ export function RulesForm({
                           {l.pending && canSave && scheduledId && (
                             <>
                               {' · '}
-                              <a className="link" role="button" onClick={() => !pending && undo(scheduledId)}>
+                              <a className="link" role="button" aria-disabled={!online} onClick={() => !pending && online && undo(scheduledId)}>
                                 Undo
                               </a>
                             </>
@@ -541,7 +554,7 @@ export function RulesForm({
               <button className="btn btn-g" type="button" disabled={pending} onClick={() => setConfirm(null)}>
                 Cancel
               </button>
-              <button className="btn btn-p" type="button" disabled={pending || otp.length !== 6 || !confirm.plan_check_ok} onClick={save}>
+              <button className="btn btn-p" type="button" disabled={pending || !online || otp.length !== 6 || !confirm.plan_check_ok} onClick={save}>
                 {pending ? 'Saving…' : 'Save rules'}
               </button>
             </div>

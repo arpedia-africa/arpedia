@@ -2,11 +2,12 @@
 // the revision and does nothing unless it is still the current generation, so a message delivered
 // twice (waitUntil and the cron safety net) is harmless. Sealed files go under a fresh prefix per
 // attempt; only complete_seal makes one live.
-import { type Json, keyLabel, unwrapKey } from '@arpedia/core';
+import { type Json, keyLabel, previewTarget, unwrapKey } from '@arpedia/core';
 import {
   type BaseChapter,
   type BookAnchors,
   type VerifyFlag,
+  type VerifyOk,
   type WorkCopy,
   TEXT_CHECKS,
   UnsafeArchiveError,
@@ -17,9 +18,12 @@ import {
   safeUnzip,
   sealBook,
   verifyPackage,
+  withImageSize,
 } from '@arpedia/convert';
 import { serviceDb } from '../../db';
 import type { Env } from '../../env';
+import { shrinkImage, tooLarge, writeCoverSizes } from './images';
+import { screenBook } from './screening';
 
 export type { WorkCopy };
 
@@ -30,6 +34,8 @@ export interface StageMsg {
 }
 
 export const workPrefix = (rev: string, version: number) => `work/${rev}/v${version}/`;
+/** What the phone counted when it converted the book (rule 11), written by /finalize. */
+export const phoneCountsKey = (rev: string) => `src/${rev}/phone-counts.json`;
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const bytesOf = async (env: Env, key: string | null) => {
   if (!key) return null;
@@ -43,7 +49,7 @@ export type Revision = Awaited<ReturnType<typeof revision>>;
 export async function revision(db: Db, id: string) {
   const { data, error } = await db
     .from('book_revisions')
-    .select('*, books!book_revisions_book_id_fkey(title)')
+    .select('*, books!book_revisions_book_id_fkey(title, preview_override_percent)')
     .eq('id', id)
     .single();
   if (error) throw error;
@@ -172,8 +178,12 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
       return fail('unreadable', 'We could not open this file safely. Please upload it again from Word.');
     return fail('unreadable');
   }
-  const v = verifyPackage(files, { cover: await bytesOf(env, rev.cover_key), previewPercent: 10 });
+  // The book's own preview target (flow 03 admin rule 2, 5–25%), else the 10% default.
+  const previewPercent = previewTarget(rev.books?.preview_override_percent);
+  const v = verifyPackage(files, { cover: await bytesOf(env, rev.cover_key), previewPercent });
   if (!v.ok) return fail(v.reason, v.message);
+  await capImages(env, v);
+  await logDrift(env, db, rev.id, v.words);
 
   const base = await baseWork(env, db, rev.base_revision_id);
   let work: WorkCopy = {
@@ -185,6 +195,8 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
     pages: v.pages,
     price: v.price,
     untitledBook: v.untitledBook,
+    tocChapters: v.tocChapters,
+    previewPercent,
   };
   // An update keeps the live revision's copyright page when the new file has none; the text checks
   // run again on the chapter list it was added to.
@@ -192,7 +204,7 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
   if (carried) {
     work = carried;
     v.flags = [
-      ...checkChapters(work.chapters, { untitledBook: v.untitledBook }),
+      ...checkChapters(work.chapters, { untitledBook: v.untitledBook, tocChapters: v.tocChapters }),
       ...v.flags.filter((f) => !TEXT_CHECKS.includes(f.check_key)),
     ];
   }
@@ -209,13 +221,79 @@ async function verifyStage(env: Env, db: Db, rev: Revision) {
         suggestion: 'Ask the author for the Word file if the chapters look wrong.',
       },
     );
+  // Plagiarism and content policy (rules 24, 25): a check that can't run is skipped, never blocking.
+  const screen = await screenBook(env, work.chapters);
+  v.flags.push(...screen.flags);
   const flags = locateFlags(v.flags, anchors);
+  const { error: se } = await db.rpc('record_screening', {
+    p_rev: rev.id,
+    p_generation: rev.generation,
+    p_checks: screen.checks as unknown as Json,
+  });
+  if (se) throw se;
   const { error } = await db.rpc('complete_verify', {
     p_rev: rev.id,
     p_generation: rev.generation,
     p_result: { ok: true, ...countsPayload(work), flags } as unknown as Json,
   });
   if (error) throw error;
+}
+
+/**
+ * Rule 6: images over 1,600 px on the long side (or over 2 MB) are shrunk before the working copy
+ * is saved, through the Images binding. Their `image_too_large` flag is dropped; an image that
+ * can't be shrunk (no binding, a GIF, a failure) keeps its flag for staff (Open question default).
+ */
+export async function capImages(env: Env, v: VerifyOk) {
+  if (!env.IMAGES) return;
+  const big = [
+    ...new Set(
+      v.chapters.flatMap((c) =>
+        c.blocks.flatMap((b) => (b.images ?? []).filter(tooLarge).map((i) => i.path)),
+      ),
+    ),
+  ];
+  const done = new Set<string>();
+  for (let i = 0; i < big.length; i += 4)
+    await Promise.all(
+      big.slice(i, i + 4).map(async (path) => {
+        const bytes = v.images[path];
+        const shrunk = bytes && (await shrinkImage(env, bytes));
+        if (!shrunk) return;
+        const size = { width: shrunk.width, height: shrunk.height, bytes: shrunk.bytes.byteLength };
+        if (tooLarge(size)) return;
+        v.images[path] = shrunk.bytes;
+        v.chapters = withImageSize(v.chapters, path, size).chapters;
+        done.add(path);
+      }),
+    );
+  v.flags = v.flags.filter((f) => !(f.check_key === 'image_too_large' && done.has(f.location?.image ?? '')));
+}
+
+/** Above this share of words, phone and Worker disagree enough to log (rule 11). */
+export const DRIFT_PCT = 3;
+
+/**
+ * Rule 11: the Worker's count always wins; when the phone's word count differs from it by more
+ * than 3%, `convert_drift {pct}` goes to the analytics outbox for engineering. Never blocks verify.
+ */
+export async function logDrift(env: Env, db: Db, rev: string, workerWords: number) {
+  try {
+    const o = await env.BOOKS.get(phoneCountsKey(rev));
+    if (!o || workerWords <= 0) return;
+    const phone = (await o.json()) as { words?: unknown; user?: unknown };
+    if (typeof phone.words !== 'number') return;
+    const pct = Math.round((Math.abs(phone.words - workerWords) / workerWords) * 1000) / 10;
+    if (pct <= DRIFT_PCT) return;
+    const { error } = await db.from('analytics_outbox').insert({
+      event: 'convert_drift',
+      distinct_id: typeof phone.user === 'string' ? phone.user : 'system',
+      props: { source: 'server', pct, phone_words: phone.words, worker_words: workerWords },
+    });
+    if (error) throw error;
+  } catch (e) {
+    console.error('[verify] convert_drift', e instanceof Error ? e.message : e);
+  }
 }
 
 /** Copyright and contents pages (Default Q51 front matter) are left out of the change. */
@@ -283,7 +361,7 @@ function diff(base: WorkCopy, next: WorkCopy) {
 const stable = (o: unknown) => JSON.stringify(o, Object.keys((o ?? {}) as object).sort());
 
 /** The images a working copy's chapters use, from the version that holds them. */
-async function workImages(env: Env, rev: Revision, work: WorkCopy, version: number) {
+export async function workImages(env: Env, rev: Pick<Revision, 'id'>, work: WorkCopy, version: number) {
   const prefix = workPrefix(rev.id, work.imagesFrom ?? version);
   const paths = [
     ...new Set(work.chapters.flatMap((c) => c.blocks.flatMap((b) => (b.images ?? []).map((i) => i.path)))),
@@ -320,6 +398,11 @@ export async function sealStage(env: Env, db: Db, rev: Revision) {
   });
   const artifact = `books/${rev.id}/g${rev.generation}-${crypto.randomUUID().slice(0, 8)}/`;
   await Promise.all(Object.entries(out.files).map(([path, bytes]) => env.BOOKS.put(artifact + path, bytes)));
+  // Rules 17–18: cover sizes under cover/{rev}/. Never blocks the seal; the cover route falls back
+  // to the uploaded cover until they exist.
+  await writeCoverSizes(env, rev.cover_key).catch((e: unknown) =>
+    console.error('[seal] cover sizes', e instanceof Error ? e.message : e),
+  );
 
   let revisionDiff: Record<string, unknown> | undefined;
   if (rev.base_revision_id) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  coverUrl,
   LENGTH_BANDS,
   greeting,
   hoursRead,
@@ -107,5 +108,30 @@ describe('trending and labels', () => {
     expect(searchesLabel(860)).toBe('860 searches this week');
     expect(hoursRead(62400)).toBe(5);
     expect(hoursRead(100)).toBe(1);
+  });
+});
+
+describe('coverUrl', () => {
+  const rev = '0A1B2C3D-0000-4000-A000-000000000001';
+  it('points at the api Worker cover route for a cover key', () => {
+    expect(coverUrl('https://api.arpedia.africa/', `src/${rev}/cover`)).toBe(
+      'https://api.arpedia.africa/v1/covers/0a1b2c3d-0000-4000-a000-000000000001',
+    );
+  });
+  it('is null without a cover, an api URL or a real cover key', () => {
+    expect(coverUrl('https://api.arpedia.africa', null)).toBeNull();
+    expect(coverUrl('', `src/${rev}/cover`)).toBeNull();
+    expect(coverUrl('https://api.arpedia.africa', `src/${rev}/manuscript.docx`)).toBeNull();
+    expect(coverUrl('https://api.arpedia.africa', `src/../${rev}/cover`)).toBeNull();
+  });
+  it('asks for the smallest cover size at least as wide as the drawn pixels', () => {
+    const at = (px?: number) => coverUrl('https://api.arpedia.africa', `src/${rev}/cover`, px);
+    const base = 'https://api.arpedia.africa/v1/covers/0a1b2c3d-0000-4000-a000-000000000001';
+    expect(at(96)).toBe(`${base}?w=120`);
+    expect(at(240)).toBe(`${base}?w=240`);
+    expect(at(241)).toBe(`${base}?w=480`);
+    expect(at(2000)).toBe(`${base}?w=960`);
+    expect(at(0)).toBe(base);
+    expect(at(Number.NaN)).toBe(base);
   });
 });

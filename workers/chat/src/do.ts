@@ -1,9 +1,10 @@
-import { CLOSE_FORBIDDEN, type ServerFrame } from '@arpedia/core';
+import { CLOSE_FORBIDDEN, type InboxServerFrame, type ServerFrame } from '@arpedia/core';
 import { DurableObject } from 'cloudflare:workers';
 import {
   Conversation,
   MODERATE_TIMEOUT_MS,
   type Deps,
+  type InboxLink,
   type Moderation,
   type Peer,
   type SenderState,
@@ -26,6 +27,31 @@ function moderateText(api: Fetcher, serviceKey: string): NonNullable<Deps['moder
     });
     if (!res.ok) throw new Error(`moderate ${res.status}`);
     return (await res.json()) as Moderation;
+  };
+}
+
+/** Watching inboxes in the conversation's storage (`w:{user}` = until), fed through INBOX. */
+function inboxLink(storage: DurableObjectStorage, env: Env): InboxLink | undefined {
+  const ns = env.INBOX;
+  if (!ns) return undefined;
+  return {
+    list: async () => {
+      const m = await storage.list<number>({ prefix: 'w:' });
+      return new Map([...m].map(([k, v]) => [k.slice(2), v]));
+    },
+    put: (u, until) => storage.put(`w:${u}`, until),
+    delete: async (users) => {
+      await storage.delete(users.map((u) => `w:${u}`));
+    },
+    notify: async (u, frames: InboxServerFrame[]) => {
+      const res = await ns.get(ns.idFromName(u)).fetch('https://inbox/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-Id': u },
+        body: JSON.stringify(frames),
+      });
+      if (!res.ok) return true;
+      return ((await res.json()) as { open: boolean }).open;
+    },
   };
 }
 
@@ -67,6 +93,7 @@ export class ConversationDO extends DurableObject<Env> {
         });
       },
       moderate: this.env.API ? moderateText(this.env.API, this.env.SUPABASE_SERVICE_ROLE_KEY) : undefined,
+      inbox: inboxLink(storage, this.env),
     });
     return this.conv;
   }
@@ -106,10 +133,22 @@ export class ConversationDO extends DurableObject<Env> {
     }
 
     if (request.method !== 'POST') return new Response('not found', { status: 404 });
-    if (url.pathname.endsWith('/refresh')) {
+    if (url.pathname.endsWith('/refresh') || url.pathname.endsWith('/enforce')) {
       const body = (await request.json().catch(() => ({}))) as { user_id?: string };
-      await conv.refresh(body.user_id, request.headers.get('X-User-Id') ?? undefined);
+      const requester = request.headers.get('X-User-Id') ?? undefined;
+      if (url.pathname.endsWith('/enforce')) await conv.enforce(body.user_id, requester);
+      else await conv.refresh(body.user_id, requester);
       return Response.json({ ok: true });
+    }
+    // From a user's InboxDO only (the public Worker never routes here).
+    if (url.pathname.endsWith('/watch') || url.pathname.endsWith('/unwatch')) {
+      const userId = request.headers.get('X-User-Id');
+      if (!userId) return new Response('missing user', { status: 400 });
+      if (url.pathname.endsWith('/unwatch')) {
+        await conv.unwatch(userId);
+        return Response.json({ ok: true });
+      }
+      return Response.json({ ok: await conv.watch(userId) });
     }
     if (url.pathname.endsWith('/flush')) {
       await conv.flush();

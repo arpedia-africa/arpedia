@@ -61,6 +61,29 @@ describe('plan', () => {
     ]);
   });
 
+  it('a staff credit grant: credits and the staff message, opening Credits (14-11)', () => {
+    const p = plan(
+      { kind: 'credits_granted', user_id: READER, credits: 1200, message: 'Hi Ngozi, enjoy.\nTicket #1' },
+      L,
+    );
+    expect(p.mail).toEqual([]);
+    expect(p.push).toEqual([
+      {
+        type: 'account_notice',
+        user_ids: [READER],
+        data: {
+          vars: { title: 'We added 1,200 credits to your account', body: 'Hi Ngozi, enjoy.' },
+          target: { kind: 'screen', screen: 'credits' },
+        },
+      },
+    ]);
+    const bare = plan({ kind: 'credits_granted', user_id: READER, credits: 90, message: null }, L);
+    expect(bare.push[0]!.data.vars).toEqual({
+      title: 'We added 90 credits to your account',
+      body: 'Enjoy your reading',
+    });
+  });
+
   it('welcome and receipt are emails only, with amount, item and date', () => {
     expect(plan({ kind: 'welcome', user_id: READER }, L)).toEqual({
       push: [],
@@ -135,6 +158,39 @@ describe('plan', () => {
         user_id: MOD,
         vars: { subject: '4 author applications are waiting', message: 'Some are past the reply time.' },
       },
+    ]);
+  });
+
+  it('an export that is ready emails the staff member who made it (15-19)', () => {
+    const n = { kind: 'export_ready', user_id: MOD, export_kind: 'author_earnings', row_count: 1234 };
+    expect(needs([n]).users).toEqual([MOD]);
+    expect(plan(n, L)).toEqual({
+      push: [],
+      mail: [
+        {
+          key: 'staff_alert',
+          user_id: MOD,
+          vars: {
+            subject: 'Your author earnings export is ready',
+            message: '1,234 rows. Download it from Exports in the console within 7 days.',
+          },
+        },
+      ],
+    });
+    expect(plan({ ...n, row_count: 1 }, L).mail[0]!.vars.message).toMatch(/^1 row\. /);
+  });
+
+  it('payout alerts email Finance with flow 13 copy', () => {
+    const l = { ...L, staff: { ...L.staff, finance: [MOD] } };
+    const n = {
+      kind: 'payout_alert',
+      alert: 'payout_reminder',
+      subject: 'Payout day in 3 days',
+      message: 'm',
+    };
+    expect(needs([n]).roles).toEqual(['finance']);
+    expect(plan(n, l).mail).toEqual([
+      { key: 'staff_alert', user_id: MOD, vars: { subject: 'Payout day in 3 days', message: 'm' } },
     ]);
   });
 
@@ -224,9 +280,130 @@ describe('plan', () => {
     expect([t.push.map((x) => x.type), t.mail]).toEqual([['ticket_reply'], []]);
   });
 
+  it('late tickets: one email to Support per run, with the oldest ref (14-25)', () => {
+    const l = { ...L, staff: { ...L.staff, support: [MOD] } };
+    expect(plan({ kind: 'ticket_late', count: 3, oldest_ref: 'TKT-1042' }, l).mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: '3 support tickets are past their first-reply time',
+          message: 'First replies are promised within 1 day. Oldest: TKT-1042. Open Support in the console.',
+        },
+      },
+    ]);
+    expect(plan({ kind: 'ticket_late', count: 1 }, l).mail[0]!.vars.subject).toBe(
+      'A support ticket is past its first-reply time',
+    );
+    expect(needs([{ kind: 'ticket_late', count: 1 }]).roles).toEqual(['support']);
+  });
+
   it('unknown, live and rules_changed send nothing', () => {
     for (const kind of ['live', 'rules_changed', 'something_new'])
       expect(plan({ kind, user_id: READER }, L)).toEqual({ push: [], mail: [] });
+  });
+});
+
+describe('staff alert preferences (16-14)', () => {
+  const OTHER = '77777777-7777-4777-8777-777777777777';
+  const l: Lookup = {
+    ...L,
+    staff: {
+      moderator: [MOD, OTHER],
+      publisher: [MOD, OTHER],
+      finance: [MOD, OTHER],
+      operations_admin: [MOD, OTHER],
+    },
+    staff_off: {
+      [OTHER]: [
+        'high_severity_reports',
+        'failed_payouts',
+        'copyright_claims',
+        'applications_waiting',
+        'system_health',
+      ],
+    },
+  };
+  const to = (n: Notice) => plan(n, l).mail.map((m) => m.user_id);
+
+  it('High-severity reports always arrive; other report alerts follow the switch', () => {
+    expect(to({ kind: 'staff_alert', severity: 'high', report_id: 'r' })).toEqual([MOD, OTHER]);
+    expect(to({ kind: 'staff_alert', severity: 'low', late: true })).toEqual([MOD]);
+  });
+
+  it('failed and stuck payouts follow the switch; the payout-day reminder always arrives', () => {
+    expect(to({ kind: 'payout_alert', alert: 'payout_failed', subject: 's', message: 'm' })).toEqual([MOD]);
+    expect(to({ kind: 'payout_alert', alert: 'transfer_stuck', subject: 's', message: 'm' })).toEqual([MOD]);
+    expect(to({ kind: 'payout_alert', alert: 'payout_retrying', subject: 's', message: 'm' })).toEqual([MOD]);
+    expect(to({ kind: 'payout_alert', alert: 'payout_reminder', subject: 's', message: 'm' })).toEqual([
+      MOD,
+      OTHER,
+    ]);
+  });
+
+  it('claims, waiting applications and system health follow their switches', () => {
+    const claim = plan(
+      { kind: 'claim_new', ref: 'CLM-0007', book_id: BOOK, claimant_name: 'Rotimi Press' },
+      l,
+    );
+    expect(claim.mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: 'New copyright claim on Harmattan Letters',
+          message: 'CLM-0007 from Rotimi Press. Open Claims in the console.',
+        },
+      },
+    ]);
+    expect(
+      to({ kind: 'claim_deadline', ref: 'CLM-0007', book_id: BOOK, due_at: '2026-11-29T10:00:00Z' }),
+    ).toEqual([MOD]);
+    expect(to({ kind: 'application_sla', count: 3 })).toEqual([MOD]);
+    const sys = plan(
+      {
+        kind: 'system_alert',
+        service: 'fcm',
+        label: 'Firebase Cloud Messaging',
+        status: 'failing',
+        note: '12 of 100 failed in 24 hours',
+      },
+      l,
+    );
+    expect(sys.mail.map((m) => m.user_id)).toEqual([MOD]);
+    expect(sys.mail[0]!.vars.subject).toBe('Firebase Cloud Messaging is failing');
+  });
+
+  it('asks the lookup for the roles of the new alerts', () => {
+    expect(needs([{ kind: 'claim_new' }, { kind: 'system_alert' }]).roles).toEqual([
+      'publisher',
+      'operations_admin',
+    ]);
+  });
+});
+
+describe('screening_skipped (12-3)', () => {
+  it('tells Operations admins which book check could not run', () => {
+    const p = plan(
+      {
+        kind: 'screening_skipped',
+        role: 'operations_admin',
+        book_id: BOOK,
+        checks: ['plagiarism', 'policy'],
+      },
+      { ...L, staff: { operations_admin: [MOD] } },
+    );
+    expect(p.mail).toEqual([
+      {
+        key: 'staff_alert',
+        user_id: MOD,
+        vars: {
+          subject: 'A book check was skipped',
+          message:
+            'Harmattan Letters: the plagiarism and content policy check could not run (the provider did not answer). Look at the book before it goes live.',
+        },
+      },
+    ]);
   });
 });
 

@@ -31,3 +31,8 @@ export function OfflineNote({ online }: { online: boolean }) {
     </div>
   );
 }
+
+/** The same banner for server-rendered pages (roles, audit), which can't call the hook themselves. */
+export function OfflineBanner() {
+  return <OfflineNote online={useOnline()} />;
+}

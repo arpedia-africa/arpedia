@@ -1,4 +1,5 @@
 import type { SupabaseClaims } from '@arpedia/core/jwt';
+import type { RateLimiter } from './ratelimit';
 
 export interface Env {
   APP_ENV: 'local' | 'staging' | 'production';
@@ -13,6 +14,8 @@ export interface Env {
   /** Local CLI stack only (HS256). Unset on staging and production, which verify with JWKS. */
   SUPABASE_JWT_SECRET?: string;
   BOOKS: R2Bucket;
+  /** Flow 12: Cloudflare Images, to cap book images at 1,600 px and make cover sizes. Unset → flags stay open, covers are served as uploaded. */
+  IMAGES?: ImagesBinding;
   /** This Worker's public origin, for URLs saved in the database (avatars). Defaults to the request origin. */
   PUBLIC_API_URL?: string;
   /** Admin console origin, for invite links (default http://localhost:3000). */
@@ -35,12 +38,36 @@ export interface Env {
   REVENUECAT_ENTITLEMENT?: string;
   /** Flow 09: Flutterwave secret key, for verify, refund and subscription calls (secret). */
   FLUTTERWAVE_SECRET_KEY?: string;
+  /** Flow 09: the website origin Flutterwave sends web checkouts back to (default https://arpedia.africa). */
+  WEB_URL?: string;
   /** Flow 09: Flutterwave webhook `verif-hash` (secret). */
   FLUTTERWAVE_WEBHOOK_HASH?: string;
   /** Flow 08: the chat Worker's ConversationDO (script arpedia-chat), to broadcast paid messages. */
   CONVERSATION?: DurableObjectNamespace;
   /** Flow 13: base64 256-bit key that encrypts author bank account numbers (secret). Local falls back to a fixed key. */
   PAYOUT_ACCOUNT_KEY?: string;
+  /** Flow 15: PostHog project key (phc_…) for server events; unset → events are not sent. */
+  POSTHOG_KEY?: string;
+  /** Flow 15: PostHog host (default https://eu.i.posthog.com). */
+  POSTHOG_HOST?: string;
+  /** Flow 15 analytics-import: PostHog project number, for signups by source. */
+  POSTHOG_PROJECT_ID?: string;
+  /** Flow 15 analytics-import: PostHog personal API key with query read (secret); unset → not imported. */
+  POSTHOG_PERSONAL_API_KEY?: string;
+  /** Flow 15 analytics-import: PostHog app host for the query API (default from POSTHOG_HOST, else https://eu.posthog.com). */
+  POSTHOG_API_HOST?: string;
+  /** Flow 15 analytics-import: Play Console reports bucket (`pubsite_prod_rev_…`, or `pubsite_prod_…`). */
+  PLAY_REPORTS_BUCKET?: string;
+  /** Flow 15 analytics-import: Google service account JSON that may read Play reports (secret); unset → not imported. */
+  PLAY_REPORTS_SERVICE_ACCOUNT?: string;
+  /** Flow 15 analytics-import: Android package (default com.arpedia.reader). */
+  PLAY_PACKAGE_NAME?: string;
+  /** Flow 12: moderation-model key for the content-policy check (secret); unset → the check is skipped. */
+  MODERATION_API_KEY?: string;
+  /** Flow 12: moderation endpoint (default https://api.openai.com/v1/moderations). */
+  MODERATION_API_URL?: string;
+  /** Flow 04: rate limit on /keys and /download, per reader and device (wrangler `ratelimits`). */
+  KEYS_LIMIT?: RateLimiter;
 }
 
 export interface Vars {

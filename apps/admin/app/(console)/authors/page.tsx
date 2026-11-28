@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { RowLink } from '../books/row';
 import { initials, date as fullDate } from '../books/shared';
 import { serverSupabase } from '@/lib/supabase/server';
+import { sortRows } from '@/lib/table';
 import { NoAccess } from '@/components/no-access';
 import { Icon } from '@/components/icon';
 import { Menu } from '../books/menu';
@@ -49,16 +50,18 @@ export default async function AuthorsPage({ searchParams }: { searchParams: Prom
 
   const month = lastMonth();
   const q = sp.q?.trim().toLowerCase();
-  const rows = all
-    .filter(a => {
-      if (q && !a.pen_name.toLowerCase().includes(q)) return false;
-      if (sp.payout && a.payout_account_status !== sp.payout) return false;
-      if (sp.genre && !a.genres.includes(sp.genre)) return false;
-      if (sp.earning === 'some' && !(a.last_month_kobo > 0)) return false;
-      if (sp.earning === 'none' && a.last_month_kobo > 0) return false;
-      return true;
-    })
-    .sort((a, b) => b.last_month_kobo - a.last_month_kobo || a.pen_name.localeCompare(b.pen_name));
+  const matched = all.filter(a => {
+    if (q && !a.pen_name.toLowerCase().includes(q)) return false;
+    if (sp.payout && a.payout_account_status !== sp.payout) return false;
+    if (sp.genre && !a.genres.includes(sp.genre)) return false;
+    if (sp.earning === 'some' && !(a.last_month_kobo > 0)) return false;
+    if (sp.earning === 'none' && a.last_month_kobo > 0) return false;
+    return true;
+  });
+  const rows = sortRows(matched, [
+    { id: 'last_month', value: a => a.last_month_kobo, desc: true },
+    { id: 'pen_name', value: a => a.pen_name },
+  ]);
 
   const keep = (extra: Record<string, string>) => {
     const p = new URLSearchParams();
