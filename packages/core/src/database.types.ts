@@ -63,6 +63,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"analytics_imports": {
+                  Row: {
+                    "day": string,"dim": NonNullable<Json>,"imported_at": string,"metric": string,"source": string,"value": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "day": string,"dim"?: NonNullable<Json>,"imported_at"?: string,"metric": string,"source": string,"value": number
+                  }
+                  Update: {
+                    "day"?: string,"dim"?: NonNullable<Json>,"imported_at"?: string,"metric"?: string,"source"?: string,"value"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"analytics_outbox": {
                   Row: {
                     "created_at": string,"distinct_id": string,"event": string,"id": number,"props": NonNullable<Json>,"sent_at": string | null
@@ -5860,6 +5874,9 @@ isOneToOne: false
 "_audit_as":
 { Args: { "p_action": string,"p_actor": string,"p_after": Json,"p_area": string,"p_before": Json,"p_object_id": string,"p_object_label": string,"p_object_type": string,"p_reason": string,"p_summary": string }; Returns: number
                            },
+"_audit_log_partition":
+{ Args: { "p_month": string }; Returns: boolean
+                           },
 "_author_dm":
 { Args: { "p_author": string,"p_reader": string }; Returns: string
                            },
@@ -6143,6 +6160,12 @@ isOneToOne: false
 "_genre_name":
 { Args: { "p_slug": string }; Returns: string
                            },
+"_get_book_page_base":
+{ Args: { "p_book": string }; Returns: Json
+                           },
+"_get_reader_state_base":
+{ Args: { "p_book": string }; Returns: Json
+                           },
 "_gift_people":
 { Args: { "p_user": string }; Returns: {
               "id": string,"why": string
@@ -6413,6 +6436,9 @@ isOneToOne: false
                            },
 "_passage_reached":
 { Args: { "p_book": string,"p_para": string,"p_user": string }; Returns: boolean
+                           },
+"_pay_as_you_read":
+{ Args: { "p_book": string,"p_user": string }; Returns: boolean
                            },
 "_payable_account":
 { Args: { "p_author": string }; Returns: string
@@ -6809,6 +6835,9 @@ isOneToOne: false
 "_undo_chapter":
 { Args: { "p_key": string,"p_ledger": number,"p_staff": boolean,"p_user": string }; Returns: Json
                            },
+"_unlock_chapter_base":
+{ Args: { "p_book": string,"p_chapter_uid": string,"p_key": string,"p_source": string }; Returns: Json
+                           },
 "_unpaid_earnings_kobo":
 { Args: { "p_user": string }; Returns: number
                            },
@@ -7000,6 +7029,9 @@ isOneToOne: false
 "am_group_member":
 { Args: { "p_group": string }; Returns: boolean
                            },
+"analytics_import_save":
+{ Args: { "p_from": string,"p_metric": string,"p_rows": Json,"p_to": string }; Returns: number
+                           },
 "analytics_outbox_done":
 { Args: { "p_ids": (number)[] }; Returns: number
                            },
@@ -7086,6 +7118,9 @@ isOneToOne: false
                            },
 "audit_fast_lane":
 { Args: { "p_actor"?: string,"p_note": string,"p_result": Database["public"]['Enums']["fast_lane_result"],"p_rev": string }; Returns: undefined
+                           },
+"audit_log_partitions":
+{ Args: { "p_ahead"?: number }; Returns: number
                            },
 "author_in_good_standing":
 { Args: { "p_author": string }; Returns: boolean
@@ -8703,6 +8738,9 @@ isOneToOne: false
 "sign_out_my_sessions":
 { Args: { "p_session"?: string }; Returns: number
                            },
+"signup_sources":
+{ Args: Record<PropertyKey, never>; Returns: (string)[]
+                           },
 "sla_watch":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -8733,6 +8771,9 @@ isOneToOne: false
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
 "staff_analytics_growth":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"staff_analytics_imports":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
 "staff_analytics_reading":

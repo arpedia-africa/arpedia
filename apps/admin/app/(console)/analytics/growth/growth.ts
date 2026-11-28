@@ -92,3 +92,49 @@ export function promoLabel(p: Pick<Growth['promos'][number], 'kind' | 'amount'>)
   if (p.kind === 'trial_days') return `${p.amount} free ${p.amount === 1 ? 'day' : 'days'}`;
   return `${p.amount.toLocaleString('en-NG')} bonus credits`;
 }
+
+/** `staff_analytics_imports` (flow 15 rule 26, spec check 15-21): the nightly store and PostHog import. */
+export interface Imports {
+  /** Installs in the period from the Play Console export; null when none were imported (or under 5). */
+  installs: number | null;
+  installs_previous: number | null;
+  /** The last day the export covers (Play is a day or two behind). */
+  installs_through: string | null;
+  /** Null when no signup was imported for the period. */
+  sources: { source: string; signups: number | null; share: number | null }[] | null;
+  imported_at: string | null;
+}
+
+export const EMPTY_IMPORTS: Imports = {
+  installs: null,
+  installs_previous: null,
+  installs_through: null,
+  sources: null,
+  imported_at: null,
+};
+
+/** Rule 26's sources, in the prototype's words. */
+export const SOURCE_LABELS: Record<string, string> = {
+  play_search: 'Play Store search',
+  book_link: 'Shared book links',
+  church: 'Church group referrals',
+  instagram: 'Instagram',
+  author_code: 'Author referral codes',
+  unknown: 'Unknown',
+};
+
+/** Signups by source as bars: widths against the largest source, Unknown last and muted. */
+export function sourceBars(
+  sources: Imports['sources'],
+): { label: string; share: number; signups: number | null; muted: boolean }[] {
+  if (!sources?.length) return [];
+  const top = Math.max(...sources.map(s => s.signups ?? 0), 1);
+  return [...sources]
+    .sort((a, b) => Number(a.source === 'unknown') - Number(b.source === 'unknown'))
+    .map(s => ({
+      label: SOURCE_LABELS[s.source] ?? 'Unknown',
+      share: s.signups == null ? 0 : Math.round((100 * s.signups) / top),
+      signups: s.signups,
+      muted: s.source === 'unknown',
+    }));
+}
