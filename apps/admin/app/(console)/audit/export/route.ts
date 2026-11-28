@@ -34,9 +34,9 @@ export async function GET(req: NextRequest) {
     p_rows: rows.length,
   });
   if (noted) return new NextResponse("Couldn't export the log. Try again.", { status: 500 });
-  const head = ['id', 'at', 'staff', 'role', 'area', 'action', 'object_type', 'object_id', 'object', 'details', 'ip'];
+  const head = ['id', 'at', 'staff', 'role', 'area', 'action', 'object_type', 'object_id', 'object', 'details', 'ip', 'city'];
   const body = rows.map(r =>
-    [r.id, r.at, r.actor_name, r.actor_role, r.area, r.action, r.object_type, r.object_id, r.object_label, r.summary, r.ip]
+    [r.id, r.at, r.actor_name, r.actor_role, r.area, r.action, r.object_type, r.object_id, r.object_label, r.summary, r.ip, r.city]
       .map(cell)
       .join(','),
   );

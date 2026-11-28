@@ -13,6 +13,22 @@ export interface AuditRow {
   object_label: string | null;
   summary: string | null;
   ip: string | null;
+  /** Where the staff browser was (spec check 16-27); null for older entries. */
+  city: string | null;
+}
+
+/** "IP and place": "105.112.34.18 · Lagos", or with the country, "· Lagos, Nigeria". */
+export function ipAndPlace(ip: string | null, city: string | null, country?: string | null): string {
+  let name: string | undefined;
+  if (country) {
+    try {
+      name = new Intl.DisplayNames(['en'], { type: 'region' }).of(country);
+    } catch {
+      name = country;
+    }
+  }
+  const place = [city, name].filter(Boolean).join(', ');
+  return [ip, place].filter(Boolean).join(' · ') || '–';
 }
 
 export interface AuditPage {
