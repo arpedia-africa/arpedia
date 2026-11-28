@@ -18,6 +18,7 @@ import {
   Literata_600SemiBold,
 } from '@expo-google-fonts/literata';
 import { ThemeProvider, ToastProvider, displayFonts } from '@arpedia/ui';
+import { RootOfflineBanner } from '@/components/OfflineBanner';
 import { QueryProvider } from '@/lib/query';
 import { Telemetry, initSentry, wrapRoot } from '@/lib/telemetry';
 import { useUi } from '@/lib/ui-store';
@@ -57,6 +58,7 @@ function RootLayout() {
               <ToastProvider>
                 <AppGate>
                   <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }} />
+                  <RootOfflineBanner />
                 </AppGate>
               </ToastProvider>
             </ThemeProvider>
