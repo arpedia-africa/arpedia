@@ -50,6 +50,18 @@ export interface Env {
   POSTHOG_KEY?: string;
   /** Flow 15: PostHog host (default https://eu.i.posthog.com). */
   POSTHOG_HOST?: string;
+  /** Flow 15 analytics-import: PostHog project number, for signups by source. */
+  POSTHOG_PROJECT_ID?: string;
+  /** Flow 15 analytics-import: PostHog personal API key with query read (secret); unset → not imported. */
+  POSTHOG_PERSONAL_API_KEY?: string;
+  /** Flow 15 analytics-import: PostHog app host for the query API (default from POSTHOG_HOST, else https://eu.posthog.com). */
+  POSTHOG_API_HOST?: string;
+  /** Flow 15 analytics-import: Play Console reports bucket (`pubsite_prod_rev_…`, or `pubsite_prod_…`). */
+  PLAY_REPORTS_BUCKET?: string;
+  /** Flow 15 analytics-import: Google service account JSON that may read Play reports (secret); unset → not imported. */
+  PLAY_REPORTS_SERVICE_ACCOUNT?: string;
+  /** Flow 15 analytics-import: Android package (default com.arpedia.reader). */
+  PLAY_PACKAGE_NAME?: string;
   /** Flow 12: moderation-model key for the content-policy check (secret); unset → the check is skipped. */
   MODERATION_API_KEY?: string;
   /** Flow 12: moderation endpoint (default https://api.openai.com/v1/moderations). */
