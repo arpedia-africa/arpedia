@@ -7259,6 +7259,9 @@ isOneToOne: false
 "cross_channel_spam":
 { Args: { "p_group": string,"p_text": string,"p_user": string }; Returns: boolean
                            },
+"custom_access_token_hook":
+{ Args: { "event": Json }; Returns: Json
+                           },
 "decide_appeal":
 { Args: { "p_appeal": string,"p_outcome": Database["public"]['Enums']["appeal_status"],"p_reduce_to_days"?: number,"p_reply"?: string }; Returns: undefined
                            },

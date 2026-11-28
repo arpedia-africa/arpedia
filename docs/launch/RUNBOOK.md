@@ -46,6 +46,7 @@ It:
 3. Invites the **first Super admin** by email while there is none (`invite_first_super_admin`). Without `RESEND_API_KEY` it prints the one-time link (72 hours) for you to send. They set a password and **must turn on two-step sign-in before the console shows any page**. Running it again doesn't send a second invite (`--resend-invite` sends a fresh link).
 
 Then, by hand:
+- [ ] **Access token hook** (flow 16): Supabase → Authentication → Hooks → Customize Access Token → Postgres function `public.custom_access_token_hook`, on staging and production. It adds `staff_role` to staff tokens; nothing depends on it for access.
 - [ ] R2 bucket `arpedia-backups` created, private, with an API token scoped to it (read and write) for `R2_*`.
 - [ ] GitHub environment `backup` with `SUPABASE_DB_URL`, `BACKUP_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `NTFY_TOPIC`, and variables `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 - [ ] GitHub environment `production` (add yourself as a required reviewer if the plan allows it) and the repository variable `RELEASE_APPROVERS` (your GitHub login).
