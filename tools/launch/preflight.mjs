@@ -6,7 +6,7 @@
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, API_URL; CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
 // (Worker secrets, R2); R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY (backups);
 // SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECTS (comma list); POSTHOG_HOST, POSTHOG_PROJECT_ID,
-// POSTHOG_PERSONAL_API_KEY.
+// POSTHOG_PERSONAL_API_KEY; REVENUECAT_ANDROID_PUBLIC_KEY (the public key the release must carry).
 import { readFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
 import {
@@ -96,6 +96,9 @@ export function readReleaseBundle(bytes) {
   };
 }
 
+/** The local test store's route, only in kit or dev builds. */
+export const TEST_STORE_MARKER = '/v1/payments/test-store';
+
 /** Kit builds (EXPO_PUBLIC_KIT=1) carry the kit_network security config (plugins/kit-localhost.js). */
 export const isKitBuild = (bundle) =>
   bundle.entries.some((e) => e.endsWith('res/xml/kit_network.xml')) ||
@@ -111,6 +114,7 @@ export const isKitBuild = (bundle) =>
  *   sentryEvents()     events received in the last 24 hours
  *   posthogEvents()    events received in the last 24 hours
  *   bundle             readReleaseBundle() result, or null when --bundle wasn't given
+ *   revenueCatKey      the public RevenueCat Android key the bundle must contain
  */
 export async function runPreflight({
   target,
@@ -125,6 +129,7 @@ export async function runPreflight({
   sentryEvents,
   posthogEvents,
   bundle,
+  revenueCatKey,
   versions = repoMigrations(),
   now = Date.now(),
 }) {
@@ -265,6 +270,31 @@ export async function runPreflight({
       status: kit ? 'fail' : 'pass',
       detail: kit ? 'built with EXPO_PUBLIC_KIT=1 (kit gallery and cleartext localhost)' : 'off',
     });
+    // Flow 09: readers buy through RevenueCat with the public Android SDK key (goog_…).
+    // Production keys only (owner, 27 Nov): a RevenueCat Test Store key (test_…) never sells.
+    const rcKey = revenueCatKey?.trim();
+    const live = !!rcKey && rcKey.startsWith('goog_');
+    const hasKey = live && bundle.text.includes(rcKey);
+    items.push({
+      key: 'revenuecat_key',
+      status: hasKey ? 'pass' : 'fail',
+      detail: !rcKey
+        ? 'set REVENUECAT_ANDROID_PUBLIC_KEY to check the bundle'
+        : !live
+          ? 'REVENUECAT_ANDROID_PUBLIC_KEY is not a live Google Play key (goog_…)'
+          : hasKey
+            ? 'RevenueCat Android key in the bundle'
+            : 'built without EXPO_PUBLIC_REVENUECAT_ANDROID_KEY (or another key): nobody can buy',
+    });
+    // The local test store (features/09/purchases.ts) must be compiled out of a release build.
+    const testStore = bundle.text.includes(TEST_STORE_MARKER);
+    items.push({
+      key: 'test_store',
+      status: testStore ? 'fail' : 'pass',
+      detail: testStore
+        ? 'the local test store is in the bundle (EXPO_PUBLIC_TEST_STORE or the kit)'
+        : 'not in the bundle',
+    });
   }
 
   return items;
@@ -304,6 +334,7 @@ async function main(argv) {
     liveTarget: Number(args['live-target'] ?? 50),
     db: restClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY),
     apiUrl: env.API_URL,
+    revenueCatKey: e.REVENUECAT_ANDROID_PUBLIC_KEY,
     async settingNames(worker) {
       need(['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']);
       const { name, vars } = workerName(worker, target);

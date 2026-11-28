@@ -15,6 +15,7 @@ export * from './unlock';
 export * from './rooms';
 export * from './credits';
 export * from './payments';
+export * from './store';
 export * from './settings';
 export * from './authors';
 export * from './reading';
