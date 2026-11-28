@@ -2,7 +2,8 @@
 --   start_web_checkout       the api Worker (POST /v1/payments/web-checkout) asks for a checkout for a
 --                            signed-in reader: a plan (current web price, rule 30) or a top-up. It
 --                            refuses an unknown or inactive product, a reader with a live plan (they
---                            manage it instead), a deleted account and an account without an email,
+--                            manage it instead), a deleted account, an account without an email and
+--                            more than 10 checkouts an hour,
 --                            and writes the `arp:{kind}:{code}:{user}:{nonce}` tx_ref the webhook
 --                            already reads. A plan comes back with the Flutterwave payment plan
 --                            saved for its price, if there is one (web renewals, OPEN-QUESTIONS 17).
@@ -68,6 +69,12 @@ begin
   if coalesce(btrim(v_email), '') = '' then
     raise exception 'no_email' using errcode = '22023',
       hint = 'Add an email address to your account to pay on the web.';
+  end if;
+
+  -- Each checkout calls Flutterwave: 10 an hour per reader is plenty for a person.
+  if (select count(*) from public.web_checkouts
+      where user_id = p_user and created_at > now() - interval '1 hour') >= 10 then
+    raise exception 'rate_limited' using errcode = '54000', hint = 'Too many tries. Wait a few minutes.';
   end if;
 
   if p_kind = 'plan' then

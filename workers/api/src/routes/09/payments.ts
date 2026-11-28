@@ -154,12 +154,13 @@ async function flw<T>(env: Env, path: string, init: RequestInit = {}): Promise<T
 /** Flutterwave payment-plan intervals for our plan lengths. */
 const FLW_INTERVAL: Record<number, string> = { 1: 'monthly', 3: 'quarterly', 6: 'bi-anually', 12: 'yearly' };
 
-const CHECKOUT_ERRORS: Record<string, { status: 400 | 403 | 404 | 409; message: string }> = {
+const CHECKOUT_ERRORS: Record<string, { status: 400 | 403 | 404 | 409 | 429; message: string }> = {
   bad_request: { status: 400, message: 'Choose a plan or a top-up.' },
   no_email: { status: 400, message: 'Add an email address to your account to pay on the web.' },
   account_unavailable: { status: 403, message: 'This account cannot pay right now.' },
   unknown_product: { status: 404, message: 'That plan or top-up is not on sale.' },
   already_subscribed: { status: 409, message: 'You already have a plan. Manage it from your account.' },
+  rate_limited: { status: 429, message: 'Too many tries. Wait a few minutes.' },
 };
 
 interface WebCheckout {

@@ -4,7 +4,7 @@
 -- without an email. One payment plan is kept per plan and price. A checkout grants nothing.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 -- 71 reader, 72 reader on a plan, 73 deleted, 74 no email, 75 finance.
 insert into auth.users (id, email)
@@ -85,6 +85,15 @@ select throws_ok($$select public.start_web_checkout('90900000-0000-4000-a000-000
   '22023', 'no_email', 'an account without an email cannot pay on the web');
 select throws_ok($$select public.start_web_checkout('90900000-0000-4000-a000-000000000071', 'gift', 'monthly')$$,
   '22023', 'bad_request', 'only plans and top-ups');
+
+-- Ten checkouts an hour per reader (71 has two; eight more, then the eleventh is refused).
+do $$ begin
+  for i in 1..8 loop
+    perform public.start_web_checkout('90900000-0000-4000-a000-000000000071', 'topup', 'topup_200');
+  end loop;
+end $$;
+select throws_ok($$select public.start_web_checkout('90900000-0000-4000-a000-000000000071', 'topup', 'topup_200')$$,
+  '54000', 'rate_limited', 'the eleventh checkout in an hour is refused');
 reset role;
 
 -- Finance can look checkouts up; nobody writes them from a client.

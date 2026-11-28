@@ -164,6 +164,7 @@ describe('POST /web-checkout', () => {
     ['unknown_product', 404],
     ['no_email', 400],
     ['account_unavailable', 403],
+    ['rate_limited', 429],
   ])('turns %s into a plain answer (%i) and calls no provider', async (code, status) => {
     rpc.mockResolvedValue({ data: null, error: { message: code } });
     const res = await start({ kind: 'plan', code: 'monthly' });
