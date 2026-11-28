@@ -48,6 +48,8 @@ export class BookFiles {
   private urlsUntil = 0;
   private keys = new Map<string, Uint8Array>();
   private licence: Omit<StoredKeys, 'keys'> | null = null;
+  /** Files already fetched again this session (rule 19 allows one re-download each). */
+  private refetched = new Set<string>();
   manifest: BookManifest | null = null;
 
   constructor(
@@ -194,8 +196,41 @@ export class BookFiles {
   /**
    * Decrypted bytes for a path the reader bundle asked for. A chapter gets its full file only when
    * its access is open or unlocked (and the key is here); otherwise its free file (rule 7).
+   * A missing or undecryptable file is fetched again once with fresh links (rule 19).
    */
   async read(path: string, access: Record<string, ChapterAccess>): Promise<Uint8Array | null> {
+    let failed: unknown = null;
+    try {
+      const bytes = await this.readOnce(path, access);
+      if (bytes) return bytes;
+    } catch (e) {
+      if (e instanceof WorkerError) throw e;
+      failed = e;
+    }
+    const file = this.fileFor(path, access);
+    if (!file || this.refetched.has(file)) {
+      if (failed) throw failed;
+      return null;
+    }
+    this.refetched.add(file);
+    this.evict(file);
+    await this.refreshLinks();
+    return this.readOnce(path, access);
+  }
+
+  /** The stored file behind a requested path: the chapter's free file when its full file is closed. */
+  private fileFor(path: string, access: Record<string, ChapterAccess>): string | null {
+    const spine = /^c(\d+)\.full\.xhtml$/.exec(path);
+    if (!spine) return path;
+    const c = this.manifest?.chapters.find((x) => x.ord === Number(spine[1]));
+    if (!c) return null;
+    const a = access[c.chapter_uid];
+    if (a === 'unlocked' && this.keys.has(c.chapter_uid)) return path;
+    if (a === 'open' && !c.free_file) return path;
+    return c.free_file;
+  }
+
+  private async readOnce(path: string, access: Record<string, ChapterAccess>): Promise<Uint8Array | null> {
     const m = this.manifest;
     if (!m) throw new Error('not_open');
     let file = path;

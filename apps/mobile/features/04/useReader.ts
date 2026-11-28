@@ -21,6 +21,8 @@ import {
   type StartPosition,
 } from '@arpedia/reader';
 import { supabase } from '@/lib/supabase';
+import { captureError } from '@/lib/telemetry';
+import { useOnline } from '../03/book';
 import { rpcError } from '../03/UnlockSheet';
 import { b64 } from './crypto';
 import { BookFiles, type BookManifest } from './bookfiles';
@@ -33,6 +35,7 @@ import {
   type ReaderState,
 } from './state';
 import { deviceId, WorkerError } from './worker';
+import { flushAnnotations, queuedAnnotations, saveAnnotations, type AnnotationRow } from './annotationQueue';
 
 export type ReaderPhase = 'loading' | 'ready' | 'error' | 'offline' | 'expired';
 
@@ -180,14 +183,21 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       if (!live) return;
       setManifest(m);
       setAccess(accessMap(state, f, ok));
+      // Offline writes go up first, so the pull already has them; any still waiting are drawn on top.
+      const uid = userId.current;
+      if (uid) await flushAnnotations(uid).catch(() => 0);
       const { data } = await supabase.rpc('pull_annotations', { p_book: bookId });
-      const items = ((data as { items?: Annotation[] } | null)?.items ?? []).filter((a) => !a.deleted);
-      if (live) setAnnotations(items);
+      const pulled = ((data as { items?: Annotation[] } | null)?.items ?? []).filter((a) => !a.deleted);
+      const waiting = uid ? (await queuedAnnotations(uid)).filter((r) => r.book_id === bookId) : [];
+      if (live) setAnnotations(withQueued(pulled, waiting));
       setPhase('ready');
     })().catch((e) => {
       if (!live) return;
       setError(String((e as Error)?.message ?? e));
-      setPhase(e instanceof WorkerError && e.code === 'offline' ? 'offline' : 'error');
+      const offline = e instanceof WorkerError && e.code === 'offline';
+      setPhase(offline ? 'offline' : 'error');
+      if (!offline)
+        captureError(e, { book_id: bookId, revision_id: revisionId, bundle_version: BRIDGE_VERSION });
     });
     return () => {
       live = false;
@@ -536,7 +546,14 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       },
     ) => {
       const m = parseFromWeb(raw);
-      if (!m) return;
+      if (!m) {
+        // The message itself may hold book text, so only the fact is sent.
+        captureError(new Error('reader: unknown bridge message'), {
+          book_id: bookId,
+          bundle_version: BRIDGE_VERSION,
+        });
+        return;
+      }
       switch (m.type) {
         case 'ready':
           ready.current = true;
@@ -612,15 +629,21 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           );
           return;
         case 'error':
-          if (m.payload.code === 'resource_missing' || m.payload.code === 'decrypt_failed') setPhase('error');
-          else setPhase('error');
+          // Missing or undecryptable files were already fetched again once in BookFiles.read (rule 19).
+          setPhase('error');
           setError(m.payload.detail);
+          captureError(new Error(`reader ${m.payload.code}: ${m.payload.detail}`), {
+            book_id: bookId,
+            revision_id: files.current?.revisionId,
+            chapter_uid: m.payload.chapter_uid ?? lastChapter.current,
+            bundle_version: BRIDGE_VERSION,
+          });
           return;
         default:
           return;
       }
     },
-    [openBook, onRelocate, send, settings.auto_unlock, unlockChapter],
+    [openBook, onRelocate, send, settings.auto_unlock, unlockChapter, bookId],
   );
 
   // ─── Settings (rule 63) ────────────────────────────────────────────────────
@@ -637,6 +660,36 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     },
     [settings, send],
   );
+
+  // ─── Annotation sync (rule 43): offline writes wait on the phone ──────────
+  const [unsaved, setUnsaved] = useState<ReadonlySet<string>>(new Set());
+  const loadUnsaved = useCallback(async () => {
+    const uid = userId.current;
+    const rows = uid ? await queuedAnnotations(uid) : [];
+    setUnsaved(new Set(rows.filter((r) => r.book_id === bookId).map((r) => r.client_id)));
+  }, [bookId]);
+
+  const saveRows = useCallback(
+    async (rows: AnnotationRow[]) => {
+      const r = await saveAnnotations(userId.current, rows);
+      // The highlight stays drawn either way; a queued one is sent when the network is back.
+      if (r === 'queued') setNotice('Saved on this phone. It will sync when you’re back online.');
+      else if (r === 'refused') setNotice('Couldn’t save that. Try again.');
+      if (r === 'queued' || unsaved.size) void loadUnsaved();
+    },
+    [loadUnsaved, unsaved.size],
+  );
+
+  const online = useOnline();
+  useEffect(() => {
+    const uid = userId.current;
+    if (!uid || phase !== 'ready') return;
+    if (online)
+      void flushAnnotations(uid)
+        .catch(() => 0)
+        .then(loadUnsaved);
+    else void loadUnsaved();
+  }, [online, phase, loadUnsaved]);
 
   // ─── Highlights (rules 35, 41) ─────────────────────────────────────────────
   const highlight = useCallback(
@@ -665,31 +718,27 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       });
       send({ type: 'selection.clear' });
       setSelection(null);
-      const { error: e } = await supabase.rpc('upsert_annotations', {
-        p_batch: [
-          {
-            client_id: a.client_id,
-            book_id: bookId,
-            revision_id: state.revision.id,
-            kind: a.kind,
-            color,
-            cfi_range: a.cfi_range,
-            chapter_uid: a.chapter_uid,
-            start_para_id: sel.para_id_start,
-            start_char: 0,
-            end_para_id: sel.para_id_end ?? sel.para_id_start,
-            end_char: 0,
-            quote: a.quote,
-            note_text: a.note_text,
-            visibility: 'private',
-            updated_at: new Date().toISOString(),
-          },
-        ] as never,
-      });
-      // The highlight stays drawn; the Notes screen marks it "Not saved yet" (States: Error).
-      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+      await saveRows([
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: a.kind,
+          color,
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: sel.para_id_start,
+          start_char: 0,
+          end_para_id: sel.para_id_end ?? sel.para_id_start,
+          end_char: 0,
+          quote: a.quote,
+          note_text: a.note_text,
+          visibility: 'private',
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [selection, state, bookId, send],
+    [selection, state, bookId, send, saveRows],
   );
 
   /** Add, edit or clear the note on an existing highlight (rule 36). Last write wins (rule 43). */
@@ -708,28 +757,25 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
           replace: false,
         },
       });
-      const { error: e } = await supabase.rpc('upsert_annotations', {
-        p_batch: [
-          {
-            client_id: a.client_id,
-            book_id: bookId,
-            revision_id: state.revision.id,
-            kind: next.kind,
-            color: a.color,
-            cfi_range: a.cfi_range,
-            chapter_uid: a.chapter_uid,
-            start_para_id: a.start_para_id,
-            end_para_id: a.start_para_id,
-            quote: a.quote,
-            note_text: next.note_text,
-            visibility: 'private',
-            updated_at: new Date().toISOString(),
-          },
-        ] as never,
-      });
-      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+      await saveRows([
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: next.kind,
+          color: a.color,
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: a.start_para_id,
+          end_para_id: a.start_para_id,
+          quote: a.quote,
+          note_text: next.note_text,
+          visibility: 'private',
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [annotations, state, bookId, send],
+    [annotations, state, bookId, send, saveRows],
   );
 
   // ─── Bookmarks (rule 40) ───────────────────────────────────────────────────
@@ -765,54 +811,48 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     }
     setAnnotations((l) => (existing ? l.filter((x) => x.client_id !== a.client_id) : [...l, a]));
     setNotice(existing ? 'Bookmark removed' : 'Page bookmarked');
-    const { error: e } = await supabase.rpc('upsert_annotations', {
-      p_batch: [
-        {
-          client_id: a.client_id,
-          book_id: bookId,
-          revision_id: state.revision.id,
-          kind: 'bookmark',
-          cfi_range: a.cfi_range,
-          chapter_uid: a.chapter_uid,
-          start_para_id: a.start_para_id,
-          end_para_id: a.start_para_id,
-          quote: a.quote,
-          visibility: 'private',
-          deleted: !!existing,
-          updated_at: new Date().toISOString(),
-        },
-      ] as never,
-    });
-    if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
-  }, [loc, state, pageBookmark, bookmarks.length, bookId]);
+    await saveRows([
+      {
+        client_id: a.client_id,
+        book_id: bookId,
+        revision_id: state.revision.id,
+        kind: 'bookmark',
+        cfi_range: a.cfi_range,
+        chapter_uid: a.chapter_uid,
+        start_para_id: a.start_para_id,
+        end_para_id: a.start_para_id,
+        quote: a.quote,
+        visibility: 'private',
+        deleted: !!existing,
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+  }, [loc, state, pageBookmark, bookmarks.length, bookId, saveRows]);
 
   // ─── Highlight menu: colour and delete (rule 36) ───────────────────────────
   const saveOne = useCallback(
     async (a: Annotation, deleted = false) => {
       if (!state) return;
-      const { error: e } = await supabase.rpc('upsert_annotations', {
-        p_batch: [
-          {
-            client_id: a.client_id,
-            book_id: bookId,
-            revision_id: state.revision.id,
-            kind: a.kind,
-            color: a.color,
-            cfi_range: a.cfi_range,
-            chapter_uid: a.chapter_uid,
-            start_para_id: a.start_para_id,
-            end_para_id: a.start_para_id,
-            quote: a.quote,
-            note_text: a.note_text,
-            visibility: a.visibility,
-            deleted,
-            updated_at: new Date().toISOString(),
-          },
-        ] as never,
-      });
-      if (e) setNotice('Saved on this phone. It will sync when you’re back online.');
+      await saveRows([
+        {
+          client_id: a.client_id,
+          book_id: bookId,
+          revision_id: state.revision.id,
+          kind: a.kind,
+          color: a.color,
+          cfi_range: a.cfi_range,
+          chapter_uid: a.chapter_uid,
+          start_para_id: a.start_para_id,
+          end_para_id: a.start_para_id,
+          quote: a.quote,
+          note_text: a.note_text,
+          visibility: a.visibility,
+          deleted,
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [state, bookId],
+    [state, bookId, saveRows],
   );
   const draw = useCallback(
     (a: Annotation) =>
@@ -932,6 +972,7 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
     lowFor,
     notice,
     annotations,
+    unsaved,
     web,
     send,
     onMessage,
@@ -957,6 +998,31 @@ export function useReader(bookId: string, opts: { gateRoom: GateRoom; startCfi?:
       void q.refetch();
     },
   };
+}
+
+/** Pulled annotations with this phone's unsent writes on top (a queued delete hides its row). */
+function withQueued(pulled: Annotation[], waiting: AnnotationRow[]): Annotation[] {
+  if (!waiting.length) return pulled;
+  const ids = new Set(waiting.map((r) => r.client_id));
+  const out = pulled.filter((a) => !ids.has(a.client_id));
+  for (const r of waiting) {
+    if (r.deleted) continue;
+    const old = pulled.find((a) => a.client_id === r.client_id);
+    out.push({
+      id: old?.id ?? r.client_id,
+      client_id: r.client_id,
+      kind: r.kind as Annotation['kind'],
+      color: ((r.color as HighlightColor | undefined) ?? 'yellow') as HighlightColor,
+      cfi_range: r.cfi_range as string,
+      chapter_uid: (r.chapter_uid as string | null) ?? null,
+      start_para_id: (r.start_para_id as string | null) ?? null,
+      quote: (r.quote as string | null) ?? null,
+      note_text: (r.note_text as string | null) ?? null,
+      visibility: 'private',
+      updated_at: r.updated_at,
+    });
+  }
+  return out;
 }
 
 /** "Chapter n": the chapter's number among chapters (parts aren't counted). */
