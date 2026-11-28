@@ -14,6 +14,8 @@ export interface Env {
   /** Local CLI stack only (HS256). Unset on staging and production, which verify with JWKS. */
   SUPABASE_JWT_SECRET?: string;
   BOOKS: R2Bucket;
+  /** Flow 12: Cloudflare Images, to cap book images at 1,600 px and make cover sizes. Unset → flags stay open, covers are served as uploaded. */
+  IMAGES?: ImagesBinding;
   /** This Worker's public origin, for URLs saved in the database (avatars). Defaults to the request origin. */
   PUBLIC_API_URL?: string;
   /** Admin console origin, for invite links (default http://localhost:3000). */
