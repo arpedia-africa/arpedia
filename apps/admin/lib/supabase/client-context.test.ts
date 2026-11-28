@@ -33,6 +33,20 @@ describe('clientContextHeaders (flow 16 rule 22)', () => {
     expect(out['x-client-user-agent']).toHaveLength(300);
   });
 
+  it('passes the city and country Vercel located the browser in (spec check 16-27)', () => {
+    expect(
+      clientContextHeaders(h({ 'x-vercel-ip-city': 'Port%20Harcourt', 'x-vercel-ip-country': 'ng' })),
+    ).toEqual({ 'x-client-city': 'Port Harcourt', 'x-client-country': 'NG' });
+    expect(clientContextHeaders(h({ 'x-vercel-ip-city': 'Lom%C3%A9' }))).toEqual({ 'x-client-city': 'Lome' });
+  });
+
+  it('leaves out a place it cannot read', () => {
+    expect(
+      clientContextHeaders(h({ 'x-vercel-ip-city': '%E0%A4%A', 'x-vercel-ip-country': 'Nigeria' })),
+    ).toEqual({});
+    expect(clientContextHeaders(h({ 'x-vercel-ip-city': '%3Cscript%3E' }))).toEqual({ 'x-client-city': 'script' });
+  });
+
   it('sends nothing when there is nothing to send (local dev, a build step)', () => {
     expect(clientContextHeaders(h({}))).toEqual({});
   });

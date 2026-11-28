@@ -13,6 +13,7 @@ import { drainPayouts, payoutReminder, pollPendingPayouts } from './routes/13/ea
 import { statementsAfterRelease } from './routes/13/statements';
 import { engageCron } from './routes/15/engage';
 import { drainNotify } from './routes/15/notify';
+import { checkClaimSimilarity } from './routes/14/claims';
 import { drainTrustOutbox } from './routes/14/trust';
 import { flushAnalytics } from './routes/15/analytics';
 
@@ -43,7 +44,7 @@ export default {
   // Every minute: the book pipeline's safety net (flow 12), application checks (flow 11), the story
   // search index (flow 02), due account erasures (flow 10), outbound payment calls (flow 09),
   // author payouts (flow 13), integration health checks (flow 16) and pushes, campaigns and exports
-  // (flow 15), notices from every flow and the trust outbox (flow 15 dispatcher, flow 14) and server analytics (flow 15); on the
+  // (flow 15), notices from every flow and the trust outbox (flow 15 dispatcher, flow 14), the copyright claims passage check (flow 14) and server analytics (flow 15); on the
   // hour, payouts pending over 48 hours; every 10 minutes, statements for released months; daily,
   // the payout-day reminder to Finance (flow 13); weekly (Monday 03:00 in Lagos), store_reconcile (flow 09).
   scheduled: (event, env, ctx) =>
@@ -59,6 +60,7 @@ export default {
         engageCron(env, event.scheduledTime),
         drainNotify(env),
         drainTrustOutbox(env),
+        checkClaimSimilarity(env),
         flushAnalytics(env),
         ...(new Date(event.scheduledTime).getUTCMinutes() === 0 ? [pollPendingPayouts(env)] : []),
         ...(new Date(event.scheduledTime).getUTCMinutes() % 10 === 5 ? [statementsAfterRelease(env)] : []),

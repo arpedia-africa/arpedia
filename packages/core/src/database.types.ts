@@ -269,14 +269,14 @@ isOneToOne: false
                   ]
                 },"audit_log": {
                   Row: {
-                    "action": string,"actor_id": string | null,"actor_name": string | null,"actor_role": Database["public"]['Enums']["staff_role"] | null,"after": Json | null,"area": string,"at": string,"before": Json | null,"device": string | null,"id": number,"ip": unknown,"mfa_verified_at": string | null,"object_id": string | null,"object_label": string | null,"object_type": string | null,"reason": string | null,"request_id": string | null,"retain_until": string,"summary": string | null
+                    "action": string,"actor_id": string | null,"actor_name": string | null,"actor_role": Database["public"]['Enums']["staff_role"] | null,"after": Json | null,"area": string,"at": string,"before": Json | null,"city": string | null,"country": string | null,"device": string | null,"id": number,"ip": unknown,"mfa_verified_at": string | null,"object_id": string | null,"object_label": string | null,"object_type": string | null,"reason": string | null,"request_id": string | null,"retain_until": string,"summary": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "action": string,"actor_id"?: string | null,"actor_name"?: string | null,"actor_role"?: Database["public"]['Enums']["staff_role"] | null,"after"?: Json | null,"area": string,"at"?: string,"before"?: Json | null,"device"?: string | null,"id"?: never,"ip"?: unknown,"mfa_verified_at"?: string | null,"object_id"?: string | null,"object_label"?: string | null,"object_type"?: string | null,"reason"?: string | null,"request_id"?: string | null,"retain_until"?: string,"summary"?: string | null
+                    "action": string,"actor_id"?: string | null,"actor_name"?: string | null,"actor_role"?: Database["public"]['Enums']["staff_role"] | null,"after"?: Json | null,"area": string,"at"?: string,"before"?: Json | null,"city"?: string | null,"country"?: string | null,"device"?: string | null,"id"?: never,"ip"?: unknown,"mfa_verified_at"?: string | null,"object_id"?: string | null,"object_label"?: string | null,"object_type"?: string | null,"reason"?: string | null,"request_id"?: string | null,"retain_until"?: string,"summary"?: string | null
                   }
                   Update: {
-                    "action"?: string,"actor_id"?: string | null,"actor_name"?: string | null,"actor_role"?: Database["public"]['Enums']["staff_role"] | null,"after"?: Json | null,"area"?: string,"at"?: string,"before"?: Json | null,"device"?: string | null,"id"?: never,"ip"?: unknown,"mfa_verified_at"?: string | null,"object_id"?: string | null,"object_label"?: string | null,"object_type"?: string | null,"reason"?: string | null,"request_id"?: string | null,"retain_until"?: string,"summary"?: string | null
+                    "action"?: string,"actor_id"?: string | null,"actor_name"?: string | null,"actor_role"?: Database["public"]['Enums']["staff_role"] | null,"after"?: Json | null,"area"?: string,"at"?: string,"before"?: Json | null,"city"?: string | null,"country"?: string | null,"device"?: string | null,"id"?: never,"ip"?: unknown,"mfa_verified_at"?: string | null,"object_id"?: string | null,"object_label"?: string | null,"object_type"?: string | null,"reason"?: string | null,"request_id"?: string | null,"retain_until"?: string,"summary"?: string | null
                   }
                   Relationships: [
                     
@@ -1520,14 +1520,14 @@ isOneToOne: false
                   ]
                 },"copyright_claims": {
                   Row: {
-                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
+                    "author_due_at": string | null,"author_response": string | null,"book_id": string,"claimant_contact": string | null,"claimant_id": string | null,"claimant_name": string,"created_at": string,"deadline_alerted_at": string | null,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"details": string | null,"due_at": string,"evidence": NonNullable<Json>,"id": string,"ref": string,"report_id": string | null,"similarity": Json | null,"source_message_id": string | null,"status": Database["public"]['Enums']["claim_status"],"type": Database["public"]['Enums']["claim_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id": string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name": string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"source_message_id"?: string | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Update: {
-                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
+                    "author_due_at"?: string | null,"author_response"?: string | null,"book_id"?: string,"claimant_contact"?: string | null,"claimant_id"?: string | null,"claimant_name"?: string,"created_at"?: string,"deadline_alerted_at"?: string | null,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"details"?: string | null,"due_at"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"ref"?: string,"report_id"?: string | null,"similarity"?: Json | null,"source_message_id"?: string | null,"status"?: Database["public"]['Enums']["claim_status"],"type"?: Database["public"]['Enums']["claim_type"]
                   }
                   Relationships: [
                     {
@@ -5610,6 +5610,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"web_checkouts": {
+                  Row: {
+                    "amount_kobo": number,"code": string,"created_at": string,"credits": number,"flutterwave_plan_id": string | null,"kind": string,"tx_ref": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_kobo": number,"code": string,"created_at"?: string,"credits": number,"flutterwave_plan_id"?: string | null,"kind": string,"tx_ref": string,"user_id": string
+                  }
+                  Update: {
+                    "amount_kobo"?: number,"code"?: string,"created_at"?: string,"credits"?: number,"flutterwave_plan_id"?: string | null,"kind"?: string,"tx_ref"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "web_checkouts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "web_checkouts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"web_payment_plans": {
+                  Row: {
+                    "created_at": string,"flutterwave_plan_id": string,"plan_code": string,"price_kobo": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"flutterwave_plan_id": string,"plan_code": string,"price_kobo": number
+                  }
+                  Update: {
+                    "created_at"?: string,"flutterwave_plan_id"?: string,"plan_code"?: string,"price_kobo"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "web_payment_plans_plan_code_fkey"
+      columns: ["plan_code"]
+isOneToOne: false
+      referencedRelation: "plans"
+      referencedColumns: ["code"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -7184,6 +7230,11 @@ isOneToOne: false
 "claim_scheduled_report":
 { Args: { "p_fire_at": string,"p_id": string }; Returns: boolean
                            },
+"claims_needing_similarity":
+{ Args: { "p_limit"?: number }; Returns: {
+              "details": string,"evidence": Json,"id": string,"revision_id": string,"work_version": number
+            }[]
+                           },
 "clawback_purchase":
 { Args: { "p_credits"?: number,"p_end_sub"?: boolean,"p_reason": string,"p_transaction": string }; Returns: Json
                            },
@@ -7258,6 +7309,9 @@ isOneToOne: false
                            },
 "cross_channel_spam":
 { Args: { "p_group": string,"p_text": string,"p_user": string }; Returns: boolean
+                           },
+"custom_access_token_hook":
+{ Args: { "event": Json }; Returns: Json
                            },
 "decide_appeal":
 { Args: { "p_appeal": string,"p_outcome": Database["public"]['Enums']["appeal_status"],"p_reduce_to_days"?: number,"p_reply"?: string }; Returns: undefined
@@ -7708,6 +7762,9 @@ isOneToOne: false
 { Args: { "p_user": string }; Returns: {
               "avatar_url": string,"group_id": string,"is_author": boolean,"kind": Database["public"]['Enums']["group_kind"],"last_at": string,"last_body": string,"last_from_author": boolean,"last_kind": Database["public"]['Enums']["message_kind"],"last_sender": string,"last_state": Database["public"]['Enums']["message_state"],"live": boolean,"member_count": number,"muted": boolean,"name": string,"other_user_id": string,"role": Database["public"]['Enums']["group_role"],"unread_count": number
             }[]
+                           },
+"ingest_claim_email":
+{ Args: { "p_attachments"?: Json,"p_body": string,"p_from": string,"p_message_id": string,"p_name": string,"p_subject": string,"p_type"?: Database["public"]['Enums']["claim_type"] }; Returns: Json
                            },
 "ingest_payment_event":
 { Args: { "p_event_id": string,"p_event_type": string,"p_normalized": Json,"p_occurred_at": string,"p_payload": Json,"p_provider": string }; Returns: Json
@@ -8534,6 +8591,9 @@ isOneToOne: false
 "set_chapter_prices":
 { Args: { "p_prices": Json,"p_rev": string }; Returns: undefined
                            },
+"set_claim_similarity":
+{ Args: { "p_claim": string,"p_similarity": Json }; Returns: boolean
+                           },
 "set_club_settings":
 { Args: { "p_slow_mode_seconds": number,"p_who_can_post": string }; Returns: undefined
                            },
@@ -8630,6 +8690,9 @@ isOneToOne: false
                            },
 "set_user_genres":
 { Args: { "p_genre_ids": (string)[] }; Returns: undefined
+                           },
+"set_web_payment_plan":
+{ Args: { "p_flutterwave_plan_id": string,"p_tx_ref": string }; Returns: string
                            },
 "set_weekly_reading":
 { Args: { "p_book": string,"p_from"?: number,"p_group": string,"p_note"?: string,"p_to"?: number }; Returns: undefined
@@ -8742,6 +8805,9 @@ isOneToOne: false
                            },
 "staff_pause_campaign":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"staff_preview_as":
+{ Args: { "p_role": Database["public"]['Enums']["staff_role"] }; Returns: Json
                            },
 "staff_remove_credits":
 { Args: { "p_credits": number,"p_reason": string,"p_user": string }; Returns: Json
@@ -8886,6 +8952,9 @@ isOneToOne: false
       } },
 "start_author_dm":
 { Args: { "p_author": string }; Returns: Json
+                           },
+"start_web_checkout":
+{ Args: { "p_code": string,"p_kind": string,"p_user": string }; Returns: Json
                            },
 "statement_download_key":
 { Args: { "p_id": string }; Returns: string

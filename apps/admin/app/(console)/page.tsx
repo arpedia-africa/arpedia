@@ -1,6 +1,8 @@
+import { cookies } from 'next/headers';
 import { Icon } from '@/components/icon';
 import { soleSuperAdminTask, type HomeTask } from '@/lib/home-tasks';
-import { getStaff } from '@/lib/staff';
+import { PREVIEW_COOKIE, PREVIEW_ROLES, previewHref, previewRoleOf } from '@/lib/preview-as';
+import { getStaff, roleLabel } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
 
 // Greeting by the time in Lagos (WAT), as on the prototype's Home.
@@ -61,7 +63,10 @@ async function tasksFor(staff: { id: string; role: string } | null): Promise<Tas
 export default async function Home() {
   const staff = await getStaff();
   const first = staff?.name.split(' ')[0] ?? '';
-  const tasks = await tasksFor(staff);
+  // Preview as (spec check 16-25): Home shows the previewed role's tasks; nothing here acts as it.
+  const preview = previewRoleOf(staff?.role, (await cookies()).get(PREVIEW_COOKIE)?.value);
+  const tasks = await tasksFor(staff && { id: staff.id, role: preview ?? staff.role });
+  const viewing = preview ?? 'super_admin';
   return (
     <section className="screen enter">
       <div className="band band--home">
@@ -77,6 +82,23 @@ export default async function Home() {
             </p>
           </div>
         </div>
+        {staff?.role === 'super_admin' && (
+          <div className="preview-as" style={{ marginTop: 14 }}>
+            <span>Preview as</span>
+            <div className="seg">
+              {(['super_admin', ...PREVIEW_ROLES] as const).map((r) => (
+                <a
+                  key={r}
+                  href={previewHref(r)}
+                  className={r === viewing ? 'is-selected' : undefined}
+                  aria-selected={r === viewing ? 'true' : undefined}
+                >
+                  {roleLabel[r]}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <div className="page">
         <div className="home">

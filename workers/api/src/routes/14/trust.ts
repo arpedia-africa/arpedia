@@ -1,8 +1,11 @@
 import { Hono, type Context } from 'hono';
 import {
+  claimTypeOf,
   hasBlockedLink,
   hasPhoneNumber,
+  isClaimAddress,
   matchMutedWords,
+  senderName,
   type MutedWord,
   type WordAction,
 } from '@arpedia/core';
@@ -10,6 +13,7 @@ import { AuthError, bearer, verifySupabaseJwt } from '@arpedia/core/jwt';
 import { serviceDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { deliverNotices, type Notice } from '../15/notify';
+import { evidenceOf, plainText } from './claims';
 
 // Flow 14 · Trust, safety and support.
 //   POST /v1/trust/moderate {text, surface, sender_new?, to_author?, sender_id?, group_id?}
@@ -198,29 +202,59 @@ trust.post('/support/inbound', async (c) => {
   );
   if (!from) return c.json({ ok: true, ignored: 'no_sender' });
 
-  // Attachments go to R2 under support/; the ticket keeps their keys.
-  const files: { key: string; name: string; type: string }[] = [];
+  // A copyright claim (rule 29): mail to copyright@ that names a book opens a claim; mail that
+  // names no book falls through to the support inbox below.
+  const claim = isClaimAddress([...[d.to ?? []].flat(), ...[d.cc ?? []].flat()]);
+  const subject = String(d.subject ?? '');
+  const body = String(d.text ?? d.html ?? '').slice(0, 20000);
+
+  // Attachments go to R2 under support/ (claims/ for claim evidence); the row keeps their keys.
+  const files: { key: string; name: string; type: string; bytes: number }[] = [];
   for (const a of (
     (d.attachments ?? []) as { filename?: string; content?: string; content_type?: string }[]
   ).slice(0, 10)) {
     if (!a.content) continue;
     const name = (a.filename ?? 'file').replace(/[^\w.-]+/g, '_').slice(0, 100);
-    const key = `support/${crypto.randomUUID()}/${name}`;
+    const key = `${claim ? 'claims' : 'support'}/${crypto.randomUUID()}/${name}`;
     const bytes = Uint8Array.from(atob(a.content), (ch) => ch.charCodeAt(0));
     if (bytes.byteLength > 10 * 1024 * 1024) continue;
     await c.env.BOOKS.put(key, bytes, {
       httpMetadata: { contentType: a.content_type ?? 'application/octet-stream' },
     });
-    files.push({ key, name, type: a.content_type ?? 'application/octet-stream' });
+    files.push({ key, name, type: a.content_type ?? 'application/octet-stream', bytes: bytes.byteLength });
+  }
+
+  if (claim) {
+    // The claim keeps 4,000 characters of the email; a longer one is kept whole as text evidence,
+    // which the passage check reads too.
+    const text = d.text ? body : plainText(body);
+    const evidence = files.map(evidenceOf);
+    if (text.length > 4000) {
+      const key = `claims/${crypto.randomUUID()}/email.txt`;
+      const bytes = new TextEncoder().encode(text);
+      await c.env.BOOKS.put(key, bytes, { httpMetadata: { contentType: 'text/plain' } });
+      evidence.push(evidenceOf({ key, name: 'email.txt', type: 'text/plain', bytes: bytes.byteLength }));
+    }
+    const { data, error } = await serviceDb(c.env).rpc('ingest_claim_email', {
+      p_from: from,
+      p_name: senderName(d.from) ?? '',
+      p_subject: subject,
+      p_body: text,
+      p_message_id: messageId,
+      p_type: claimTypeOf(subject, body),
+      p_attachments: evidence,
+    });
+    if (error) throw error;
+    if ((data as { routed?: string } | null)?.routed !== 'ticket') return c.json(data);
   }
 
   const { data, error } = await serviceDb(c.env).rpc('ingest_support_email', {
     p_from: from,
-    p_subject: String(d.subject ?? ''),
-    p_body: String(d.text ?? d.html ?? '').slice(0, 20000),
+    p_subject: subject,
+    p_body: body,
     p_message_id: messageId,
     p_in_reply_to: (d.in_reply_to as string | undefined) ?? headers['in-reply-to'] ?? undefined,
-    p_attachments: files,
+    p_attachments: files.map(({ key, name, type }) => ({ key, name, type })),
   });
   if (error) throw error;
   return c.json(data);
