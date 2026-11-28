@@ -54,6 +54,9 @@ export default async function CurationPage({ searchParams }: { searchParams?: Pr
       case 'coming_soon':
         parts.push(plural(coming.count ?? 0, 'book'));
         break;
+      case 'following':
+        parts.push("each reader's followed authors, newest books first");
+        break;
       case 'genres': {
         const g = genres.data ?? [];
         parts.push(`${plural(g.filter(x => x.visible).length, 'genre')} in set order`);

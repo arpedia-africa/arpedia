@@ -31,7 +31,11 @@ export interface HomeGenre {
   book_count: number;
 }
 export type HomeSection =
-  | { key: 'trending' | 'new_arrivals' | 'top10' | 'recommended'; title: string; items: HomeBook[] }
+  | {
+      key: 'trending' | 'new_arrivals' | 'top10' | 'recommended' | 'following';
+      title: string;
+      items: HomeBook[];
+    }
   | { key: 'authors'; title: string; items: HomeAuthor[] }
   | { key: 'genres'; title: string; items: HomeGenre[] }
   | { key: 'coming_soon'; title: string; items: (HomeBook & { teaser: string | null })[] };
