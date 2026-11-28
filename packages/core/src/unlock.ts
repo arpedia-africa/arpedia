@@ -59,6 +59,22 @@ export function perChapter(price: number, chargeableChapters: number): number | 
   return chargeableChapters > 0 ? Math.round(price / chargeableChapters) : null;
 }
 
+/**
+ * Pay as you read is offered for this reader and book (flow 03 rule 25, flow 16 rule 31): the book
+ * has a chargeable chapter and the pricing rule is On, or the reader already started paying by
+ * chapter (the server answers `pay_as_you_read` true for them). Older servers send no field: On.
+ */
+export function payAsYouReadOffered(d: {
+  pay_as_you_read?: boolean | null;
+  chargeable_chapters: number;
+}): boolean {
+  return d.pay_as_you_read !== false && d.chargeable_chapters > 0;
+}
+
+/** `payg_off` from `unlock_chapter`: the rule went Off before this reader started paying by chapter. */
+export const PAYG_OFF_COPY =
+  'Pay as you read is paused for new books. Unlock the whole book to keep reading.';
+
 /** Balance after spending; never shown below zero. */
 export const balanceAfter = (balance: number, spend: number) => Math.max(0, balance - spend);
 

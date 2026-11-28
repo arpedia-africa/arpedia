@@ -6,6 +6,7 @@ import {
   chaptersCovered,
   compactCount,
   mainButton,
+  payAsYouReadOffered,
   perChapter,
   pickTopupPack,
   readMinutes,
@@ -120,5 +121,15 @@ describe('main button', () => {
     expect(mainButton({ ...base, owned: true, percent: 38.4, maxPercent: 40 })).toBe(
       'Continue reading · 38%',
     );
+  });
+});
+
+describe('payAsYouReadOffered', () => {
+  it('follows the pricing rule and the chargeable chapters', () => {
+    expect(payAsYouReadOffered({ pay_as_you_read: true, chargeable_chapters: 14 })).toBe(true);
+    expect(payAsYouReadOffered({ chargeable_chapters: 14 })).toBe(true);
+    expect(payAsYouReadOffered({ pay_as_you_read: null, chargeable_chapters: 14 })).toBe(true);
+    expect(payAsYouReadOffered({ pay_as_you_read: false, chargeable_chapters: 14 })).toBe(false);
+    expect(payAsYouReadOffered({ pay_as_you_read: true, chargeable_chapters: 0 })).toBe(false);
   });
 });

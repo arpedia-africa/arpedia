@@ -50,6 +50,8 @@ export interface ReaderState {
   paid_credits: number;
   remaining: number;
   balance: number;
+  /** Flow 16 rule 31: false when the rule is Off and this reader hasn't started paying by chapter. */
+  pay_as_you_read?: boolean;
   plan: { state: string; plan_code?: string | null; period_end?: string | null };
   position: {
     revision_id: string;

@@ -6,6 +6,7 @@ import {
   chaptersCovered,
   perMonthNaira,
   pickTopupPack,
+  payAsYouReadOffered,
   previewPages,
   spendSheet,
   type TopupPack,
@@ -92,11 +93,14 @@ export function UnlockSheet({
   // lands in the sheet.
   const shortVariant: Variant = spendSheet(shortNeed, d.balance, d.plan.state) === 'nosub' ? 'nosub' : 'low';
   const shown = short ? shortVariant : variant;
+  // Flow 16 rule 31: with Pay as you read Off the sheet offers Unlock all only.
+  const payg = payAsYouReadOffered(d);
 
   useEffect(() => {
     if (!open) return;
-    const v: Variant = open === 'short' ? shortVariant : variantFor(d, open);
-    if (open !== 'short') setMode(open);
+    const want = open === 'paygo' && !payg ? 'all' : open;
+    const v: Variant = want === 'short' ? shortVariant : variantFor(d, want);
+    if (want !== 'short') setMode(want);
     setVariant(v);
     setKey(Crypto.randomUUID());
     setError(null);
@@ -253,7 +257,7 @@ export function UnlockSheet({
       ? `Your plan adds ${n(planCredits)} more on ${periodEnd}, or top up now.`
       : 'Top up now to keep going.',
     !enough ? 'You’ll need a second top-up after this one.' : null,
-    covered > 0
+    payg && covered > 0
       ? `Or switch to pay as you read: your ${n(d.balance)} credits cover the next ${covered === 1 ? 'chapter' : `${covered} chapters`}.`
       : null,
   ]
@@ -280,7 +284,7 @@ export function UnlockSheet({
           onUnlock={() => unlock.mutate()}
           busy={unlock.isPending}
           error={error}
-          showSwitch={d.chargeable_chapters > 0}
+          showSwitch={payg}
         />
       ) : shown === 'paygo' ? (
         <PayGoBody

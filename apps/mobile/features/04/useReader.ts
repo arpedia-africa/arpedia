@@ -10,6 +10,7 @@ import {
   chargeKey,
   confirmCharge,
   pagesTurned,
+  PAYG_OFF_COPY,
   pendingCharges,
   type ChapterAccess,
   type PendingStore,
@@ -649,6 +650,11 @@ export function useReader(
           return { ok: false, reason: 'insufficient_credits' };
         }
         if (code === 'network') return { ok: false, reason: 'offline' };
+        if (code === 'payg_off') {
+          setNotice(PAYG_OFF_COPY);
+          void refresh(); // `pay_as_you_read` false: the reader goes back to the preview gate
+          return { ok: false, reason: code };
+        }
         if (code === 'auto_off') confirmCharge(pending.current, userId.current, chapterUid);
         return { ok: false, reason: code };
       } finally {

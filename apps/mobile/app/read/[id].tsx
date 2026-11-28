@@ -79,6 +79,11 @@ export default function ReaderScreen() {
   useEffect(() => {
     if ((r.state?.paid_credits ?? 0) > 0) setPayGo(true);
   }, [r.state?.paid_credits]);
+  // Flow 16 rule 31: Pay as you read turned Off before this reader started: back to the preview gate.
+  const paygOff = r.state?.pay_as_you_read === false;
+  useEffect(() => {
+    if (paygOff) setPayGo(false);
+  }, [paygOff]);
 
   const [chrome, setChrome] = useState(false);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -189,7 +194,7 @@ export default function ReaderScreen() {
   const previewPct =
     st && st.revision.words > 0 && r.manifest?.preview_cut ? r.manifest.preview_cut.percent : 10;
   const perChapter =
-    st && st.chapters.some((c) => c.price_credits > 0)
+    st && !paygOff && st.chapters.some((c) => c.price_credits > 0)
       ? Math.round(
           st.chapters.filter((c) => c.price_credits > 0).reduce((a, c) => a + c.price_credits, 0) /
             st.chapters.filter((c) => c.price_credits > 0).length,
