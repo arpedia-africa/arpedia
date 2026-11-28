@@ -71,5 +71,5 @@ begin
   );
 end $$;
 
-revoke execute on function public.staff_session_fresh() from public, anon;
-grant execute on function public.staff_session_fresh() to authenticated, service_role;
+-- Internal: staff_mfa_ok and get_staff_context call it as their owner.
+revoke execute on function public.staff_session_fresh() from public, anon, authenticated;

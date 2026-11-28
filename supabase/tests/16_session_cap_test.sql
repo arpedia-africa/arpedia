@@ -30,13 +30,15 @@ set local role authenticated;
 
 -- A session 11 hours old works as before.
 select pg_temp.as_user('16210000-0000-4000-a000-000000000001', '16210000-0000-4000-b000-000000000001');
-select ok(public.staff_session_fresh(), 'an 11-hour-old session is fresh');
+select ok(public.staff_mfa_ok(), 'an 11-hour-old session with a fresh code passes two-step');
 select ok(public.has_permission('manage_team'), 'and keeps its permissions');
 select is(public.get_staff_context() ->> 'mfa_ok', 'true', 'and the console sees two-step done');
 
--- A session 13 hours old has no permission even with a fresh two-step code, and is ended.
+-- A session 13 hours old has no permission even with a fresh two-step code.
 select pg_temp.as_user('16210000-0000-4000-a000-000000000001', '16210000-0000-4000-b000-000000000002');
+reset role;
 select ok(not public.staff_session_fresh(), 'a 13-hour-old session is not fresh');
+set local role authenticated;
 select ok(not public.staff_mfa_ok(), 'a fresh two-step code does not extend it');
 select ok(not public.has_permission('manage_team'), 'it holds no permission');
 select throws_ok($$select * from public.list_staff()$$, '42501', null, 'staff RPCs refuse it');
