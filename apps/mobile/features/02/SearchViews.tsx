@@ -749,6 +749,8 @@ export type ResultItem =
       meta: string;
       credits: number;
       promoted?: boolean;
+      /** Scheduled book: "Coming soon" instead of the price (02 rule 25). */
+      comingSoon?: boolean;
       tone: CoverTone;
       uri?: string;
     }
@@ -838,7 +840,10 @@ export function ResultList({
           </View>
           {it.kind === 'book' ? (
             <View style={{ alignSelf: 'center' }}>
-              <Pill tone="grey" label={`${n(it.credits)} cr`} />
+              <Pill
+                tone={it.comingSoon ? 'brand' : 'grey'}
+                label={it.comingSoon ? 'Coming soon' : `${n(it.credits)} cr`}
+              />
             </View>
           ) : (
             <Btn
