@@ -5863,6 +5863,9 @@ isOneToOne: false
 "_banner_target_ok":
 { Args: { "p_target": Json }; Returns: boolean
                            },
+"_book_author":
+{ Args: { "p_rev": string }; Returns: string
+                           },
 "_book_card":
 { Args: { "p_book": string }; Returns: Json
                            },
@@ -8793,6 +8796,9 @@ isOneToOne: false
                            },
 "staff_send_password_reset":
 { Args: { "p_user": string }; Returns: string
+                           },
+"staff_session_fresh":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "staff_set_export_schedule":
 { Args: { "p_enabled": boolean,"p_kind": string }; Returns: undefined
