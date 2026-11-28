@@ -3,8 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { serverSupabase } from '@/lib/supabase/server';
 import { FILE_TYPE, coverClass, dayMonth as day, queuePosition, waited } from '../../shared';
-import { loadWork, type Work } from '../../work';
+import { previewAccess, previewBook, spotStarts, type SpotStart } from '@arpedia/convert';
+import type { ChapterAccess } from '@arpedia/core';
+import type { SpotBook } from '@/lib/reader-host';
+import { loadImages, loadWorkCopy, type Work } from '../../work';
 import { Claim, ReviewDecide } from './client';
+import { SpotBookProvider, SpotReader } from './reader';
 
 const n0 = (n: number) => n.toLocaleString('en-NG');
 const WORDS_PER_PAGE = 250;
@@ -32,6 +36,8 @@ interface Page {
   page: number;
   state: string;
   cut?: string;
+  /** Where the real reader opens this page. */
+  para_id: string | null;
 }
 
 type Chapter = { chapter_uid: string; ord: number; kind: string; title: string; words_before: number };
@@ -48,38 +54,38 @@ function paras(work: Work, ci: number, from = 0, count = 2) {
 /** First page, a middle page and the page at the preview cut, as readers see them (rule 35). */
 function spotPages(
   work: Work | null,
+  spot: { first: SpotStart; middle: SpotStart; cut: SpotStart } | null,
   chapters: Chapter[],
-  cut: { uid: string | null; para: string | null; percent: number | null; words: number },
+  cut: { percent: number | null },
 ): Page[] | null {
-  if (!work || !chapters.length) return null;
+  if (!work || !spot || !chapters.length) return null;
   const numbered = chapters.filter(c => c.kind === 'chapter');
-  const no = (c: Chapter) => numbered.indexOf(c) + 1;
-  const at = (c: Chapter) => Math.max(0, work.anchors.uids.indexOf(c.chapter_uid));
+  const of = (s: SpotStart) => chapters.find(c => c.chapter_uid === work.anchors.uids[s.ord]) ?? chapters[0]!;
+  const label = (c: Chapter) => (numbered.includes(c) ? `Chapter ${numbered.indexOf(c) + 1}` : c.title);
+  const block = (s: SpotStart) => Math.max(0, (work.anchors.ids[s.ord] ?? []).indexOf(s.para_id));
   const pageOf = (words: number) => Math.floor(words / WORDS_PER_PAGE) + 1;
-  const first = numbered[0] ?? chapters[0]!;
-  const middle = numbered[Math.floor(numbered.length / 2)] ?? first;
-  const cutCh = chapters.find(c => c.chapter_uid === cut.uid) ?? first;
-  const ci = at(cutCh);
-  const bi = cut.para ? Math.max(0, (work.anchors.ids[ci] ?? []).indexOf(cut.para)) : 0;
-  const before = (work.chapters[ci]?.blocks ?? [])
+  const [first, middle, cutCh] = [of(spot.first), of(spot.middle), of(spot.cut)];
+  const bi = block(spot.cut);
+  const before = (work.chapters[spot.cut.ord]?.blocks ?? [])
     .slice(0, bi + 1)
     .filter(b => !b.sceneBreak && !b.images?.some(m => m.alone) && !/^<h[1-6]/i.test(b.html) && b.text.trim())
     .slice(-2)
     .map(b => b.text);
   const pct = (cut.percent ?? 0).toLocaleString('en-NG', { maximumFractionDigits: 1 });
-  const endsChapter = bi >= (work.chapters[ci]?.blocks.length ?? 1) - 1;
-  const where = endsChapter ? `the end of chapter ${no(cutCh)}` : `chapter ${no(cutCh)}`;
+  const endsChapter = bi >= (work.chapters[spot.cut.ord]?.blocks.length ?? 1) - 1;
+  const where = endsChapter ? `the end of ${label(cutCh).toLowerCase()}` : label(cutCh).toLowerCase();
   return [
-    { chapter: `Chapter ${no(first)}`, label: 'First page', title: first.title, paras: paras(work, at(first)), page: pageOf(first.words_before), state: 'Free preview' },
-    { chapter: `Chapter ${no(middle)}`, label: 'Middle page', title: middle.title, paras: paras(work, at(middle)), page: pageOf(middle.words_before), state: 'Unlocked' },
+    { chapter: label(first), label: 'First page', title: first.title, paras: paras(work, spot.first.ord, block(spot.first)), page: pageOf(spot.first.words_before), state: 'Free preview', para_id: spot.first.para_id },
+    { chapter: label(middle), label: 'Middle page', title: middle.title, paras: paras(work, spot.middle.ord, block(spot.middle)), page: pageOf(spot.middle.words_before), state: 'Unlocked', para_id: spot.middle.para_id },
     {
-      chapter: `Chapter ${no(cutCh)}`,
+      chapter: label(cutCh),
       label: 'Preview cut',
       title: cutCh.title,
       paras: before,
-      page: Math.max(1, Math.ceil((cut.words * (cut.percent ?? 0)) / 100 / WORDS_PER_PAGE)),
+      page: pageOf(spot.cut.words_before),
       state: 'Preview ends',
       cut: `Free preview ends here, at ${where} (${pct}%)`,
+      para_id: spot.cut.para_id,
     },
   ];
 }
@@ -112,7 +118,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   if (rev.status === 'needs_fixes') redirect(`/books/${id}/fix`);
   if (rev.status !== 'ready_for_review') redirect('/books');
 
-  const work = await loadWork(id);
+  const copy = await loadWorkCopy(id);
+  const work = copy?.work ?? null;
   const open = flags ?? [];
   const title = rev.book?.title ?? '';
   const author = rev.book?.author?.full_name ?? '';
@@ -154,12 +161,30 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     return { ...c, ok, detail };
   });
   const passed = results.filter(r => r.ok).length;
-  const pages = spotPages(work, chs, {
-    uid: rev.preview_cut_chapter_uid,
-    para: rev.preview_cut_para_id,
-    percent: rev.preview_percent,
-    words: rev.words ?? 0,
-  });
+  const spot = work ? spotStarts(work) : null;
+  const pages = spotPages(work, spot, chs, { percent: rev.preview_percent });
+  // The same pages in the app's reader (rule 19): only the three chapters shown are sent.
+  const preview =
+    copy && spot
+      ? previewBook(copy.work, {
+          bookId: rev.book?.id ?? id,
+          revisionId: id,
+          title,
+          chapters: [spot.first.ord, spot.middle.ord, spot.cut.ord],
+        })
+      : null;
+  const book: SpotBook | null =
+    copy && preview
+      ? {
+          manifest: preview.manifest,
+          files: preview.files,
+          freeFiles: preview.freeFiles,
+          images: await loadImages(copy.imagesUrl, preview.images),
+        }
+      : null;
+  const access: Record<'open' | 'cut', Record<string, ChapterAccess>> | null = preview
+    ? { open: previewAccess(preview.manifest, 'open'), cut: previewAccess(preview.manifest, 'cut') }
+    : null;
   const naira = (rev.price_credits ?? 0) * 3;
 
   return (
@@ -249,6 +274,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                   <span>Check your connection and reload. The checks above still apply.</span>
                 </div>
               ) : (
+                <SpotBookProvider book={book}>
                 <div className="ct-phones">
                   {pages.map(p => (
                     <div className="ct-pwrap" key={p.label}>
@@ -258,13 +284,16 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                             <span>{title}</span>
                             <span>{p.chapter}</span>
                           </div>
-                          <div className="ct-reader">
+                          <SpotReader
+                            paraId={access ? p.para_id : null}
+                            access={access ? (p.cut ? access.cut : access.open) : {}}
+                            note={p.cut ? <div className="ct-cut">{p.cut}</div> : undefined}
+                          >
                             <h4>{p.title}</h4>
                             {p.paras.map((t, i) => (
                               <p key={i}>{t}</p>
                             ))}
-                            {p.cut && <div className="ct-cut">{p.cut}</div>}
-                          </div>
+                          </SpotReader>
                           <div className="ct-rfoot">
                             <div className="meter">
                               <i></i>
@@ -299,6 +328,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                     <small>{results[2]!.ok ? 'Readable as a thumbnail' : 'Flagged: check it'}</small>
                   </div>
                 </div>
+                </SpotBookProvider>
               )}
             </div>
           </div>

@@ -63,6 +63,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"analytics_imports": {
+                  Row: {
+                    "day": string,"dim": NonNullable<Json>,"imported_at": string,"metric": string,"source": string,"value": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "day": string,"dim"?: NonNullable<Json>,"imported_at"?: string,"metric": string,"source": string,"value": number
+                  }
+                  Update: {
+                    "day"?: string,"dim"?: NonNullable<Json>,"imported_at"?: string,"metric"?: string,"source"?: string,"value"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"analytics_outbox": {
                   Row: {
                     "created_at": string,"distinct_id": string,"event": string,"id": number,"props": NonNullable<Json>,"sent_at": string | null
@@ -7000,6 +7014,9 @@ isOneToOne: false
 "am_group_member":
 { Args: { "p_group": string }; Returns: boolean
                            },
+"analytics_import_save":
+{ Args: { "p_from": string,"p_metric": string,"p_rows": Json,"p_to": string }; Returns: number
+                           },
 "analytics_outbox_done":
 { Args: { "p_ids": (number)[] }; Returns: number
                            },
@@ -8700,6 +8717,9 @@ isOneToOne: false
 "sign_out_my_sessions":
 { Args: { "p_session"?: string }; Returns: number
                            },
+"signup_sources":
+{ Args: Record<PropertyKey, never>; Returns: (string)[]
+                           },
 "sla_watch":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -8730,6 +8750,9 @@ isOneToOne: false
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
 "staff_analytics_growth":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"staff_analytics_imports":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
 "staff_analytics_reading":
