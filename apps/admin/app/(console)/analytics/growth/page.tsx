@@ -3,10 +3,20 @@ import type { CSSProperties } from 'react';
 import { NoAccess } from '@/components/no-access';
 import { requireStaff } from '@/lib/staff';
 import { serverSupabase } from '@/lib/supabase/server';
-import { count, dash, num } from '../data';
+import { change, count, dash, num } from '../data';
 import { period } from '../period';
 import { AnalyticsFrame, Hbars, NoData } from '../shared';
-import { EMPTY_GROWTH, churnDelta, cohortRows, day30, promoLabel, type Growth } from './growth';
+import {
+  EMPTY_GROWTH,
+  EMPTY_IMPORTS,
+  churnDelta,
+  cohortRows,
+  day30,
+  promoLabel,
+  sourceBars,
+  type Growth,
+  type Imports,
+} from './growth';
 
 export const metadata: Metadata = { title: 'Analytics: Growth · Arpedia Admin' };
 
@@ -32,12 +42,16 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
   if (!staff.permissions.includes('view_analytics'))
     return <NoAccess page="analytics" label="Analytics" role={staff.role} />;
   const supabase = await serverSupabase();
-  const [funnelRes, growthRes] = await Promise.all([
+  const [funnelRes, growthRes, importsRes] = await Promise.all([
     supabase.rpc('staff_analytics_funnel', { p_from: p.from, p_to: p.to }),
     supabase.rpc('staff_analytics_growth', { p_from: p.from, p_to: p.to }),
+    supabase.rpc('staff_analytics_imports', { p_from: p.from, p_to: p.to }),
   ]);
-  const f = (funnelRes.data as unknown as Funnel | null) ?? {};
+  const imp = (importsRes.data as unknown as Imports | null) ?? EMPTY_IMPORTS;
+  // Installs open the funnel once the Play Console export has been imported (15-21).
+  const f: Funnel = { ...((funnelRes.data as unknown as Funnel | null) ?? {}), installed: imp.installs };
   const g = (growthRes.data as unknown as Growth | null) ?? EMPTY_GROWTH;
+  const sources = sourceBars(imp.sources);
   const cohorts = cohortRows(g);
   const d30 = day30(cohorts);
   const churn = g.churn;
@@ -63,14 +77,20 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
       kpis={[
         {
           label: 'Installs',
-          value: dash,
+          value: imp.installs == null ? dash : count(imp.installs),
+          delta: change(imp.installs, imp.installs_previous),
           sub: 'From Google Play',
-          explain: 'Installs come from the Google Play and App Store import, which is not connected yet.',
+          explain: imp.installs_through
+            ? `New users who installed from Google Play, from the Play Console export (imported nightly; a day or two behind; last day ${new Date(imp.installs_through).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}).`
+            : 'New users who installed from Google Play, from the Play Console export. Nothing has been imported yet.',
         },
         {
           label: 'New subscribers',
           value: f.subscribed == null ? dash : count(f.subscribed),
-          sub: f.subscribed != null && top ? `${pct(f.subscribed, top)} of sign-ups` : 'Starts with subscriptions',
+          sub:
+            f.subscribed != null && top
+              ? `${pct(f.subscribed, top)} of ${imp.installs ? 'installs' : 'sign-ups'}`
+              : 'Starts with subscriptions',
           explain: 'Readers who signed up in the period and then subscribed (Supabase and RevenueCat).',
         },
         {
@@ -117,7 +137,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
                   <div className="note warn">
                     <span className="grow">
                       <b>{`Biggest drop: ${biggest.from.toLowerCase()} to ${biggest.to.toLowerCase()} (${Math.round(100 * biggest.left)}% leave)`}</b>
-                      Installs join the funnel once the store import is connected.
+                      {imp.installs == null && 'Installs join the funnel once the store import has run.'}
                     </span>
                   </div>
                 )}
@@ -130,7 +150,11 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
             <h2>Signups by source</h2>
           </div>
           <div className="panel__body">
-            {signups == null ? (
+            {sources.length ? (
+              <Hbars
+                rows={sources.map(r => ({ label: r.label, share: r.share, value: count(r.signups, true), muted: r.muted }))}
+              />
+            ) : signups == null ? (
               <NoData why="Uses the link or referral code each reader came with." />
             ) : (
               <Hbars rows={[{ label: 'Unknown', share: 100, value: count(signups, true), muted: true }]} />

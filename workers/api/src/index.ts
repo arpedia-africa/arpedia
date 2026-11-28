@@ -16,6 +16,7 @@ import { drainNotify } from './routes/15/notify';
 import { checkClaimSimilarity } from './routes/14/claims';
 import { drainTrustOutbox } from './routes/14/trust';
 import { flushAnalytics } from './routes/15/analytics';
+import { analyticsImport, isImportTime } from './routes/15/analytics-import';
 
 const app = new Hono<AppEnv>();
 
@@ -46,7 +47,7 @@ export default {
   // author payouts (flow 13), integration health checks (flow 16) and pushes, campaigns and exports
   // (flow 15), notices from every flow and the trust outbox (flow 15 dispatcher, flow 14), the copyright claims passage check (flow 14) and server analytics (flow 15); on the
   // hour, payouts pending over 48 hours; every 10 minutes, statements for released months; daily,
-  // the payout-day reminder to Finance (flow 13); weekly (Monday 03:00 in Lagos), store_reconcile (flow 09).
+  // the payout-day reminder to Finance (flow 13) and, at 03:30, the store and PostHog import (flow 15); weekly (Monday 03:00 in Lagos), store_reconcile (flow 09).
   scheduled: (event, env, ctx) =>
     ctx.waitUntil(
       Promise.allSettled([
@@ -69,6 +70,7 @@ export default {
         new Date(event.scheduledTime).getUTCHours() === 8
           ? [payoutReminder(env)]
           : []),
+        ...(isImportTime(event.scheduledTime) ? [analyticsImport(env, event.scheduledTime)] : []),
         ...(isReconcileTime(event.scheduledTime) ? [storeReconcile(env, event.scheduledTime)] : []),
       ]),
     ),

@@ -440,7 +440,8 @@ After Part 15, say **"start the cloud build"**. I then:
 | RevenueCat | `REVENUECAT_ANDROID_PUBLIC_KEY` `REVENUECAT_IOS_PUBLIC_KEY` `REVENUECAT_SECRET_KEY` |
 | Flutterwave | `FLW_TEST_PUBLIC_KEY` `FLW_TEST_SECRET_KEY` `FLW_TEST_ENCRYPTION_KEY` (later `FLW_LIVE_*`) |
 | Sentry | `SENTRY_DSN_MOBILE` `SENTRY_DSN_ADMIN` `SENTRY_DSN_WORKERS` `SENTRY_AUTH_TOKEN` |
-| PostHog | `POSTHOG_KEY` `POSTHOG_HOST` |
+| PostHog | `POSTHOG_KEY` `POSTHOG_HOST` `POSTHOG_PROJECT_ID` `POSTHOG_PERSONAL_API_KEY` (query read, for signups by source) |
+| Play Console reports (installs on Analytics → Growth) | `PLAY_REPORTS_BUCKET` `PLAY_REPORTS_SERVICE_ACCOUNT`📎 |
 | Resend | `RESEND_API_KEY` |
 | Content check (optional, open question 52) | `MODERATION_API_KEY` (moderation-model key; unset → the content-policy check is skipped and books are not blocked) |
 
