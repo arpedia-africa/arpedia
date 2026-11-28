@@ -91,8 +91,8 @@ const FRONT_TITLES: [RegExp, FrontMatter][] = [
 // Contents entries that are not chapters we count: front matter and the cover.
 const NOT_A_CHAPTER = [/^cover$/i, ...FRONT_TITLES.map(([re]) => re)];
 const CHAPTER_LINE = /^(chapter\s+[\w-]+|prologue|epilogue|\d{1,3}\.)$/i;
-const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
-const IMAGE_MAX_PX = 1600;
+export const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+export const IMAGE_MAX_PX = 1600;
 const MIN_WORDS = 1000;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const escText = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
