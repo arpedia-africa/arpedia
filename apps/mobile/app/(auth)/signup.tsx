@@ -15,6 +15,7 @@ import {
   registerDevice,
 } from '../../features/01/session';
 import { onboardingClock } from '../../features/01/steps';
+import { prefetchSignupSource, signupSource } from '../../features/15/signupSource';
 
 // Policy versions the reader accepts by creating an account (stored with the time, rule 1).
 const TERMS_VERSION = 1;
@@ -39,6 +40,7 @@ export default function Signup() {
 
   useEffect(() => {
     onboardingClock.start();
+    prefetchSignupSource();
     track('signup_started');
   }, [track]);
 
@@ -74,7 +76,7 @@ export default function Signup() {
         else setErrors({ form: COPY.generic });
         return;
       }
-      track('signup_completed', { method: 'email' });
+      void signupSource().then((source) => track('signup_completed', { method: 'email', source }));
       if (!data.session) {
         // Email confirmation is not required (rule 5); a project that requires it lands on Log in.
         router.replace({ pathname: '/(auth)/login', params: { confirm: '1' } });
@@ -100,7 +102,9 @@ export default function Signup() {
       const { data } = await supabase.auth.getUser();
       // An account Google already had signs in here too: that is a login, not a sign-up.
       const fresh = !!data.user && Date.now() - Date.parse(data.user.created_at) < 5 * 60_000;
-      track(fresh ? 'signup_completed' : 'login_succeeded', { method: 'google' });
+      if (fresh)
+        void signupSource().then((source) => track('signup_completed', { method: 'google', source }));
+      else track('login_succeeded', { method: 'google' });
       if (data.user) await afterSignIn(data.user.id);
     } catch (e) {
       setErrors({

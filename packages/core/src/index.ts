@@ -26,5 +26,6 @@ export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from '
 export * from './profile';
 export * from './appeal';
 export * from './applinks';
+export * from './signupSource';
 export * from './claims';
 export * from './claimAnswer';
