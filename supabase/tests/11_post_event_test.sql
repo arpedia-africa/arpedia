@@ -19,12 +19,14 @@ language sql as $$
   select set_config('request.jwt.claims', jsonb_build_object('sub', uid, 'role', 'authenticated')::text, true)
 $$;
 grant execute on function pg_temp.as_user(text) to authenticated;
+create temp table res (v jsonb);
+grant all on res to authenticated;
 
 -- Through Studio's Post an update.
 set local role authenticated;
 select pg_temp.as_user('11140000-0000-4000-a000-000000000001');
-select public.publish_author_post('Chapter 12 is out', 'Thank you for reading!', '11140000-0000-4000-b000-000000000001');
-select public.publish_author_post('Chapter 12 is out', 'Thank you for reading!', '11140000-0000-4000-b000-000000000001');
+insert into res select public.publish_author_post('Chapter 12 is out', 'Thank you for reading!', '11140000-0000-4000-b000-000000000001');
+insert into res select public.publish_author_post('Chapter 12 is out', 'Thank you for reading!', '11140000-0000-4000-b000-000000000001');
 reset role;
 select is(pg_temp.n(), 1, 'one event per post; a retry returns the first post and adds nothing');
 select is((select props from public.analytics_outbox where event = 'author_post_created'),
