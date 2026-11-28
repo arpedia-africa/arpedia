@@ -5610,6 +5610,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"web_checkouts": {
+                  Row: {
+                    "amount_kobo": number,"code": string,"created_at": string,"credits": number,"flutterwave_plan_id": string | null,"kind": string,"tx_ref": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_kobo": number,"code": string,"created_at"?: string,"credits": number,"flutterwave_plan_id"?: string | null,"kind": string,"tx_ref": string,"user_id": string
+                  }
+                  Update: {
+                    "amount_kobo"?: number,"code"?: string,"created_at"?: string,"credits"?: number,"flutterwave_plan_id"?: string | null,"kind"?: string,"tx_ref"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "web_checkouts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "web_checkouts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "public_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"web_payment_plans": {
+                  Row: {
+                    "created_at": string,"flutterwave_plan_id": string,"plan_code": string,"price_kobo": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"flutterwave_plan_id": string,"plan_code": string,"price_kobo": number
+                  }
+                  Update: {
+                    "created_at"?: string,"flutterwave_plan_id"?: string,"plan_code"?: string,"price_kobo"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "web_payment_plans_plan_code_fkey"
+      columns: ["plan_code"]
+isOneToOne: false
+      referencedRelation: "plans"
+      referencedColumns: ["code"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -8645,6 +8691,9 @@ isOneToOne: false
 "set_user_genres":
 { Args: { "p_genre_ids": (string)[] }; Returns: undefined
                            },
+"set_web_payment_plan":
+{ Args: { "p_flutterwave_plan_id": string,"p_tx_ref": string }; Returns: string
+                           },
 "set_weekly_reading":
 { Args: { "p_book": string,"p_from"?: number,"p_group": string,"p_note"?: string,"p_to"?: number }; Returns: undefined
                            },
@@ -8900,6 +8949,9 @@ isOneToOne: false
       } },
 "start_author_dm":
 { Args: { "p_author": string }; Returns: Json
+                           },
+"start_web_checkout":
+{ Args: { "p_code": string,"p_kind": string,"p_user": string }; Returns: Json
                            },
 "statement_download_key":
 { Args: { "p_id": string }; Returns: string

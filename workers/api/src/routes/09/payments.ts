@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import {
   fwSubscriptionKey,
   normalizeFlutterwaveCharge,
@@ -142,6 +142,120 @@ async function flw<T>(env: Env, path: string, init: RequestInit = {}): Promise<T
     throw new FlwError(res.status, `flutterwave ${path}: ${res.status} ${json?.message ?? ''}`);
   }
   return json.data as T;
+}
+
+// ─── Web checkout (rule 8, spec check 09-3) ─────────────────────────────────
+// POST /v1/payments/web-checkout {kind: plan|topup, code, return_path?} → {link, tx_ref, amount_kobo}
+// Called by the web account page (never the app: Google Play policy). The database writes the
+// tx_ref and picks the price; a plan rides on a Flutterwave payment plan (web renewals,
+// OPEN-QUESTIONS 17), created once per plan and price. Flutterwave then sends the reader back to
+// the website with `status`, `tx_ref` and `transaction_id`; credits come only from the webhook.
+
+/** Flutterwave payment-plan intervals for our plan lengths. */
+const FLW_INTERVAL: Record<number, string> = { 1: 'monthly', 3: 'quarterly', 6: 'bi-anually', 12: 'yearly' };
+
+const CHECKOUT_ERRORS: Record<string, { status: 400 | 403 | 404 | 409; message: string }> = {
+  bad_request: { status: 400, message: 'Choose a plan or a top-up.' },
+  no_email: { status: 400, message: 'Add an email address to your account to pay on the web.' },
+  account_unavailable: { status: 403, message: 'This account cannot pay right now.' },
+  unknown_product: { status: 404, message: 'That plan or top-up is not on sale.' },
+  already_subscribed: { status: 409, message: 'You already have a plan. Manage it from your account.' },
+};
+
+interface WebCheckout {
+  tx_ref: string;
+  kind: 'plan' | 'topup';
+  code: string;
+  amount_kobo: number;
+  credits: number;
+  months: number | null;
+  title: string;
+  email: string;
+  name: string | null;
+  flutterwave_plan_id: string | null;
+}
+
+/** Only a path on our own website: no scheme, no `//host`, no backslashes. */
+export function safeReturnPath(v: unknown): string {
+  if (
+    typeof v !== 'string' ||
+    !/^\/[A-Za-z0-9\-._~/?=&%]*$/.test(v) ||
+    v.startsWith('//') ||
+    v.length > 200
+  ) {
+    return '/account';
+  }
+  return v;
+}
+
+payments.post('/web-checkout', requireUser, async (c) => {
+  try {
+    return await webCheckout(c);
+  } catch (e) {
+    // Flutterwave refused or is down: the page offers Try again; the checkout row grants nothing.
+    if (!(e instanceof FlwError)) throw e;
+    console.error('web checkout', e.message);
+    return c.json(
+      { error: 'provider_unavailable', message: 'Payment is not available right now. Try again.' },
+      502,
+    );
+  }
+});
+
+async function webCheckout(c: Context<AppEnv>) {
+  if (!c.env.FLUTTERWAVE_SECRET_KEY) return c.json({ error: 'not_configured' }, 503);
+  const body = await c.req
+    .json<{ kind?: unknown; code?: unknown; return_path?: unknown }>()
+    .catch(() => ({}) as Record<string, unknown>);
+  const kind = body.kind === 'plan' || body.kind === 'topup' ? body.kind : null;
+  const code = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
+  if (!kind || !code)
+    return c.json({ error: 'bad_request', message: CHECKOUT_ERRORS.bad_request!.message }, 400);
+
+  const db = serviceDb(c.env);
+  const { data, error } = await db.rpc('start_web_checkout', {
+    p_user: c.get('user').sub!,
+    p_kind: kind,
+    p_code: code,
+  });
+  if (error) {
+    const known = CHECKOUT_ERRORS[error.message];
+    if (known) return c.json({ error: error.message, message: known.message }, known.status);
+    throw new Error(`start_web_checkout: ${error.message}`);
+  }
+  const co = data as unknown as WebCheckout;
+
+  let planId = co.flutterwave_plan_id;
+  if (co.kind === 'plan' && !planId) {
+    const interval = FLW_INTERVAL[co.months ?? 0];
+    if (!interval) throw new Error(`web checkout: no Flutterwave interval for ${co.months} months`);
+    const created = await flw<{ id: number }>(c.env, '/payment-plans', {
+      method: 'POST',
+      body: JSON.stringify({ amount: co.amount_kobo / 100, name: `${co.title} ${co.amount_kobo}`, interval }),
+    });
+    const { data: saved, error: saveErr } = await db.rpc('set_web_payment_plan', {
+      p_tx_ref: co.tx_ref,
+      p_flutterwave_plan_id: String(created.id),
+    });
+    if (saveErr) throw new Error(`set_web_payment_plan: ${saveErr.message}`);
+    planId = saved as string;
+  }
+
+  const web = (c.env.WEB_URL ?? 'https://arpedia.africa').replace(/\/+$/, '');
+  const page = await flw<{ link: string }>(c.env, '/payments', {
+    method: 'POST',
+    body: JSON.stringify({
+      tx_ref: co.tx_ref,
+      amount: co.amount_kobo / 100,
+      currency: 'NGN',
+      redirect_url: `${web}${safeReturnPath(body.return_path)}`,
+      ...(planId ? { payment_plan: Number(planId) } : {}),
+      customer: { email: co.email, ...(co.name ? { name: co.name } : {}) },
+      customizations: { title: co.title },
+      meta: { kind: co.kind, code: co.code, credits: co.credits },
+    }),
+  });
+  return c.json({ link: page.link, tx_ref: co.tx_ref, amount_kobo: co.amount_kobo, credits: co.credits });
 }
 
 interface FlwWebhook {
