@@ -66,6 +66,18 @@ export function routeForStep(step: string | undefined) {
   return screen ? (`/(onboarding)/${screen}` as const) : ('/home' as const);
 }
 
+/**
+ * Edge case: a plan bought on the web (flow 09, Flutterwave) skips the paywall. True when the
+ * reader's subscription still runs; offline or a failed read says false, so the paywall shows.
+ */
+export async function hasLivePlan() {
+  const { data, error } = await supabase.rpc('get_plan_screen');
+  if (error) return false;
+  const sub = (data as { subscription: { status: string; period_end: string } | null } | null)?.subscription;
+  if (!sub || sub.status === 'expired' || sub.status === 'refunded') return false;
+  return new Date(sub.period_end).getTime() > Date.now();
+}
+
 /** After any sign-in: register the phone, then Home or the first unfinished onboarding step. */
 export async function afterSignIn(uid: string) {
   void registerDevice();
