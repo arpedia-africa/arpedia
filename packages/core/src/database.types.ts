@@ -8794,6 +8794,9 @@ isOneToOne: false
 "staff_send_password_reset":
 { Args: { "p_user": string }; Returns: string
                            },
+"staff_session_fresh":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "staff_set_export_schedule":
 { Args: { "p_enabled": boolean,"p_kind": string }; Returns: undefined
                            },
