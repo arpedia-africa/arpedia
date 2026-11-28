@@ -24,6 +24,7 @@ interface Form {
   rollover: string;
   pause: string;
   autoUnlock: boolean;
+  payg: boolean;
 }
 
 const toForm = (r: Rules): Form => ({
@@ -37,6 +38,7 @@ const toForm = (r: Rules): Form => ({
   rollover: String(r.rollover_cap_plans),
   pause: String(r.pause_max_months),
   autoUnlock: r.auto_unlock_default,
+  payg: r.pay_as_you_read !== false,
 });
 
 /** The form as rules, or null while a field isn't a number. Naira become kobo. */
@@ -53,6 +55,7 @@ function toRules(f: Form): Edits | null {
     rollover_cap_plans: n(f.rollover),
     pause_max_months: n(f.pause),
     auto_unlock_default: f.autoUnlock,
+    pay_as_you_read: f.payg,
   };
   return Object.values(out).every(v => typeof v === 'boolean' || Number.isFinite(v)) ? out : null;
 }
@@ -349,7 +352,14 @@ export function RulesForm({
                       <b>Pay as you read</b>
                       <small>Readers can pay per chapter instead of upfront. Same total, re-reading free.</small>
                     </span>
-                    <span className="switch on" role="switch" aria-checked="true" aria-disabled="true" aria-label="Pay as you read"></span>
+                    <button
+                      className={`switch${f.payg ? ' on' : ''}`}
+                      type="button"
+                      role="switch"
+                      aria-checked={f.payg}
+                      aria-label="Pay as you read"
+                      onClick={() => setF(p => ({ ...p, payg: !p.payg }))}
+                    ></button>
                   </div>
                   <div className="setrow">
                     <span className="setrow__b">
