@@ -15,8 +15,7 @@
 create schema if not exists audit_parts;
 revoke all on schema audit_parts from public, anon, authenticated, service_role;
 
-lock table public.audit_log in access exclusive mode;
-
+-- The rename takes an access exclusive lock that holds until the migration commits.
 alter table public.audit_log rename to audit_log_old;
 alter index public.audit_log_pkey rename to audit_log_old_pkey;
 alter sequence public.audit_log_id_seq rename to audit_log_old_id_seq;
