@@ -18,8 +18,8 @@ export type AuthorEvent =
   | 'chapters_confirmed'
   | 'book_submitted'
   | 'book_update_submitted'
-  | 'studio_earnings_viewed'
-  | 'author_post_created';
+  | 'studio_earnings_viewed';
+// author_post_created comes from a table trigger on the server (20261128052742_11_post_event.sql).
 
 type Track = (event: AuthorEvent, props?: Record<string, string | number | boolean>) => void;
 const noop: Track = () => {};

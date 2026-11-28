@@ -8,7 +8,6 @@ import { useSession } from '../../../features/01/session';
 import { rpcError } from '../../../features/03/UnlockSheet';
 import { useOnline } from '../../../features/03/book';
 import { authorPostsKey } from '../../../features/08/data';
-import { useTrack } from '../../../features/11/analytics';
 import { STUDIO } from '../../../features/11/application';
 import { compact, useStudioBooks, useStudioHome } from '../../../features/11/studio';
 import { BookPicker, StudioPostView, type StudioPostValues } from '../../../features/11/StudioCommsViews';
@@ -61,7 +60,6 @@ function postError(e: unknown): Errors {
 export default function StudioPost() {
   const toast = useToast();
   const qc = useQueryClient();
-  const track = useTrack();
   const online = useOnline();
   const uid = useSession()?.user.id;
   const home = useStudioHome(uid);
@@ -109,8 +107,9 @@ export default function StudioPost() {
       if (error) throw error;
       return data as { post_id: string; repeat: boolean };
     },
-    onSuccess: ({ post_id, repeat }) => {
-      if (!repeat) track('author_post_created', { has_book: !!book });
+    // author_post_created comes from a table trigger on the server
+    // (20261128052742_11_post_event.sql); sending it here too would count each post twice.
+    onSuccess: ({ post_id }) => {
       AsyncStorage.removeItem(key).catch(() => {});
       if (uid) void qc.invalidateQueries({ queryKey: authorPostsKey(uid) });
       toast({ message: 'Posted to your followers' });
