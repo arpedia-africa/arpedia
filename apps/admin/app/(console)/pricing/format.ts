@@ -50,6 +50,8 @@ export interface Rules {
   rollover_cap_plans: number;
   pause_max_months: number;
   auto_unlock_default: boolean;
+  /** Rule 31. Versions saved before the switch existed have no key: On. */
+  pay_as_you_read?: boolean;
   store_fee_pct: number;
 }
 
@@ -64,23 +66,27 @@ export const RULE_LABEL: Record<keyof Rules, string> = {
   rollover_cap_plans: 'Rollover cap',
   pause_max_months: 'Longest pause',
   auto_unlock_default: 'Unlock the next chapter automatically',
+  pay_as_you_read: 'Pay as you read',
   store_fee_pct: 'Store fee',
 };
 
 /** A rule value as staff read it: kobo as naira, flags as On or Off. */
 export function ruleValue(key: keyof Rules, v: Rules[keyof Rules]): string {
   if (key === 'credit_value_kobo' || key === 'author_rate_kobo') return nairaDec(Number(v), Number(v) % 100 !== 0);
-  if (key === 'auto_unlock_default') return v ? 'On' : 'Off';
+  if (key === 'auto_unlock_default' || key === 'pay_as_you_read') return v === false ? 'Off' : 'On';
   if (key === 'preview_pct' || key === 'store_fee_pct') return `${v}%`;
   return String(v);
 }
 
 /** "Words per standard page 275 to 250" for every rule that differs. */
 export function describeChange(before: Partial<Rules> | null, after: Partial<Rules>): string[] {
+  // A version saved before Pay as you read existed has no key: it was On.
+  const was: Partial<Rules> | null = before && { pay_as_you_read: true, ...before };
+  const now: Partial<Rules> = before ? { pay_as_you_read: true, ...after } : after;
   return (Object.keys(RULE_LABEL) as (keyof Rules)[]).flatMap(k => {
-    if (after[k] === undefined || before?.[k] === after[k]) return [];
-    if (before?.[k] === undefined) return [`${RULE_LABEL[k]} set to ${ruleValue(k, after[k])}`];
-    return [`${RULE_LABEL[k]} ${ruleValue(k, before[k])} to ${ruleValue(k, after[k])}`];
+    if (now[k] === undefined || was?.[k] === now[k]) return [];
+    if (was?.[k] === undefined) return [`${RULE_LABEL[k]} set to ${ruleValue(k, now[k])}`];
+    return [`${RULE_LABEL[k]} ${ruleValue(k, was[k])} to ${ruleValue(k, now[k])}`];
   });
 }
 
