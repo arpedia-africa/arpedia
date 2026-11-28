@@ -21,6 +21,7 @@ create function public.signup_sources() returns text[]
 language sql immutable set search_path = '' as $$
   select array['play_search', 'book_link', 'church', 'instagram', 'author_code', 'unknown']
 $$;
+revoke all on function public.signup_sources() from public, anon, authenticated;
 
 -- Replace one metric's days from p_from to p_to with p_rows [{day, dim, value}]: the stores restate
 -- recent days, so a day is always the last import's number. Days with no row are cleared.
