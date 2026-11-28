@@ -62,6 +62,28 @@ describe('GET /v1/covers/:rev', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it('serves a made JPEG size with ?w=, else the uploaded cover; refuses other widths', async () => {
+    rpc.mockResolvedValue({ data: `src/${REV}/cover`, error: null });
+    const SMALL = new Uint8Array([0xff, 0xd8, 0xff, 0xdb, 1, 2, 3]);
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    objects.set(`src/${REV}/cover`, PNG);
+    objects.set(`cover/${REV}/240.jpg`, SMALL);
+    const sized = await get(`/${REV}?w=240`);
+    expect(sized.status).toBe(200);
+    expect(sized.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(new Uint8Array(await sized.arrayBuffer())).toEqual(SMALL);
+    const fallback = await get(`/${REV}?w=480`);
+    expect(fallback.headers.get('Content-Type')).toBe('image/png');
+    expect((await get(`/${REV}?w=500`)).status).toBe(400);
+    expect((await get(`/${REV}?w=`)).status).toBe(400);
+  });
+
+  it('never serves a size when the database does not release the cover', async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    objects.set(`cover/${REV}/240.jpg`, JPEG);
+    expect((await get(`/${REV}?w=240`)).status).toBe(404);
+  });
+
   it('reports a database failure as a 500', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'down' } });
     expect((await get(`/${REV}`)).status).toBe(500);

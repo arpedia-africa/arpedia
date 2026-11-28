@@ -442,6 +442,7 @@ After Part 15, say **"start the cloud build"**. I then:
 | Sentry | `SENTRY_DSN_MOBILE` `SENTRY_DSN_ADMIN` `SENTRY_DSN_WORKERS` `SENTRY_AUTH_TOKEN` |
 | PostHog | `POSTHOG_KEY` `POSTHOG_HOST` |
 | Resend | `RESEND_API_KEY` |
+| Content check (optional, open question 52) | `MODERATION_API_KEY` (moderation-model key; unset → the content-policy check is skipped and books are not blocked) |
 
 📎 = a file (JSON, .p8, .jks, .plist) in the secrets folder; its line is `NAME=@file-name`.
 
