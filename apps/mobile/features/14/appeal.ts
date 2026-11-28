@@ -2,7 +2,6 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import type { AppealSubject, ModerationRow } from '@arpedia/core';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
-import { useTrack } from './analytics';
 
 // Rule 26: decisions on the reader's own account and the Appeal they offer
 // (`get_my_moderation`, `create_appeal` in 20261120001400_14_trust.sql).
@@ -30,7 +29,6 @@ export interface AppealInput {
 
 /** Send an appeal; the server keeps the 14-day window and one open appeal per decision. */
 export function useCreateAppeal(uid: string | undefined) {
-  const track = useTrack();
   return useMutation({
     mutationFn: async (a: AppealInput) => {
       const { data, error } = await supabase.rpc('create_appeal', {
@@ -41,7 +39,6 @@ export function useCreateAppeal(uid: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_d, a) => track('appeal_created', { subject_type: a.type }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: moderationKey(uid) }),
   });
 }
