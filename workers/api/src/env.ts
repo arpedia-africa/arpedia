@@ -38,6 +38,8 @@ export interface Env {
   REVENUECAT_ENTITLEMENT?: string;
   /** Flow 09: Flutterwave secret key, for verify, refund and subscription calls (secret). */
   FLUTTERWAVE_SECRET_KEY?: string;
+  /** Flow 09: the website origin Flutterwave sends web checkouts back to (default https://arpedia.africa). */
+  WEB_URL?: string;
   /** Flow 09: Flutterwave webhook `verif-hash` (secret). */
   FLUTTERWAVE_WEBHOOK_HASH?: string;
   /** Staging test build: "1" opens /v1/payments/test-store on staging (secret). Ignored on production. */
